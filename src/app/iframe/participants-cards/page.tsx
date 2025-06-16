@@ -87,7 +87,7 @@ function ParticipantCard({ participant }: ParticipantCardProps) {
   return (
     <Card 
       sx={{ 
-        height: '10%',
+        height: '100%',
         borderRadius: 3,
         boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         border: '1px solid #e8eaed',

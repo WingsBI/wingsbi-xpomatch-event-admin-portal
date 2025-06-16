@@ -51,7 +51,7 @@ export default function EventAdminLoginPage() {
       }}
     >
       <Container maxWidth="sm">
-        <Card sx={{ maxWidth: 400, mx: 'auto' }}>
+        <Card sx={{ maxWidth: 450, mx: 'auto' }}>
           <CardContent sx={{ p: 4 }}>
             <Box textAlign="center" mb={3}>
               <Event 

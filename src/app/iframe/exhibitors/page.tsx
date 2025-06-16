@@ -398,7 +398,7 @@ function ExhibitorVisitorsView() {
     });
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2, height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Container maxWidth="xl" sx={{ py: 2, height: '90vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header - Sticky */}
       <Box sx={{
         position: 'sticky',

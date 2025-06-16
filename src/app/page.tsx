@@ -1,39 +1,8 @@
-import { Box, Container, Typography, Card, CardContent, Button, Grid } from '@mui/material';
+import { Box, Container, Typography, Card, CardContent, Button } from '@mui/material';
 import Link from 'next/link';
-import { AdminPanelSettings, Event, People, Business } from '@mui/icons-material';
+import { Event } from '@mui/icons-material';
 
 export default function HomePage() {
-  const portals = [
-    {
-      title: 'IT Admin Portal',
-      description: 'Manage events, create event administrators, and oversee the entire platform.',
-      icon: <AdminPanelSettings fontSize="large" color="primary" />,
-      href: '/auth/it-admin/login',
-      color: '#1976d2',
-    },
-    {
-      title: 'Event Admin Portal',
-      description: 'Manage event details, participants, and send invitations.',
-      icon: <Event fontSize="large" color="secondary" />,
-      href: '/auth/event-admin/login',
-      color: '#dc004e',
-    },
-    {
-      title: 'Visitor Portal',
-      description: 'Register for events and connect with exhibitors.',
-      icon: <People fontSize="large" sx={{ color: '#2e7d32' }} />,
-      href: '/auth/visitor/login',
-      color: '#2e7d32',
-    },
-    {
-      title: 'Exhibitor Portal',
-      description: 'Showcase your business and connect with potential customers.',
-      icon: <Business fontSize="large" sx={{ color: '#ed6c02' }} />,
-      href: '/auth/exhibitor/login',
-      color: '#ed6c02',
-    },
-  ];
-
   return (
     <Box
       sx={{
@@ -56,7 +25,7 @@ export default function HomePage() {
               fontSize: { xs: '2rem', md: '3rem' },
             }}
           >
-            AI Matchmaking Platform
+            Event Management Portal
           </Typography>
           <Typography
             variant="h5"
@@ -68,66 +37,62 @@ export default function HomePage() {
               mx: 'auto',
             }}
           >
-            Connect the right people at the right time with AI-powered event management
+            Manage your events and connect participants
           </Typography>
         </Box>
 
-        <Grid container spacing={4}>
-          {portals.map((portal) => (
-            <Grid item xs={12} sm={6} md={3} key={portal.title}>
-              <Card
+        <Card
+          sx={{
+            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+            borderRadius: 4,
+          }}
+        >
+          <CardContent sx={{ p: 4 }}>
+            <Box textAlign="center" mb={4}>
+              <Box
                 sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-8px)',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
-                  },
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  bgcolor: 'secondary.main',
+                  color: 'white',
+                  mb: 2,
                 }}
               >
-                <CardContent
-                  sx={{
-                    flexGrow: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    p: 3,
-                  }}
-                >
-                  <Box mb={2}>{portal.icon}</Box>
-                  <Typography variant="h6" component="h2" gutterBottom>
-                    {portal.title}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 3, flexGrow: 1 }}
-                  >
-                    {portal.description}
-                  </Typography>
-                  <Button
-                    component={Link}
-                    href={portal.href}
-                    variant="contained"
-                    fullWidth
-                    sx={{
-                      bgcolor: portal.color,
-                      '&:hover': {
-                        bgcolor: portal.color,
-                        filter: 'brightness(1.1)',
-                      },
-                    }}
-                  >
-                    Access Portal
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                <Event sx={{ fontSize: 32 }} />
+              </Box>
+              <Typography variant="h4" component="h1" gutterBottom fontWeight="600">
+                Event Admin Login
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Access your event management dashboard
+              </Typography>
+            </Box>
+
+            <Button
+              component={Link}
+              href="/auth/event-admin/login"
+              variant="contained"
+              fullWidth
+              size="large"
+              sx={{
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                bgcolor: 'secondary.main',
+                '&:hover': {
+                  bgcolor: 'secondary.dark',
+                },
+              }}
+            >
+              Login to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
 
         <Box textAlign="center" mt={6}>
           <Typography
@@ -136,7 +101,7 @@ export default function HomePage() {
               color: 'rgba(255, 255, 255, 0.7)',
             }}
           >
-            © 2024 AI Matchmaking Platform. All rights reserved.
+            © 2024 Event Management Portal. All rights reserved.
           </Typography>
         </Box>
       </Container>

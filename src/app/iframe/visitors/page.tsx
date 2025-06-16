@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { 
   Box, 
   Card, 
@@ -59,9 +59,10 @@ interface ExhibitorCardProps {
     };
   };
   visitorInterests: string[];
+  isClient: boolean;
 }
 
-function ExhibitorCard({ exhibitor, visitorInterests }: ExhibitorCardProps) {
+function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardProps) {
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -81,7 +82,10 @@ function ExhibitorCard({ exhibitor, visitorInterests }: ExhibitorCardProps) {
     )
   ) || [];
 
-  const matchScore = Math.min(95, 60 + (commonInterests.length * 10) + Math.floor(Math.random() * 15));
+  // Calculate match score only on client side
+  const matchScore = isClient ? (() => {
+    return Math.min(95, 60 + (commonInterests.length * 10) + Math.floor(Math.random() * 15));
+  })() : 0;
 
   return (
     <Card 
@@ -315,7 +319,13 @@ function ExhibitorCardSkeleton() {
 function VisitorExhibitorsView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [industryFilter, setIndustryFilter] = useState('All Industries');
+  const [isClient, setIsClient] = useState(false);
   
+  // Add useEffect to handle client-side rendering
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Get a sample visitor (you can make this dynamic based on URL params or login)
   const currentVisitor = mockVisitors[0]; // Sample: Rahul Sharma
   const visitorInterests = currentVisitor.interests || [];
@@ -350,9 +360,18 @@ function VisitorExhibitorsView() {
     });
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
-      {/* Header */}
-      <Box mb={4}>
+    <Container maxWidth="xl" sx={{ py: 2, height: '90vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Header - Sticky */}
+      <Box sx={{
+        position: 'sticky',
+        top: 0,
+        bgcolor: '#fafbfc',
+        // pt: 2,
+        // pb: 2,
+        zIndex: 1,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}>
         <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1, color: '#202124' }}>
           Recommended Exhibitors
         </Typography>
@@ -366,100 +385,115 @@ function VisitorExhibitorsView() {
             sx={{ bgcolor: '#e8f0fe', color: '#1a73e8' }}
           />
         </Box>
-      </Box>
 
-      {/* Search and Filter Bar */}
-      <Box display="flex" gap={2} mb={4} alignItems="center">
-        <TextField
-          fullWidth
-          placeholder="Search exhibitors by company, services, or industry..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            bgcolor: 'white',
-            borderRadius: 2,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              '& fieldset': {
-                borderColor: '#e8eaed',
-              },
-              '&:hover fieldset': {
-                borderColor: '#dadce0',
-              },
-              '&.Mui-focused fieldset': {
-                borderColor: '#1a73e8',
-              },
-            },
-          }}
-        />
-        
-        <FormControl sx={{ minWidth: 200 }}>
-          <Select
-            value={industryFilter}
-            onChange={(e) => setIndustryFilter(e.target.value)}
+        {/* Search and Filter Bar */}
+        <Box display="flex" gap={2} mt={3} alignItems="center">
+          <TextField
+            fullWidth
+            placeholder="Search exhibitors by company, services, or industry..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            }}
             sx={{
               bgcolor: 'white',
               borderRadius: 2,
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#e8eaed',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#dadce0',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#1a73e8',
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                '& fieldset': {
+                  borderColor: '#e8eaed',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#dadce0',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#1a73e8',
+                },
               },
             }}
-          >
-            {industries.map((industry) => (
-              <MenuItem key={industry} value={industry}>
-                {industry}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          />
+          
+          <FormControl sx={{ minWidth: 200 }}>
+            <Select
+              value={industryFilter}
+              onChange={(e) => setIndustryFilter(e.target.value)}
+              sx={{
+                bgcolor: 'white',
+                borderRadius: 2,
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#e8eaed',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#dadce0',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1a73e8',
+                },
+              }}
+            >
+              {industries.map((industry) => (
+                <MenuItem key={industry} value={industry}>
+                  {industry}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        {/* Stats */}
-        <Box display="flex" gap={2} alignItems="center">
-          <Box display="flex" alignItems="center" gap={0.5}>
-            <TrendingUp sx={{ color: '#4caf50', fontSize: 18 }} />
-            <Typography variant="body2" color="text.secondary">
-              {filteredExhibitors.filter(e => {
-                const common = e.interests?.filter(interest => 
-                  visitorInterests.some(vi => vi.toLowerCase().includes(interest.toLowerCase()))
-                ).length || 0;
-                return common > 0;
-              }).length} Matches
-            </Typography>
+          {/* Stats */}
+          <Box display="flex" gap={2} alignItems="center">
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <TrendingUp sx={{ color: '#4caf50', fontSize: 18 }} />
+              <Typography variant="body2" color="text.secondary">
+                {filteredExhibitors.filter(e => {
+                  const common = e.interests?.filter(interest => 
+                    visitorInterests.some(vi => vi.toLowerCase().includes(interest.toLowerCase()))
+                  ).length || 0;
+                  return common > 0;
+                }).length} Matches
+              </Typography>
+            </Box>
           </Box>
         </Box>
       </Box>
 
-      <Grid container spacing={3}>
-        {filteredExhibitors.map((exhibitor) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
-            <ExhibitorCard exhibitor={exhibitor} visitorInterests={visitorInterests} />
-          </Grid>
-        ))}
-      </Grid>
+      {/* Scrollable Cards List with invisible scrollbar */}
+      <Box sx={{
+        flexGrow: 1,
+        overflowY: 'auto',
+        mt: 3,
+        // Hide scrollbar for Chrome, Safari and Opera
+        '&::-webkit-scrollbar': {
+          width: 0,
+          background: 'transparent',
+        },
+        // Hide scrollbar for IE, Edge and Firefox
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      }}>
+        <Grid container spacing={3}>
+          {filteredExhibitors.map((exhibitor) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
+              <ExhibitorCard exhibitor={exhibitor} visitorInterests={visitorInterests} isClient={isClient} />
+            </Grid>
+          ))}
+        </Grid>
 
-      {filteredExhibitors.length === 0 && (
-        <Box textAlign="center" py={8}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No exhibitors found
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Try adjusting your search or filter criteria
-          </Typography>
-        </Box>
-      )}
+        {filteredExhibitors.length === 0 && (
+          <Box textAlign="center" py={8}>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No exhibitors found
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Try adjusting your search or filter criteria
+            </Typography>
+          </Box>
+        )}
+      </Box>
     </Container>
   );
 }

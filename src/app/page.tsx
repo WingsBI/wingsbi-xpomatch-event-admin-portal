@@ -1,6 +1,7 @@
 import { Box, Container, Typography, Card, CardContent, Button } from '@mui/material';
 import Link from 'next/link';
 import { Event } from '@mui/icons-material';
+import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 
 export default function HomePage() {
   return (
@@ -15,6 +16,9 @@ export default function HomePage() {
     >
       <Container maxWidth="lg">
         <Box textAlign="center" mb={6}>
+          <Box display="flex" justifyContent="flex-end" mb={2}>
+            <SimpleThemeSelector />
+          </Box>
           <Typography
             variant="h1"
             component="h1"
@@ -45,6 +49,8 @@ export default function HomePage() {
           sx={{
             boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
             borderRadius: 4,
+            maxWidth: 400,
+            mx: 'auto',
           }}
         >
           <CardContent sx={{ p: 4 }}>

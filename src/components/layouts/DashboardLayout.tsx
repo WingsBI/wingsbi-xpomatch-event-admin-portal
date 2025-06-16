@@ -98,7 +98,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
       <Box
         sx={{
           p: 3,
-          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
           color: 'white',
         }}
       >
@@ -121,12 +121,22 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
               sx={{
                 borderRadius: 2,
                 '&:hover': {
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  },
+                },
+                '&.Mui-selected': {
                   backgroundColor: 'primary.light',
                   color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  },
                 },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 40 }}>
+              <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />

@@ -28,6 +28,7 @@ import {
 import { Event, Participant, DashboardStats } from '@/types';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
+import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 import { mockVisitors, mockExhibitors, mockEvent, mockStats } from '@/lib/mockData';
 
 export default function EventAdminDashboard() {
@@ -142,6 +143,14 @@ export default function EventAdminDashboard() {
               </ListItem>
             ))}
           </List>
+          
+          {/* Theme Selector in Navigation */}
+          <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', mt: 'auto' }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Portal Theme
+            </Typography>
+            <SimpleThemeSelector variant="button" showLabel />
+          </Box>
         </Box>
 
         {/* Main Content */}
@@ -154,6 +163,14 @@ export default function EventAdminDashboard() {
           }}
         >
           <Container maxWidth="xl">
+            {/* Header with Theme Selector */}
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h4" component="h1">
+                Dashboard Overview
+              </Typography>
+              <SimpleThemeSelector />
+            </Box>
+
             {/* Event Details */}
             {event && (
               <Box mb={4}>

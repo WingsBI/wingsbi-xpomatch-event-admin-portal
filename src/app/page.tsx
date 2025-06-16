@@ -1,95 +1,145 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import { Box, Container, Typography, Card, CardContent, Button, Grid } from '@mui/material';
+import Link from 'next/link';
+import { AdminPanelSettings, Event, People, Business } from '@mui/icons-material';
 
-export default function Home() {
+export default function HomePage() {
+  const portals = [
+    {
+      title: 'IT Admin Portal',
+      description: 'Manage events, create event administrators, and oversee the entire platform.',
+      icon: <AdminPanelSettings fontSize="large" color="primary" />,
+      href: '/auth/it-admin/login',
+      color: '#1976d2',
+    },
+    {
+      title: 'Event Admin Portal',
+      description: 'Manage event details, participants, and send invitations.',
+      icon: <Event fontSize="large" color="secondary" />,
+      href: '/auth/event-admin/login',
+      color: '#dc004e',
+    },
+    {
+      title: 'Visitor Portal',
+      description: 'Register for events and connect with exhibitors.',
+      icon: <People fontSize="large" sx={{ color: '#2e7d32' }} />,
+      href: '/auth/visitor/login',
+      color: '#2e7d32',
+    },
+    {
+      title: 'Exhibitor Portal',
+      description: 'Showcase your business and connect with potential customers.',
+      icon: <Business fontSize="large" sx={{ color: '#ed6c02' }} />,
+      href: '/auth/exhibitor/login',
+      color: '#ed6c02',
+    },
+  ];
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        py: 4,
+      }}
+    >
+      <Container maxWidth="lg">
+        <Box textAlign="center" mb={6}>
+          <Typography
+            variant="h1"
+            component="h1"
+            sx={{
+              color: 'white',
+              fontWeight: 700,
+              mb: 2,
+              fontSize: { xs: '2rem', md: '3rem' },
+            }}
+          >
+            AI Matchmaking Platform
+          </Typography>
+          <Typography
+            variant="h5"
+            component="p"
+            sx={{
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontWeight: 300,
+              maxWidth: 600,
+              mx: 'auto',
+            }}
+          >
+            Connect the right people at the right time with AI-powered event management
+          </Typography>
+        </Box>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <Grid container spacing={4}>
+          {portals.map((portal) => (
+            <Grid item xs={12} sm={6} md={3} key={portal.title}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'all 0.3s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+                  },
+                }}
+              >
+                <CardContent
+                  sx={{
+                    flexGrow: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    p: 3,
+                  }}
+                >
+                  <Box mb={2}>{portal.icon}</Box>
+                  <Typography variant="h6" component="h2" gutterBottom>
+                    {portal.title}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 3, flexGrow: 1 }}
+                  >
+                    {portal.description}
+                  </Typography>
+                  <Button
+                    component={Link}
+                    href={portal.href}
+                    variant="contained"
+                    fullWidth
+                    sx={{
+                      bgcolor: portal.color,
+                      '&:hover': {
+                        bgcolor: portal.color,
+                        filter: 'brightness(1.1)',
+                      },
+                    }}
+                  >
+                    Access Portal
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Box textAlign="center" mt={6}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'rgba(255, 255, 255, 0.7)',
+            }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+            © 2024 AI Matchmaking Platform. All rights reserved.
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
   );
-}
+} 

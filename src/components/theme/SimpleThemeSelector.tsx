@@ -241,7 +241,6 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
           {showLabel ? 'Themes' : 'Theme'}
         </Button>
       )}
-
       <Dialog
         open={open}
         onClose={handleClose}

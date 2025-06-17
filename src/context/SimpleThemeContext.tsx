@@ -1,0 +1,924 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createTheme, ThemeProvider as MuiThemeProvider, Theme } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
+
+// Font families available for selection - Nunito Sans as default
+export const fontFamilies = {
+  nunitosans: '"Nunito Sans", "Roboto", "Helvetica", "Arial", sans-serif',
+  inter: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+  roboto: '"Roboto", "Helvetica", "Arial", sans-serif',
+  poppins: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+  montserrat: '"Montserrat", "Roboto", "Helvetica", "Arial", sans-serif',
+  opensans: '"Open Sans", "Roboto", "Helvetica", "Arial", sans-serif',
+  lato: '"Lato", "Roboto", "Helvetica", "Arial", sans-serif',
+};
+
+// Create theme function with font family parameter
+const createAdvancedTheme = (config: any, fontFamily: string) => createTheme({
+  ...config,
+  typography: {
+    ...config.typography,
+    fontFamily,
+  },
+});
+
+// Define professional, sober, eye-catching themes
+const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
+  default: {
+    name: 'Ocean Blue',
+    description: 'Professional blue theme with clean design',
+    preview: '#1976d2',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#1976d2',
+          light: '#42a5f5',
+          dark: '#1565c0',
+        },
+        secondary: {
+          main: '#00acc1',
+          light: '#4dd0e1',
+          dark: '#00838f',
+        },
+        background: {
+          default: '#f8fafc',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(25, 118, 210, 0.12)',
+        action: {
+          hover: 'rgba(25, 118, 210, 0.04)',
+          selected: 'rgba(25, 118, 210, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#f8fafc',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  dark: {
+    name: 'Midnight Professional',
+    description: 'Sophisticated dark theme for extended use',
+    preview: '#0f172a',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'dark' as const,
+        primary: {
+          main: '#3b82f6',
+          light: '#60a5fa',
+          dark: '#2563eb',
+        },
+        secondary: {
+          main: '#f59e0b',
+          light: '#fbbf24',
+          dark: '#d97706',
+        },
+        background: {
+          default: '#0f172a',
+          paper: '#1e293b',
+        },
+        text: {
+          primary: '#f8fafc',
+          secondary: '#cbd5e1',
+        },
+        divider: 'rgba(148, 163, 184, 0.12)',
+        action: {
+          hover: 'rgba(59, 130, 246, 0.04)',
+          selected: 'rgba(59, 130, 246, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#0f172a',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              backgroundColor: '#1e293b',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.5)',
+              '&:hover': {
+                boxShadow: '0 8px 15px rgba(0, 0, 0, 0.3)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              backgroundColor: '#1e293b',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.5)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  corporate: {
+    name: 'Executive Gray',
+    description: 'Professional corporate theme with neutral tones',
+    preview: '#374151',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#374151',
+          light: '#6b7280',
+          dark: '#1f2937',
+        },
+        secondary: {
+          main: '#d97706',
+          light: '#f59e0b',
+          dark: '#92400e',
+        },
+        background: {
+          default: '#f9fafb',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#111827',
+          secondary: '#4b5563',
+        },
+        divider: 'rgba(55, 65, 81, 0.12)',
+        action: {
+          hover: 'rgba(55, 65, 81, 0.04)',
+          selected: 'rgba(55, 65, 81, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#f9fafb',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  green: {
+    name: 'Forest Professional',
+    description: 'Clean green theme for a fresh professional look',
+    preview: '#059669',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#059669',
+          light: '#10b981',
+          dark: '#047857',
+        },
+        secondary: {
+          main: '#f59e0b',
+          light: '#fbbf24',
+          dark: '#d97706',
+        },
+        background: {
+          default: '#f0fdf4',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(5, 150, 105, 0.12)',
+        action: {
+          hover: 'rgba(5, 150, 105, 0.04)',
+          selected: 'rgba(5, 150, 105, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#f0fdf4',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  purple: {
+    name: 'Royal Professional',
+    description: 'Elegant purple theme with professional styling',
+    preview: '#7c3aed',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#7c3aed',
+          light: '#a78bfa',
+          dark: '#5b21b6',
+        },
+        secondary: {
+          main: '#ec4899',
+          light: '#f472b6',
+          dark: '#be185d',
+        },
+        background: {
+          default: '#faf5ff',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(124, 58, 237, 0.12)',
+        action: {
+          hover: 'rgba(124, 58, 237, 0.04)',
+          selected: 'rgba(124, 58, 237, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#faf5ff',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  teal: {
+    name: 'Teal Professional',
+    description: 'Modern teal theme with sophisticated appeal',
+    preview: '#0891b2',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#0891b2',
+          light: '#06b6d4',
+          dark: '#0e7490',
+        },
+        secondary: {
+          main: '#f59e0b',
+          light: '#fbbf24',
+          dark: '#d97706',
+        },
+        background: {
+          default: '#f0fdfa',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(8, 145, 178, 0.12)',
+        action: {
+          hover: 'rgba(8, 145, 178, 0.04)',
+          selected: 'rgba(8, 145, 178, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#f0fdfa',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  orange: {
+    name: 'Sunset Professional',
+    description: 'Warm orange theme with energetic professional vibes',
+    preview: '#ea580c',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#ea580c',
+          light: '#fb923c',
+          dark: '#c2410c',
+        },
+        secondary: {
+          main: '#0891b2',
+          light: '#06b6d4',
+          dark: '#0e7490',
+        },
+        background: {
+          default: '#fffbeb',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(234, 88, 12, 0.12)',
+        action: {
+          hover: 'rgba(234, 88, 12, 0.04)',
+          selected: 'rgba(234, 88, 12, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#fffbeb',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  indigo: {
+    name: 'Indigo Professional',
+    description: 'Deep indigo theme with premium professional feel',
+    preview: '#4f46e5',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#4f46e5',
+          light: '#6366f1',
+          dark: '#3730a3',
+        },
+        secondary: {
+          main: '#ec4899',
+          light: '#f472b6',
+          dark: '#be185d',
+        },
+        background: {
+          default: '#faf5ff',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(79, 70, 229, 0.12)',
+        action: {
+          hover: 'rgba(79, 70, 229, 0.04)',
+          selected: 'rgba(79, 70, 229, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#faf5ff',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  red: {
+    name: 'Crimson Professional',
+    description: 'Bold red theme with confident professional presence',
+    preview: '#dc2626',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#dc2626',
+          light: '#ef4444',
+          dark: '#b91c1c',
+        },
+        secondary: {
+          main: '#0891b2',
+          light: '#06b6d4',
+          dark: '#0e7490',
+        },
+        background: {
+          default: '#fef2f2',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(220, 38, 38, 0.12)',
+        action: {
+          hover: 'rgba(220, 38, 38, 0.04)',
+          selected: 'rgba(220, 38, 38, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#fef2f2',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+  pink: {
+    name: 'Rose Professional',
+    description: 'Elegant rose theme with refined professional aesthetics',
+    preview: '#e11d48',
+    theme: createAdvancedTheme({
+      palette: {
+        mode: 'light' as const,
+        primary: {
+          main: '#e11d48',
+          light: '#f43f5e',
+          dark: '#be123c',
+        },
+        secondary: {
+          main: '#0891b2',
+          light: '#06b6d4',
+          dark: '#0e7490',
+        },
+        background: {
+          default: '#fdf2f8',
+          paper: '#ffffff',
+        },
+        text: {
+          primary: '#1a202c',
+          secondary: '#4a5568',
+        },
+        divider: 'rgba(225, 29, 72, 0.12)',
+        action: {
+          hover: 'rgba(225, 29, 72, 0.04)',
+          selected: 'rgba(225, 29, 72, 0.08)',
+        },
+      },
+      typography: {
+        h1: { fontWeight: 600 },
+        h2: { fontWeight: 600 },
+        h3: { fontWeight: 600 },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
+      },
+      shape: {
+        borderRadius: 8,
+      },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            body: {
+              background: '#fdf2f8',
+              minHeight: '100vh',
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              '&:hover': {
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 6,
+            },
+          },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+            },
+          },
+        },
+      },
+    }, fontFamily),
+  },
+});
+
+interface SimpleThemeContextType {
+  currentThemeName: string;
+  currentFontFamily: string;
+  fontFamilies: typeof fontFamilies;
+  themes: ReturnType<typeof createThemes>;
+  setTheme: (themeName: string) => void;
+  setFontFamily: (fontFamily: string) => void;
+}
+
+const SimpleThemeContext = createContext<SimpleThemeContextType | undefined>(undefined);
+
+export const useSimpleTheme = () => {
+  const context = useContext(SimpleThemeContext);
+  if (context === undefined) {
+    throw new Error('useSimpleTheme must be used within a SimpleThemeProvider');
+  }
+  return context;
+};
+
+interface SimpleThemeProviderProps {
+  children: ReactNode;
+}
+
+export function SimpleThemeProvider({ children }: SimpleThemeProviderProps) {
+  const [currentThemeName, setCurrentThemeName] = useState('default');
+  const [currentFontFamily, setCurrentFontFamily] = useState(fontFamilies.nunitosans);
+
+  useEffect(() => {
+    // Load saved theme from localStorage
+    const savedTheme = localStorage.getItem('theme');
+    const savedFont = localStorage.getItem('fontFamily');
+    
+    if (savedTheme) {
+      setCurrentThemeName(savedTheme);
+    }
+    
+    if (savedFont) {
+      setCurrentFontFamily(savedFont);
+    }
+  }, []);
+
+  const themes = createThemes(currentFontFamily);
+  const currentTheme = themes[currentThemeName as keyof typeof themes]?.theme || themes.default.theme;
+
+  const setTheme = (themeName: string) => {
+    setCurrentThemeName(themeName);
+    localStorage.setItem('theme', themeName);
+  };
+
+  const setFontFamily = (fontFamily: string) => {
+    setCurrentFontFamily(fontFamily);
+    localStorage.setItem('fontFamily', fontFamily);
+  };
+
+  const value: SimpleThemeContextType = {
+    currentThemeName,
+    currentFontFamily,
+    fontFamilies,
+    themes,
+    setTheme,
+    setFontFamily,
+  };
+
+  return (
+    <SimpleThemeContext.Provider value={value}>
+      <MuiThemeProvider theme={currentTheme}>
+        <CssBaseline />
+        {children}
+      </MuiThemeProvider>
+    </SimpleThemeContext.Provider>
+  );
+} 

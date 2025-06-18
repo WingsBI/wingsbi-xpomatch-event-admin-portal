@@ -182,16 +182,6 @@ export default function HomePage() {
           >
             Event Management Portal
           </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              color: "rgba(255, 255, 255, 0.9)",
-              fontWeight: 300,
-              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-            }}
-          >
-            Sign in with any email and password
-          </Typography>
         </Box>
 
         {/* Login Card */}

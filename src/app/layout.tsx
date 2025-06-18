@@ -3,6 +3,7 @@ import { Inter, Roboto, Poppins, Montserrat, Open_Sans, Lato } from 'next/font/g
 import './globals.css';
 import { SimpleThemeProvider } from '@/context/SimpleThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
+import ReduxProvider from '@/providers/ReduxProvider';
 
 // Configure all fonts
 const inter = Inter({ 
@@ -47,6 +48,8 @@ const lato = Lato({
 export const metadata: Metadata = {
   title: 'Event Management Portal',
   description: 'Manage your events and connect participants',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes',
+  themeColor: '#1976d2',
 };
 
 export default function RootLayout({
@@ -59,13 +62,21 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+        <meta name="theme-color" content="#1976d2" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="format-detection" content="telephone=no" />
       </head>
       <body className={`${inter.variable} ${roboto.variable} ${poppins.variable} ${montserrat.variable} ${openSans.variable} ${lato.variable}`}>
-        <AuthProvider>
-          <SimpleThemeProvider>
-            {children}
-          </SimpleThemeProvider>
-        </AuthProvider>
+        <ReduxProvider>
+          <AuthProvider>
+            <SimpleThemeProvider>
+              {children}
+            </SimpleThemeProvider>
+          </AuthProvider>
+        </ReduxProvider>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -21,17 +21,11 @@ import {
   useTheme,
   useMediaQuery,
   Grid,
-  Fab,
-  Tooltip,
 } from "@mui/material";
 import {
-  Person,
   Lock,
   Visibility,
   VisibilityOff,
-  Login as LoginIcon,
-  AccountCircle,
-  Palette,
   Email,
   Smartphone,
   Laptop,
@@ -39,14 +33,12 @@ import {
   Tv,
   TouchApp,
 } from "@mui/icons-material";
-import { SimpleThemeSelector } from "@/components/theme/SimpleThemeSelector";
 import { useAuth } from "@/context/AuthContext";
 import { RootState, AppDispatch } from "@/store";
 import { loginUser } from "@/store/slices/authSlice";
-import { addNotification } from "@/store/slices/appSlice";
-import { authApi } from "@/services/apiService";
+import { addNotification, setIdentifier } from "@/store/slices/appSlice";
 
-// Define color themes with responsive considerations
+// Define color themes
 const colorThemes = {
   deepBlueTeal: {
     name: "Deep Blue & Teal",
@@ -59,7 +51,10 @@ const colorThemes = {
   },
 };
 
-export default function HomePage() {
+export default function EventLoginPage() {
+  const params = useParams();
+  const identifier = params.identifier as string;
+  
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
@@ -74,27 +69,16 @@ export default function HomePage() {
   const router = useRouter();
 
   // Redux state
-  const { identifier, responsive, ui } = useSelector(
-    (state: RootState) => state.app
-  );
-  const {
-    user,
-    isAuthenticated,
-    isLoading: authLoading,
-  } = useSelector((state: RootState) => state.auth);
+  const { responsive, ui } = useSelector((state: RootState) => state.app);
+  const { user, isAuthenticated, isLoading: authLoading } = useSelector((state: RootState) => state.auth);
 
   // Legacy auth context for compatibility
-  const {
-    login,
-    logout,
-    isAuthenticated: legacyAuth,
-    isLoading: legacyLoading,
-  } = useAuth();
+  const { login, logout, isAuthenticated: legacyAuth, isLoading: legacyLoading } = useAuth();
 
   // Responsive breakpoints
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isTablet = useMediaQuery(theme.breakpoints.between("md", "lg"));
-  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
+  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
 
   // Get current theme
   const currentTheme = colorThemes[selectedTheme as keyof typeof colorThemes];
@@ -102,22 +86,23 @@ export default function HomePage() {
   // Show device info for demonstration
   const getDeviceIcon = () => {
     switch (responsive.deviceType) {
-      case "mobile":
-        return <Smartphone />;
-      case "tablet":
-        return <TouchApp />;
-      case "laptop":
-        return <Laptop />;
-      case "desktop":
-        return <DesktopWindows />;
-      case "tv":
-        return <Tv />;
-      default:
-        return <DesktopWindows />;
+      case 'mobile': return <Smartphone />;
+      case 'tablet': return <TouchApp />;
+      case 'laptop': return <Laptop />;
+      case 'desktop': return <DesktopWindows />;
+      case 'tv': return <Tv />;
+      default: return <DesktopWindows />;
     }
   };
 
-  // Clear authentication when visiting homepage to show login form
+  // Set identifier in Redux store when component mounts
+  useEffect(() => {
+    if (identifier) {
+      dispatch(setIdentifier(identifier));
+    }
+  }, [identifier, dispatch]);
+
+  // Clear authentication when visiting login page
   useEffect(() => {
     if (isAuthenticated || legacyAuth) {
       logout(); // Clear legacy authentication to show login form
@@ -129,7 +114,7 @@ export default function HomePage() {
     setError("");
     setIsSubmitting(true);
 
-    console.log("Login attempt with identifier:", identifier); // Debug log
+    console.log("Login attempt with identifier:", identifier);
 
     if (!credentials.email || !credentials.password) {
       setError("Please enter both email and password");
@@ -138,42 +123,37 @@ export default function HomePage() {
     }
 
     try {
-      console.log("Sending login request with Redux..."); // Debug log
+      console.log("Sending login request with Redux...");
 
       // Use Redux for login
-      const result = await dispatch(
-        loginUser({
-          email: credentials.email,
-          password: credentials.password,
-          eventId: "EVT001",
-          role: "event-admin",
-          identifier: identifier, // Pass the extracted identifier
-        })
-      ).unwrap();
+      const result = await dispatch(loginUser({
+        email: credentials.email,
+        password: credentials.password,
+        eventId: "EVT001",
+        role: "event-admin",
+        identifier: identifier,
+      })).unwrap();
 
-      console.log("Redux login result:", result); // Debug log
+      console.log("Redux login result:", result);
 
       // Show success notification
-      dispatch(
-        addNotification({
-          type: "success",
-          message: "Login successful! Redirecting...",
-        })
-      );
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Login successful! Redirecting...',
+      }));
 
-      // Redirect based on role and identifier
+      // Redirect to dashboard for this event
       const redirectPath = `/${identifier}/event-admin/dashboard`;
       router.push(redirectPath);
-    } catch (err: any) {
-      console.error("Redux login error:", err); // Debug log
-      setError(err.message || "Login failed. Please try again.");
 
-      dispatch(
-        addNotification({
-          type: "error",
-          message: err.message || "Login failed. Please try again.",
-        })
-      );
+    } catch (err: any) {
+      console.error("Redux login error:", err);
+      setError(err.message || "Login failed. Please try again.");
+      
+      dispatch(addNotification({
+        type: 'error',
+        message: err.message || "Login failed. Please try again.",
+      }));
     } finally {
       setIsSubmitting(false);
     }
@@ -189,10 +169,6 @@ export default function HomePage() {
       // Clear error when user starts typing
       if (error) setError("");
     };
-
-  const handleThemeChange = (event: any) => {
-    setSelectedTheme(event.target.value);
-  };
 
   // Quick demo login function
   const handleDemoLogin = (email: string, password: string) => {
@@ -248,58 +224,29 @@ export default function HomePage() {
         }}
       />
 
-      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, py: 4 }}>
-        {/* Responsive Info Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Paper
-            sx={{
-              p: 2,
-              mb: 3,
-              background: "rgba(255, 255, 255, 0.9)",
-              backdropFilter: "blur(10px)",
-              borderRadius: 2,
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              flexWrap: "wrap",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {getDeviceIcon()}
-              <Typography variant="body2" fontWeight="bold">
-                {responsive.deviceType.toUpperCase()}
-              </Typography>
-            </Box>
-            <Chip
-              label={`${responsive.screenWidth} × ${responsive.screenHeight}`}
-              size="small"
-              variant="outlined"
-            />
-            <Chip label={responsive.orientation} size="small" color="primary" />
-            <Chip label={`ID: ${identifier}`} size="small" color="secondary" />
-            {responsive.isTouchDevice && (
-              <Chip
-                label="Touch"
-                size="small"
-                icon={<TouchApp />}
-                color="success"
-              />
-            )}
-          </Paper>
-        </motion.div>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          position: "relative", 
+          zIndex: 1, 
+          pt: { xs: 14, md: 18 }, // Reduced padding to prevent scroll
+          pb: { xs: 6, md: 8 },   // Reduced bottom padding
+          minHeight: "calc(100vh - 80px)", // Reduced height to prevent scroll
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "center"
+        }}
+      >
 
-        <Grid container spacing={4} alignItems="center" justifyContent="center">
-          {/* Left side - Demo info for larger screens */}
+        <Grid container spacing={4} alignItems="flex-start" justifyContent="center" sx={{ width: "100%" }}>
+          {/* Left side - Event info for larger screens */}
           {!isMobile && (
             <Grid item xs={12} md={6}>
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.7 }}
+                style={{ marginTop: '-10px' }} // Move left content upward
               >
                 <Typography
                   variant="h2"
@@ -308,13 +255,13 @@ export default function HomePage() {
                     color: "white",
                     fontWeight: 800,
                     mb: 3,
-                    fontSize: { xs: "2rem", md: "3rem", lg: "3.5rem" },
+                    fontSize: { xs: "2rem", md: "2.75rem", lg: "3rem" }, // Slightly smaller
                     textShadow: "0 2px 4px rgba(0,0,0,0.3)",
                   }}
                 >
-                  Event Management Portal
+                  {identifier} Event Portal
                 </Typography>
-
+                
                 <Typography
                   variant="h6"
                   sx={{
@@ -323,45 +270,32 @@ export default function HomePage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  A comprehensive event management solution designed to
-                  streamline coordination between visitors and exhibitors,
-                  enhancing engagement, scheduling, and overall event
-                  experience.
+                  Welcome to the {identifier} event management portal. Sign in as an event administrator to manage visitors, exhibitors, and event details.
                 </Typography>
 
                 <Stack spacing={2}>
-                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     <Button
                       variant="outlined"
-                      onClick={() =>
-                        handleDemoLogin("admin@example.com", "admin123")
-                      }
-                      sx={{
-                        color: "white",
-                        borderColor: "rgba(255,255,255,0.5)",
-                        "&:hover": {
-                          borderColor: "white",
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                        },
+                      onClick={() => handleDemoLogin("admin@example.com", "admin123")}
+                      sx={{ 
+                        color: 'white', 
+                        borderColor: 'rgba(255,255,255,0.5)',
+                        '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }
                       }}
                     >
                       Demo Admin
                     </Button>
                     <Button
                       variant="outlined"
-                      onClick={() =>
-                        handleDemoLogin("user@example.com", "user123")
-                      }
-                      sx={{
-                        color: "white",
-                        borderColor: "rgba(255,255,255,0.5)",
-                        "&:hover": {
-                          borderColor: "white",
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                        },
+                      onClick={() => handleDemoLogin("eventadmin@example.com", "event123")}
+                      sx={{ 
+                        color: 'white', 
+                        borderColor: 'rgba(255,255,255,0.5)',
+                        '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }
                       }}
                     >
-                      Demo User
+                      Event Admin Demo
                     </Button>
                   </Box>
                 </Stack>
@@ -390,7 +324,7 @@ export default function HomePage() {
                       textShadow: "0 2px 4px rgba(0,0,0,0.3)",
                     }}
                   >
-                    Event Portal
+                    {identifier} Portal
                   </Typography>
                 </Box>
               )}
@@ -422,7 +356,7 @@ export default function HomePage() {
                     Sign In
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    Welcome back! Please sign in to continue.
+                    Welcome to {identifier} event management portal
                   </Typography>
                 </Box>
 
@@ -433,13 +367,10 @@ export default function HomePage() {
                       {error && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
+                          animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
                         >
-                          <Alert
-                            severity="error"
-                            sx={{ borderRadius: 2, mb: 2 }}
-                          >
+                          <Alert severity="error" sx={{ borderRadius: 2, mb: 2 }}>
                             {error}
                           </Alert>
                         </motion.div>
@@ -497,11 +428,7 @@ export default function HomePage() {
                               disabled={isSubmitting}
                               size="small"
                             >
-                              {showPassword ? (
-                                <VisibilityOff />
-                              ) : (
-                                <Visibility />
-                              )}
+                              {showPassword ? <VisibilityOff /> : <Visibility />}
                             </IconButton>
                           </InputAdornment>
                         ),
@@ -539,65 +466,55 @@ export default function HomePage() {
                         },
                       }}
                     >
-                      {isSubmitting ? "Signing In..." : "Sign In"}
+                      {isSubmitting ? "Signing In..." : "Sign In to Event Portal"}
                     </Button>
 
                     {/* Quick demo buttons for mobile */}
                     {isMobile && (
-                      <Box
-                        sx={{
-                          mt: 3,
-                          display: "flex",
-                          gap: 1,
-                          justifyContent: "center",
-                        }}
-                      >
+                      <Box sx={{ mt: 3, display: 'flex', gap: 1, justifyContent: 'center' }}>
                         <Button
                           size="small"
-                          onClick={() =>
-                            handleDemoLogin("admin@example.com", "admin123")
-                          }
+                          onClick={() => handleDemoLogin("admin@example.com", "admin123")}
                           disabled={isSubmitting}
                         >
                           Demo Admin
                         </Button>
                         <Button
                           size="small"
-                          onClick={() =>
-                            handleDemoLogin("user@example.com", "user123")
-                          }
+                          onClick={() => handleDemoLogin("eventadmin@example.com", "event123")}
                           disabled={isSubmitting}
                         >
-                          Demo User
+                          Event Admin
                         </Button>
                       </Box>
                     )}
                   </form>
                 </CardContent>
               </Card>
+
+              {/* Footer below login card */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+              >
+                <Box textAlign="center" mt={3}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "rgba(255, 255, 255, 0.8)",
+                      textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                      fontSize: "0.875rem",
+                    }}
+                  >
+                    © 2024 {identifier} Event Management Portal. All rights reserved.
+                  </Typography>
+                </Box>
+              </motion.div>
             </motion.div>
           </Grid>
         </Grid>
-
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <Box textAlign="center" mt={4}>
-            <Typography
-              variant="body2"
-              sx={{
-                color: "rgba(255, 255, 255, 0.8)",
-                textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-              }}
-            >
-              © 2024 Event Management Portal. All rights reserved.
-            </Typography>
-          </Box>
-        </motion.div>
       </Container>
     </Box>
   );
-}
+} 

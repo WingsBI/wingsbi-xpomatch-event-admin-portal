@@ -100,6 +100,8 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
           p: 3,
           background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
           color: 'white',
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
         }}
       >
         <Typography variant="h6" fontWeight="bold">

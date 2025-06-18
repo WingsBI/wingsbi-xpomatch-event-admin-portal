@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Roboto, Poppins, Montserrat, Open_Sans, Lato } from 'next/font/google';
 import './globals.css';
 import { SimpleThemeProvider } from '@/context/SimpleThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
 
 // Configure all fonts
 const inter = Inter({ 
@@ -60,9 +61,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.variable} ${roboto.variable} ${poppins.variable} ${montserrat.variable} ${openSans.variable} ${lato.variable}`}>
-        <SimpleThemeProvider>
-          {children}
-        </SimpleThemeProvider>
+        <AuthProvider>
+          <SimpleThemeProvider>
+            {children}
+          </SimpleThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

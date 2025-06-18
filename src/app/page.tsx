@@ -176,6 +176,7 @@ export default function HomePage() {
               color: "white",
               fontWeight: 800,
               mb: 1,
+              mt: 3,
               fontSize: { xs: "2rem", md: "2.5rem" },
               textShadow: "0 2px 4px rgba(0,0,0,0.3)",
             }}
@@ -193,8 +194,9 @@ export default function HomePage() {
             bgcolor: "rgba(255, 255, 255, 0.95)",
             boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
             minHeight: 450,
-            maxWidth: 500,
+            // maxWidth: 500,
             mx: "auto",
+            mt: 6,
             transition: "all 0.3s ease-in-out",
           }}
         >
@@ -213,14 +215,11 @@ export default function HomePage() {
             }}
           >
             <Typography variant="h4" fontWeight={600} gutterBottom>
-              Login
-            </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.9 }}>
-              Enter any email and password
+              Sign In
             </Typography>
           </Box>
 
-          <CardContent sx={{ p: 4, minHeight: 320 }}>
+          <CardContent sx={{ p: 4, minHeight: 320, mt: 2 }}>
             <form onSubmit={handleSubmit}>
               {/* Error Alert */}
               {error && (

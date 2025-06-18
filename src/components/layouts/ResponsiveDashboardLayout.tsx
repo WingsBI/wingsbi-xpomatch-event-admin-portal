@@ -115,7 +115,7 @@ export default function ResponsiveDashboardLayout({
     responsive, 
     ui 
   } = useSelector((state: RootState) => state.app);
-  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { user, isAuthenticated, token } = useSelector((state: RootState) => state.auth);
 
   // Local state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -249,7 +249,7 @@ export default function ResponsiveDashboardLayout({
   };
 
   const handleLogout = async () => {
-    await dispatch(logoutUser({ identifier, token: user?.token }));
+    await dispatch(logoutUser({ identifier, token: token || undefined }));
     router.push('/');
   };
 

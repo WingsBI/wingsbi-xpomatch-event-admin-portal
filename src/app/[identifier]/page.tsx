@@ -125,12 +125,10 @@ export default function EventLoginPage() {
     try {
       console.log("Sending login request with Redux...");
 
-      // Use Redux for login
+      // Use Redux for login with simplified credentials
       const result = await dispatch(loginUser({
         email: credentials.email,
         password: credentials.password,
-        eventId: "EVT001",
-        role: "event-admin",
         identifier: identifier,
       })).unwrap();
 
@@ -277,14 +275,14 @@ export default function EventLoginPage() {
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     <Button
                       variant="outlined"
-                      onClick={() => handleDemoLogin("admin@example.com", "admin123")}
+                      onClick={() => handleDemoLogin("ritesh.ramilkanthwar@gmail.com", "kOZoO@O!")}
                       sx={{ 
                         color: 'white', 
                         borderColor: 'rgba(255,255,255,0.5)',
                         '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }
                       }}
                     >
-                      Demo Admin
+                      Test API Login
                     </Button>
                     <Button
                       variant="outlined"
@@ -295,7 +293,7 @@ export default function EventLoginPage() {
                         '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }
                       }}
                     >
-                      Event Admin Demo
+                      Demo Login
                     </Button>
                   </Box>
                 </Stack>
@@ -474,17 +472,17 @@ export default function EventLoginPage() {
                       <Box sx={{ mt: 3, display: 'flex', gap: 1, justifyContent: 'center' }}>
                         <Button
                           size="small"
-                          onClick={() => handleDemoLogin("admin@example.com", "admin123")}
+                          onClick={() => handleDemoLogin("ritesh.ramilkanthwar@gmail.com", "kOZoO@O!")}
                           disabled={isSubmitting}
                         >
-                          Demo Admin
+                          Test API
                         </Button>
                         <Button
                           size="small"
                           onClick={() => handleDemoLogin("eventadmin@example.com", "event123")}
                           disabled={isSubmitting}
                         >
-                          Event Admin
+                          Demo
                         </Button>
                       </Box>
                     )}

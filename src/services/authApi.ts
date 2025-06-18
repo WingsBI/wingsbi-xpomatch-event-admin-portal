@@ -1,12 +1,23 @@
 // Authentication API service for Azure backend
+import { jwtDecode } from 'jwt-decode';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
 export interface LoginCredentials {
   email: string;
   password: string;
-  eventId: string;
-  role: string;
   identifier: string;
+}
+
+export interface JWTPayload {
+  sub?: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  eventId?: string;
+  exp?: number;
+  iat?: number;
+  [key: string]: any;
 }
 
 export interface AuthResponse {
@@ -35,30 +46,46 @@ class AuthApiService {
     console.log('Auth API Service initialized with base URL:', this.baseURL);
   }
 
+  // Decode JWT token to extract user information
+  private decodeJWT(token: string): JWTPayload | null {
+    try {
+      const decoded = jwtDecode<JWTPayload>(token);
+      console.log('Decoded JWT payload:', decoded);
+      return decoded;
+    } catch (error) {
+      console.error('Error decoding JWT token:', error);
+      return null;
+    }
+  }
+
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
+      // Using the correct API path format: /api/{identifier}/Auth/login (capital A)
+      const apiUrl = `${this.baseURL}/api/${credentials.identifier}/Auth/login`;
+      
       console.log('Attempting login with Azure API:', {
-        url: `${this.baseURL}/api/${credentials.identifier}/auth/login`,
-        email: credentials.email,
-        role: credentials.role,
-        eventId: credentials.eventId
+        url: apiUrl,
+        email: credentials.email
       });
 
-      const response = await fetch(`${this.baseURL}/api/${credentials.identifier}/auth/login`, {
+      const payload = {
+        email: credentials.email,
+        password: credentials.password
+      };
+
+      console.log('Login payload:', payload);
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-          eventId: credentials.eventId,
-          role: credentials.role,
-        }),
+        body: JSON.stringify(payload),
       });
 
       console.log('Login response status:', response.status);
+      console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
 
       const data = await response.json();
       console.log('Login response data:', data);
@@ -66,24 +93,46 @@ class AuthApiService {
       if (!response.ok) {
         return {
           success: false,
-          error: data.message || data.error || 'Login failed',
+          error: data.message || data.error || `HTTP ${response.status}: Login failed`,
           message: data.message || 'Authentication failed'
         };
       }
+
+      // Extract JWT token from response
+      const jwtToken = data.token || data.accessToken || data.jwtToken;
+      const refreshToken = data.refreshToken || data.refresh_token;
+
+      if (!jwtToken) {
+        return {
+          success: false,
+          error: 'No JWT token received from server',
+          message: 'Invalid server response'
+        };
+      }
+
+      // Decode JWT to extract user information
+      const jwtPayload = this.decodeJWT(jwtToken);
+      
+      // Extract user information from JWT payload or response data
+      const userId = jwtPayload?.sub || data.userId || data.id || '1';
+      const userEmail = jwtPayload?.email || data.email || credentials.email;
+      const userName = jwtPayload?.name || data.name || data.fullName || userEmail.split('@')[0];
+      const userRole = jwtPayload?.role || data.role || 'event-admin';
+      const eventId = jwtPayload?.eventId || data.eventId || credentials.identifier;
 
       return {
         success: true,
         data: {
           user: {
-            id: data.user?.id || data.id || '1',
-            email: data.user?.email || credentials.email,
-            role: data.user?.role || credentials.role,
-            eventId: data.user?.eventId || credentials.eventId,
-            name: data.user?.name || data.user?.email?.split('@')[0],
-            avatar: data.user?.avatar,
+            id: userId,
+            email: userEmail,
+            role: userRole,
+            eventId: eventId,
+            name: userName,
+            avatar: data.avatar || jwtPayload?.avatar,
           },
-          token: data.token || data.accessToken || 'demo-token-' + Date.now(),
-          refreshToken: data.refreshToken,
+          token: jwtToken,
+          refreshToken: refreshToken,
         },
         message: data.message || 'Login successful'
       };
@@ -99,11 +148,13 @@ class AuthApiService {
 
   async logout(identifier: string, token?: string): Promise<boolean> {
     try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/Auth/logout`;
+      
       console.log('Attempting logout with Azure API:', {
-        url: `${this.baseURL}/api/${identifier}/auth/logout`
+        url: apiUrl
       });
 
-      const response = await fetch(`${this.baseURL}/api/${identifier}/auth/logout`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,11 +172,13 @@ class AuthApiService {
 
   async refreshToken(identifier: string, refreshToken: string): Promise<AuthResponse> {
     try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/Auth/refresh`;
+      
       console.log('Attempting token refresh with Azure API:', {
-        url: `${this.baseURL}/api/${identifier}/auth/refresh`
+        url: apiUrl
       });
 
-      const response = await fetch(`${this.baseURL}/api/${identifier}/auth/refresh`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,12 +199,33 @@ class AuthApiService {
         };
       }
 
+      const newToken = data.token || data.accessToken;
+      const newRefreshToken = data.refreshToken || data.refresh_token;
+      
+      if (!newToken) {
+        return {
+          success: false,
+          error: 'No new token received',
+          message: 'Invalid refresh response'
+        };
+      }
+
+      // Decode new JWT token
+      const jwtPayload = this.decodeJWT(newToken);
+
       return {
         success: true,
         data: {
-          user: data.user,
-          token: data.token || data.accessToken,
-          refreshToken: data.refreshToken,
+          user: {
+            id: jwtPayload?.sub || data.userId || '1',
+            email: jwtPayload?.email || data.email,
+            role: jwtPayload?.role || data.role || 'event-admin',
+            eventId: jwtPayload?.eventId || data.eventId,
+            name: jwtPayload?.name || data.name,
+            avatar: jwtPayload?.avatar || data.avatar,
+          },
+          token: newToken,
+          refreshToken: newRefreshToken,
         },
         message: 'Token refreshed successfully'
       };
@@ -167,7 +241,9 @@ class AuthApiService {
 
   async validateToken(identifier: string, token: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseURL}/api/${identifier}/auth/validate`, {
+      const apiUrl = `${this.baseURL}/api/${identifier}/Auth/validate`;
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -179,6 +255,19 @@ class AuthApiService {
     } catch (error) {
       console.error('Token validation error:', error);
       return false;
+    }
+  }
+
+  // Helper method to check if token is expired
+  isTokenExpired(token: string): boolean {
+    try {
+      const payload = this.decodeJWT(token);
+      if (!payload?.exp) return true;
+      
+      const currentTime = Date.now() / 1000;
+      return payload.exp < currentTime;
+    } catch {
+      return true;
     }
   }
 }

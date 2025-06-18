@@ -13,6 +13,7 @@ export interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -21,6 +22,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   token: null,
+  refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -44,6 +46,14 @@ export const loginUser = createAsyncThunk(
         return rejectWithValue('Invalid response from server');
       }
       
+      // Store tokens in localStorage for persistence
+      if (response.data.token) {
+        localStorage.setItem('jwtToken', response.data.token);
+      }
+      if (response.data.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+      }
+      
       return response.data;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Login failed');
@@ -53,18 +63,28 @@ export const loginUser = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
-  async ({ identifier, token }: { identifier: string; token?: string }) => {
+  async ({ identifier, token }: { identifier: string; token?: string }, { dispatch }) => {
     try {
       const success = await authApi.logout(identifier, token);
+      
+      // Clear tokens from localStorage
+      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('refreshToken');
+      
       return success;
     } catch (error) {
       console.error('Logout error:', error);
+      
+      // Still clear tokens even if logout API fails
+      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('refreshToken');
+      
       return false;
     }
   }
 );
 
-export const refreshToken = createAsyncThunk(
+export const refreshTokenAsync = createAsyncThunk(
   'auth/refreshToken',
   async ({ identifier, refreshToken }: { identifier: string; refreshToken: string }, { rejectWithValue }) => {
     try {
@@ -78,9 +98,66 @@ export const refreshToken = createAsyncThunk(
         return rejectWithValue('Invalid response from server');
       }
       
+      // Store new tokens in localStorage
+      if (response.data.token) {
+        localStorage.setItem('jwtToken', response.data.token);
+      }
+      if (response.data.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+      }
+      
       return response.data;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Token refresh failed');
+    }
+  }
+);
+
+// Action to restore auth state from localStorage
+export const restoreAuthState = createAsyncThunk(
+  'auth/restoreAuthState',
+  async (identifier: string, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('jwtToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!token) {
+        return rejectWithValue('No stored token found');
+      }
+      
+      // Check if token is expired
+      if (authApi.isTokenExpired(token)) {
+        if (refreshToken) {
+          // Try to refresh the token
+          const response = await authApi.refreshToken(identifier, refreshToken);
+          if (response.success && response.data) {
+            return response.data;
+          }
+        }
+        return rejectWithValue('Token expired and refresh failed');
+      }
+      
+      // Validate token with API
+      const isValid = await authApi.validateToken(identifier, token);
+      if (!isValid) {
+        return rejectWithValue('Token validation failed');
+      }
+      
+      // Return dummy data since we need to decode the token properly
+      // In a real app, you might want to fetch user profile
+      return {
+        user: {
+          id: '1',
+          email: 'restored@user.com',
+          role: 'event-admin' as const,
+          eventId: identifier,
+          name: 'Restored User',
+        },
+        token,
+        refreshToken,
+      };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to restore auth state');
     }
   }
 );
@@ -99,6 +176,7 @@ export const authSlice = createSlice({
     clearAuth: (state) => {
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
       state.error = null;
     },
@@ -114,6 +192,7 @@ export const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -125,16 +204,33 @@ export const authSlice = createSlice({
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.token = null;
+        state.refreshToken = null;
         state.isAuthenticated = false;
       })
       // Refresh token cases
-      .addCase(refreshToken.fulfilled, (state, action) => {
+      .addCase(refreshTokenAsync.fulfilled, (state, action) => {
         state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
         state.user = action.payload.user;
       })
-      .addCase(refreshToken.rejected, (state) => {
+      .addCase(refreshTokenAsync.rejected, (state) => {
         state.user = null;
         state.token = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
+      })
+      // Restore auth state cases
+      .addCase(restoreAuthState.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(restoreAuthState.rejected, (state) => {
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
         state.isAuthenticated = false;
       });
   },

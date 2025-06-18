@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { createTheme, ThemeProvider as MuiThemeProvider, Theme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
+import { getEventAdminThemeConfig } from '@/lib/themeApi';
+import { ThemeConfig, EventAdminThemeSettings } from '@/types';
 
 // Font families available for selection - Nunito Sans as default
 export const fontFamilies = {
@@ -857,6 +859,9 @@ interface SimpleThemeContextType {
   themes: ReturnType<typeof createThemes>;
   setTheme: (themeName: string) => void;
   setFontFamily: (fontFamily: string) => void;
+  themeSettings: EventAdminThemeSettings;
+  isLoading: boolean;
+  refreshThemeConfig: () => Promise<void>;
 }
 
 const SimpleThemeContext = createContext<SimpleThemeContextType | undefined>(undefined);
@@ -871,36 +876,107 @@ export const useSimpleTheme = () => {
 
 interface SimpleThemeProviderProps {
   children: ReactNode;
+  eventId?: string; // Event ID for Event Admin users
+  isEventAdmin?: boolean; // Simple boolean to indicate if user is Event Admin
 }
 
-export function SimpleThemeProvider({ children }: SimpleThemeProviderProps) {
+export function SimpleThemeProvider({ children, eventId, isEventAdmin = false }: SimpleThemeProviderProps) {
   const [currentThemeName, setCurrentThemeName] = useState('default');
   const [currentFontFamily, setCurrentFontFamily] = useState(fontFamilies.nunitosans);
+  const [isLoading, setIsLoading] = useState(false);
+  const [themeSettings, setThemeSettings] = useState<EventAdminThemeSettings>({
+    isThemeAssigned: false,
+    canChangeTheme: true, // Everyone can change themes, including Event Admin
+  });
+
+  // Function to fetch theme configuration for Event Admin (as initial/default theme)
+  const fetchThemeConfig = async () => {
+    if (!isEventAdmin || !eventId) return;
+
+    setIsLoading(true);
+    try {
+      const themeConfig = await getEventAdminThemeConfig(eventId);
+      
+      if (themeConfig) {
+        // Use assigned theme as starting point, but allow changes
+        setCurrentThemeName(themeConfig.themeKey);
+        
+        // Find and set the font family
+        const fontFamilyValue = Object.values(fontFamilies).find(
+          (_, index) => Object.keys(fontFamilies)[index] === themeConfig.fontKey
+        );
+        if (fontFamilyValue) {
+          setCurrentFontFamily(fontFamilyValue);
+        }
+
+        setThemeSettings({
+          isThemeAssigned: true,
+          themeConfig,
+          canChangeTheme: true, // Event Admin can change themes
+        });
+      } else {
+        // No theme assigned, use defaults and allow changes
+        setThemeSettings({
+          isThemeAssigned: false,
+          canChangeTheme: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching theme configuration:', error);
+      // Fallback to default theme with change capability
+      setThemeSettings({
+        isThemeAssigned: false,
+        canChangeTheme: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshThemeConfig = async () => {
+    await fetchThemeConfig();
+  };
 
   useEffect(() => {
-    // Load saved theme from localStorage
-    const savedTheme = localStorage.getItem('theme');
-    const savedFont = localStorage.getItem('fontFamily');
-    
-    if (savedTheme) {
-      setCurrentThemeName(savedTheme);
+    if (isEventAdmin && eventId) {
+      // For Event Admin, fetch assigned theme as starting point
+      fetchThemeConfig();
+    } else {
+      // For other roles, load from localStorage
+      const savedTheme = localStorage.getItem('theme');
+      const savedFont = localStorage.getItem('fontFamily');
+      
+      if (savedTheme) {
+        setCurrentThemeName(savedTheme);
+      }
+      
+      if (savedFont) {
+        setCurrentFontFamily(savedFont);
+      }
+
+      setThemeSettings({
+        isThemeAssigned: false,
+        canChangeTheme: true,
+      });
     }
-    
-    if (savedFont) {
-      setCurrentFontFamily(savedFont);
-    }
-  }, []);
+  }, [isEventAdmin, eventId]);
 
   const themes = createThemes(currentFontFamily);
   const currentTheme = themes[currentThemeName as keyof typeof themes]?.theme || themes.default.theme;
 
   const setTheme = (themeName: string) => {
     setCurrentThemeName(themeName);
+    
+    // For Event Admin, save to localStorage for session persistence
+    // For other users, also save to localStorage
     localStorage.setItem('theme', themeName);
   };
 
   const setFontFamily = (fontFamily: string) => {
     setCurrentFontFamily(fontFamily);
+    
+    // For Event Admin, save to localStorage for session persistence
+    // For other users, also save to localStorage
     localStorage.setItem('fontFamily', fontFamily);
   };
 
@@ -911,6 +987,9 @@ export function SimpleThemeProvider({ children }: SimpleThemeProviderProps) {
     themes,
     setTheme,
     setFontFamily,
+    themeSettings,
+    isLoading,
+    refreshThemeConfig,
   };
 
   return (

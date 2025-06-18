@@ -37,7 +37,16 @@ interface SimpleThemeSelectorProps {
 
 export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: SimpleThemeSelectorProps) {
   const [open, setOpen] = useState(false);
-  const { currentThemeName, themes, setTheme, currentFontFamily, fontFamilies, setFontFamily } = useSimpleTheme();
+  const { 
+    currentThemeName, 
+    themes, 
+    setTheme, 
+    currentFontFamily, 
+    fontFamilies, 
+    setFontFamily,
+    themeSettings,
+    isLoading
+  } = useSimpleTheme();
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -286,6 +295,64 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
         </DialogTitle>
 
         <DialogContent sx={{ pt: 3 }}>
+          {/* Event Admin Default Theme Notice */}
+          {themeSettings.isThemeAssigned && (
+            <Paper
+              sx={{
+                p: 3,
+                mb: 3,
+                background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.1) 0%, rgba(25, 118, 210, 0.05) 100%)',
+                border: '1px solid rgba(25, 118, 210, 0.2)',
+                borderRadius: 3,
+              }}
+            >
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Palette sx={{ color: 'primary.main', fontSize: 28 }} />
+                  <Box>
+                    <Typography variant="h6" fontWeight={600} color="primary.main">
+                      Default Theme from IT Administrator
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Your IT Administrator set a default theme for your event. You can customize it as needed.
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                {themeSettings.themeConfig && (
+                  <Box sx={{ pl: 5 }}>
+                    <Stack direction="row" spacing={3}>
+                      <Box>
+                        <Typography variant="caption" fontWeight={600} color="text.secondary">
+                          DEFAULT THEME
+                        </Typography>
+                        <Typography variant="body2" fontWeight={500}>
+                          {themeSettings.themeConfig.themeName}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" fontWeight={600} color="text.secondary">
+                          DEFAULT FONT
+                        </Typography>
+                        <Typography variant="body2" fontWeight={500}>
+                          {themeSettings.themeConfig.fontName}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" fontWeight={600} color="text.secondary">
+                          ASSIGNED DATE
+                        </Typography>
+                        <Typography variant="body2" fontWeight={500}>
+                          {new Date(themeSettings.themeConfig.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                )}
+              </Stack>
+            </Paper>
+          )}
+
           <Stack spacing={4}>
             {/* Font Selection Section */}
             <Box>

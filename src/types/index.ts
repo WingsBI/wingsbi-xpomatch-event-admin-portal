@@ -8,6 +8,9 @@ export interface User {
   updatedAt: Date;
 }
 
+// Re-export auth types for convenience
+export type { User as AuthUser, UserRole, LoginCredentials, AuthResponse, AuthContextType, RoleConfig } from './auth';
+
 export interface Event {
   id: string;
   eventId: string;
@@ -128,4 +131,36 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+// Theme-related types for Event Admin
+export interface ThemeConfig {
+  id: string;
+  eventId: string;
+  themeKey: string;
+  fontKey: string;
+  themeName: string;
+  fontName: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string; // IT Admin ID from different project
+}
+
+export interface AvailableTheme {
+  key: string;
+  name: string;
+  description: string;
+  preview: string;
+}
+
+export interface AvailableFont {
+  key: string;
+  name: string;
+  fontFamily: string;
+}
+
+export interface EventAdminThemeSettings {
+  isThemeAssigned: boolean;
+  themeConfig?: ThemeConfig;
+  canChangeTheme: boolean; // Will be true for Event Admin
 } 

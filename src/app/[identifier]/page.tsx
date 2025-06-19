@@ -35,7 +35,7 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
 import { RootState, AppDispatch } from "@/store";
-import { loginUser } from "@/store/slices/authSlice";
+import { loginUser, restoreAuthState } from "@/store/slices/authSlice";
 import { addNotification, setIdentifier } from "@/store/slices/appSlice";
 
 // Define color themes
@@ -63,6 +63,8 @@ export default function EventLoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState("deepBlueTeal");
+  const [hasJustLoggedIn, setHasJustLoggedIn] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
@@ -72,8 +74,7 @@ export default function EventLoginPage() {
   const { responsive, ui } = useSelector((state: RootState) => state.app);
   const { user, isAuthenticated, isLoading: authLoading } = useSelector((state: RootState) => state.auth);
 
-  // Legacy auth context for compatibility
-  const { login, logout, isAuthenticated: legacyAuth, isLoading: legacyLoading } = useAuth();
+  // Legacy auth context for compatibility (removed - using Redux only)
 
   // Responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -91,12 +92,46 @@ export default function EventLoginPage() {
     }
   }, [identifier, dispatch]);
 
-  // Clear authentication when visiting login page
+  // Try to restore authentication state on page load
   useEffect(() => {
-    if (isAuthenticated || legacyAuth) {
-      logout(); // Clear legacy authentication to show login form
+    const storedToken = localStorage.getItem('jwtToken');
+    
+    if (storedToken && !isAuthenticated && !authLoading && identifier) {
+      console.log("Attempting to restore authentication state from localStorage");
+      dispatch(restoreAuthState(identifier));
     }
-  }, [isAuthenticated, legacyAuth, logout]);
+  }, [isAuthenticated, authLoading, identifier, dispatch]);
+
+  // Cleanup redirecting state if navigation doesn't happen
+  useEffect(() => {
+    if (isRedirecting) {
+      const timer = setTimeout(() => {
+        console.log("Redirect timeout - resetting redirecting state");
+        setIsRedirecting(false);
+        setHasJustLoggedIn(false);
+      }, 3000); // Reset after 3 seconds if redirect doesn't complete
+
+      return () => clearTimeout(timer);
+    }
+  }, [isRedirecting]);
+
+  // Redirect authenticated users to their appropriate dashboard
+  useEffect(() => {
+    if (isAuthenticated && user && !hasJustLoggedIn && !isRedirecting) {
+      const userRole = user.role;
+      let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
+      
+      if (userRole === "visitor") {
+        redirectPath = `/${identifier}/event-admin/visitors`;
+      } else if (userRole === "exhibitor") {
+        redirectPath = `/${identifier}/event-admin/exhibitors`;
+      }
+      
+      console.log("User already authenticated, redirecting to:", redirectPath);
+      setIsRedirecting(true);
+      router.push(redirectPath);
+    }
+  }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +151,9 @@ export default function EventLoginPage() {
     try {
       console.log("Sending login request with Redux...");
 
+      // Set flag to prevent logout on redirect
+      setHasJustLoggedIn(true);
+
       // Use Redux for login with simplified credentials
       const result = await dispatch(loginUser({
         email: credentials.email,
@@ -132,15 +170,33 @@ export default function EventLoginPage() {
         message: 'Login successful! Redirecting...',
       }));
 
-      // Redirect to dashboard for this event
-      const redirectPath = `/${identifier}/event-admin/dashboard`;
+      // Determine redirect path based on user role
+      let redirectPath = `/${identifier}/event-admin/dashboard`; // Default for event admin
+      
+      if (result.user) {
+        const userRole = result.user.role;
+        
+        console.log("User role:", userRole);
+        
+        // Role-based routing
+        if (userRole === "visitor") {
+          // Visitors should see the list of exhibitors
+          redirectPath = `/${identifier}/event-admin/visitors`;
+        } else if (userRole === "exhibitor") {
+          // Exhibitors should see the list of visitors
+          redirectPath = `/${identifier}/event-admin/exhibitors`;
+        }
+        // Event admins and IT admins go to dashboard by default
+      }
+      
       console.log("Redirecting to:", redirectPath);
       
-      // Add a small delay to ensure state updates
-      setTimeout(() => {
-        router.push(redirectPath);
-        console.log("Router.push called for:", redirectPath);
-      }, 100);
+      // Set redirecting state to show loading during redirect
+      setIsRedirecting(true);
+      
+      // Immediate redirect without delay for better UX
+      router.push(redirectPath);
+      console.log("Router.push called for:", redirectPath);
 
     } catch (err: any) {
       console.error("Redux login error:", err);
@@ -151,6 +207,10 @@ export default function EventLoginPage() {
         type: 'error',
         message: err.message || "Login failed. Please try again.",
       }));
+      
+      // Reset the flags on error
+      setHasJustLoggedIn(false);
+      setIsRedirecting(false);
     } finally {
       setIsSubmitting(false);
       console.log("=== LOGIN DEBUG END ===");
@@ -174,7 +234,7 @@ export default function EventLoginPage() {
     setError("");
   };
 
-  if (authLoading || legacyLoading) {
+  if (authLoading || isSubmitting || isRedirecting) {
     return (
       <Box
         sx={{
@@ -191,7 +251,7 @@ export default function EventLoginPage() {
           transition={{ duration: 0.5 }}
         >
           <Typography variant="h6" color="white">
-            Loading...
+            {isSubmitting ? "Signing in..." : isRedirecting ? "Redirecting..." : "Loading..."}
           </Typography>
         </motion.div>
       </Box>

@@ -367,7 +367,7 @@ function VisitorExhibitorsView() {
         position: 'sticky',
         top: 0,
         bgcolor: '#fafbfc',
-        // pt: 2,
+        pt: -4,
         // pb: 2,
         zIndex: 1,
         borderBottom: '1px solid',

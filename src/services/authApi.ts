@@ -60,6 +60,43 @@ class AuthApiService {
     }
   }
 
+  // Map numeric role IDs to string literals
+  private mapRoleToString(role: string | number, roleName?: string): 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor' {
+    // First try to map by roleName if available
+    if (roleName) {
+      switch (roleName.toLowerCase()) {
+        case 'visitor':
+          return 'visitor';
+        case 'exhibitor':
+          return 'exhibitor';
+        case 'event-admin':
+        case 'eventadmin':
+          return 'event-admin';
+        case 'it-admin':
+        case 'itadmin':
+          return 'it-admin';
+      }
+    }
+
+    // Fallback to numeric role mapping
+    switch (role.toString()) {
+      case '1':
+        return 'it-admin';
+      case '2':
+        return 'event-admin';
+      case '3':
+        return 'exhibitor';
+      case '4':
+        return 'visitor';
+      default:
+        // If it's already a string literal, return as is
+        if (['it-admin', 'event-admin', 'exhibitor', 'visitor'].includes(role as string)) {
+          return role as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
+        }
+        return 'event-admin'; // Default fallback
+    }
+  }
+
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       // Using the correct API path format: /api/{identifier}/Auth/login (capital A)
@@ -122,7 +159,7 @@ class AuthApiService {
       const firstName = jwtPayload?.firstName || '';
       const lastName = jwtPayload?.lastName || '';
       const userName = firstName && lastName ? `${firstName} ${lastName}` : firstName || userEmail.split('@')[0];
-      const userRole = (jwtPayload?.role || jwtPayload?.roleid || 'event-admin') as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
+      const userRole = this.mapRoleToString(jwtPayload?.role || jwtPayload?.roleid || '2', jwtPayload?.roleName);
       const eventId = jwtPayload?.eventId || credentials.identifier;
 
       return {
@@ -224,7 +261,7 @@ class AuthApiService {
           user: {
             id: jwtPayload?.sub || data.userId || '1',
             email: jwtPayload?.email || data.email,
-            role: (jwtPayload?.role || data.role || 'event-admin') as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor',
+            role: this.mapRoleToString(jwtPayload?.role || data.role || '2', jwtPayload?.roleName || data.roleName),
             eventId: jwtPayload?.eventId || data.eventId,
             name: jwtPayload?.name || data.name,
             avatar: jwtPayload?.avatar || data.avatar,

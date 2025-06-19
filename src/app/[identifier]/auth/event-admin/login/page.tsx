@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import { 
   Box, 
   Container, 
@@ -16,6 +17,8 @@ import {
 import Link from 'next/link';
 import { Event } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
+import { setIdentifier } from '@/store/slices/appSlice';
+import { AppDispatch } from '@/store';
 
 interface LoginForm {
   email: string;
@@ -26,17 +29,26 @@ export default function EventAdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const params = useParams();
+  const identifier = params.identifier as string;
+  const dispatch = useDispatch<AppDispatch>();
   
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+
+  useEffect(() => {
+    if (identifier) {
+      dispatch(setIdentifier(identifier));
+    }
+  }, [identifier, dispatch]);
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     setError('');
     
-    // Simulate loading delay
+    // Simulate loading delay and redirect to identifier-based dashboard
     setTimeout(() => {
       setLoading(false);
-      router.push('/event-admin/dashboard');
+      router.push(`/${identifier}/event-admin/dashboard`);
     }, 1000);
   };
 
@@ -61,7 +73,7 @@ export default function EventAdminLoginPage() {
                 Event Admin Login
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Access your event management dashboard
+                Access your event management dashboard for {identifier}
               </Typography>
             </Box>
 
@@ -119,11 +131,11 @@ export default function EventAdminLoginPage() {
             <Box textAlign="center" mt={3}>
               <MuiLink
                 component={Link}
-                href="/"
+                href={`/${identifier}`}
                 variant="body2"
                 sx={{ textDecoration: 'none' }}
               >
-                ← Back to Home
+                ← Back to Main Login
               </MuiLink>
             </Box>
           </CardContent>

@@ -1,6 +1,8 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
+import { useParams } from "next/navigation";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
   Container,
@@ -8,12 +10,6 @@ import {
   Grid,
   Card,
   CardContent,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
-  Divider,
   Button,
 } from '@mui/material';
 import {
@@ -25,25 +21,46 @@ import {
   Dashboard as DashboardIcon,
   Add,
 } from '@mui/icons-material';
+
 import { Event, Participant, DashboardStats } from '@/types';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 import { mockVisitors, mockExhibitors, mockEvent, mockStats } from '@/lib/mockData';
+import { RootState, AppDispatch } from "@/store";
+import { setIdentifier } from "@/store/slices/appSlice";
 
-export default function DashboardPage() {
+export default function EventAdminDashboard() {
+  const params = useParams();
+  const identifier = params.identifier as string;
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.auth);
+  
   const [event, setEvent] = useState<Event | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Set identifier in Redux store when component mounts
+  useEffect(() => {
+    if (identifier) {
+      dispatch(setIdentifier(identifier));
+    }
+  }, [identifier, dispatch]);
+
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [identifier]);
 
   const fetchDashboardData = async () => {
     try {
-      // Using mock data for demonstration
-      setEvent(mockEvent);
+      // Using mock data for demonstration, but customize for identifier
+      const customEvent = {
+        ...mockEvent,
+        eventId: identifier,
+        name: `${identifier} Event`,
+        description: `Event management dashboard for ${identifier}`
+      };
+      setEvent(customEvent);
       setStats(mockStats);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -106,68 +123,34 @@ export default function DashboardPage() {
     },
   ];
 
-  const navItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
-    { text: 'Visitors', icon: <People />, href: '/event-admin/visitors' },
-    { text: 'Exhibitors', icon: <Business />, href: '/event-admin/exhibitors' },
-  ];
+
 
   return (
-    <DashboardLayout title="Event Admin Dashboard" userRole="event-admin">
-      <Box sx={{ display: 'flex' }}>
-        {/* Left Side Navigation */}
-        <Box
-          sx={{
-            width: 240,
-            flexShrink: 0,
-            borderRight: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
-            height: 'calc(100vh - 64px)',
-            position: 'fixed',
-            left: 0,
-            top: 64,
-          }}
-        >
-          <List>
-            {navItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  component="a"
-                  href={item.href}
-                  selected={item.href === '/dashboard'}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-          
-          {/* Theme Selector in Navigation */}
-          <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', mt: 'auto' }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Portal Theme
-            </Typography>
-            <SimpleThemeSelector variant="button" showLabel />
-          </Box>
-        </Box>
-
-        {/* Main Content */}
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            // ml: '240px',
-            p: 3,
-          }}
-        >
+    <ResponsiveDashboardLayout 
+      title={`${identifier} Event Dashboard`}
+      breadcrumbs={[
+        { label: 'Event Admin', href: `/${identifier}/event-admin` },
+        { label: 'Dashboard' }
+      ]}
+    >
+      {/* Main Content */}
+      <Box
+        component="main"
+        sx={{
+          p: 3,
+        }}
+      >
           <Container maxWidth="xl">
-            {/* Header with Theme Selector */}
+            {/* Header with Welcome Message */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h4" component="h1">
-                Dashboard Overview
-              </Typography>
+              <Box>
+                <Typography variant="h4" component="h1" gutterBottom>
+                  Welcome back, {user?.name || 'Ritesh Amilkanthwar'}!
+                </Typography>
+                <Typography variant="subtitle1" color="text.secondary">
+                  Manage your event and track participant engagement
+                </Typography>
+              </Box>
               <SimpleThemeSelector />
             </Box>
 
@@ -224,8 +207,7 @@ export default function DashboardPage() {
               ))}
             </Grid>
           </Container>
-        </Box>
       </Box>
-    </DashboardLayout>
+    </ResponsiveDashboardLayout>
   );
-} 
+}

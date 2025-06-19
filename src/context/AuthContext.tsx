@@ -77,8 +77,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // Don't redirect here - let Redux handle routing
+        // router.push('/dashboard');
       }
 
       return data;
@@ -105,10 +105,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
     setToken(null);
 
-    // Redirect to login
-    // router.push('/auth/login');
-    
-    router.push('/dashboard');
+    // Don't redirect here - let Redux handle routing
+    // The component calling logout should handle the redirect
   };
 
   const refreshAuth = async () => {

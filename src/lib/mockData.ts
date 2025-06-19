@@ -308,6 +308,8 @@ export const mockEvent = {
   updatedAt: new Date('2024-01-15'),
 };
 
+export const mockEvents = [mockEvent];
+
 export const mockStats = {
   totalEvents: 1,
   activeEvents: 1,

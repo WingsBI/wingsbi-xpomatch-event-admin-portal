@@ -1,601 +1,209 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSelector, useDispatch } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Box,
   Container,
   Typography,
   Card,
   CardContent,
-  TextField,
   Button,
-  Alert,
-  InputAdornment,
-  IconButton,
   Paper,
-  Chip,
   Stack,
-  useTheme,
-  useMediaQuery,
-  Grid,
-  Fab,
-  Tooltip,
 } from "@mui/material";
-import {
-  Person,
-  Lock,
-  Visibility,
-  VisibilityOff,
-  Login as LoginIcon,
-  AccountCircle,
-  Palette,
-  Email,
-  Smartphone,
-  Laptop,
-  DesktopWindows,
-  Tv,
-  TouchApp,
-} from "@mui/icons-material";
-import { SimpleThemeSelector } from "@/components/theme/SimpleThemeSelector";
-import { useAuth } from "@/context/AuthContext";
-import { RootState, AppDispatch } from "@/store";
-import { loginUser } from "@/store/slices/authSlice";
-import { addNotification } from "@/store/slices/appSlice";
-import { authApi } from "@/services/apiService";
-
-// Define color themes with responsive considerations
-const colorThemes = {
-  deepBlueTeal: {
-    name: "Deep Blue & Teal",
-    background: "linear-gradient(135deg, #1e3a8a 0%, #0891b2 100%)",
-    cardHeader: "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)",
-    button: "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)",
-    buttonHover: "linear-gradient(135deg, #0e7490 0%, #164e63 100%)",
-    shadowColor: "rgba(8, 145, 178, 0.4)",
-    shadowColorHover: "rgba(8, 145, 178, 0.5)",
-  },
-};
+import { Event, ArrowForward, Email, ContactSupport } from "@mui/icons-material";
 
 export default function HomePage() {
-  const [credentials, setCredentials] = useState({
-    email: "",
-    password: "",
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState("deepBlueTeal");
-
-  const theme = useTheme();
-  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-
-  // Redux state
-  const { identifier, responsive, ui } = useSelector(
-    (state: RootState) => state.app
-  );
-  const {
-    user,
-    isAuthenticated,
-    isLoading: authLoading,
-  } = useSelector((state: RootState) => state.auth);
-
-  // Legacy auth context for compatibility
-  const {
-    login,
-    logout,
-    isAuthenticated: legacyAuth,
-    isLoading: legacyLoading,
-  } = useAuth();
-
-  // Responsive breakpoints
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isTablet = useMediaQuery(theme.breakpoints.between("md", "lg"));
-  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
-
-  // Get current theme
-  const currentTheme = colorThemes[selectedTheme as keyof typeof colorThemes];
-
-  // Show device info for demonstration
-  const getDeviceIcon = () => {
-    switch (responsive.deviceType) {
-      case "mobile":
-        return <Smartphone />;
-      case "tablet":
-        return <TouchApp />;
-      case "laptop":
-        return <Laptop />;
-      case "desktop":
-        return <DesktopWindows />;
-      case "tv":
-        return <Tv />;
-      default:
-        return <DesktopWindows />;
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // For testing: Add ?mode=production to URL to test production view on localhost
+  const [showProductionView, setShowProductionView] = React.useState(false);
+  
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'production') {
+      setShowProductionView(true);
     }
+  }, []);
+  
+  // Get environment variables
+  const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL || process.env.CONTACT_EMAIL || 'contact@wingsbi.com';
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+  // Example identifiers for demo (only for development)
+  const demoIdentifiers = [
+    "AIE987654",
+    "EXPO2024", 
+    "TECH2024",
+    "DEMO2024"
+  ];
+
+  const handleIdentifierClick = (identifier: string) => {
+    router.push(`/${identifier}`);
   };
 
-  // Clear authentication when visiting homepage to show login form
-  useEffect(() => {
-    if (isAuthenticated || legacyAuth) {
-      logout(); // Clear legacy authentication to show login form
-    }
-  }, [isAuthenticated, legacyAuth, logout]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsSubmitting(true);
-
-    console.log("Login attempt with identifier:", identifier); // Debug log
-
-    if (!credentials.email || !credentials.password) {
-      setError("Please enter both email and password");
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      console.log("Sending login request with Redux..."); // Debug log
-
-      // Use Redux for login
-      const result = await dispatch(
-        loginUser({
-          email: credentials.email,
-          password: credentials.password,
-          eventId: "EVT001",
-          role: "event-admin",
-          identifier: identifier, // Pass the extracted identifier
-        })
-      ).unwrap();
-
-      console.log("Redux login result:", result); // Debug log
-
-      // Show success notification
-      dispatch(
-        addNotification({
-          type: "success",
-          message: "Login successful! Redirecting...",
-        })
-      );
-
-      // Redirect based on role and identifier
-      const redirectPath = `/${identifier}/event-admin/dashboard`;
-      router.push(redirectPath);
-    } catch (err: any) {
-      console.error("Redux login error:", err); // Debug log
-      setError(err.message || "Login failed. Please try again.");
-
-      dispatch(
-        addNotification({
-          type: "error",
-          message: err.message || "Login failed. Please try again.",
-        })
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleChange =
-    (field: "email" | "password") =>
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setCredentials((prev) => ({
-        ...prev,
-        [field]: event.target.value,
-      }));
-      // Clear error when user starts typing
-      if (error) setError("");
-    };
-
-  const handleThemeChange = (event: any) => {
-    setSelectedTheme(event.target.value);
-  };
-
-  // Quick demo login function
-  const handleDemoLogin = (email: string, password: string) => {
-    setCredentials({ email, password });
-    setError("");
-  };
-
-  if (authLoading || legacyLoading) {
+  // Production content
+  if (!isDevelopment || showProductionView) {
     return (
       <Box
         sx={{
           minHeight: "100vh",
-          background: currentTheme.background,
+          background: "linear-gradient(135deg, #1e3a8a 0%, #0891b2 100%)",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          py: 4,
         }}
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Typography variant="h6" color="white">
-            Loading...
-          </Typography>
-        </motion.div>
+        <Container maxWidth="md">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Card sx={{ textAlign: "center", p: 4 }}>
+              <CardContent>
+                <Event sx={{ fontSize: 64, color: "primary.main", mb: 2 }} />
+                
+                <Typography variant="h3" component="h1" gutterBottom fontWeight="bold">
+                  Event Management Portal
+                </Typography>
+
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
+                  Welcome to the AI Matchmaking Event Platform
+                </Typography>
+
+                <Paper sx={{ p: 3, mb: 4, bgcolor: "grey.50" }}>
+                  <ContactSupport sx={{ fontSize: 48, color: "primary.main", mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    Access Required
+                  </Typography>
+                  <Typography variant="body1" gutterBottom>
+                    You need a direct link with your event identifier to access this portal.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    The correct URL format should be:
+                  </Typography>
+                  <Typography variant="body2" fontFamily="monospace" sx={{ mb: 3, p: 1, bgcolor: "grey.100", borderRadius: 1 }}>
+                    {appUrl || 'https://xpomatch-dev-event-admin-portal.azurewebsites.net'}/<strong>[EVENT-ID]</strong>
+                  </Typography>
+                  
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="center">
+                    <Button
+                      variant="contained"
+                      startIcon={<Email />}
+                      onClick={() => {
+                        const emailUrl = `mailto:${contactEmail}?subject=Event Access Request&body=Hello,%0D%0A%0D%0AI need access to an event on the platform. Please provide me with the correct event identifier link.%0D%0A%0D%0AThank you!`;
+                        console.log('Opening email:', emailUrl);
+                        try {
+                          window.location.href = emailUrl;
+                        } catch (error) {
+                          console.error('Failed to open email client:', error);
+                          // Fallback: copy email to clipboard
+                          navigator.clipboard.writeText(contactEmail).then(() => {
+                            alert(`Email client not available. Contact email copied to clipboard: ${contactEmail}`);
+                          }).catch(() => {
+                            alert(`Please contact: ${contactEmail}`);
+                          });
+                        }
+                      }}
+                      size="large"
+                    >
+                      Contact Administrator
+                    </Button>
+                  </Stack>
+                </Paper>
+
+                <Typography variant="body2" color="text.secondary">
+                  If you received an email invitation, please use the direct link provided in that email.
+                </Typography>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </Container>
       </Box>
     );
   }
 
+  // Development content (existing demo functionality)
   return (
     <Box
       sx={{
         minHeight: "100vh",
-        background: currentTheme.background,
-        position: "relative",
-        overflow: "hidden",
-        transition: "all 0.3s ease-in-out",
+        background: "linear-gradient(135deg, #1e3a8a 0%, #0891b2 100%)",
+        display: "flex",
+        alignItems: "center",
+        py: 4,
       }}
     >
-      {/* Background Pattern */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage:
-            "radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%)",
-          zIndex: 0,
-        }}
-      />
-
-      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, py: 4 }}>
-        {/* Responsive Info Banner */}
+      <Container maxWidth="md">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.7 }}
         >
-          <Paper
-            sx={{
-              p: 2,
-              mb: 3,
-              background: "rgba(255, 255, 255, 0.9)",
-              backdropFilter: "blur(10px)",
-              borderRadius: 2,
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              flexWrap: "wrap",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {getDeviceIcon()}
-              <Typography variant="body2" fontWeight="bold">
-                {responsive.deviceType.toUpperCase()}
+          <Card sx={{ textAlign: "center", p: 4 }}>
+            <CardContent>
+              <Event sx={{ fontSize: 64, color: "primary.main", mb: 2 }} />
+              
+              <Typography variant="h3" component="h1" gutterBottom fontWeight="bold">
+                Event Management Portal
               </Typography>
-            </Box>
-            <Chip
-              label={`${responsive.screenWidth} × ${responsive.screenHeight}`}
-              size="small"
-              variant="outlined"
-            />
-            <Chip label={responsive.orientation} size="small" color="primary" />
-            <Chip label={`ID: ${identifier}`} size="small" color="secondary" />
-            {responsive.isTouchDevice && (
-              <Chip
-                label="Touch"
-                size="small"
-                icon={<TouchApp />}
-                color="success"
-              />
-            )}
-          </Paper>
-        </motion.div>
+              
+              <Typography variant="body2" color="error" sx={{ mb: 2, fontWeight: "bold" }}>
+                🚧 DEVELOPMENT MODE - Demo Identifiers Available
+              </Typography>
 
-        <Grid container spacing={4} alignItems="center" justifyContent="center">
-          {/* Left side - Demo info for larger screens */}
-          {!isMobile && (
-            <Grid item xs={12} md={6}>
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.7 }}
-              >
-                <Typography
-                  variant="h2"
-                  component="h1"
-                  sx={{
-                    color: "white",
-                    fontWeight: 800,
-                    mb: 3,
-                    fontSize: { xs: "2rem", md: "3rem", lg: "3.5rem" },
-                    textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-                  }}
-                >
-                  Event Management Portal
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
+                Welcome to the multi-tenant event management system
+              </Typography>
+
+              <Paper sx={{ p: 3, mb: 4, bgcolor: "grey.50" }}>
+                <Typography variant="body1" gutterBottom>
+                  <strong>To access your event, you need an Event Identifier.</strong>
                 </Typography>
-
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "rgba(255, 255, 255, 0.9)",
-                    mb: 4,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  A comprehensive event management solution designed to
-                  streamline coordination between visitors and exhibitors,
-                  enhancing engagement, scheduling, and overall event
-                  experience.
+                <Typography variant="body2" color="text.secondary">
+                  Each event has a unique identifier. Please use the correct URL format:
                 </Typography>
+                <Typography variant="body2" fontFamily="monospace" sx={{ mt: 1 }}>
+                  https://yourdomain.com/<strong>[EVENT-ID]</strong>
+                </Typography>
+              </Paper>
 
-                <Stack spacing={2}>
-                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                    <Button
-                      variant="outlined"
-                      onClick={() =>
-                        handleDemoLogin("admin@example.com", "admin123")
-                      }
-                      sx={{
-                        color: "white",
-                        borderColor: "rgba(255,255,255,0.5)",
-                        "&:hover": {
-                          borderColor: "white",
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                        },
-                      }}
-                    >
-                      Demo Admin
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={() =>
-                        handleDemoLogin("user@example.com", "user123")
-                      }
-                      sx={{
-                        color: "white",
-                        borderColor: "rgba(255,255,255,0.5)",
-                        "&:hover": {
-                          borderColor: "white",
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                        },
-                      }}
-                    >
-                      Demo User
-                    </Button>
-                  </Box>
-                </Stack>
-              </motion.div>
-            </Grid>
-          )}
+              <Typography variant="h6" gutterBottom>
+                Demo Event Identifiers:
+              </Typography>
 
-          {/* Right side - Login form */}
-          <Grid item xs={12} md={isMobile ? 12 : 6}>
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-            >
-              {/* Header for mobile */}
-              {isMobile && (
-                <Box textAlign="center" mb={4}>
-                  <Typography
-                    variant="h3"
-                    component="h1"
+              <Stack spacing={2} direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "center", flexWrap: "wrap", gap: 2 }}>
+                {demoIdentifiers.map((identifier) => (
+                  <Button
+                    key={identifier}
+                    variant="outlined"
+                    size="large"
+                    endIcon={<ArrowForward />}
+                    onClick={() => handleIdentifierClick(identifier)}
                     sx={{
-                      color: "white",
-                      fontWeight: 800,
-                      mb: 2,
-                      fontSize: "2.5rem",
-                      textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                      minWidth: 140,
+                      fontWeight: "bold",
+                      "&:hover": {
+                        transform: "translateY(-2px)",
+                        boxShadow: 3,
+                      },
                     }}
                   >
-                    Event Portal
-                  </Typography>
-                </Box>
-              )}
+                    {identifier}
+                  </Button>
+                ))}
+              </Stack>
 
-              {/* Login Card */}
-              <Card
-                sx={{
-                  borderRadius: 4,
-                  overflow: "hidden",
-                  backdropFilter: "blur(10px)",
-                  bgcolor: "rgba(255, 255, 255, 0.95)",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-                  maxWidth: 500,
-                  mx: "auto",
-                  transition: "all 0.3s ease-in-out",
-                }}
-              >
-                {/* Header */}
-                <Box
-                  sx={{
-                    background: currentTheme.cardHeader,
-                    p: { xs: 2, md: 3 },
-                    color: "white",
-                    textAlign: "center",
-                    transition: "all 0.3s ease-in-out",
-                  }}
-                >
-                  <Typography variant="h4" fontWeight={600} gutterBottom>
-                    Sign In
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    Welcome back! Please sign in to continue.
-                  </Typography>
-                </Box>
-
-                <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                  <form onSubmit={handleSubmit}>
-                    {/* Error Alert */}
-                    <AnimatePresence>
-                      {error && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                        >
-                          <Alert
-                            severity="error"
-                            sx={{ borderRadius: 2, mb: 2 }}
-                          >
-                            {error}
-                          </Alert>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Email Field */}
-                    <TextField
-                      fullWidth
-                      label="Email"
-                      type="email"
-                      size={isMobile ? "medium" : "small"}
-                      value={credentials.email}
-                      onChange={handleChange("email")}
-                      placeholder="Enter your email"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Email color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        mb: 3,
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: 2,
-                          bgcolor: "rgba(0,0,0,0.02)",
-                          minHeight: isMobile ? 56 : 48,
-                        },
-                      }}
-                      disabled={isSubmitting}
-                      required
-                    />
-
-                    {/* Password Field */}
-                    <TextField
-                      fullWidth
-                      label="Password"
-                      size={isMobile ? "medium" : "small"}
-                      type={showPassword ? "text" : "password"}
-                      value={credentials.password}
-                      onChange={handleChange("password")}
-                      placeholder="Enter your password"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock color="action" />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                              disabled={isSubmitting}
-                              size="small"
-                            >
-                              {showPassword ? (
-                                <VisibilityOff />
-                              ) : (
-                                <Visibility />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        mb: 4,
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: 2,
-                          bgcolor: "rgba(0,0,0,0.02)",
-                          minHeight: isMobile ? 56 : 48,
-                        },
-                      }}
-                      disabled={isSubmitting}
-                      required
-                    />
-
-                    {/* Submit Button */}
-                    <Button
-                      type="submit"
-                      fullWidth
-                      variant="contained"
-                      disabled={isSubmitting}
-                      sx={{
-                        py: { xs: 2, md: 1.5 },
-                        borderRadius: 2,
-                        fontWeight: 600,
-                        fontSize: { xs: "1.1rem", md: "1rem" },
-                        minHeight: { xs: 56, md: 48 },
-                        background: currentTheme.button,
-                        boxShadow: `0 4px 20px ${currentTheme.shadowColor}`,
-                        transition: "all 0.3s ease-in-out",
-                        "&:hover": {
-                          background: currentTheme.buttonHover,
-                          boxShadow: `0 6px 25px ${currentTheme.shadowColorHover}`,
-                        },
-                      }}
-                    >
-                      {isSubmitting ? "Signing In..." : "Sign In"}
-                    </Button>
-
-                    {/* Quick demo buttons for mobile */}
-                    {isMobile && (
-                      <Box
-                        sx={{
-                          mt: 3,
-                          display: "flex",
-                          gap: 1,
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Button
-                          size="small"
-                          onClick={() =>
-                            handleDemoLogin("admin@example.com", "admin123")
-                          }
-                          disabled={isSubmitting}
-                        >
-                          Demo Admin
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() =>
-                            handleDemoLogin("user@example.com", "user123")
-                          }
-                          disabled={isSubmitting}
-                        >
-                          Demo User
-                        </Button>
-                      </Box>
-                    )}
-                  </form>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
-        </Grid>
-
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <Box textAlign="center" mt={4}>
-            <Typography
-              variant="body2"
-              sx={{
-                color: "rgba(255, 255, 255, 0.8)",
-                textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-              }}
-            >
-              © 2024 Event Management Portal. All rights reserved.
-            </Typography>
-          </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+                Don't have an event identifier? Contact your event administrator.
+              </Typography>
+            </CardContent>
+          </Card>
         </motion.div>
       </Container>
     </Box>

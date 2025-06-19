@@ -114,7 +114,9 @@ export default function EventLoginPage() {
     setError("");
     setIsSubmitting(true);
 
+    console.log("=== LOGIN DEBUG START ===");
     console.log("Login attempt with identifier:", identifier);
+    console.log("Credentials:", { email: credentials.email, password: "***" });
 
     if (!credentials.email || !credentials.password) {
       setError("Please enter both email and password");
@@ -133,6 +135,7 @@ export default function EventLoginPage() {
       })).unwrap();
 
       console.log("Redux login result:", result);
+      console.log("Login successful, preparing redirect...");
 
       // Show success notification
       dispatch(addNotification({
@@ -142,10 +145,17 @@ export default function EventLoginPage() {
 
       // Redirect to dashboard for this event
       const redirectPath = `/${identifier}/event-admin/dashboard`;
-      router.push(redirectPath);
+      console.log("Redirecting to:", redirectPath);
+      
+      // Add a small delay to ensure state updates
+      setTimeout(() => {
+        router.push(redirectPath);
+        console.log("Router.push called for:", redirectPath);
+      }, 100);
 
     } catch (err: any) {
       console.error("Redux login error:", err);
+      console.log("=== LOGIN ERROR ===", err);
       setError(err.message || "Login failed. Please try again.");
       
       dispatch(addNotification({
@@ -154,6 +164,7 @@ export default function EventLoginPage() {
       }));
     } finally {
       setIsSubmitting(false);
+      console.log("=== LOGIN DEBUG END ===");
     }
   };
 
@@ -275,7 +286,7 @@ export default function EventLoginPage() {
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     <Button
                       variant="outlined"
-                      onClick={() => handleDemoLogin("ritesh.ramilkanthwar@gmail.com", "kOZoO@O!")}
+                      onClick={() => handleDemoLogin("ritesh.ramilkanthwar@gmail.com", "FjqkpTVS")}
                       sx={{ 
                         color: 'white', 
                         borderColor: 'rgba(255,255,255,0.5)',

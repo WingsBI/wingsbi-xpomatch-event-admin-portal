@@ -92,7 +92,8 @@ class AuthApiService {
       const data = await response.json();
       console.log('Login response data:', data);
 
-      if (!response.ok) {
+      // Check for your specific backend response format
+      if (!response.ok || !data.result || !data.result.token) {
         return {
           success: false,
           error: data.message || data.error || `HTTP ${response.status}: Login failed`,
@@ -100,9 +101,9 @@ class AuthApiService {
         };
       }
 
-      // Extract JWT token from response
-      const jwtToken = data.token || data.accessToken || data.jwtToken;
-      const refreshToken = data.refreshToken || data.refresh_token;
+      // Extract JWT token from response.result
+      const jwtToken = data.result.token;
+      const refreshToken = data.result.refreshToken;
 
       if (!jwtToken) {
         return {
@@ -115,12 +116,14 @@ class AuthApiService {
       // Decode JWT to extract user information
       const jwtPayload = this.decodeJWT(jwtToken);
       
-      // Extract user information from JWT payload or response data
-      const userId = jwtPayload?.sub || data.userId || data.id || '1';
-      const userEmail = jwtPayload?.email || data.email || credentials.email;
-      const userName = jwtPayload?.name || data.name || data.fullName || userEmail.split('@')[0];
-      const userRole = (jwtPayload?.role || data.role || 'event-admin') as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
-      const eventId = jwtPayload?.eventId || data.eventId || credentials.identifier;
+      // Extract user information from JWT payload
+      const userId = jwtPayload?.id || '1';
+      const userEmail = jwtPayload?.email || credentials.email;
+      const firstName = jwtPayload?.firstName || '';
+      const lastName = jwtPayload?.lastName || '';
+      const userName = firstName && lastName ? `${firstName} ${lastName}` : firstName || userEmail.split('@')[0];
+      const userRole = (jwtPayload?.role || jwtPayload?.roleid || 'event-admin') as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
+      const eventId = jwtPayload?.eventId || credentials.identifier;
 
       return {
         success: true,
@@ -131,7 +134,7 @@ class AuthApiService {
             role: userRole,
             eventId: eventId,
             name: userName,
-            avatar: data.avatar || jwtPayload?.avatar,
+            avatar: jwtPayload?.avatar,
           },
           token: jwtToken,
           refreshToken: refreshToken,

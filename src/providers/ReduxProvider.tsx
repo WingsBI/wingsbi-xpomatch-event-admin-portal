@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, ReactNode } from 'react';
+import React, { useEffect, ReactNode, useRef } from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { store, persistor, extractIdentifierFromURL } from '@/store';
 import { initializeApp, updateResponsiveState } from '@/store/slices/appSlice';
@@ -16,9 +16,12 @@ interface ReduxProviderProps {
 function AppInitializer({ children }: { children: ReactNode }) {
   const dispatch = useDispatch();
   const pathname = usePathname();
-  const router = useRouter();
+  const initialized = useRef(false);
 
   useEffect(() => {
+    // Only run initialization once to avoid conflicts with navigation
+    if (initialized.current) return;
+    
     // Extract identifier from URL
     const identifier = extractIdentifierFromURL();
     
@@ -33,24 +36,12 @@ function AppInitializer({ children }: { children: ReactNode }) {
 
     // Initialize the app with identifier and responsive state
     dispatch(initializeApp({ identifier, responsive }));
+    initialized.current = true;
 
-    // Listen for URL changes to update identifier
-    const handleRouteChange = () => {
-      const newIdentifier = extractIdentifierFromURL();
-      if (newIdentifier !== identifier) {
-        dispatch(initializeApp({ 
-          identifier: newIdentifier, 
-          responsive: {
-            screenWidth: window.innerWidth,
-            screenHeight: window.innerHeight,
-            orientation: window.innerWidth > window.innerHeight ? 'landscape' : 'portrait',
-            isTouchDevice: 'ontouchstart' in window,
-          }
-        }));
-      }
-    };
+  }, []); // Empty dependency array to run only once
 
-    // Handle responsive updates
+  useEffect(() => {
+    // Handle responsive updates only, not route changes
     const handleResize = () => {
       dispatch(updateResponsiveState({
         screenWidth: window.innerWidth,
@@ -70,35 +61,16 @@ function AppInitializer({ children }: { children: ReactNode }) {
       }, 100);
     };
 
-    // Add event listeners
+    // Add event listeners for responsive updates only
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleOrientationChange);
-    
-    // Monitor route changes
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-
-    history.pushState = function() {
-      originalPushState.apply(history, arguments as any);
-      handleRouteChange();
-    };
-
-    history.replaceState = function() {
-      originalReplaceState.apply(history, arguments as any);
-      handleRouteChange();
-    };
-
-    window.addEventListener('popstate', handleRouteChange);
 
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleOrientationChange);
-      window.removeEventListener('popstate', handleRouteChange);
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
     };
-  }, [dispatch, pathname, router]);
+  }, [dispatch]);
 
   return <>{children}</>;
 }
@@ -120,9 +92,6 @@ function LoadingComponent() {
       <CircularProgress size={60} thickness={4} />
       <Typography variant="h6" color="text.secondary">
         Loading Application...
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        Initializing responsive interface
       </Typography>
     </Box>
   );

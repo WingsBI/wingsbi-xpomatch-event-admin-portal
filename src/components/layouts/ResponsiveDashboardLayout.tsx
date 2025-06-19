@@ -65,7 +65,8 @@ import {
   updateResponsiveState, 
   setTheme,
   removeNotification,
-  DeviceType 
+  DeviceType,
+  setIdentifier
 } from '@/store/slices/appSlice';
 import { logoutUser } from '@/store/slices/authSlice';
 
@@ -75,21 +76,26 @@ interface ResponsiveDashboardLayoutProps {
   breadcrumbs?: Array<{ label: string; href?: string }>;
 }
 
-const getNavigationItems = (userRole: string, deviceType: DeviceType) => {
+const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier: string) => {
   const baseItems = userRole === 'it-admin' ? [
-    { text: 'Dashboard', icon: <Dashboard />, href: '/it-admin/dashboard', children: [] },
-    { text: 'Events', icon: <Event />, href: '/it-admin/events', children: [] },
-    { text: 'Event Admins', icon: <AdminPanelSettings />, href: '/it-admin/admins', children: [] },
-    { text: 'Settings', icon: <Settings />, href: '/it-admin/settings', children: [
-      { text: 'General', href: '/it-admin/settings/general' },
-      { text: 'Security', href: '/it-admin/settings/security' },
+    { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/it-admin/dashboard`, children: [] },
+    { text: 'Events', icon: <Event />, href: `/${identifier}/it-admin/events`, children: [] },
+    { text: 'Event Admins', icon: <AdminPanelSettings />, href: `/${identifier}/it-admin/admins`, children: [] },
+    { text: 'Settings', icon: <Settings />, href: `/${identifier}/it-admin/settings`, children: [
+      { text: 'General', href: `/${identifier}/it-admin/settings/general` },
+      { text: 'Security', href: `/${identifier}/it-admin/settings/security` },
     ] },
+  ] : userRole === 'exhibitor' ? [
+    { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/exhibitor/dashboard`, children: [] },
+    { text: 'My Booth', icon: <Business />, href: `/${identifier}/exhibitor/booth`, children: [] },
+    { text: 'Meetings', icon: <People />, href: `/${identifier}/exhibitor/meetings`, children: [] },
+    { text: 'Schedule', icon: <Event />, href: `/${identifier}/exhibitor/schedule`, children: [] },
   ] : [
-    { text: 'Dashboard', icon: <Dashboard />, href: '/event-admin/dashboard', children: [] },
-    { text: 'Event Details', icon: <Event />, href: '/event-admin/event', children: [] },
-    { text: 'Visitors', icon: <People />, href: '/event-admin/visitors', children: [] },
-    { text: 'Exhibitors', icon: <Business />, href: '/event-admin/exhibitors', children: [] },
-    { text: 'Attributes', icon: <Settings />, href: '/event-admin/attributes', children: [] },
+    { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
+    { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
+    { text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [] },
+    { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+    { text: 'Attributes', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
   ];
 
   // Simplify navigation for mobile devices
@@ -131,24 +137,27 @@ export default function ResponsiveDashboardLayout({
   const isTV = useMediaQuery('(min-width: 2560px)'); // >= 2560px (xxl)
   
   // More aggressive detection - hide sidebar when viewport is narrow
-  // This catches zoom scenarios better
-  const shouldHideSidebar = useMediaQuery('(max-width: 1400px)') || 
-                           responsive.screenWidth < 1400 || 
-                           isMobile || 
+  // This catches zoom scenarios better - lowered threshold for zoom support
+  const shouldHideSidebar = useMediaQuery('(max-width: 1200px)') || 
+                           responsive.screenWidth < 1200 || 
                            isTablet;
 
-  // Force hide for very narrow viewports with better zoom detection
+  // Force hide for very narrow viewports with better zoom detection - but NOT for mobile
   const [currentViewport, setCurrentViewport] = useState({ width: 0, height: 0 });
-  const forceHideSidebar = currentViewport.width < 1400 || shouldHideSidebar;
+  const forceHideSidebar = !isMobile && (currentViewport.width < 1200 || shouldHideSidebar);
 
   // Dynamic drawer width based on device
   const getDrawerWidth = () => {
     if (forceHideSidebar) return 0; // Return 0 when hidden
+    
+    // Handle collapsed state for all device types
+    if (ui.sidebarCollapsed) return 72;
+    
     if (isTV) return 320; // TV screens (>= 2560px)
     if (isLargeMonitor) return 300; // Large monitors (>= 1920px)
     if (isDesktop) return 280; // Desktop (1280px - 1920px)
     if (isTablet) return 260; // Tablet (960px - 1280px)
-    return ui.sidebarCollapsed ? 72 : 280;
+    return 280; // Default width
   };
 
   const drawerWidth = getDrawerWidth();
@@ -177,14 +186,16 @@ export default function ResponsiveDashboardLayout({
       screenWidth: responsive.screenWidth,
       currentViewportWidth: currentViewport.width,
       drawerWidth,
-      isMobile 
+      isMobile,
+      responsiveIsMobile: responsive.isMobile
     });
     
-    if (forceHideSidebar && ui.sidebarOpen) {
+    // Only auto-hide on desktop when viewport is too narrow, not on mobile
+    if (forceHideSidebar && ui.sidebarOpen && !isMobile) {
       console.log('Hiding sidebar due to narrow viewport');
       dispatch(setSidebarOpen(false));
     }
-  }, [shouldHideSidebar, forceHideSidebar, ui.sidebarOpen, responsive.screenWidth, currentViewport.width, dispatch]);
+  }, [shouldHideSidebar, forceHideSidebar, ui.sidebarOpen, responsive.screenWidth, currentViewport.width, isMobile, dispatch]);
 
   // Update responsive state
   useEffect(() => {
@@ -223,12 +234,12 @@ export default function ResponsiveDashboardLayout({
   // Swipe handlers for mobile
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
-      if (responsive.isMobile && ui.sidebarOpen) {
+      if (isMobile && ui.sidebarOpen) {
         dispatch(setSidebarOpen(false));
       }
     },
     onSwipedRight: () => {
-      if (responsive.isMobile && !ui.sidebarOpen) {
+      if (isMobile && !ui.sidebarOpen) {
         dispatch(setSidebarOpen(true));
       }
     },
@@ -237,8 +248,26 @@ export default function ResponsiveDashboardLayout({
   });
 
   const handleDrawerToggle = useCallback(() => {
-    dispatch(toggleSidebar());
-  }, [dispatch]);
+    console.log('Drawer toggle clicked:', {
+      responsiveIsMobile: responsive.isMobile,
+      localIsMobile: isMobile,
+      screenWidth: responsive.screenWidth,
+      currentViewportWidth: currentViewport.width,
+      sidebarOpen: ui.sidebarOpen,
+      sidebarCollapsed: ui.sidebarCollapsed
+    });
+    
+    // Use local isMobile for more reliable detection
+    if (isMobile || responsive.screenWidth < 960) {
+      // For mobile, toggle the sidebarOpen state
+      console.log('Mobile: toggling sidebarOpen from', ui.sidebarOpen, 'to', !ui.sidebarOpen);
+      dispatch(setSidebarOpen(!ui.sidebarOpen));
+    } else {
+      // For desktop, toggle the sidebarCollapsed state
+      console.log('Desktop: toggling sidebarCollapsed from', ui.sidebarCollapsed, 'to', !ui.sidebarCollapsed);
+      dispatch(toggleSidebar());
+    }
+  }, [dispatch, responsive.isMobile, responsive.screenWidth, isMobile, currentViewport.width, ui.sidebarOpen, ui.sidebarCollapsed]);
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -249,8 +278,23 @@ export default function ResponsiveDashboardLayout({
   };
 
   const handleLogout = async () => {
+    try {
     await dispatch(logoutUser({ identifier, token: token || undefined }));
-    router.push('/');
+      
+      // Manually update the identifier in Redux before navigation
+      dispatch(setIdentifier(identifier));
+      
+      // Use setTimeout to avoid navigation conflicts
+      setTimeout(() => {
+        router.push(`/${identifier}`);
+      }, 50);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails, clear state and redirect
+      setTimeout(() => {
+        router.push(`/${identifier}`);
+      }, 50);
+    }
   };
 
   const handleThemeToggle = () => {
@@ -297,7 +341,7 @@ export default function ResponsiveDashboardLayout({
               handleExpandClick(item.text);
             } else {
               router.push(item.href);
-              if (responsive.isMobile) {
+              if (isMobile) {
                 dispatch(setSidebarOpen(false));
               }
             }
@@ -324,7 +368,7 @@ export default function ResponsiveDashboardLayout({
             </ListItemIcon>
           )}
           
-          {(!ui.sidebarCollapsed || responsive.isMobile) && (
+          {(!ui.sidebarCollapsed || isMobile) && (
             <>
               <ListItemText 
                 primary={item.text}
@@ -348,7 +392,7 @@ export default function ResponsiveDashboardLayout({
         </ListItemButton>
       </ListItem>
 
-      {item.children.length > 0 && (!ui.sidebarCollapsed || responsive.isMobile) && (
+      {item.children.length > 0 && (!ui.sidebarCollapsed || isMobile) && (
         <Collapse in={expandedItems.includes(item.text)} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {item.children.map((child: any) => renderNavigationItem(child, level + 1))}
@@ -358,75 +402,28 @@ export default function ResponsiveDashboardLayout({
     </motion.div>
   );
 
-  const navigationItems = getNavigationItems(user?.role || 'event-admin', responsive.deviceType);
+  const navigationItems = getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier);
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <Box
-        sx={{
-          p: ui.sidebarCollapsed ? 1 : 3,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-          color: 'white',
-          textAlign: ui.sidebarCollapsed ? 'center' : 'left',
-          minHeight: { 
-            xs: 80,   // Mobile
-            sm: 85,   // Large phones
-            md: 90,   // Tablets
-            lg: 100,  // Desktop
-            xl: 110,  // Large monitors
-          },
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-        }}
-      >
-        {!ui.sidebarCollapsed && (
-          <>
-            <Typography 
-              variant="h6" 
-              fontWeight="bold" 
-              noWrap
-              sx={{
-                fontSize: {
-                  xs: '1rem',     // Mobile
-                  sm: '1.125rem', // Large phones
-                  md: '1.25rem',  // Tablets
-                  lg: '1.375rem', // Desktop
-                  xl: '1.5rem',   // Large monitors
-                }
-              }}
-            >
-              {isMobile ? 'AI Match' : 'AI Matchmaking'}
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.8 }} noWrap>
-              {user?.role === 'it-admin' ? 'IT Administrator' : 'Event Administrator'}
-            </Typography>
-          </>
-        )}
-        {ui.sidebarCollapsed && (
-          <Avatar sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.2)' }}>
-            {user?.name?.[0] || 'U'}
-          </Avatar>
-        )}
-      </Box>
-
-      <Divider />
-
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', pt: '64px' }}>
       {/* Navigation */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', p: ui.sidebarCollapsed ? 1 : 2 }}>
+      <Box sx={{ flexGrow: 1, overflow: 'auto', p: ui.sidebarCollapsed ? 1 : 2, pt: 2 }}>
         <List>
           {navigationItems.map(item => renderNavigationItem(item))}
         </List>
       </Box>
 
       {/* Collapse button for desktop */}
-      {!responsive.isMobile && (
-        <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider' }}>
+      {!isMobile && (
+        <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider' }}>
           <Tooltip title={ui.sidebarCollapsed ? 'Expand' : 'Collapse'}>
             <IconButton 
               onClick={handleDrawerToggle}
-              sx={{ width: '100%', justifyContent: 'center' }}
+              sx={{ 
+                width: '100%', 
+                justifyContent: 'center',
+                color: 'text.primary'
+              }}
             >
               {ui.sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
             </IconButton>
@@ -438,21 +435,43 @@ export default function ResponsiveDashboardLayout({
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }} {...swipeHandlers}>
-      {/* App Bar */}
+      {/* Unified Header Bar - spans full width */}
       <AppBar
         position="fixed"
         sx={{
-          width: { 
-            md: forceHideSidebar ? '100%' : `calc(100% - ${drawerWidth}px)` 
-          },
-          ml: { md: forceHideSidebar ? 0 : `${drawerWidth}px` },
-          backgroundColor: 'background.paper',
-          color: 'text.primary',
-          boxShadow: responsive.deviceType === 'mobile' ? 2 : 1,
+          width: { xs: '100%', md: 'calc(100% - 16px)' },
+          backgroundColor: theme.palette.primary.main,
+          color: 'white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           zIndex: theme.zIndex.drawer + 1,
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          borderRadius: { md: '0 0 16px 16px' },
+          margin: { md: '0 8px' },
         }}
       >
-        <Toolbar variant={isMobile ? 'dense' : 'regular'}>
+        <Toolbar variant={isMobile ? 'dense' : 'regular'} sx={{ px: 0, minHeight: '64px !important' }}>
+          {/* Left Section - Sidebar Brand (Desktop) / Mobile Menu */}
+          <Box sx={{ 
+            width: { 
+              xs: 'auto', 
+              md: forceHideSidebar ? '0px' : ui.sidebarCollapsed ? '72px' : `${drawerWidth}px` 
+            },
+            display: { 
+              xs: 'flex', 
+              md: forceHideSidebar ? 'none' : 'flex' 
+            },
+            alignItems: 'center',
+            px: { xs: 2, md: ui.sidebarCollapsed ? 1 : 3 },
+            borderRight: { md: forceHideSidebar ? 'none' : '1px solid rgba(255,255,255,0.1)' },
+            minHeight: '64px',
+            transition: theme.transitions.create(['width', 'padding'], {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+            flexShrink: 0, // Prevent shrinking
+            overflow: 'hidden', // Prevent content overflow
+          }}>
+            {/* Mobile hamburger menu */}
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -460,38 +479,89 @@ export default function ResponsiveDashboardLayout({
             onClick={handleDrawerToggle}
             sx={{ 
               mr: 2, 
-              display: { md: forceHideSidebar ? 'block' : 'none' } 
+                display: { xs: 'block', md: 'none' }
             }}
           >
             <MenuIcon />
           </IconButton>
 
-          <Box sx={{ flexGrow: 1 }}>
+            {/* Desktop Brand */}
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' }}>
+              {!ui.sidebarCollapsed ? (
+                <Box>
+                  <Typography variant="h6" fontWeight="bold" noWrap sx={{ color: 'white' }}>
+                    {isMobile ? 'AI Match' : 'AI Matchmaking'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }} noWrap>
+                    {user?.role === 'it-admin' ? 'IT Administrator' : 'Event Administrator'}
+                  </Typography>
+                </Box>
+              ) : (
+                <Avatar sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.2)' }}>
+                  {user?.name?.[0] || 'U'}
+                </Avatar>
+              )}
+            </Box>
+
+            {/* Mobile Brand */}
             <Typography 
-              variant="h5"
+              variant="h6" 
               noWrap 
-              component="div"
               sx={{
-                fontSize: {
-                  xs: '1.125rem', // Mobile (h6 equivalent)
-                  sm: '1.25rem',  // Large phones
-                  md: '1.5rem',   // Tablets (h5 equivalent)
-                  lg: '1.75rem',  // Desktop
-                  xl: '2rem',     // Large monitors
-                }
+                display: { xs: 'block', md: 'none' },
+                fontWeight: 'bold',
+                color: 'white'
               }}
             >
-              {title}
+              AI Matchmaking
+            </Typography>
+          </Box>
+
+          {/* Right Section - Page Title and Actions */}
+          <Box sx={{ 
+            flexGrow: 1, 
+            display: 'flex', 
+            alignItems: 'center', 
+            px: { xs: 1, md: 3 },
+            minWidth: 0, // Allow content to shrink
+            overflow: 'hidden' // Prevent overflow
+          }}>
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography 
+                variant="h5"
+                noWrap 
+                component="div"
+                sx={{
+                  fontSize: {
+                    xs: '1rem',
+                    sm: '1.125rem',
+                    md: '1.25rem',
+                    lg: '1.5rem',
+                    xl: '1.75rem',
+                  },
+                  color: 'white',
+                  fontWeight: '500',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                {title}
             </Typography>
             
             {breadcrumbs.length > 0 && !responsive.isMobile && (
-              <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-                <Link color="inherit" href="/">
+                <Breadcrumbs 
+                  aria-label="breadcrumb" 
+                  sx={{ 
+                    mt: 0.5,
+                    '& .MuiBreadcrumbs-separator': { color: 'rgba(255,255,255,0.7)' }
+                  }}
+                >
+                  <Link color="inherit" href="/" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                   <Home sx={{ mr: 0.5 }} fontSize="inherit" />
                   Home
                 </Link>
                 {breadcrumbs.map((crumb, index) => (
-                  <Typography key={index} color="text.primary">
+                    <Typography key={index} sx={{ color: 'rgba(255,255,255,0.9)' }}>
                     {crumb.label}
                   </Typography>
                 ))}
@@ -500,17 +570,23 @@ export default function ResponsiveDashboardLayout({
           </Box>
 
           {/* Action buttons */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!responsive.isMobile && (
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: { xs: 0.5, md: 1 },
+            flexShrink: 0, // Prevent buttons from shrinking
+            pl: { xs: 1, md: 2 }
+          }}>
+            {!responsive.isMobile && !forceHideSidebar && (
               <>
                 <Tooltip title="Toggle theme">
-                  <IconButton onClick={handleThemeToggle} color="inherit">
+                    <IconButton onClick={handleThemeToggle} sx={{ color: 'white', p: 1 }}>
                     {ui.theme === 'dark' ? <Brightness7 /> : <Brightness4 />}
                   </IconButton>
                 </Tooltip>
 
                 <Tooltip title="Toggle fullscreen">
-                  <IconButton onClick={toggleFullscreen} color="inherit">
+                    <IconButton onClick={toggleFullscreen} sx={{ color: 'white', p: 1 }}>
                     {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
                   </IconButton>
                 </Tooltip>
@@ -518,7 +594,7 @@ export default function ResponsiveDashboardLayout({
             )}
 
             <Tooltip title="Notifications">
-              <IconButton color="inherit">
+                <IconButton sx={{ color: 'white', p: 1 }}>
                 <Badge badgeContent={ui.notifications.length} color="error">
                   <Notifications />
                 </Badge>
@@ -526,12 +602,13 @@ export default function ResponsiveDashboardLayout({
             </Tooltip>
 
             <Tooltip title="Profile">
-              <IconButton onClick={handleProfileMenuOpen}>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+              <IconButton onClick={handleProfileMenuOpen} sx={{ p: 0.5 }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}>
                   {user?.name?.[0] || user?.email?.[0] || 'U'}
                 </Avatar>
               </IconButton>
             </Tooltip>
+            </Box>
           </Box>
 
           {/* Profile Menu */}
@@ -565,14 +642,14 @@ export default function ResponsiveDashboardLayout({
       <Box
         component="nav"
         sx={{ 
-          width: { md: forceHideSidebar ? 0 : drawerWidth }, 
+          width: { xs: 0, md: forceHideSidebar ? 0 : drawerWidth }, 
           flexShrink: { md: 0 },
-          display: forceHideSidebar ? 'none' : 'block'
+          display: { xs: 'block', md: forceHideSidebar ? 'none' : 'block' }
         }}
       >
         <Drawer
-          variant={forceHideSidebar ? 'temporary' : 'permanent'}
-          open={forceHideSidebar ? ui.sidebarOpen : !ui.sidebarCollapsed}
+          variant={isMobile ? 'temporary' : 'permanent'}
+          open={isMobile ? ui.sidebarOpen : !ui.sidebarCollapsed}
           onClose={() => dispatch(setSidebarOpen(false))}
           ModalProps={{
             keepMounted: true,
@@ -581,12 +658,17 @@ export default function ResponsiveDashboardLayout({
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
-              borderRight: '1px solid',
-              borderColor: 'divider',
-              transition: theme.transitions.create('width', {
+              borderRight: 'none', // Remove default border
+              transition: theme.transitions.create(['width', 'transform'], {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
+              backgroundColor: 'background.paper',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              borderRadius: { md: '0 16px 16px 0' }, // Elegant rounded right edge
+              margin: { md: '8px 0 8px 8px' }, // Add margin for border radius
+              height: { md: 'calc(100vh - 16px)' }, // Adjust height for margin
+              overflow: 'hidden', // Ensure content doesn't overflow rounded corners
             },
           }}
         >
@@ -599,14 +681,18 @@ export default function ResponsiveDashboardLayout({
         component="main"
         sx={{
           flexGrow: 1,
-          width: { md: forceHideSidebar ? '100%' : `calc(100% - ${drawerWidth}px)` },
+          width: { 
+            xs: '100%',
+            md: forceHideSidebar ? '100%' : `calc(100% - ${drawerWidth}px)` 
+          },
           mt: { xs: 8, md: 8 },
           minHeight: 'calc(100vh - 64px)',
           backgroundColor: 'background.default',
-          transition: theme.transitions.create('margin', {
+          transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
+          ml: { md: forceHideSidebar ? 0 : 1 }, // Add small margin when sidebar is visible
         }}
       >
         <Container 

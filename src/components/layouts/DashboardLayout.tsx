@@ -32,7 +32,7 @@ import {
   Notifications,
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -46,6 +46,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const router = useRouter();
+  const pathname = usePathname();
 
   const drawerWidth = 280;
 
@@ -62,8 +63,18 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
   };
 
   const handleLogout = () => {
-    // Handle logout logic
-    router.push('/');
+    // Check if we're in an identifier-specific route
+    const pathParts = pathname.split('/');
+    const potentialIdentifier = pathParts[1]; // e.g., /AIE987654/event-admin/dashboard -> AIE987654
+    
+    // If the first path segment looks like an identifier (not a standard route)
+    if (potentialIdentifier && !['auth', 'dashboard', 'event-admin', 'exhibitor', 'iframe'].includes(potentialIdentifier)) {
+      // Redirect to the identifier login page
+      router.push(`/${potentialIdentifier}`);
+    } else {
+      // Redirect to root for standard routes
+      router.push('/');
+    }
   };
 
   const getNavigationItems = () => {

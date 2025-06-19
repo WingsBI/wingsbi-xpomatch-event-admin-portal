@@ -122,9 +122,6 @@ export default function EventAdminDashboard() {
       }
     },
   ];
-
-
-
   return (
     <ResponsiveDashboardLayout 
       title={`${identifier} Event Dashboard`}
@@ -137,19 +134,17 @@ export default function EventAdminDashboard() {
       <Box
         component="main"
         sx={{
-          p: 3,
+          p: 0,
         }}
       >
           <Container maxWidth="xl">
             {/* Header with Welcome Message */}
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={0}>
               <Box>
                 <Typography variant="h4" component="h1" gutterBottom>
-                  Welcome back, {user?.name || 'Ritesh Amilkanthwar'}!
+                  Welcome , {user?.name || 'Ritesh Amilkanthwar'}!
                 </Typography>
-                <Typography variant="subtitle1" color="text.secondary">
-                  Manage your event and track participant engagement
-                </Typography>
+                
               </Box>
               <SimpleThemeSelector />
             </Box>

@@ -84,10 +84,10 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
   return (
     <>
       <Card>
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
             <Box>
-              <Typography variant="h4" component="h1" gutterBottom>
+              <Typography variant="h5" component="h1" gutterBottom>
                 {event.name}
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>

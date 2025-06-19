@@ -101,15 +101,15 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         },
       }}
     >
-      <CardContent sx={{ p: 3, pb: 2 }}>
+      <CardContent sx={{ p: 1, pb: 1 }}>
         {/* Header with Company Info and Match Score */}
         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center">
             <Avatar
               sx={{
                 bgcolor: '#ff6f00',
-                width: 52,
-                height: 52,
+                width: 48,
+                height: 48,
                 mr: 2,
                 fontSize: '1.2rem',
                 fontWeight: 'bold'
@@ -118,10 +118,10 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
               {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
             </Avatar>
             <Box>
-              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+              <Typography variant="h6" component="div" fontWeight="500" sx={{ mb: 0.5 }}>
                 {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 400 }}>
                 {exhibitor.firstName} {exhibitor.lastName} • {exhibitor.jobTitle}
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
@@ -161,7 +161,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         <Box mb={2}>
           {exhibitor.customData?.location && (
             <Box display="flex" alignItems="center" mb={1}>
-              <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+              <LocationOn sx={{ fontSize: 10, mr: 1, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
                 {exhibitor.customData.location}
               </Typography>
@@ -170,7 +170,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
           
           {exhibitor.customData?.industry && (
             <Box display="flex" alignItems="center">
-              <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+              <Business sx={{ fontSize: 10, mr: 1, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
                 {exhibitor.customData.industry}
               </Typography>
@@ -181,7 +181,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         {/* Products/Services Offered */}
         {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
           <Box mb={2}>
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 0.5, display: 'block' }}>
               Products & Services:
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={0.5}>
@@ -215,9 +215,9 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
 
         {/* Common Interests */}
         {commonInterests.length > 0 && (
-          <Box mb={3}>
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-              <InterestPoint sx={{ fontSize: 14, mr: 0.5 }} />
+          <Box mb={1}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 0.5, display: 'block' }}>
+              <InterestPoint sx={{ fontSize: 10, mr: 0.5 }} />
               Common Interests:
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={0.5}>
@@ -250,7 +250,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
           </Box>
         )}
 
-        <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 1 }} />
 
         {/* Action Buttons */}
         <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -360,7 +360,7 @@ function VisitorExhibitorsView() {
     });
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2, height: '90vh', display: 'flex', flexDirection: 'column' }}>
+    <Container maxWidth="xl" sx={{ py: 0, height: '90vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header - Sticky */}
       <Box sx={{
         position: 'sticky',
@@ -372,22 +372,10 @@ function VisitorExhibitorsView() {
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}>
-        <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1, color: '#202124' }}>
-          Recommended Exhibitors
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Hi {currentVisitor.firstName}! Discover exhibitors that match your interests ({exhibitors.length} total available)
-        </Typography>
-        <Box display="flex" gap={1} mt={2}>
-          <Chip 
-            label={`Your Interests: ${visitorInterests.join(', ')}`}
-            size="small"
-            sx={{ bgcolor: '#e8f0fe', color: '#1a73e8' }}
-          />
-        </Box>
+        
 
         {/* Search and Filter Bar */}
-        <Box display="flex" gap={2} mt={3} alignItems="center">
+        <Box display="flex" gap={2} mt={0} alignItems="center">
           <TextField
             fullWidth
             placeholder="Search exhibitors by company, services, or industry..."
@@ -442,22 +430,7 @@ function VisitorExhibitorsView() {
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
-
-          {/* Stats */}
-          <Box display="flex" gap={2} alignItems="center">
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <TrendingUp sx={{ color: '#4caf50', fontSize: 18 }} />
-              <Typography variant="body2" color="text.secondary">
-                {filteredExhibitors.filter(e => {
-                  const common = e.interests?.filter(interest => 
-                    visitorInterests.some(vi => vi.toLowerCase().includes(interest.toLowerCase()))
-                  ).length || 0;
-                  return common > 0;
-                }).length} Matches
-              </Typography>
-            </Box>
-          </Box>
+          </FormControl>          
         </Box>
       </Box>
 

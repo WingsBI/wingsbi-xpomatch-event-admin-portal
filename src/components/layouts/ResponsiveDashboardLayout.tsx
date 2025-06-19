@@ -57,6 +57,9 @@ import {
   Brightness7,
   Fullscreen,
   FullscreenExit,
+  EditAttributes,
+  Attractions,
+  EditAttributesTwoTone,
 } from '@mui/icons-material';
 import { RootState, AppDispatch } from '@/store';
 import { 
@@ -95,7 +98,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
     { text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [] },
     { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
-    { text: 'Attributes', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
+    { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
   ];
 
   // Simplify navigation for mobile devices
@@ -577,21 +580,7 @@ export default function ResponsiveDashboardLayout({
             flexShrink: 0, // Prevent buttons from shrinking
             pl: { xs: 1, md: 2 }
           }}>
-            {!responsive.isMobile && !forceHideSidebar && (
-              <>
-                <Tooltip title="Toggle theme">
-                    <IconButton onClick={handleThemeToggle} sx={{ color: 'white', p: 1 }}>
-                    {ui.theme === 'dark' ? <Brightness7 /> : <Brightness4 />}
-                  </IconButton>
-                </Tooltip>
-
-                <Tooltip title="Toggle fullscreen">
-                    <IconButton onClick={toggleFullscreen} sx={{ color: 'white', p: 1 }}>
-                    {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
-                  </IconButton>
-                </Tooltip>
-              </>
-            )}
+            
 
             <Tooltip title="Notifications">
                 <IconButton sx={{ color: 'white', p: 1 }}>

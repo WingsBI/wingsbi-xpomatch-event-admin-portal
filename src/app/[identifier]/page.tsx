@@ -279,35 +279,10 @@ export default function EventLoginPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Welcome to the {identifier} event management portal. Sign in as an event administrator to manage visitors, exhibitors, and event details.
+                  Welcome to the {identifier} portal. Sign in as an event administrator to manage visitors, exhibitors, and event details.
                 </Typography>
 
-                <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                    <Button
-                      variant="outlined"
-                      onClick={() => handleDemoLogin("ritesh.ramilkanthwar@gmail.com", "FjqkpTVS")}
-                      sx={{ 
-                        color: 'white', 
-                        borderColor: 'rgba(255,255,255,0.5)',
-                        '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }
-                      }}
-                    >
-                      Test API Login
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={() => handleDemoLogin("eventadmin@example.com", "event123")}
-                      sx={{ 
-                        color: 'white', 
-                        borderColor: 'rgba(255,255,255,0.5)',
-                        '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }
-                      }}
-                    >
-                      Demo Login
-                    </Button>
-                  </Box>
-                </Stack>
+                
               </motion.div>
             </Grid>
           )}
@@ -365,7 +340,7 @@ export default function EventLoginPage() {
                     Sign In
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    Welcome to {identifier} event management portal
+                    Welcome {identifier}
                   </Typography>
                 </Box>
 
@@ -516,7 +491,7 @@ export default function EventLoginPage() {
                       fontSize: "0.875rem",
                     }}
                   >
-                    © 2024 {identifier} Event Management Portal. All rights reserved.
+                    © 2025 {identifier} Portal All rights reserved.
                   </Typography>
                 </Box>
               </motion.div>

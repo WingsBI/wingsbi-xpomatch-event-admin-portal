@@ -400,11 +400,11 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
               </FormControl>
             </Box>
 
-            <Divider sx={{ mx: -3, opacity: 0.3 }} />
+           
 
             {/* Theme Selection Section */}
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <Palette sx={{ color: 'primary.main' }} />
                 <Typography variant="h6" fontWeight={600}>
                   Theme Selection

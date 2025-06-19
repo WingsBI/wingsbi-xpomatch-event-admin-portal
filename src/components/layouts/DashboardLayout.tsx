@@ -108,7 +108,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
     <Box>
       <Box
         sx={{
-          p: 3,
+          p: 1,
           background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
           color: 'white',
           borderTopLeftRadius: 16,
@@ -122,8 +122,6 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
           {getRoleTitle()}
         </Typography>
       </Box>
-      
-      <Divider />
       
       <List sx={{ px: 2, py: 1 }}>
         {getNavigationItems().map((item) => (

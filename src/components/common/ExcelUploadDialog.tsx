@@ -123,9 +123,11 @@ export default function ExcelUploadDialog({
     event.preventDefault();
     const file = event.dataTransfer.files[0];
     if (file) {
+      // Create a proper event-like object with FileList
+      const fileList = Object.assign([file], { item: (index: number) => file, length: 1 }) as FileList;
       const fakeEvent = {
-        target: { files: [file] }
-      } as React.ChangeEvent<HTMLInputElement>;
+        target: { files: fileList }
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
       handleFileSelect(fakeEvent);
     }
   };
@@ -134,20 +136,6 @@ export default function ExcelUploadDialog({
     event.preventDefault();
   };
 
-  const getTypeSpecificFields = () => {
-    if (type === 'exhibitors') {
-      return [
-        'First Name', 'Last Name', 'Email', 'Company', 'Job Title', 
-        'Phone', 'Country', 'Booth Number', 'Company Description', 
-        'Products/Services', 'Website URL', 'Booth Size'
-      ];
-    } else {
-      return [
-        'First Name', 'Last Name', 'Email', 'Company', 'Job Title', 
-        'Phone', 'Country', 'Interests', 'Industry', 'Registration Type'
-      ];
-    }
-  };
 
   return (
     <Dialog 
@@ -256,29 +244,6 @@ export default function ExcelUploadDialog({
               {errorMessage}
             </Alert>
           )}
-
-          {/* Expected Fields Info */}
-          <Box mt={3}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              <strong>Expected columns in your Excel file:</strong>
-            </Typography>
-            <Box component="ul" sx={{ margin: '8px 0', paddingLeft: '16px' }}>
-              {getTypeSpecificFields().map((field, index) => (
-                <Typography 
-                  key={index} 
-                  component="li" 
-                  variant="caption" 
-                  color="text.secondary"
-                  sx={{ mb: 0.5 }}
-                >
-                  {field}
-                </Typography>
-              ))}
-            </Box>
-            <Typography variant="caption" color="text.secondary">
-              Note: Column names will be automatically mapped. You can adjust mappings on the next page.
-            </Typography>
-          </Box>
         </Box>
       </DialogContent>
       

@@ -45,16 +45,13 @@ export default function ExhibitorLoginPage() {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // For demo purposes, accept any email and access code
       if (data.email && data.accessCode) {
         // Store exhibitor session (in real app, handle JWT tokens)
         sessionStorage.setItem('userRole', 'exhibitor');
         sessionStorage.setItem('userEmail', data.email);
         
-        // Redirect to exhibitor dashboard or iframe view
+        // Redirect to exhibitor dashboard or iframe view immediately
         router.push('/iframe/exhibitors');
       } else {
         setError('Please enter valid credentials');

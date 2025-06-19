@@ -52,8 +52,8 @@ export default function ExhibitorsMatchingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   
-  const itemsPerPage = 20;
-  const itemsPerColumn = 10;
+  const itemsPerPage = 30;
+  const itemsPerColumn = 15;
 
   useEffect(() => {
     loadData();
@@ -282,38 +282,41 @@ export default function ExhibitorsMatchingPage() {
 
   const renderMappingColumn = (mappings: FieldMapping[], title: string) => (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
+      <Typography variant="h6" gutterBottom sx={{ textAlign: 'center', mb: 2, fontSize: '1.1rem' }}>
         {title}
       </Typography>
       {mappings.map((mapping, index) => (
-        <Card key={mapping.excelColumn} sx={{ mb: 2 }}>
-          <CardContent>
-            <Grid container spacing={2} alignItems="center">
+        <Card key={mapping.excelColumn} sx={{ mb: 1.5, boxShadow: 1 }}>
+          <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+            <Grid container spacing={1} alignItems="center">
               <Grid item xs={5}>
-                <Typography variant="body1" fontWeight="medium">
+                <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.875rem' }}>
                   {mapping.excelColumn}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Excel Column
-                </Typography>
               </Grid>
-              <Grid item xs={2} display="flex" justifyContent="center">
-                <Typography variant="h6" color="primary">
+              <Grid item xs={1} display="flex" justifyContent="center">
+                <Typography variant="body1" color="primary" sx={{ fontSize: '1.2rem' }}>
                   →
                 </Typography>
               </Grid>
-              <Grid item xs={5}>
+              <Grid item xs={6}>
                 <FormControl fullWidth size="small">
                   <Select
                     value={selectedMappings[mapping.excelColumn] || ''}
                     onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
                     displayEmpty
+                    sx={{ 
+                      '& .MuiSelect-select': { 
+                        py: 0.75,
+                        fontSize: '0.875rem'
+                      }
+                    }}
                   >
-                    <MenuItem value="">
+                    <MenuItem value="" sx={{ fontSize: '0.875rem' }}>
                       <em>Select field</em>
                     </MenuItem>
                     {standardFields.map((field) => (
-                      <MenuItem key={field.id} value={field.fieldName}>
+                      <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.875rem' }}>
                         {field.fieldName}
                       </MenuItem>
                     ))}

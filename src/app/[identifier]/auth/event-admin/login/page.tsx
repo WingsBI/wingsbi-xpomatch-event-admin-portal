@@ -19,6 +19,7 @@ import { Event } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { setIdentifier } from '@/store/slices/appSlice';
 import { AppDispatch } from '@/store';
+import { authApi } from '@/services/authApi';
 
 interface LoginForm {
   email: string;
@@ -45,11 +46,33 @@ export default function EventAdminLoginPage() {
     setLoading(true);
     setError('');
     
-    // Simulate loading delay and redirect to identifier-based dashboard
-    setTimeout(() => {
+    try {
+      const response = await authApi.login({
+        email: data.email,
+        password: data.password,
+        identifier: identifier,
+        role: 'event-admin'
+      });
+
+      if (response.success && response.data) {
+        // Store authentication data
+        localStorage.setItem('jwtToken', response.data.token);
+        if (response.data.refreshToken) {
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+        localStorage.setItem('userInfo', JSON.stringify(response.data.user));
+        
+        // Redirect to dashboard immediately
+        router.push(`/${identifier}/event-admin/dashboard`);
+      } else {
+        setError(response.error || response.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
-      router.push(`/${identifier}/event-admin/dashboard`);
-    }, 1000);
+    }
   };
 
   return (

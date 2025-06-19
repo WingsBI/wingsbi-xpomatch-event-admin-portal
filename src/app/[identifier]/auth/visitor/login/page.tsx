@@ -45,16 +45,13 @@ export default function VisitorLoginPage() {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // For demo purposes, accept any email and access code
       if (data.email && data.accessCode) {
         // Store visitor session (in real app, handle JWT tokens)
         sessionStorage.setItem('userRole', 'visitor');
         sessionStorage.setItem('userEmail', data.email);
         
-        // Redirect to visitor dashboard or iframe view
+        // Redirect to visitor dashboard or iframe view immediately
         router.push('/iframe/visitors');
       } else {
         setError('Please enter valid credentials');

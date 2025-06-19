@@ -22,6 +22,8 @@ import {
 import { ArrowBack, Save, Refresh, Upload } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
+import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
+import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 
 interface FieldMapping {
   standardFieldIndex: number;
@@ -52,8 +54,7 @@ export default function ExhibitorsMatchingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   
-  const itemsPerPage = 30;
-  const itemsPerColumn = 15;
+  // Display all mappings evenly distributed
 
   useEffect(() => {
     loadData();
@@ -141,7 +142,7 @@ export default function ExhibitorsMatchingPage() {
         }
         
         // Extract mappings from the nested structure
-        const mappingsData = suggestResponse.result?.mappings || suggestResponse.result;
+        const mappingsData = (suggestResponse.result as any)?.mappings || suggestResponse.result;
         if (!mappingsData || mappingsData.length === 0) {
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
@@ -199,15 +200,10 @@ export default function ExhibitorsMatchingPage() {
     setSelectedMappings(defaultMappings);
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil(fieldMappings.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentMappings = fieldMappings.slice(startIndex, endIndex);
-
-  // Split current mappings into two columns
-  const leftColumnMappings = currentMappings.slice(0, itemsPerColumn);
-  const rightColumnMappings = currentMappings.slice(itemsPerColumn);
+  // Split all mappings evenly into two columns
+  const midPoint = Math.ceil(fieldMappings.length / 2);
+  const leftColumnMappings = fieldMappings.slice(0, midPoint);
+  const rightColumnMappings = fieldMappings.slice(midPoint);
 
   if (loading) {
     return (
@@ -221,62 +217,83 @@ export default function ExhibitorsMatchingPage() {
 
   if (error && fieldMappings.length === 0) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Button
-              variant="outlined"
-              startIcon={<ArrowBack />}
-              onClick={() => router.back()}
-            >
-              Back
-            </Button>
-            <Typography variant="h4">
-              Exhibitors Field Mapping
-            </Typography>
-          </Box>
-          
-          <Button
-            variant="contained"
-            startIcon={<Upload />}
-            onClick={() => setUploadDialogOpen(true)}
-          >
-            Upload Excel File
-          </Button>
+      <ResponsiveDashboardLayout 
+        title="Exhibitors Field Mapping"
+        breadcrumbs={[
+          { label: 'Event Admin', href: `/${identifier}/event-admin` },
+          { label: 'Exhibitors', href: `/${identifier}/event-admin/exhibitors` },
+          { label: 'Field Mapping' }
+        ]}
+      >
+        <Box
+          component="main"
+          sx={{
+            p: 3,
+            height: '100vh',
+            overflow: 'auto',
+          }}
+        >
+          <Container maxWidth="xl">
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Button
+                  variant="outlined"
+                  startIcon={<ArrowBack />}
+                  onClick={() => router.back()}
+                >
+                  Back
+                </Button>
+                <Typography variant="h5">
+                  Exhibitors Field Mapping
+                </Typography>
+              </Box>
+              
+              <Box display="flex" gap={2} alignItems="center">
+                <SimpleThemeSelector />
+                <Button
+                  variant="contained"
+                  startIcon={<Upload />}
+                  onClick={() => setUploadDialogOpen(true)}
+                >
+                  Upload Excel File
+                </Button>
+              </Box>
+            </Box>
+
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+            
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Upload sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                No Excel File Uploaded
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Upload an Excel file to start mapping exhibitor fields.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Upload />}
+                onClick={() => setUploadDialogOpen(true)}
+                size="large"
+              >
+                Upload Excel File
+              </Button>
+            </Paper>
+
+            {/* Upload Dialog */}
+            <ExcelUploadDialog
+              open={uploadDialogOpen}
+              onClose={() => setUploadDialogOpen(false)}
+              onUpload={handleFileUpload}
+              title="Upload Exhibitors Data"
+              description="Upload an Excel file containing exhibitor information for field mapping."
+              type="exhibitors"
+            />
+          </Container>
         </Box>
-
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-        
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Upload sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
-            No Excel File Uploaded
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Upload an Excel file to start mapping exhibitor fields.
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Upload />}
-            onClick={() => setUploadDialogOpen(true)}
-            size="large"
-          >
-            Upload Excel File
-          </Button>
-        </Paper>
-
-        {/* Upload Dialog */}
-        <ExcelUploadDialog
-          open={uploadDialogOpen}
-          onClose={() => setUploadDialogOpen(false)}
-          onUpload={handleFileUpload}
-          title="Upload Exhibitors Data"
-          description="Upload an Excel file containing exhibitor information for field mapping."
-          type="exhibitors"
-        />
-      </Container>
+      </ResponsiveDashboardLayout>
     );
   }
 
@@ -331,119 +348,124 @@ export default function ExhibitorsMatchingPage() {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBack />}
-            onClick={() => router.back()}
-          >
-            Back
-          </Button>
-          <Typography variant="h4">
-            Exhibitors Field Mapping
-          </Typography>
-        </Box>
-        
-        <Box display="flex" gap={2}>
-          <Button
-            variant="outlined"
-            startIcon={<Upload />}
-            onClick={() => setUploadDialogOpen(true)}
-          >
-            Upload New File
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={handleReset}
-          >
-            Reset
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Save />}
-            onClick={handleSave}
-          >
-            Save Mapping
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Mapping Info */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          Map your Excel columns to standard fields. Total fields: {fieldMappings.length}
-          {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
-        </Typography>
-      </Alert>
-      
-      {/* Mapping Content */}
-      <Paper sx={{ p: 3 }}>
-        <Grid container spacing={3}>
-          {/* Left Column */}
-          <Grid item xs={12} md={6}>
-            {renderMappingColumn(leftColumnMappings, `Fields ${startIndex + 1}-${startIndex + leftColumnMappings.length}`)}
-          </Grid>
-
-          {/* Divider */}
-          <Grid item xs={12} md={0}>
-            <Divider 
-              orientation="vertical" 
-              sx={{ 
-                height: '100%',
-                display: { xs: 'none', md: 'block' }
-              }} 
-            />
-            <Divider 
-              sx={{ 
-                display: { xs: 'block', md: 'none' },
-                my: 2
-              }} 
-            />
-          </Grid>
-
-          {/* Right Column */}
-          <Grid item xs={12} md={6}>
-            {rightColumnMappings.length > 0 && renderMappingColumn(
-              rightColumnMappings, 
-              `Fields ${startIndex + leftColumnMappings.length + 1}-${startIndex + currentMappings.length}`
-            )}
-          </Grid>
-        </Grid>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <Box display="flex" justifyContent="center" mt={4}>
-            <Pagination
-              count={totalPages}
-              page={currentPage}
-              onChange={(_, page) => setCurrentPage(page)}
-              color="primary"
-              size="large"
-            />
+    <ResponsiveDashboardLayout 
+      title="Exhibitors Field Mapping"
+      breadcrumbs={[
+        { label: 'Event Admin', href: `/${identifier}/event-admin` },
+        { label: 'Exhibitors', href: `/${identifier}/event-admin/exhibitors` },
+        { label: 'Field Mapping' }
+      ]}
+    >
+      <Box
+        component="main"
+        sx={{
+          p: 3,
+          height: '100vh',
+          overflow: 'auto',
+        }}
+      >
+        <Container maxWidth="xl">
+          {/* Header */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Box display="flex" alignItems="center" gap={2}>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBack />}
+                onClick={() => router.back()}
+              >
+                Back
+              </Button>
+              <Typography variant="h5">
+                Exhibitors Field Mapping
+              </Typography>
+            </Box>
+            
+            <Box display="flex" gap={2} alignItems="center">
+              <SimpleThemeSelector />
+              <Button
+                variant="outlined"
+                startIcon={<Upload />}
+                onClick={() => setUploadDialogOpen(true)}
+              >
+                Upload New File
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<Refresh />}
+                onClick={handleReset}
+              >
+                Reset
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Save />}
+                onClick={handleSave}
+              >
+                Save Mapping
+              </Button>
+            </Box>
           </Box>
-        )}
-      </Paper>
 
-      {/* Upload Dialog */}
-      <ExcelUploadDialog
-        open={uploadDialogOpen}
-        onClose={() => setUploadDialogOpen(false)}
-        onUpload={handleFileUpload}
-        title="Upload Exhibitors Data"
-        description="Upload an Excel file containing exhibitor information for field mapping."
-        type="exhibitors"
-      />
-    </Container>
+          {/* Error Alert */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Mapping Info */}
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Map your Excel columns to standard fields. Total fields: {fieldMappings.length}
+            </Typography>
+          </Alert>
+          
+          {/* Mapping Content */}
+          <Paper sx={{ p: 3, maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
+            <Grid container spacing={2}>
+              {/* Left Column */}
+              <Grid item xs={12} md={6}>
+                {renderMappingColumn(leftColumnMappings, `Fields 1-${leftColumnMappings.length}`)}
+              </Grid>
+
+              {/* Divider */}
+              <Grid item xs={12} md={0}>
+                <Divider 
+                  orientation="vertical" 
+                  sx={{ 
+                    height: '100%',
+                    display: { xs: 'none', md: 'block' }
+                  }} 
+                />
+                <Divider 
+                  sx={{ 
+                    display: { xs: 'block', md: 'none' },
+                    my: 1
+                  }} 
+                />
+              </Grid>
+
+              {/* Right Column */}
+              <Grid item xs={12} md={6}>
+                {rightColumnMappings.length > 0 && renderMappingColumn(
+                  rightColumnMappings, 
+                  `Fields ${leftColumnMappings.length + 1}-${fieldMappings.length}`
+                )}
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {/* Upload Dialog */}
+          <ExcelUploadDialog
+            open={uploadDialogOpen}
+            onClose={() => setUploadDialogOpen(false)}
+            onUpload={handleFileUpload}
+            title="Upload Exhibitors Data"
+            description="Upload an Excel file containing exhibitor information for field mapping."
+            type="exhibitors"
+          />
+        </Container>
+      </Box>
+    </ResponsiveDashboardLayout>
   );
 } 

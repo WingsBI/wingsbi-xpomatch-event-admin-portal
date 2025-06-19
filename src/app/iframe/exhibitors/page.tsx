@@ -113,6 +113,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
         borderRadius: 3,
         boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         border: '1px solid #e8eaed',
+        bgcolor: 'background.paper',
         transition: 'all 0.3s ease-in-out',
         '&:hover': {
           transform: 'translateY(-2px)',
@@ -320,33 +321,6 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
   );
 }
 
-function VisitorCardSkeleton() {
-  return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 3 }}>
-        <Box display="flex" alignItems="center" mb={2}>
-          <Skeleton variant="circular" width={48} height={48} sx={{ mr: 2 }} />
-          <Box flex={1}>
-            <Skeleton variant="text" width="60%" height={24} />
-            <Box display="flex" gap={1} mt={0.5}>
-              <Skeleton variant="rounded" width={60} height={20} />
-              <Skeleton variant="rounded" width={80} height={20} />
-            </Box>
-          </Box>
-        </Box>
-        <Skeleton variant="text" width="80%" />
-        <Skeleton variant="text" width="70%" />
-        <Skeleton variant="text" width="90%" />
-        <Box display="flex" gap={0.5} mt={1}>
-          <Skeleton variant="rounded" width={50} height={20} />
-          <Skeleton variant="rounded" width={60} height={20} />
-          <Skeleton variant="rounded" width={45} height={20} />
-        </Box>
-      </CardContent>
-    </Card>
-  );
-}
-
 function ExhibitorVisitorsView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [experienceFilter, setExperienceFilter] = useState('All Experience');
@@ -404,17 +378,14 @@ function ExhibitorVisitorsView() {
         position: 'sticky',
         top: 0,
         bgcolor: '#fafbfc',
-        pt: 2,
-        pb: 2,
+        pt: -3,
+        // pb: 2,
         zIndex: 1,
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}>
         <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1, color: '#202124' }}>
           Interested Visitors
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {exhibitorCompany}: Discover visitors interested in your services ({visitors.length} total available)
         </Typography>
         <Box display="flex" gap={1} mt={2} flexWrap="wrap">
           {exhibitorServices.slice(0, 4).map((service, index) => (

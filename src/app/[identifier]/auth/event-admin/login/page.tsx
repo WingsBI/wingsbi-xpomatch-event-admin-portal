@@ -62,8 +62,37 @@ export default function EventAdminLoginPage() {
         }
         localStorage.setItem('userInfo', JSON.stringify(response.data.user));
         
-        // Redirect to dashboard immediately
-        router.push(`/${identifier}/event-admin/dashboard`);
+        // Decode JWT token to get role information
+        try {
+          const token = response.data.token;
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          
+          const tokenData = JSON.parse(jsonPayload);
+          console.log('Decoded token data:', tokenData);
+          
+          const roleName = tokenData.roleName;
+          const roleId = tokenData.roleid;
+          
+          // Role-based routing
+          if (roleName === 'Exhibitor' && roleId === '4') {
+            // Exhibitor sees visitor list
+            router.push(`/iframe/visitors`);
+          } else if (roleName === 'Visitor' && roleId === '3') {
+            // Visitor sees exhibitor list
+            router.push(`/iframe/exhibitors`);
+          } else {
+            // Default: Event admin or organizer goes to dashboard
+            router.push(`/${identifier}/event-admin/dashboard`);
+          }
+        } catch (jwtError) {
+          console.error('Error decoding JWT:', jwtError);
+          // Fallback to default dashboard
+          router.push(`/${identifier}/event-admin/dashboard`);
+        }
       } else {
         setError(response.error || response.message || 'Login failed');
       }

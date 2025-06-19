@@ -101,7 +101,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       { text: 'Exhibitors List', href: `/${identifier}/event-admin/exhibitors` },
       { text: 'Exhibitors Matching', href: `/${identifier}/event-admin/exhibitors/matching` },
     ] },
-    { text: 'Attributes', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
+    { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
   ];
 
   // Simplify navigation for mobile devices
@@ -159,11 +159,11 @@ export default function ResponsiveDashboardLayout({
     // Handle collapsed state for all device types
     if (ui.sidebarCollapsed) return 72;
     
-    if (isTV) return 320; // TV screens (>= 2560px)
-    if (isLargeMonitor) return 300; // Large monitors (>= 1920px)
-    if (isDesktop) return 280; // Desktop (1280px - 1920px)
-    if (isTablet) return 260; // Tablet (960px - 1280px)
-    return 280; // Default width
+    if (isTV) return 270; // TV screens (>= 2560px)
+    if (isLargeMonitor) return 250; // Large monitors (>= 1920px)
+    if (isDesktop) return 230; // Desktop (1280px - 1920px)
+    if (isTablet) return 210; // Tablet (960px - 1280px)
+    return 230; // Default width
   };
 
   const drawerWidth = getDrawerWidth();
@@ -583,7 +583,7 @@ export default function ResponsiveDashboardLayout({
             flexShrink: 0, // Prevent buttons from shrinking
             pl: { xs: 1, md: 2 }
           }}>
-            {!responsive.isMobile && !forceHideSidebar && (
+            {/* {!responsive.isMobile && !forceHideSidebar && (
               <>
                 <Tooltip title="Toggle theme">
                     <IconButton onClick={handleThemeToggle} sx={{ color: 'white', p: 1 }}>
@@ -597,7 +597,7 @@ export default function ResponsiveDashboardLayout({
                   </IconButton>
                 </Tooltip>
               </>
-            )}
+            )} */}
 
             <Tooltip title="Notifications">
                 <IconButton sx={{ color: 'white', p: 1 }}>

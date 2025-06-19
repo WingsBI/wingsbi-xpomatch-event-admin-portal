@@ -258,7 +258,7 @@ export default function EventAdminDashboard() {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Box>
                 <Typography variant="h4" component="h1" gutterBottom>
-                  Welcome back, {user?.name || 'Ritesh Amilkanthwar'}!
+                  Welcome, {user?.name || 'Ritesh Amilkanthwar'}!
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
                   Manage your event and track participant engagement

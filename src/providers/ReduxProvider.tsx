@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, ReactNode, useRef } from 'react';
+import React, { useEffect, ReactNode, useRef, useState } from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { usePathname } from 'next/navigation';
@@ -163,6 +163,17 @@ class ReduxErrorBoundary extends React.Component<
 
 // Main Redux Provider
 export default function ReduxProvider({ children }: ReduxProviderProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Show loading until client-side hydration is complete
+  if (!isClient) {
+    return <LoadingComponent />;
+  }
+
   return (
     <ReduxErrorBoundary>
       <Provider store={store}>

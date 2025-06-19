@@ -169,7 +169,7 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
         }
         
         // Extract mappings from the nested structure
-        const mappingsData = suggestResponse.result?.mappings || suggestResponse.result;
+        const mappingsData = (suggestResponse.result as any)?.mappings || suggestResponse.result;
         if (!mappingsData || mappingsData.length === 0) {
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }

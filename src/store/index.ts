@@ -1,10 +1,31 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
+import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
 import { authSlice } from './slices/authSlice';
 import { appSlice } from './slices/appSlice';
 import { apiSlice } from './slices/apiSlice';
 import { FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
+
+// Create a noop storage for server-side rendering
+const createNoopStorage = () => {
+  return {
+    getItem(_key: string) {
+      return Promise.resolve(null);
+    },
+    setItem(_key: string, value: any) {
+      return Promise.resolve(value);
+    },
+    removeItem(_key: string) {
+      return Promise.resolve();
+    },
+  };
+};
+
+// Use localStorage when available, otherwise use noop storage
+const clientStorage = typeof window !== 'undefined' 
+  ? storage 
+  : createNoopStorage();
 
 // Extract identifier from URL
 export const extractIdentifierFromURL = (): string => {
@@ -20,7 +41,7 @@ export const extractIdentifierFromURL = (): string => {
 const persistConfig = {
   key: 'root',
   version: 1,
-  storage,
+  storage: clientStorage,
   whitelist: ['auth', 'app'], // Only persist auth and app state
 };
 

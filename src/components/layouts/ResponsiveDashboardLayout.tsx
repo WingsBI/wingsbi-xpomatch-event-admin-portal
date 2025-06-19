@@ -93,9 +93,15 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
   ] : [
     { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
     { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
-    { text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [] },
-    { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
-    { text: 'Attributes', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
+    { text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [
+      { text: 'Visitors List', href: `/${identifier}/event-admin/visitors` },
+      { text: 'Visitors Matching', href: `/${identifier}/event-admin/visitors/matching` },
+    ] },
+    { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [
+      { text: 'Exhibitors List', href: `/${identifier}/event-admin/exhibitors` },
+      { text: 'Exhibitors Matching', href: `/${identifier}/event-admin/exhibitors/matching` },
+    ] },
+    { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
   ];
 
   // Simplify navigation for mobile devices
@@ -153,11 +159,11 @@ export default function ResponsiveDashboardLayout({
     // Handle collapsed state for all device types
     if (ui.sidebarCollapsed) return 72;
     
-    if (isTV) return 320; // TV screens (>= 2560px)
-    if (isLargeMonitor) return 300; // Large monitors (>= 1920px)
-    if (isDesktop) return 280; // Desktop (1280px - 1920px)
-    if (isTablet) return 260; // Tablet (960px - 1280px)
-    return 280; // Default width
+    if (isTV) return 270; // TV screens (>= 2560px)
+    if (isLargeMonitor) return 250; // Large monitors (>= 1920px)
+    if (isDesktop) return 230; // Desktop (1280px - 1920px)
+    if (isTablet) return 210; // Tablet (960px - 1280px)
+    return 230; // Default width
   };
 
   const drawerWidth = getDrawerWidth();
@@ -337,7 +343,7 @@ export default function ResponsiveDashboardLayout({
       <ListItem disablePadding sx={{ mb: 0.5, pl: level * 2 }}>
         <ListItemButton
           onClick={() => {
-            if (item.children.length > 0) {
+            if (item.children && item.children.length > 0) {
               handleExpandClick(item.text);
             } else {
               router.push(item.href);
@@ -368,31 +374,31 @@ export default function ResponsiveDashboardLayout({
             </ListItemIcon>
           )}
           
-          {(!ui.sidebarCollapsed || isMobile) && (
-            <>
-              <ListItemText 
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontSize: {
-                    xs: '0.875rem', // Mobile
-                    sm: '0.9rem',   // Large phones
-                    md: '1rem',     // Tablets
-                    lg: '1.1rem',   // Desktop
-                    xl: '1.2rem',   // Large monitors
-                  }
-                }}
-              />
-              {item.children.length > 0 && (
-                <IconButton size="small">
-                  {expandedItems.includes(item.text) ? <ExpandLess /> : <ExpandMore />}
-                </IconButton>
+                        {(!ui.sidebarCollapsed || isMobile) && (
+                <>
+                  <ListItemText 
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontSize: {
+                        xs: '0.875rem', // Mobile
+                        sm: '0.9rem',   // Large phones
+                        md: '1rem',     // Tablets
+                        lg: '1.1rem',   // Desktop
+                        xl: '1.2rem',   // Large monitors
+                      }
+                    }}
+                  />
+                  {item.children && item.children.length > 0 && (
+                    <IconButton size="small">
+                      {expandedItems.includes(item.text) ? <ExpandLess /> : <ExpandMore />}
+                    </IconButton>
+                  )}
+                </>
               )}
-            </>
-          )}
         </ListItemButton>
       </ListItem>
 
-      {item.children.length > 0 && (!ui.sidebarCollapsed || isMobile) && (
+      {item.children && item.children.length > 0 && (!ui.sidebarCollapsed || isMobile) && (
         <Collapse in={expandedItems.includes(item.text)} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {item.children.map((child: any) => renderNavigationItem(child, level + 1))}
@@ -577,7 +583,7 @@ export default function ResponsiveDashboardLayout({
             flexShrink: 0, // Prevent buttons from shrinking
             pl: { xs: 1, md: 2 }
           }}>
-            {!responsive.isMobile && !forceHideSidebar && (
+            {/* {!responsive.isMobile && !forceHideSidebar && (
               <>
                 <Tooltip title="Toggle theme">
                     <IconButton onClick={handleThemeToggle} sx={{ color: 'white', p: 1 }}>
@@ -591,7 +597,7 @@ export default function ResponsiveDashboardLayout({
                   </IconButton>
                 </Tooltip>
               </>
-            )}
+            )} */}
 
             <Tooltip title="Notifications">
                 <IconButton sx={{ color: 'white', p: 1 }}>
@@ -653,6 +659,9 @@ export default function ResponsiveDashboardLayout({
           onClose={() => dispatch(setSidebarOpen(false))}
           ModalProps={{
             keepMounted: true,
+            disableEnforceFocus: true,
+            disableAutoFocus: true,
+            disableRestoreFocus: true,
           }}
           sx={{
             '& .MuiDrawer-paper': {

@@ -91,7 +91,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
         { text: 'Event Details', icon: <Event />, href: '/event-admin/event' },
         { text: 'Visitors', icon: <People />, href: '/event-admin/visitors' },
         { text: 'Exhibitors', icon: <Business />, href: '/event-admin/exhibitors' },
-        { text: 'Attributes', icon: <Settings />, href: '/event-admin/attributes' },
+        { text: 'Settings', icon: <Settings />, href: '/event-admin/attributes' },
       ];
     }
   };

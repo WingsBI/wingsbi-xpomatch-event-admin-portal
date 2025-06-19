@@ -45,16 +45,13 @@ export default function ExhibitorLoginPage() {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // For demo purposes, accept any email and access code
       if (data.email && data.accessCode) {
         // Store exhibitor session (in real app, handle JWT tokens)
         sessionStorage.setItem('userRole', 'exhibitor');
         sessionStorage.setItem('userEmail', data.email);
         
-        // Redirect to exhibitor dashboard or iframe view
+        // Redirect to exhibitor dashboard or iframe view immediately
         router.push('/iframe/exhibitors');
       } else {
         setError('Please enter valid credentials');
@@ -74,43 +71,70 @@ export default function ExhibitorLoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        py: 3,
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1, sm: 2 },
       }}
     >
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" sx={{ px: { xs: 1, sm: 2 } }}>
         <Card
           sx={{
-            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-            borderRadius: 4,
+            boxShadow: { xs: 3, sm: '0 10px 40px rgba(0,0,0,0.1)' },
+            borderRadius: { xs: 2, sm: 4 },
+            maxWidth: { xs: '100%', sm: 'auto' },
           }}
         >
-          <CardContent sx={{ p: 4 }}>
-            <Box textAlign="center" mb={4}>
+          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+            <Box textAlign="center" mb={{ xs: 3, sm: 4 }}>
               <Box
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: 64,
-                  height: 64,
+                  width: { xs: 56, sm: 64 },
+                  height: { xs: 56, sm: 64 },
                   borderRadius: '50%',
                   bgcolor: '#ff6f00',
                   color: 'white',
-                  mb: 2,
+                  mb: { xs: 1.5, sm: 2 },
                 }}
               >
-                <Business sx={{ fontSize: 32 }} />
+                <Business sx={{ fontSize: { xs: 28, sm: 32 } }} />
               </Box>
-              <Typography variant="h4" component="h1" gutterBottom fontWeight="600">
+              <Typography 
+                variant="h4" 
+                component="h1" 
+                gutterBottom 
+                fontWeight="600"
+                sx={{
+                  fontSize: { 
+                    xs: '1.5rem', 
+                    sm: '2rem',
+                    md: '2.125rem'
+                  },
+                  lineHeight: { xs: 1.2, sm: 1.3 },
+                  mb: { xs: 1, sm: 2 }
+                }}
+              >
                 Exhibitor Login
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{
+                  fontSize: { 
+                    xs: '0.875rem', 
+                    sm: '1rem' 
+                  },
+                  lineHeight: { xs: 1.4, sm: 1.5 },
+                  px: { xs: 1, sm: 0 },
+                }}
+              >
                 Access your booth dashboard and connect with visitors
               </Typography>
             </Box>
 
             {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
+              <Alert severity="error" sx={{ mb: { xs: 2, sm: 3 } }}>
                 {error}
               </Alert>
             )}
@@ -137,6 +161,14 @@ export default function ExhibitorLoginPage() {
                 })}
                 error={!!errors.email}
                 helperText={errors.email?.message}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                }}
               />
 
               <TextField
@@ -151,6 +183,7 @@ export default function ExhibitorLoginPage() {
                         aria-label="toggle access code visibility"
                         onClick={() => setShowAccessCode(!showAccessCode)}
                         edge="end"
+                        size={showAccessCode ? 'small' : 'medium'}
                       >
                         {showAccessCode ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -166,6 +199,14 @@ export default function ExhibitorLoginPage() {
                 })}
                 error={!!errors.accessCode}
                 helperText={errors.accessCode?.message || 'Enter your exhibitor access code'}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                }}
               />
 
               <Button
@@ -173,10 +214,10 @@ export default function ExhibitorLoginPage() {
                 fullWidth
                 variant="contained"
                 sx={{
-                  mt: 3,
+                  mt: { xs: 2, sm: 3 },
                   mb: 2,
-                  py: 1.5,
-                  fontSize: '1.1rem',
+                  py: { xs: 1.5, sm: 2 },
+                  fontSize: { xs: '1rem', sm: '1.125rem' },
                   fontWeight: 600,
                   textTransform: 'none',
                   bgcolor: '#ff6f00',
@@ -189,27 +230,69 @@ export default function ExhibitorLoginPage() {
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
 
-              <Box textAlign="center" mt={3}>
-                <Typography variant="body2" color="text.secondary">
+              <Box textAlign="center" mt={{ xs: 2, sm: 3 }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    lineHeight: { xs: 1.4, sm: 1.5 },
+                  }}
+                >
                   Need help with your exhibitor account?{' '}
-                  <Link href="/contact" sx={{ textDecoration: 'none', fontWeight: 500 }}>
+                  <Link 
+                    href="/contact" 
+                    sx={{ 
+                      textDecoration: 'none', 
+                      fontWeight: 500,
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                    }}
+                  >
                     Contact Support
                   </Link>
                 </Typography>
               </Box>
 
               <Box textAlign="center" mt={2}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    lineHeight: { xs: 1.4, sm: 1.5 },
+                  }}
+                >
                   Are you a visitor?{' '}
-                  <Link href="/auth/visitor/login" sx={{ textDecoration: 'none', fontWeight: 500 }}>
+                  <Link 
+                    href="/auth/visitor/login" 
+                    sx={{ 
+                      textDecoration: 'none', 
+                      fontWeight: 500,
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                    }}
+                  >
                     Login Here
                   </Link>
                 </Typography>
               </Box>
 
               <Box textAlign="center" mt={2}>
-                <Typography variant="body2" color="text.secondary">
-                  <Link href="/" sx={{ textDecoration: 'none', fontWeight: 500 }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    lineHeight: { xs: 1.4, sm: 1.5 },
+                  }}
+                >
+                  <Link 
+                    href="/" 
+                    sx={{ 
+                      textDecoration: 'none', 
+                      fontWeight: 500,
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                    }}
+                  >
                     ← Back to Home
                   </Link>
                 </Typography>

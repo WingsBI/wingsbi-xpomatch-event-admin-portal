@@ -19,6 +19,7 @@ import { Event } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { setIdentifier } from '@/store/slices/appSlice';
 import { AppDispatch } from '@/store';
+import { authApi } from '@/services/authApi';
 
 interface LoginForm {
   email: string;
@@ -45,11 +46,62 @@ export default function EventAdminLoginPage() {
     setLoading(true);
     setError('');
     
-    // Simulate loading delay and redirect to identifier-based dashboard
-    setTimeout(() => {
+    try {
+      const response = await authApi.login({
+        email: data.email,
+        password: data.password,
+        identifier: identifier,
+        role: 'event-admin'
+      });
+
+      if (response.success && response.data) {
+        // Store authentication data
+        localStorage.setItem('jwtToken', response.data.token);
+        if (response.data.refreshToken) {
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+        localStorage.setItem('userInfo', JSON.stringify(response.data.user));
+        
+        // Decode JWT token to get role information
+        try {
+          const token = response.data.token;
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          
+          const tokenData = JSON.parse(jsonPayload);
+          console.log('Decoded token data:', tokenData);
+          
+          const roleName = tokenData.roleName;
+          const roleId = tokenData.roleid;
+          
+          // Role-based routing
+          if (roleName === 'Exhibitor' && roleId === '4') {
+            // Exhibitor sees visitor list
+            router.push(`/iframe/visitors`);
+          } else if (roleName === 'Visitor' && roleId === '3') {
+            // Visitor sees exhibitor list
+            router.push(`/iframe/exhibitors`);
+          } else {
+            // Default: Event admin or organizer goes to dashboard
+            router.push(`/${identifier}/event-admin/dashboard`);
+          }
+        } catch (jwtError) {
+          console.error('Error decoding JWT:', jwtError);
+          // Fallback to default dashboard
+          router.push(`/${identifier}/event-admin/dashboard`);
+        }
+      } else {
+        setError(response.error || response.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
-      router.push(`/${identifier}/event-admin/dashboard`);
-    }, 1000);
+    }
   };
 
   return (
@@ -59,26 +111,62 @@ export default function EventAdminLoginPage() {
         background: 'linear-gradient(135deg, #dc004e 0%, #9a0036 100%)',
         display: 'flex',
         alignItems: 'center',
-        py: 4,
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1, sm: 2 },
       }}
     >
-      <Container maxWidth="sm">
-        <Card sx={{ maxWidth: 450, mx: 'auto' }}>
-          <CardContent sx={{ p: 4 }}>
-            <Box textAlign="center" mb={3}>
+      <Container maxWidth="sm" sx={{ px: { xs: 1, sm: 2 } }}>
+        <Card 
+          sx={{ 
+            maxWidth: { xs: '100%', sm: 450 }, 
+            mx: 'auto',
+            borderRadius: { xs: 2, sm: 3 },
+            boxShadow: { xs: 3, sm: 6 },
+          }}
+        >
+          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+            <Box textAlign="center" mb={{ xs: 2, sm: 3 }}>
               <Event 
-                sx={{ fontSize: 48, color: 'secondary.main', mb: 2 }} 
+                sx={{ 
+                  fontSize: { xs: 40, sm: 48 }, 
+                  color: 'secondary.main', 
+                  mb: { xs: 1, sm: 2 } 
+                }} 
               />
-              <Typography variant="h4" component="h1" gutterBottom>
+              <Typography 
+                variant="h4" 
+                component="h1" 
+                gutterBottom
+                sx={{
+                  fontSize: { 
+                    xs: '1.5rem', 
+                    sm: '2rem',
+                    md: '2.125rem'
+                  },
+                  lineHeight: { xs: 1.2, sm: 1.3 },
+                  mb: { xs: 1, sm: 2 }
+                }}
+              >
                 Event Admin Login
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{
+                  fontSize: { 
+                    xs: '0.875rem', 
+                    sm: '1rem' 
+                  },
+                  lineHeight: { xs: 1.4, sm: 1.5 },
+                  px: { xs: 1, sm: 0 },
+                }}
+              >
                 Access your event management dashboard for {identifier}
               </Typography>
             </Box>
 
             {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
+              <Alert severity="error" sx={{ mb: { xs: 2, sm: 3 } }}>
                 {error}
               </Alert>
             )}
@@ -98,6 +186,14 @@ export default function EventAdminLoginPage() {
                 })}
                 error={!!errors.email}
                 helperText={errors.email?.message}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                }}
               />
               
               <TextField
@@ -114,6 +210,14 @@ export default function EventAdminLoginPage() {
                 })}
                 error={!!errors.password}
                 helperText={errors.password?.message}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                  },
+                }}
               />
 
               <Button
@@ -122,18 +226,28 @@ export default function EventAdminLoginPage() {
                 variant="contained"
                 size="large"
                 disabled={loading}
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
+                sx={{ 
+                  mt: { xs: 2, sm: 3 }, 
+                  mb: 2, 
+                  py: { xs: 1.5, sm: 2 },
+                  fontSize: { xs: '1rem', sm: '1.125rem' },
+                  fontWeight: 'bold',
+                }}
               >
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
 
-            <Box textAlign="center" mt={3}>
+            <Box textAlign="center" mt={{ xs: 2, sm: 3 }}>
               <MuiLink
                 component={Link}
                 href={`/${identifier}`}
                 variant="body2"
-                sx={{ textDecoration: 'none' }}
+                sx={{ 
+                  textDecoration: 'none',
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  lineHeight: { xs: 1.4, sm: 1.5 },
+                }}
               >
                 ← Back to Main Login
               </MuiLink>

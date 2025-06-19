@@ -94,6 +94,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         borderRadius: 3,
         boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         border: '1px solid #e8eaed',
+        bgcolor: 'background.paper',
         transition: 'all 0.3s ease-in-out',
         '&:hover': {
           transform: 'translateY(-2px)',
@@ -291,7 +292,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
 
 function ExhibitorCardSkeleton() {
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card sx={{ height: '100%', bgcolor: 'background.paper' }}>
       <CardContent sx={{ p: 3 }}>
         <Box display="flex" alignItems="center" mb={2}>
           <Skeleton variant="circular" width={48} height={48} sx={{ mr: 2 }} />
@@ -375,9 +376,7 @@ function VisitorExhibitorsView() {
         <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1, color: '#202124' }}>
           Recommended Exhibitors
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Hi {currentVisitor.firstName}! Discover exhibitors that match your interests ({exhibitors.length} total available)
-        </Typography>
+        
         <Box display="flex" gap={1} mt={2}>
           <Chip 
             label={`Your Interests: ${visitorInterests.join(', ')}`}

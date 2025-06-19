@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
@@ -26,6 +26,8 @@ import { Event, Participant, DashboardStats } from '@/types';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
+import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
+import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { mockVisitors, mockExhibitors, mockEvent, mockStats } from '@/lib/mockData';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
@@ -33,12 +35,15 @@ import { setIdentifier } from "@/store/slices/appSlice";
 export default function EventAdminDashboard() {
   const params = useParams();
   const identifier = params.identifier as string;
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   
   const [event, setEvent] = useState<Event | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [visitorsUploadOpen, setVisitorsUploadOpen] = useState(false);
+  const [exhibitorsUploadOpen, setExhibitorsUploadOpen] = useState(false);
 
   // Set identifier in Redux store when component mounts
   useEffect(() => {
@@ -70,13 +75,121 @@ export default function EventAdminDashboard() {
   };
 
   const handleUploadVisitors = () => {
-    // Handle visitor upload
-    console.log('Upload visitors');
+    setVisitorsUploadOpen(true);
   };
 
   const handleUploadExhibitors = () => {
-    // Handle exhibitor upload
-    console.log('Upload exhibitors');
+    setExhibitorsUploadOpen(true);
+  };
+
+  const handleVisitorsFileUpload = async (file: File) => {
+    try {
+      console.log('Uploading visitors file:', file.name);
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        throw new Error('Authentication required. Please log in first.');
+      }
+      
+      // Call both APIs simultaneously
+      const [suggestResponse, standardFieldsResponse] = await Promise.all([
+        fieldMappingApi.suggestMapping(identifier, file),
+        fieldMappingApi.getAllStandardFields(identifier)
+      ]);
+      
+      console.log('Suggest mapping response:', suggestResponse);
+      console.log('Standard fields response:', standardFieldsResponse);
+      
+      // Handle authentication errors specifically
+      if (suggestResponse.statusCode === 401 || standardFieldsResponse.statusCode === 401) {
+        throw new Error('Authentication failed. Your session may have expired. Please log in again.');
+      }
+      
+      // Check if both APIs returned successful responses
+      if (suggestResponse.statusCode === 200 && standardFieldsResponse.statusCode === 200) {
+        // Check if we have data from both APIs
+        if (!standardFieldsResponse.result || standardFieldsResponse.result.length === 0) {
+          throw new Error('No standard fields available from backend. Please configure your backend API to return field data.');
+        }
+        
+        if (!suggestResponse.result || suggestResponse.result.length === 0) {
+          throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
+        }
+        
+        // Store both data sets in session storage for the matching page
+        sessionStorage.setItem('fieldMappingData', JSON.stringify(suggestResponse.result));
+        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
+        sessionStorage.setItem('uploadType', 'visitors');
+        
+        // Redirect to matching page
+        router.push(`/${identifier}/event-admin/visitors/matching`);
+      } else {
+        // Handle API errors
+        const errorMessage = suggestResponse.statusCode !== 200 
+          ? (suggestResponse.message || 'Failed to process Excel file')
+          : (standardFieldsResponse.message || 'Failed to load standard fields');
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error uploading visitors file:', error);
+      throw error;
+    }
+  };
+
+  const handleExhibitorsFileUpload = async (file: File) => {
+    try {
+      console.log('Uploading exhibitors file:', file.name);
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        throw new Error('Authentication required. Please log in first.');
+      }
+      
+      // Call both APIs simultaneously
+      const [suggestResponse, standardFieldsResponse] = await Promise.all([
+        fieldMappingApi.suggestMapping(identifier, file),
+        fieldMappingApi.getAllStandardFields(identifier)
+      ]);
+      
+      console.log('Suggest mapping response:', suggestResponse);
+      console.log('Standard fields response:', standardFieldsResponse);
+      
+      // Handle authentication errors specifically
+      if (suggestResponse.statusCode === 401 || standardFieldsResponse.statusCode === 401) {
+        throw new Error('Authentication failed. Your session may have expired. Please log in again.');
+      }
+      
+      // Check if both APIs returned successful responses
+      if (suggestResponse.statusCode === 200 && standardFieldsResponse.statusCode === 200) {
+        // Check if we have data from both APIs
+        if (!standardFieldsResponse.result || standardFieldsResponse.result.length === 0) {
+          throw new Error('No standard fields available from backend. Please configure your backend API to return field data.');
+        }
+        
+        if (!suggestResponse.result || suggestResponse.result.length === 0) {
+          throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
+        }
+        
+        // Store both data sets in session storage for the matching page
+        sessionStorage.setItem('fieldMappingData', JSON.stringify(suggestResponse.result));
+        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
+        sessionStorage.setItem('uploadType', 'exhibitors');
+        
+        // Redirect to matching page
+        router.push(`/${identifier}/event-admin/exhibitors/matching`);
+      } else {
+        // Handle API errors
+        const errorMessage = suggestResponse.statusCode !== 200 
+          ? (suggestResponse.message || 'Failed to process Excel file')
+          : (standardFieldsResponse.message || 'Failed to load standard fields');
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error uploading exhibitors file:', error);
+      throw error;
+    }
   };
 
   const handleSendInvitations = () => {
@@ -145,7 +258,7 @@ export default function EventAdminDashboard() {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Box>
                 <Typography variant="h4" component="h1" gutterBottom>
-                  Welcome back, {user?.name || 'Ritesh Amilkanthwar'}!
+                  Welcome, {user?.name || 'Ritesh Amilkanthwar'}!
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
                   Manage your event and track participant engagement
@@ -208,6 +321,25 @@ export default function EventAdminDashboard() {
             </Grid>
           </Container>
       </Box>
+
+      {/* Upload Dialogs */}
+      <ExcelUploadDialog
+        open={visitorsUploadOpen}
+        onClose={() => setVisitorsUploadOpen(false)}
+        onUpload={handleVisitorsFileUpload}
+        title="Upload Visitors Data"
+        description="Upload an Excel file containing visitor information. The file will be processed and you'll be redirected to the field mapping page."
+        type="visitors"
+      />
+
+      <ExcelUploadDialog
+        open={exhibitorsUploadOpen}
+        onClose={() => setExhibitorsUploadOpen(false)}
+        onUpload={handleExhibitorsFileUpload}
+        title="Upload Exhibitors Data"
+        description="Upload an Excel file containing exhibitor information. The file will be processed and you'll be redirected to the field mapping page."
+        type="exhibitors"
+      />
     </ResponsiveDashboardLayout>
   );
 }

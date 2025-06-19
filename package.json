@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@types/react-virtualized": "^9.21.30",
+    "@types/xlsx": "^0.0.36",
     "eslint": "^8.52.0",
     "eslint-config-next": "14.0.0"
   }

@@ -200,10 +200,18 @@ export default function VisitorsMatchingPage() {
     setSelectedMappings(defaultMappings);
   };
 
-  // Split all mappings evenly into two columns
-  const midPoint = Math.ceil(fieldMappings.length / 2);
-  const leftColumnMappings = fieldMappings.slice(0, midPoint);
-  const rightColumnMappings = fieldMappings.slice(midPoint);
+  // Pagination settings
+  const itemsPerPage = 9; // Show 9 mappings per page for better visibility and no scroll
+  const totalPages = Math.ceil(fieldMappings.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentMappings = fieldMappings.slice(startIndex, endIndex);
+  
+  // Distribute current page mappings evenly across 3 columns for better space utilization
+  const itemsPerColumn = Math.ceil(currentMappings.length / 3);
+  const column1 = currentMappings.slice(0, itemsPerColumn);
+  const column2 = currentMappings.slice(itemsPerColumn, itemsPerColumn * 2);
+  const column3 = currentMappings.slice(itemsPerColumn * 2);
 
   if (loading) {
     return (
@@ -297,22 +305,19 @@ export default function VisitorsMatchingPage() {
     );
   }
 
-  const renderMappingColumn = (mappings: FieldMapping[], title: string) => (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ textAlign: 'center', mb: 2, fontSize: '1.1rem' }}>
-        {title}
-      </Typography>
+  const renderMappingColumn = (mappings: FieldMapping[]) => (
+    <Box sx={{ height: '100%', overflow: 'hidden' }}>
       {mappings.map((mapping, index) => (
-        <Card key={mapping.excelColumn} sx={{ mb: 1.5, boxShadow: 1 }}>
-          <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-            <Grid container spacing={1} alignItems="center">
+        <Card key={mapping.excelColumn} sx={{ mb: 2, boxShadow: 2, borderRadius: 2 }}>
+          <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
+            <Grid container spacing={2} alignItems="center">
               <Grid item xs={5}>
-                <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.875rem' }}>
+                <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.9rem', wordBreak: 'break-word', lineHeight: 1.4 }}>
                   {mapping.excelColumn}
                 </Typography>
               </Grid>
               <Grid item xs={1} display="flex" justifyContent="center">
-                <Typography variant="body1" color="primary" sx={{ fontSize: '1.2rem' }}>
+                <Typography variant="body1" color="primary" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
                   →
                 </Typography>
               </Grid>
@@ -324,16 +329,16 @@ export default function VisitorsMatchingPage() {
                     displayEmpty
                     sx={{ 
                       '& .MuiSelect-select': { 
-                        py: 0.75,
-                        fontSize: '0.875rem'
+                        py: 1,
+                        fontSize: '0.9rem'
                       }
                     }}
                   >
-                    <MenuItem value="" sx={{ fontSize: '0.875rem' }}>
+                    <MenuItem value="" sx={{ fontSize: '0.9rem' }}>
                       <em>Select field</em>
                     </MenuItem>
                     {standardFields.map((field) => (
-                      <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.875rem' }}>
+                      <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.9rem' }}>
                         {field.fieldName}
                       </MenuItem>
                     ))}
@@ -359,33 +364,37 @@ export default function VisitorsMatchingPage() {
       <Box
         component="main"
         sx={{
-          p: 3,
+          p: 2,
           height: '100vh',
-          overflow: 'auto',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <Container maxWidth="xl">
-          {/* Header */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Container maxWidth="xl" sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Compact Header */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
             <Box display="flex" alignItems="center" gap={2}>
               <Button
                 variant="outlined"
                 startIcon={<ArrowBack />}
                 onClick={() => router.back()}
+                size="small"
               >
                 Back
               </Button>
-              <Typography variant="h5">
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Visitors Field Mapping
               </Typography>
             </Box>
             
-            <Box display="flex" gap={2} alignItems="center">
+            <Box display="flex" gap={1} alignItems="center">
               <SimpleThemeSelector />
               <Button
                 variant="outlined"
                 startIcon={<Upload />}
                 onClick={() => setUploadDialogOpen(true)}
+                size="small"
               >
                 Upload New File
               </Button>
@@ -393,6 +402,7 @@ export default function VisitorsMatchingPage() {
                 variant="outlined"
                 startIcon={<Refresh />}
                 onClick={handleReset}
+                size="small"
               >
                 Reset
               </Button>
@@ -400,6 +410,7 @@ export default function VisitorsMatchingPage() {
                 variant="contained"
                 startIcon={<Save />}
                 onClick={handleSave}
+                size="small"
               >
                 Save Mapping
               </Button>
@@ -408,49 +419,53 @@ export default function VisitorsMatchingPage() {
 
           {/* Error Alert */}
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 1 }}>
               {error}
             </Alert>
           )}
 
-          {/* Mapping Info */}
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              Map your Excel columns to standard fields. Total fields: {fieldMappings.length}
-            </Typography>
-          </Alert>
+          {/* Compact Info with Pagination */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Alert severity="info" sx={{ py: 0.5, flex: 1, mr: 2 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                Map your Excel columns to standard fields. Total fields: {fieldMappings.length}
+                {totalPages > 1 && ` | Page ${currentPage} of ${totalPages}`}
+              </Typography>
+            </Alert>
+            {totalPages > 1 && (
+              <Pagination 
+                count={totalPages} 
+                page={currentPage} 
+                onChange={(event, value) => setCurrentPage(value)}
+                size="small"
+                color="primary"
+              />
+            )}
+          </Box>
           
-          {/* Mapping Content */}
-          <Paper sx={{ p: 3, maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
-            <Grid container spacing={2}>
-              {/* Left Column */}
-              <Grid item xs={12} md={6}>
-                {renderMappingColumn(leftColumnMappings, `Fields 1-${leftColumnMappings.length}`)}
+          {/* Maximized Mapping Content - No Scroll, 3 Columns */}
+          <Paper sx={{ 
+            p: 3, 
+            flex: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0
+          }}>
+            <Grid container spacing={4} sx={{ flex: 1, height: '100%', overflow: 'hidden' }}>
+              {/* Column 1 */}
+              <Grid item xs={12} md={4} sx={{ overflow: 'hidden' }}>
+                {renderMappingColumn(column1)}
               </Grid>
 
-              {/* Divider */}
-              <Grid item xs={12} md={0}>
-                <Divider 
-                  orientation="vertical" 
-                  sx={{ 
-                    height: '100%',
-                    display: { xs: 'none', md: 'block' }
-                  }} 
-                />
-                <Divider 
-                  sx={{ 
-                    display: { xs: 'block', md: 'none' },
-                    my: 1
-                  }} 
-                />
+              {/* Column 2 */}
+              <Grid item xs={12} md={4} sx={{ overflow: 'hidden' }}>
+                {renderMappingColumn(column2)}
               </Grid>
 
-              {/* Right Column */}
-              <Grid item xs={12} md={6}>
-                {rightColumnMappings.length > 0 && renderMappingColumn(
-                  rightColumnMappings, 
-                  `Fields ${leftColumnMappings.length + 1}-${fieldMappings.length}`
-                )}
+              {/* Column 3 */}
+              <Grid item xs={12} md={4} sx={{ overflow: 'hidden' }}>
+                {renderMappingColumn(column3)}
               </Grid>
             </Grid>
           </Paper>

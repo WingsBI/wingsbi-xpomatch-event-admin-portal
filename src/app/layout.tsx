@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Roboto, Poppins, Montserrat, Open_Sans, Lato } from 'next/font/google';
 import './globals.css';
 import { SimpleThemeProvider } from '@/context/SimpleThemeContext';
@@ -48,7 +48,13 @@ const lato = Lato({
 export const metadata: Metadata = {
   title: 'Event Management Portal',
   description: 'Manage your events and connect participants',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: '#1976d2',
 };
 

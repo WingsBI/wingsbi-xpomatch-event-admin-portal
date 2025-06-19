@@ -192,7 +192,7 @@ export const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        state.refreshToken = action.payload.refreshToken || null;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -210,7 +210,7 @@ export const authSlice = createSlice({
       // Refresh token cases
       .addCase(refreshTokenAsync.fulfilled, (state, action) => {
         state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        state.refreshToken = action.payload.refreshToken || null;
         state.user = action.payload.user;
       })
       .addCase(refreshTokenAsync.rejected, (state) => {
@@ -223,7 +223,7 @@ export const authSlice = createSlice({
       .addCase(restoreAuthState.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        state.refreshToken = action.payload.refreshToken || null;
         state.isAuthenticated = true;
         state.error = null;
       })

@@ -7,6 +7,8 @@ export interface LoginCredentials {
   email: string;
   password: string;
   identifier: string;
+  eventId?: string;
+  role?: string;
 }
 
 export interface JWTPayload {
@@ -26,7 +28,7 @@ export interface AuthResponse {
     user: {
       id: string;
       email: string;
-      role: string;
+      role: 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
       eventId?: string;
       name?: string;
       avatar?: string;
@@ -117,7 +119,7 @@ class AuthApiService {
       const userId = jwtPayload?.sub || data.userId || data.id || '1';
       const userEmail = jwtPayload?.email || data.email || credentials.email;
       const userName = jwtPayload?.name || data.name || data.fullName || userEmail.split('@')[0];
-      const userRole = jwtPayload?.role || data.role || 'event-admin';
+      const userRole = (jwtPayload?.role || data.role || 'event-admin') as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
       const eventId = jwtPayload?.eventId || data.eventId || credentials.identifier;
 
       return {
@@ -219,7 +221,7 @@ class AuthApiService {
           user: {
             id: jwtPayload?.sub || data.userId || '1',
             email: jwtPayload?.email || data.email,
-            role: jwtPayload?.role || data.role || 'event-admin',
+            role: (jwtPayload?.role || data.role || 'event-admin') as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor',
             eventId: jwtPayload?.eventId || data.eventId,
             name: jwtPayload?.name || data.name,
             avatar: jwtPayload?.avatar || data.avatar,

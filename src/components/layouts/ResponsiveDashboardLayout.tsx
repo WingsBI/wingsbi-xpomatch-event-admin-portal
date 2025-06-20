@@ -85,12 +85,18 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       { text: 'General', href: `/${identifier}/it-admin/settings/general` },
       { text: 'Security', href: `/${identifier}/it-admin/settings/security` },
     ] },
-  ] : userRole === 'exhibitor' ? [
-    { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/exhibitor/dashboard`, children: [] },
-    { text: 'My Booth', icon: <Business />, href: `/${identifier}/exhibitor/booth`, children: [] },
-    { text: 'Meetings', icon: <People />, href: `/${identifier}/exhibitor/meetings`, children: [] },
-    { text: 'Schedule', icon: <Event />, href: `/${identifier}/exhibitor/schedule`, children: [] },
+  ] : userRole === 'visitor' || userRole === 'exhibitor' ? [
+    // Both visitors and exhibitors only see these 2 pages
+    { text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [
+      { text: 'Visitors List', href: `/${identifier}/event-admin/visitors` },
+      { text: 'Visitors Matching', href: `/${identifier}/event-admin/visitors/matching` },
+    ] },
+    { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [
+      { text: 'Exhibitors List', href: `/${identifier}/event-admin/exhibitors` },
+      { text: 'Exhibitors Matching', href: `/${identifier}/event-admin/exhibitors/matching` },
+    ] },
   ] : [
+    // Default for event-admin role - full navigation
     { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
     { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
     { text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [
@@ -499,7 +505,10 @@ export default function ResponsiveDashboardLayout({
                     {isMobile ? 'AI Match' : 'AI Matchmaking'}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }} noWrap>
-                    {user?.role === 'it-admin' ? 'IT Administrator' : 'Event Administrator'}
+                    {user?.role === 'it-admin' ? 'IT Administrator' : 
+                     user?.role === 'visitor' ? 'Visitor Portal' :
+                     user?.role === 'exhibitor' ? 'Exhibitor Portal' : 
+                     'Event Administrator'}
                   </Typography>
                 </Box>
               ) : (

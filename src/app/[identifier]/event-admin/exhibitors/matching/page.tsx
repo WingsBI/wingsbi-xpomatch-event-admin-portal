@@ -18,9 +18,14 @@ import {
   Pagination,
   Card,
   CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
-import { ArrowBack, Save, Refresh, Upload } from '@mui/icons-material';
+import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
@@ -53,6 +58,10 @@ export default function ExhibitorsMatchingPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState<UserRegistrationResponse | null>(null);
+  const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [fileStorageId, setFileStorageId] = useState<number | null>(null);
   
   // Display all mappings evenly distributed
 
@@ -68,10 +77,16 @@ export default function ExhibitorsMatchingPage() {
       // Get data from session storage first
       const mappingData = sessionStorage.getItem('fieldMappingData');
       const standardFieldsData = sessionStorage.getItem('standardFieldsData');
+      const storedFileStorageId = sessionStorage.getItem('fileStorageId');
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
         const fields = JSON.parse(standardFieldsData);
+        
+        // Set fileStorageId if available
+        if (storedFileStorageId) {
+          setFileStorageId(parseInt(storedFileStorageId, 10));
+        }
         
         // Check if we actually have data from the APIs
         if (!fields || fields.length === 0) {
@@ -146,10 +161,16 @@ export default function ExhibitorsMatchingPage() {
         if (!mappingsData || mappingsData.length === 0) {
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
+
+        // Extract fileStorageId from the suggest response
+        const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId || 
+                                     suggestResponse.result?.fileStorageId || 
+                                     2; // Default fallback as shown in sample
         
         // Update state directly instead of using session storage
         setFieldMappings(mappingsData);
         setStandardFields(standardFieldsResponse.result);
+        setFileStorageId(responseFileStorageId);
         
         // Set default selections based on standardField from POST API
         const defaultMappings: { [key: string]: string } = {};
@@ -161,6 +182,7 @@ export default function ExhibitorsMatchingPage() {
         // Also store in session storage for future use
         sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
         sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
+        sessionStorage.setItem('fileStorageId', responseFileStorageId.toString());
         sessionStorage.setItem('uploadType', 'exhibitors');
         
       } else {
@@ -172,7 +194,7 @@ export default function ExhibitorsMatchingPage() {
       }
     } catch (error) {
       console.error('Error uploading exhibitors file:', error);
-      setError(error instanceof Error ? error.message : 'Failed to upload file');
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -185,10 +207,51 @@ export default function ExhibitorsMatchingPage() {
     }));
   };
 
-  const handleSave = () => {
-    console.log('Saving mappings:', selectedMappings);
-    // TODO: Implement save functionality
-    router.back();
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      // Validate that we have fileStorageId
+      if (!fileStorageId) {
+        throw new Error('File storage ID not found. Please upload an Excel file first.');
+      }
+
+      // Create the registration payload with proper structure
+      const mappings = Object.entries(selectedMappings)
+        .filter(([excelColumn, standardField]) => standardField) // Only include mapped fields
+        .map(([excelColumn, standardField], index) => ({
+          standardFieldIndex: index + 1,
+          standardField,
+          excelColumn
+        }));
+
+      if (mappings.length === 0) {
+        throw new Error('No field mappings selected. Please map at least one field.');
+      }
+
+      const payload = {
+        fileStorageId,
+        mappings
+      };
+
+      console.log('Registering exhibitors with payload:', payload);
+
+      // Call the registration API
+      const response = await fieldMappingApi.registerUsers(identifier, payload);
+      
+      console.log('Registration response:', response);
+
+      // Set the result and show dialog
+      setRegistrationResult(response);
+      setRegistrationDialogOpen(true);
+
+    } catch (error) {
+      console.error('Error registering users:', error);
+      setError(error instanceof Error ? error.message : 'Failed to register users');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -408,11 +471,12 @@ export default function ExhibitorsMatchingPage() {
               </Button>
               <Button
                 variant="contained"
-                startIcon={<Save />}
+                startIcon={isSaving ? undefined : <Save />}
                 onClick={handleSave}
                 size="small"
+                disabled={isSaving}
               >
-                Save Mapping
+                {isSaving ? 'Registering Users...' : 'Save & Register Users'}
               </Button>
             </Box>
           </Box>
@@ -479,6 +543,333 @@ export default function ExhibitorsMatchingPage() {
             description="Upload an Excel file containing exhibitor information for field mapping."
             type="exhibitors"
           />
+
+          {/* Registration Result Dialog */}
+          <Dialog
+            open={registrationDialogOpen}
+            onClose={() => setRegistrationDialogOpen(false)}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                background: '#ffffff',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                border: '1px solid #e5e7eb'
+              }
+            }}
+          >
+            <DialogTitle sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2,
+              background: '#f8fafc',
+              borderBottom: '1px solid #e5e7eb',
+              py: 2,
+              px: 3
+            }}>
+              <Box sx={{ 
+                background: '#10b981',
+                borderRadius: '50%',
+                p: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <CheckCircle sx={{ fontSize: 20, color: 'white' }} />
+              </Box>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1f2937' }}>
+                  Registration Completed Successfully
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                  Exhibitor registration process completed
+                </Typography>
+              </Box>
+            </DialogTitle>
+            <DialogContent sx={{ p: 2 }}>
+              {registrationResult && (
+                <Box>
+                  {/* Compact Success Summary */}
+                  <Box sx={{ 
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: 1,
+                    p: 2,
+                    mb: 2,
+                    textAlign: 'center'
+                  }}>
+                    <Box display="flex" alignItems="center" justifyContent="center" gap={1.5} mb={1}>
+                      <Box sx={{ 
+                        background: '#10b981',
+                        borderRadius: '50%',
+                        p: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Business sx={{ fontSize: 16, color: 'white' }} />
+                      </Box>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#065f46' }}>
+                        {registrationResult.result.registeredCount}
+                      </Typography>
+                    </Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#065f46', fontSize: '0.9rem' }}>
+                      New Exhibitors Registered
+                    </Typography>
+                  </Box>
+                  
+                  {/* User Lists Section - Side by Side */}
+                  <Grid container spacing={2}>
+                    {/* Newly Registered Column */}
+                    {registrationResult.result.newlyRegisteredEmails.length > 0 && (
+                      <Grid item xs={registrationResult.result.alredyRegisteredEmails.length > 0 ? 6 : 12}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#065f46', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <CheckCircle sx={{ fontSize: 16, color: '#10b981' }} />
+                          Newly Added ({registrationResult.result.newlyRegisteredEmails.length})
+                        </Typography>
+                        <Box sx={{ 
+                          background: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: 1,
+                          p: 1
+                        }}>
+                          {registrationResult.result.newlyRegisteredEmails.map((email, index) => (
+                            <Box key={index} sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 1, 
+                              mb: 0.5,
+                              p: 1,
+                              background: 'white',
+                              borderRadius: 0.5,
+                              border: '1px solid #e5e7eb',
+                              '&:last-child': { mb: 0 }
+                            }}>
+                              <Typography variant="caption" sx={{ 
+                                background: '#10b981',
+                                color: 'white',
+                                borderRadius: '50%',
+                                width: 20,
+                                height: 20,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                flexShrink: 0
+                              }}>
+                                {index + 1}
+                              </Typography>
+                              <Typography variant="body2" sx={{ 
+                                color: '#374151', 
+                                fontSize: '0.8rem',
+                                wordBreak: 'break-word',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {email}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      </Grid>
+                    )}
+                    
+                    {/* Already Registered Section */}
+                    {registrationResult.result.alredyRegisteredEmails.length > 0 && (
+                      <Grid item xs={registrationResult.result.newlyRegisteredEmails.length > 0 ? 6 : 12}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#92400e', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Business sx={{ fontSize: 16, color: '#d97706' }} />
+                          Already Registered ({registrationResult.result.alredyRegisteredEmails.length})
+                        </Typography>
+                        <Box sx={{ 
+                          background: '#fef3c7',
+                          border: '1px solid #fcd34d',
+                          borderRadius: 1,
+                          p: 1
+                        }}>
+                          {/* Show in 2 columns if taking full width, otherwise single column */}
+                          {registrationResult.result.newlyRegisteredEmails.length === 0 ? (
+                            <Grid container spacing={1}>
+                              <Grid item xs={6}>
+                                {registrationResult.result.alredyRegisteredEmails
+                                  .slice(0, Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
+                                  .map((email, index) => (
+                                    <Box key={index} sx={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: 1, 
+                                      mb: 0.5,
+                                      p: 1,
+                                      background: 'white',
+                                      borderRadius: 0.5,
+                                      border: '1px solid #e5e7eb',
+                                      '&:last-child': { mb: 0 }
+                                    }}>
+                                      <Typography variant="caption" sx={{ 
+                                        background: '#d97706',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        width: 20,
+                                        height: 20,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        flexShrink: 0
+                                      }}>
+                                        {index + 1}
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ 
+                                        color: '#374151', 
+                                        fontSize: '0.8rem',
+                                        wordBreak: 'break-word',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                      }}>
+                                        {email}
+                                      </Typography>
+                                    </Box>
+                                  ))}
+                              </Grid>
+                              <Grid item xs={6}>
+                                {registrationResult.result.alredyRegisteredEmails
+                                  .slice(Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
+                                  .map((email, index) => (
+                                    <Box key={index} sx={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: 1, 
+                                      mb: 0.5,
+                                      p: 1,
+                                      background: 'white',
+                                      borderRadius: 0.5,
+                                      border: '1px solid #e5e7eb',
+                                      '&:last-child': { mb: 0 }
+                                    }}>
+                                      <Typography variant="caption" sx={{ 
+                                        background: '#d97706',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        width: 20,
+                                        height: 20,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        flexShrink: 0
+                                      }}>
+                                        {Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2) + index + 1}
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ 
+                                        color: '#374151', 
+                                        fontSize: '0.8rem',
+                                        wordBreak: 'break-word',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                      }}>
+                                        {email}
+                                      </Typography>
+                                    </Box>
+                                  ))}
+                              </Grid>
+                            </Grid>
+                          ) : (
+                            /* Single column when sharing space with newly registered users */
+                            registrationResult.result.alredyRegisteredEmails.map((email, index) => (
+                              <Box key={index} sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 1, 
+                                mb: 0.5,
+                                p: 1,
+                                background: 'white',
+                                borderRadius: 0.5,
+                                border: '1px solid #e5e7eb',
+                                '&:last-child': { mb: 0 }
+                              }}>
+                                <Typography variant="caption" sx={{ 
+                                  background: '#d97706',
+                                  color: 'white',
+                                  borderRadius: '50%',
+                                  width: 20,
+                                  height: 20,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  flexShrink: 0
+                                }}>
+                                  {index + 1}
+                                </Typography>
+                                <Typography variant="body2" sx={{ 
+                                  color: '#374151', 
+                                  fontSize: '0.8rem',
+                                  wordBreak: 'break-word',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}>
+                                  {email}
+                                </Typography>
+                              </Box>
+                            ))
+                          )}
+                        </Box>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions sx={{ 
+              background: '#f8fafc',
+              borderTop: '1px solid #e5e7eb',
+              p: 2,
+              justifyContent: 'flex-end'
+            }}>
+              <Button 
+                onClick={() => {
+                  setRegistrationDialogOpen(false);
+                  router.back();
+                }}
+                variant="contained"
+                sx={{
+                  background: '#3b82f6',
+                  color: 'white',
+                  fontWeight: 600,
+                  px: 3,
+                  py: 1,
+                  borderRadius: 1,
+                  textTransform: 'none',
+                  fontSize: '0.9rem',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  '&:hover': {
+                    background: '#2563eb',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }
+                }}
+              >
+                Continue
+              </Button>
+            </DialogActions>
+          </Dialog>
+          
+          {/* Add CSS animations */}
+          <style jsx global>{`
+            @keyframes pulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+              100% { transform: scale(1); }
+            }
+            @keyframes bounce {
+              0% { transform: translateY(0); }
+              100% { transform: translateY(-4px); }
+            }
+          `}</style>
         </Container>
       </Box>
     </ResponsiveDashboardLayout>

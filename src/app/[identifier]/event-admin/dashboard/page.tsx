@@ -27,6 +27,7 @@ import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardL
 import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
+import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { mockVisitors, mockExhibitors, mockEvent, mockStats } from '@/lib/mockData';
 import { RootState, AppDispatch } from "@/store";
@@ -239,13 +240,14 @@ export default function EventAdminDashboard() {
 
 
   return (
-    <ResponsiveDashboardLayout 
-      title={`${identifier} Event Dashboard`}
-      breadcrumbs={[
-        { label: 'Event Admin', href: `/${identifier}/event-admin` },
-        { label: 'Dashboard' }
-      ]}
-    >
+    <RoleBasedRoute allowedRoles={['event-admin', 'it-admin']}>
+      <ResponsiveDashboardLayout 
+        title={`${identifier} Event Dashboard`}
+        breadcrumbs={[
+          { label: 'Event Admin', href: `/${identifier}/event-admin` },
+          { label: 'Dashboard' }
+        ]}
+      >
       {/* Main Content */}
       <Box
         component="main"
@@ -341,5 +343,6 @@ export default function EventAdminDashboard() {
         type="exhibitors"
       />
     </ResponsiveDashboardLayout>
+    </RoleBasedRoute>
   );
 }

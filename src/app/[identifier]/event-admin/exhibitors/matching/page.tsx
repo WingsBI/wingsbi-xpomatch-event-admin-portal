@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
-import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
+import type { ExhibitorRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
@@ -58,7 +58,7 @@ export default function ExhibitorsMatchingPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [registrationResult, setRegistrationResult] = useState<UserRegistrationResponse | null>(null);
+  const [registrationResult, setRegistrationResult] = useState<ExhibitorRegistrationResponse | null>(null);
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fileStorageId, setFileStorageId] = useState<number | null>(null);
@@ -137,8 +137,8 @@ export default function ExhibitorsMatchingPage() {
       
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
-        fieldMappingApi.suggestMapping(identifier, file),
-        fieldMappingApi.getAllStandardFields(identifier)
+        fieldMappingApi.suggestExhibitorMapping(identifier, file),
+        fieldMappingApi.getAllExhibitorStandardFields(identifier)
       ]);
       
       console.log('Suggest mapping response:', suggestResponse);
@@ -236,7 +236,7 @@ export default function ExhibitorsMatchingPage() {
       console.log('Registering exhibitors with payload:', payload);
 
       // Call the registration API
-      const response = await fieldMappingApi.registerUsers(identifier, payload);
+      const response = await fieldMappingApi.registerExhibitors(identifier, payload);
       
       console.log('Registration response:', response);
 
@@ -621,7 +621,7 @@ export default function ExhibitorsMatchingPage() {
                   <Grid container spacing={2}>
                     {/* Newly Registered Column */}
                     {registrationResult.result.newlyRegisteredEmails.length > 0 && (
-                      <Grid item xs={registrationResult.result.alredyRegisteredEmails.length > 0 ? 6 : 12}>
+                      <Grid item xs={registrationResult.result.alreadyRegisteredEmails.length > 0 ? 6 : 12}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#065f46', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <CheckCircle sx={{ fontSize: 16, color: '#10b981' }} />
                           Newly Added ({registrationResult.result.newlyRegisteredEmails.length})
@@ -675,11 +675,11 @@ export default function ExhibitorsMatchingPage() {
                     )}
                     
                     {/* Already Registered Section */}
-                    {registrationResult.result.alredyRegisteredEmails.length > 0 && (
+                    {registrationResult.result.alreadyRegisteredEmails.length > 0 && (
                       <Grid item xs={registrationResult.result.newlyRegisteredEmails.length > 0 ? 6 : 12}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#92400e', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <Business sx={{ fontSize: 16, color: '#d97706' }} />
-                          Already Registered ({registrationResult.result.alredyRegisteredEmails.length})
+                          Already Registered ({registrationResult.result.alreadyRegisteredEmails.length})
                         </Typography>
                         <Box sx={{ 
                           background: '#fef3c7',
@@ -691,9 +691,9 @@ export default function ExhibitorsMatchingPage() {
                           {registrationResult.result.newlyRegisteredEmails.length === 0 ? (
                             <Grid container spacing={1}>
                               <Grid item xs={6}>
-                                {registrationResult.result.alredyRegisteredEmails
-                                  .slice(0, Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
-                                  .map((email, index) => (
+                                {registrationResult.result.alreadyRegisteredEmails
+                                  .slice(0, Math.ceil(registrationResult.result.alreadyRegisteredEmails.length / 2))
+                                  .map((email: string, index: number) => (
                                     <Box key={index} sx={{ 
                                       display: 'flex', 
                                       alignItems: 'center', 
@@ -733,9 +733,9 @@ export default function ExhibitorsMatchingPage() {
                                   ))}
                               </Grid>
                               <Grid item xs={6}>
-                                {registrationResult.result.alredyRegisteredEmails
-                                  .slice(Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
-                                  .map((email, index) => (
+                                {registrationResult.result.alreadyRegisteredEmails
+                                  .slice(Math.ceil(registrationResult.result.alreadyRegisteredEmails.length / 2))
+                                  .map((email: string, index: number) => (
                                     <Box key={index} sx={{ 
                                       display: 'flex', 
                                       alignItems: 'center', 
@@ -760,7 +760,7 @@ export default function ExhibitorsMatchingPage() {
                                         fontWeight: 600,
                                         flexShrink: 0
                                       }}>
-                                        {Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2) + index + 1}
+                                        {Math.ceil(registrationResult.result.alreadyRegisteredEmails.length / 2) + index + 1}
                                       </Typography>
                                       <Typography variant="body2" sx={{ 
                                         color: '#374151', 
@@ -777,7 +777,7 @@ export default function ExhibitorsMatchingPage() {
                             </Grid>
                           ) : (
                             /* Single column when sharing space with newly registered users */
-                            registrationResult.result.alredyRegisteredEmails.map((email, index) => (
+                            registrationResult.result.alreadyRegisteredEmails.map((email: string, index: number) => (
                               <Box key={index} sx={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 

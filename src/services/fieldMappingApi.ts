@@ -55,7 +55,20 @@ export interface UserRegistrationResponse {
   result: {
     registeredCount: number;
     newlyRegisteredEmails: string[];
-    alredyRegisteredEmails: string[];
+    alredyRegisteredEmails: string[]; // Visitors API uses this typo
+  };
+}
+
+export interface ExhibitorRegistrationResponse {
+  version: string | null;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: any;
+  result: {
+    registeredCount: number;
+    newlyRegisteredEmails: string[];
+    alreadyRegisteredEmails: string[]; // Exhibitors API uses correct spelling
   };
 }
 
@@ -246,7 +259,7 @@ class FieldMappingApiService {
   }
 
   /**
-   * Register users from Excel file with field mappings
+   * Register users from Excel file with field mappings (for visitors)
    */
   async registerUsers(
     identifier: string, 
@@ -305,6 +318,176 @@ class FieldMappingApiService {
           registeredCount: 0,
           newlyRegisteredEmails: [],
           alredyRegisteredEmails: []
+        }
+      };
+    }
+  }
+
+  /**
+   * Get all available exhibitor standard fields
+   */
+  async getAllExhibitorStandardFields(identifier: string): Promise<StandardFieldsResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/Common/getAllExebitorStandardFields`;
+      
+      console.log('Calling get all exhibitor standard fields API:', {
+        url: apiUrl,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Get exhibitor standard fields response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Get exhibitor standard fields response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to fetch exhibitor standard fields`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching exhibitor standard fields:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Upload Excel file and get suggested exhibitor field mappings
+   */
+  async suggestExhibitorMapping(identifier: string, file: File): Promise<FieldMappingResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorFieldMapping/ExhibitorMappingSuggestion`;
+      
+      console.log('Calling exhibitor suggest mapping API:', {
+        url: apiUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: formData,
+      });
+
+      console.log('Exhibitor suggest mapping response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Exhibitor suggest mapping response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: "1.0.0.0",
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to process file`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error suggesting exhibitor field mapping:', error);
+      return {
+        version: "1.0.0.0",
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Register exhibitors from Excel file with field mappings
+   */
+  async registerExhibitors(
+    identifier: string, 
+    payload: UserRegistrationPayload
+  ): Promise<ExhibitorRegistrationResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/registerExhibitor`;
+      
+      console.log('Calling register exhibitors API:', {
+        url: apiUrl,
+        fileStorageId: payload.fileStorageId,
+        mappingsCount: payload.mappings.length,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('Register exhibitors response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Register exhibitors response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to register exhibitors`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: {
+            registeredCount: 0,
+            newlyRegisteredEmails: [],
+            alreadyRegisteredEmails: []
+          }
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error registering exhibitors:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: {
+          registeredCount: 0,
+          newlyRegisteredEmails: [],
+          alreadyRegisteredEmails: []
         }
       };
     }

@@ -693,7 +693,7 @@ export default function VisitorsMatchingPage() {
                               <Grid item xs={6}>
                                 {registrationResult.result.alredyRegisteredEmails
                                   .slice(0, Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
-                                  .map((email, index) => (
+                                  .map((email: string, index: number) => (
                                     <Box key={index} sx={{ 
                                       display: 'flex', 
                                       alignItems: 'center', 
@@ -735,7 +735,7 @@ export default function VisitorsMatchingPage() {
                               <Grid item xs={6}>
                                 {registrationResult.result.alredyRegisteredEmails
                                   .slice(Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
-                                  .map((email, index) => (
+                                  .map((email: string, index: number) => (
                                     <Box key={index} sx={{ 
                                       display: 'flex', 
                                       alignItems: 'center', 
@@ -777,7 +777,7 @@ export default function VisitorsMatchingPage() {
                             </Grid>
                           ) : (
                             /* Single column when sharing space with newly registered users */
-                            registrationResult.result.alredyRegisteredEmails.map((email, index) => (
+                            registrationResult.result.alredyRegisteredEmails.map((email: string, index: number) => (
                               <Box key={index} sx={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 

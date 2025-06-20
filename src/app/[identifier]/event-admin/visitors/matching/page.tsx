@@ -163,9 +163,7 @@ export default function VisitorsMatchingPage() {
         }
 
         // Extract fileStorageId from the suggest response
-        const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId || 
-                                     suggestResponse.result?.fileStorageId || 
-                                     2; // Default fallback as shown in sample
+        const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId; // Default fallback as shown in sample
         
         // Update state directly instead of using session storage
         setFieldMappings(mappingsData);

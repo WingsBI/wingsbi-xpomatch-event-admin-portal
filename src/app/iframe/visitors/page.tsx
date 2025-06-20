@@ -102,7 +102,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         },
       }}
     >
-      <CardContent sx={{ p: 3, pb: 2 }}>
+      <CardContent sx={{ p: 1.5, pb: 1}}>
         {/* Header with Company Info and Match Score */}
         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center">
@@ -111,7 +111,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
                 bgcolor: '#ff6f00',
                 width: 52,
                 height: 52,
-                mr: 2,
+                mr: 1,
                 fontSize: '1.2rem',
                 fontWeight: 'bold'
               }}
@@ -159,7 +159,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         </Box>
 
         {/* Location and Industry */}
-        <Box mb={2}>
+        <Box mb={1}>
           {exhibitor.customData?.location && (
             <Box display="flex" alignItems="center" mb={1}>
               <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
@@ -181,7 +181,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
 
         {/* Products/Services Offered */}
         {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
-          <Box mb={2}>
+          <Box mb={1}>
             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
               Products & Services:
             </Typography>
@@ -216,7 +216,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
 
         {/* Common Interests */}
         {commonInterests.length > 0 && (
-          <Box mb={3}>
+          <Box mb={1}>
             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
               <InterestPoint sx={{ fontSize: 14, mr: 0.5 }} />
               Common Interests:
@@ -373,20 +373,10 @@ function VisitorExhibitorsView() {
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}>
-        <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1, color: '#202124' }}>
-          Recommended Exhibitors
-        </Typography>
-        
-        <Box display="flex" gap={1} mt={2}>
-          <Chip 
-            label={`Your Interests: ${visitorInterests.join(', ')}`}
-            size="small"
-            sx={{ bgcolor: '#e8f0fe', color: '#1a73e8' }}
-          />
-        </Box>
+       
 
         {/* Search and Filter Bar */}
-        <Box display="flex" gap={2} mt={3} alignItems="center">
+        <Box display="flex" gap={2} mt={0} alignItems="center">
           <TextField
             fullWidth
             placeholder="Search exhibitors by company, services, or industry..."
@@ -443,20 +433,7 @@ function VisitorExhibitorsView() {
             </Select>
           </FormControl>
 
-          {/* Stats */}
-          <Box display="flex" gap={2} alignItems="center">
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <TrendingUp sx={{ color: '#4caf50', fontSize: 18 }} />
-              <Typography variant="body2" color="text.secondary">
-                {filteredExhibitors.filter(e => {
-                  const common = e.interests?.filter(interest => 
-                    visitorInterests.some(vi => vi.toLowerCase().includes(interest.toLowerCase()))
-                  ).length || 0;
-                  return common > 0;
-                }).length} Matches
-              </Typography>
-            </Box>
-          </Box>
+          
         </Box>
       </Box>
 
@@ -464,7 +441,7 @@ function VisitorExhibitorsView() {
       <Box sx={{
         flexGrow: 1,
         overflowY: 'auto',
-        mt: 3,
+        mt: 2,
         // Hide scrollbar for Chrome, Safari and Opera
         '&::-webkit-scrollbar': {
           width: 0,

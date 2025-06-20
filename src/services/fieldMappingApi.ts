@@ -35,6 +35,30 @@ export interface StandardFieldsResponse {
   result: StandardField[];
 }
 
+export interface UserRegistrationMapping {
+  standardFieldIndex: number;
+  standardField: string;
+  excelColumn: string;
+}
+
+export interface UserRegistrationPayload {
+  fileStorageId: number;
+  mappings: UserRegistrationMapping[];
+}
+
+export interface UserRegistrationResponse {
+  version: string | null;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: any;
+  result: {
+    registeredCount: number;
+    newlyRegisteredEmails: string[];
+    alredyRegisteredEmails: string[];
+  };
+}
+
 class FieldMappingApiService {
   private baseURL: string;
 
@@ -218,6 +242,71 @@ class FieldMappingApiService {
     } catch (error) {
       console.error('Error submitting field mapping:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Register users from Excel file with field mappings
+   */
+  async registerUsers(
+    identifier: string, 
+    payload: UserRegistrationPayload
+  ): Promise<UserRegistrationResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/register-from-excel`;
+      
+      console.log('Calling register users API:', {
+        url: apiUrl,
+        fileStorageId: payload.fileStorageId,
+        mappingsCount: payload.mappings.length,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('Register users response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Register users response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to register users`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: {
+            registeredCount: 0,
+            newlyRegisteredEmails: [],
+            alredyRegisteredEmails: []
+          }
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error registering users:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: {
+          registeredCount: 0,
+          newlyRegisteredEmails: [],
+          alredyRegisteredEmails: []
+        }
+      };
     }
   }
 }

@@ -33,13 +33,14 @@ import {
   TrendingUp,
   Groups,
   Business,
-  FiberManualRecord as InterestPoint
+  FiberManualRecord as InterestPoint,
+  GetApp
 } from '@mui/icons-material';
 
 import { mockVisitors, mockExhibitors } from '@/lib/mockData';
 
-interface VisitorCardProps {
-  visitor: {
+interface ExhibitorCardProps {
+  exhibitor: {
     id: string;
     firstName: string;
     lastName: string;
@@ -56,14 +57,18 @@ interface VisitorCardProps {
       matchScore?: number;
       industry?: string;
       lookingFor?: string[];
+      companyDescription?: string;
+      products?: string[];
+      boothNumber?: string;
+      boothSize?: string;
+      website?: string;
     };
   };
-  exhibitorCompany: string;
-  exhibitorServices: string[];
+  visitorInterests: string[];
   isClient: boolean;
 }
 
-function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }: VisitorCardProps) {
+function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardProps) {
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -75,40 +80,22 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
     return '#757575';
   };
 
-  // Calculate match based on visitor's interests and what they're looking for vs exhibitor's services
-  const relevantInterests = visitor.interests?.filter(interest =>
-    exhibitorServices.some(service =>
-      service.toLowerCase().includes(interest.toLowerCase()) ||
-      interest.toLowerCase().includes(service.toLowerCase())
+  // Calculate match based on common interests
+  const commonInterests = exhibitor.interests?.filter(interest => 
+    visitorInterests.some(visitorInterest => 
+      visitorInterest.toLowerCase().includes(interest.toLowerCase()) ||
+      interest.toLowerCase().includes(visitorInterest.toLowerCase())
     )
   ) || [];
-
-  const relevantLookingFor = visitor.customData?.lookingFor?.filter(lookingFor =>
-    exhibitorServices.some(service =>
-      service.toLowerCase().includes(lookingFor.toLowerCase()) ||
-      lookingFor.toLowerCase().includes(service.toLowerCase())
-    )
-  ) || [];
-
-  const companyInterest = visitor.interests?.some(interest =>
-    interest.toLowerCase().includes(exhibitorCompany.toLowerCase()) ||
-    exhibitorCompany.toLowerCase().includes(interest.toLowerCase())
-  );
 
   // Calculate match score only on client side
   const matchScore = isClient ? (() => {
-    let score = 60; // Base score
-    score += relevantInterests.length * 8;
-    score += relevantLookingFor.length * 12;
-    if (companyInterest) score += 15;
-    return Math.min(98, score + Math.floor(Math.random() * 10));
+    return Math.min(95, 60 + (commonInterests.length * 10) + Math.floor(Math.random() * 15));
   })() : 0;
 
-  const totalRelevantItems = relevantInterests.length + relevantLookingFor.length;
-
   return (
-    <Card
-      sx={{
+    <Card 
+      sx={{ 
         height: '100%',
         borderRadius: 3,
         boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
@@ -121,13 +108,13 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
         },
       }}
     >
-      <CardContent sx={{ p: 1.5, pb: 1 }}>
-        {/* Header with Visitor Info and Match Score */}
+      <CardContent sx={{ p: 1.5, pb: 1}}>
+        {/* Header with Company Info and Match Score */}
         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center">
             <Avatar
               sx={{
-                bgcolor: '#4285f4',
+                bgcolor: '#ff6f00',
                 width: 52,
                 height: 52,
                 mr: 1,
@@ -135,36 +122,41 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
                 fontWeight: 'bold'
               }}
             >
-              {getInitials(visitor.firstName, visitor.lastName)}
+              {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
             </Avatar>
             <Box>
               <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
-                {visitor.firstName} {visitor.lastName}
+                {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                {visitor.jobTitle}
+                {exhibitor.firstName} {exhibitor.lastName} • {exhibitor.jobTitle}
               </Typography>
-              <Typography variant="body2" color="primary" fontWeight="500">
-                {visitor.company}
-              </Typography>
-              <Box display="flex" alignItems="center" gap={1} mt={1}>
+              <Box display="flex" alignItems="center" gap={1}>
                 <Chip
-                  label="Visitor"
+                  label="Exhibitor"
                   size="small"
-                  sx={{
-                    bgcolor: '#e3f2fd',
-                    color: '#1565c0',
+                  sx={{ 
+                    bgcolor: '#fff3e0',
+                    color: '#e65100',
                     fontWeight: 500
                   }}
                 />
-               
-              </Box>
-              <Box>
-              {totalRelevantItems > 0 && (
+                {exhibitor.customData?.boothNumber && (
                   <Chip
-                    label={`${totalRelevantItems} Relevant Interest${totalRelevantItems > 1 ? 's' : ''}`}
+                    label={`Booth ${exhibitor.customData.boothNumber}`}
                     size="small"
-                    sx={{
+                    sx={{ 
+                      bgcolor: '#e3f2fd',
+                      color: '#1565c0',
+                      fontWeight: 500
+                    }}
+                  />
+                )}
+                {commonInterests.length > 0 && (
+                  <Chip
+                    label={`${commonInterests.length} Common Interests`}
+                    size="small"
+                    sx={{ 
                       bgcolor: '#e8f5e8',
                       color: '#2e7d32',
                       fontWeight: 500
@@ -174,7 +166,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
               </Box>
             </Box>
           </Box>
-
+          
           <Box display="flex" alignItems="center">
             <Star sx={{ color: getMatchScoreColor(matchScore), mr: 0.5, fontSize: 18 }} />
             <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
@@ -183,330 +175,334 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
           </Box>
         </Box>
 
-        {/* Location and Experience */}
+        {/* Location and Industry */}
         <Box mb={1}>
-          {visitor.customData?.location && (
+          {exhibitor.customData?.location && (
             <Box display="flex" alignItems="center" mb={1}>
               <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
-                {visitor.customData.location}
+                {exhibitor.customData.location}
               </Typography>
             </Box>
           )}
-
-          {visitor.customData?.experience && (
+          
+          {exhibitor.customData?.industry && (
             <Box display="flex" alignItems="center">
-              <Work sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+              <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
-                {visitor.customData.experience}
+                {exhibitor.customData.industry}
               </Typography>
             </Box>
           )}
         </Box>
 
-        {/* Relevant Interests */}
-        {relevantInterests.length > 0 && (
+        {/* Products/Services Offered */}
+        {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
           <Box mb={1}>
             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-              <InterestPoint sx={{ fontSize: 14, mr: 0.5 }} />
-              Relevant Interests:
+              Products & Services:
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {relevantInterests.slice(0, 3).map((interest, index) => (
+              {exhibitor.customData.products.slice(0, 3).map((service, index) => (
+                <Chip
+                  key={index}
+                  label={service}
+                  size="small"
+                  sx={{ 
+                    fontSize: '0.75rem',
+                    bgcolor: '#f1f3f4',
+                    color: '#5f6368',
+                    border: 'none'
+                  }}
+                />
+              ))}
+              {exhibitor.customData.products.length > 3 && (
+                <Chip
+                  label={`+${exhibitor.customData.products.length - 3} more`}
+                  size="small"
+                  sx={{ 
+                    fontSize: '0.75rem',
+                    bgcolor: '#f1f3f4',
+                    color: '#5f6368',
+                    border: 'none'
+                  }}
+                />
+              )}
+            </Box>
+          </Box>
+        )}
+
+        {/* Company Description */}
+        {exhibitor.customData?.companyDescription && (
+          <Box mb={1}>
+            <Typography variant="body2" color="text.secondary" sx={{ 
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: 1.4
+            }}>
+              {exhibitor.customData.companyDescription}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Common Interests */}
+        {commonInterests.length > 0 && (
+          <Box mb={1}>
+            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+              Common Interests:
+            </Typography>
+            <Box display="flex" flexWrap="wrap" gap={0.5}>
+              {commonInterests.slice(0, 3).map((interest, index) => (
                 <Chip
                   key={index}
                   label={interest}
                   size="small"
-                  sx={{
-                    fontSize: '0.75rem',
-                    bgcolor: '#e3f2fd',
-                    color: '#1565c0',
-                    border: 'none',
-                    fontWeight: 500
-                  }}
-                />
-              ))}
-              {relevantInterests.length > 3 && (
-                <Chip
-                  label={`+${relevantInterests.length - 3}`}
-                  size="small"
-                  sx={{
-                    fontSize: '0.75rem',
-                    bgcolor: '#e3f2fd',
-                    color: '#1565c0'
-                  }}
-                />
-              )}
-            </Box>
-          </Box>
-        )}
-
-        {/* Looking For (Relevant to exhibitor) */}
-        {relevantLookingFor.length > 0 && (
-          <Box mb={1}>
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-              Looking for (matches your services):
-            </Typography>
-            <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {relevantLookingFor.slice(0, 2).map((item, index) => (
-                <Chip
-                  key={index}
-                  label={item}
-                  size="small"
-                  sx={{
+                  icon={<InterestPoint sx={{ fontSize: 12 }} />}
+                  sx={{ 
                     fontSize: '0.75rem',
                     bgcolor: '#e8f5e8',
                     color: '#2e7d32',
-                    border: 'none',
-                    fontWeight: 500
+                    border: 'none'
                   }}
                 />
               ))}
-              {relevantLookingFor.length > 2 && (
-                <Chip
-                  label={`+${relevantLookingFor.length - 2}`}
-                  size="small"
-                  sx={{
-                    fontSize: '0.75rem',
-                    bgcolor: '#e8f5e8',
-                    color: '#2e7d32'
-                  }}
-                />
-              )}
             </Box>
           </Box>
         )}
 
-        {/* Show interest level */}
-        <Box mb={1}>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <TrendingUp sx={{ fontSize: 12 }} />
-            Interest Level: {matchScore >= 90 ? 'Very High' : matchScore >= 80 ? 'High' : matchScore >= 70 ? 'Medium' : 'Low'}
-          </Typography>
-        </Box>
-
-        <Divider sx={{ mb: 2 }} />
-
         {/* Action Buttons */}
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box display="flex" gap={1}>
-            <IconButton size="small" sx={{ color: '#0077b5' }}>
-              <LinkedIn fontSize="small" />
-            </IconButton>
-            <IconButton size="small" sx={{ color: '#1da1f2' }}>
-              <Twitter fontSize="small" />
-            </IconButton>
-            <IconButton size="small" sx={{ color: '#757575' }}>
-              <Language fontSize="small" />
-            </IconButton>
-          </Box>
-
+        <Box display="flex" gap={1} mt={2}>
           <Button
-            variant="contained"
+            variant="outlined"
             size="small"
             startIcon={<ConnectIcon />}
-            sx={{
-              bgcolor: '#1a73e8',
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 500,
-              px: 2,
+            sx={{ 
+              flex: 1,
+              borderColor: '#4285f4',
+              color: '#4285f4',
               '&:hover': {
-                bgcolor: '#1565c0',
+                borderColor: '#1976d2',
+                backgroundColor: '#f5f9ff'
               }
             }}
           >
             Connect
           </Button>
+          <IconButton size="small" sx={{ color: '#4285f4' }}>
+            <LinkedIn />
+          </IconButton>
+          {exhibitor.customData?.website && (
+            <IconButton size="small" sx={{ color: '#4285f4' }}>
+              <Language />
+            </IconButton>
+          )}
         </Box>
       </CardContent>
     </Card>
   );
 }
 
-function ExhibitorVisitorsView() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [experienceFilter, setExperienceFilter] = useState('All Experience');
-  const [isClient, setIsClient] = useState(false);
+function ExhibitorCardSkeleton() {
+  return (
+    <Card sx={{ height: '100%', borderRadius: 3 }}>
+      <CardContent sx={{ p: 1.5 }}>
+        <Box display="flex" alignItems="flex-start" mb={2}>
+          <Skeleton variant="circular" width={52} height={52} sx={{ mr: 1 }} />
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="60%" height={24} sx={{ mb: 0.5 }} />
+            <Skeleton variant="text" width="80%" height={16} sx={{ mb: 0.5 }} />
+            <Box display="flex" gap={1}>
+              <Skeleton variant="rounded" width={60} height={20} />
+              <Skeleton variant="rounded" width={80} height={20} />
+            </Box>
+          </Box>
+        </Box>
+        <Skeleton variant="text" width="40%" height={16} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="70%" height={16} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="90%" height={32} sx={{ mb: 2 }} />
+        <Box display="flex" gap={1}>
+          <Skeleton variant="rounded" width="100%" height={32} />
+          <Skeleton variant="circular" width={32} height={32} />
+          <Skeleton variant="circular" width={32} height={32} />
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
 
-  // Add useEffect to handle client-side rendering
+function ExhibitorListView() {
+  const [isClient, setIsClient] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterIndustry, setFilterIndustry] = useState('all');
+  const [exhibitors, setExhibitors] = useState(mockExhibitors);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Get a sample exhibitor (you can make this dynamic based on URL params or login)
-  const currentExhibitor = mockExhibitors[0]; // Sample: AI Technologies Inc
-  const exhibitorCompany = currentExhibitor.company || '';
-  const exhibitorServices = currentExhibitor.customData?.products || [];
+  // Get unique industries for filter
+  const industries = Array.from(new Set(
+    mockExhibitors
+      .map(exhibitor => exhibitor.customData?.industry)
+      .filter(Boolean)
+  ));
 
-  const visitors = mockVisitors;
+  // Filter exhibitors based on search and filters
+  const filteredExhibitors = exhibitors.filter(exhibitor => {
+    const matchesSearch = 
+      exhibitor.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exhibitor.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exhibitor.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exhibitor.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // Get unique experience levels for filter
-  const uniqueExperiences = Array.from(new Set(visitors.map(v => v.customData?.experience).filter(Boolean)));
-  const experienceLevels = ['All Experience', ...uniqueExperiences];
+    const matchesStatus = filterStatus === 'all' || exhibitor.status === filterStatus;
+    const matchesIndustry = filterIndustry === 'all' || exhibitor.customData?.industry === filterIndustry;
 
-  // Filter and sort visitors by relevance to exhibitor
-  const filteredVisitors = visitors
-    .filter(visitor => {
-      const matchesSearch = searchTerm === '' ||
-        `${visitor.firstName} ${visitor.lastName} ${visitor.company} ${visitor.jobTitle}`
-          .toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch && matchesStatus && matchesIndustry;
+  });
 
-      const matchesExperience = experienceFilter === 'All Experience' ||
-        visitor.customData?.experience === experienceFilter;
-
-      return matchesSearch && matchesExperience;
-    })
-    .sort((a, b) => {
-      // Sort by relevance to exhibitor (more relevant interests first)
-      const aRelevant = (a.interests?.filter(interest =>
-        exhibitorServices.some(service => service.toLowerCase().includes(interest.toLowerCase()))
-      ).length || 0) + (a.customData?.lookingFor?.filter(lookingFor =>
-        exhibitorServices.some(service => service.toLowerCase().includes(lookingFor.toLowerCase()))
-      ).length || 0);
-
-      const bRelevant = (b.interests?.filter(interest =>
-        exhibitorServices.some(service => service.toLowerCase().includes(interest.toLowerCase()))
-      ).length || 0) + (b.customData?.lookingFor?.filter(lookingFor =>
-        exhibitorServices.some(service => service.toLowerCase().includes(lookingFor.toLowerCase()))
-      ).length || 0);
-
-      return bRelevant - aRelevant;
-    });
+  // Sample visitor interests for match calculation
+  const sampleVisitorInterests = ['AI/ML', 'Web Development', 'Cloud Computing', 'Product Strategy'];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2, height: '90vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Header - Sticky */}
-      <Box sx={{
-        position: 'sticky',
-        top: 0,
-        bgcolor: '#fafbfc',
-        pt: -3,
-        // pb: 2,
-        zIndex: 1,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-      }}>
-        
+    <Container maxWidth="xl" sx={{ py: 3 }}>
+      {/* Header */}
+      <Box mb={3}>
+        <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+          Exhibitors Directory
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Discover and connect with exhibitors showcasing innovative solutions
+        </Typography>
+      </Box>
 
-        {/* Search and Filter Bar */}
-        <Box display="flex" gap={2} mt={0} alignItems="center">
-          <TextField
-            fullWidth
-            placeholder="Search visitors by name, company, or interests..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              bgcolor: 'white',
-              borderRadius: 2,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                '& fieldset': {
-                  borderColor: '#e8eaed',
-                },
-                '&:hover fieldset': {
-                  borderColor: '#dadce0',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#1a73e8',
-                },
-              },
-            }}
-          />
-
-          <FormControl sx={{ minWidth: 200 }}>
-            <Select
-              value={experienceFilter}
-              onChange={(e) => setExperienceFilter(e.target.value)}
-              sx={{
-                bgcolor: 'white',
-                borderRadius: 2,
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#e8eaed',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#dadce0',
-                },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#1a73e8',
-                },
+      {/* Search and Filters */}
+      <Box mb={3}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              placeholder="Search exhibitors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
               }}
-            >
-              {experienceLevels.map((experience) => (
-                <MenuItem key={experience} value={experience}>
-                  {experience}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          
-        </Box>
-      </Box>
-
-      {/* Scrollable Cards List with invisible scrollbar */}
-      <Box sx={{
-        flexGrow: 1,
-        overflowY: 'auto',
-        mt: 3,
-        // Hide scrollbar for Chrome, Safari and Opera
-        '&::-webkit-scrollbar': {
-          width: 0,
-          background: 'transparent',
-        },
-        // Hide scrollbar for IE, Edge and Firefox
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-      }}>
-        <Grid container spacing={3}>
-          {filteredVisitors.map((visitor) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={visitor.id}>
-              <VisitorCard visitor={visitor} exhibitorCompany={exhibitorCompany} exhibitorServices={exhibitorServices} isClient={isClient} />
-            </Grid>
-          ))}
+              sx={{ bgcolor: 'background.paper' }}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <Select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                displayEmpty
+                sx={{ bgcolor: 'background.paper' }}
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="registered">Registered</MenuItem>
+                <MenuItem value="invited">Invited</MenuItem>
+                <MenuItem value="checked-in">Checked In</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <Select
+                value={filterIndustry}
+                onChange={(e) => setFilterIndustry(e.target.value)}
+                displayEmpty
+                sx={{ bgcolor: 'background.paper' }}
+              >
+                <MenuItem value="all">All Industries</MenuItem>
+                {industries.map((industry) => (
+                  <MenuItem key={industry} value={industry}>
+                    {industry}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Box display="flex" gap={1}>
+              <Button
+                variant="contained"
+                startIcon={<TrendingUp />}
+                sx={{ 
+                  bgcolor: '#4285f4',
+                  '&:hover': { bgcolor: '#1976d2' }
+                }}
+              >
+                View Analytics
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<GetApp />}
+                sx={{ 
+                  borderColor: '#4285f4',
+                  color: '#4285f4',
+                  '&:hover': { 
+                    borderColor: '#1976d2',
+                    backgroundColor: '#f5f9ff'
+                  }
+                }}
+              >
+                Export
+              </Button>
+            </Box>
+          </Grid>
         </Grid>
-
-        {filteredVisitors.length === 0 && (
-          <Box textAlign="center" py={8}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No visitors found
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Try adjusting your search or filter criteria
-            </Typography>
-          </Box>
-        )}
       </Box>
+
+      {/* Results Count */}
+      <Box mb={2}>
+        <Typography variant="body2" color="text.secondary">
+          Showing {filteredExhibitors.length} of {exhibitors.length} exhibitors
+        </Typography>
+      </Box>
+
+      {/* Exhibitors Grid */}
+      <Grid container spacing={3}>
+        {filteredExhibitors.map((exhibitor) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
+            <Suspense fallback={<ExhibitorCardSkeleton />}>
+              <ExhibitorCard
+                exhibitor={exhibitor}
+                visitorInterests={sampleVisitorInterests}
+                isClient={isClient}
+              />
+            </Suspense>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Empty State */}
+      {filteredExhibitors.length === 0 && (
+        <Box textAlign="center" py={8}>
+          <Business sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" mb={1}>
+            No exhibitors found
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Try adjusting your search criteria or filters
+          </Typography>
+        </Box>
+      )}
     </Container>
   );
 }
 
-// This is the main page component for exhibitors viewing interested visitors
-export default function ExhibitorVisitorsPage() {
+export default function ExhibitorListPage() {
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: '#fafbfc',
-        py: 2
-      }}
-    >
-      <Suspense
-        fallback={
-          <Container maxWidth="xl" sx={{ py: 3 }}>
-            <h1>Loading...</h1>
-          </Container>
-        }
-      >
-        <ExhibitorVisitorsView />
-      </Suspense>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
+      <ExhibitorListView />
     </Box>
   );
 } 

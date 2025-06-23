@@ -10,12 +10,6 @@ const AVAILABLE_THEMES: AvailableTheme[] = [
     preview: '#1976d2',
   },
   {
-    key: 'dark',
-    name: 'Midnight Professional',
-    description: 'Sophisticated dark theme for extended use',
-    preview: '#0f172a',
-  },
-  {
     key: 'corporate',
     name: 'Executive Gray',
     description: 'Professional corporate theme with neutral tones',
@@ -28,12 +22,6 @@ const AVAILABLE_THEMES: AvailableTheme[] = [
     preview: '#059669',
   },
   {
-    key: 'purple',
-    name: 'Royal Professional',
-    description: 'Elegant purple theme with professional styling',
-    preview: '#7c3aed',
-  },
-  {
     key: 'teal',
     name: 'Teal Professional',
     description: 'Modern teal theme with sophisticated appeal',
@@ -44,24 +32,6 @@ const AVAILABLE_THEMES: AvailableTheme[] = [
     name: 'Sunset Professional',
     description: 'Warm orange theme with energetic professional vibes',
     preview: '#ea580c',
-  },
-  {
-    key: 'indigo',
-    name: 'Indigo Professional',
-    description: 'Deep indigo theme with premium professional feel',
-    preview: '#4f46e5',
-  },
-  {
-    key: 'red',
-    name: 'Crimson Professional',
-    description: 'Bold red theme with confident professional presence',
-    preview: '#dc2626',
-  },
-  {
-    key: 'pink',
-    name: 'Rose Professional',
-    description: 'Elegant rose theme with refined professional aesthetics',
-    preview: '#e11d48',
   },
 ];
 

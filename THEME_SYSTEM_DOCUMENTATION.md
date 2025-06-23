@@ -116,17 +116,12 @@ interface EventAdminThemeSettings {
 
 ## Available Themes & Fonts
 
-### Themes (10 Professional Options)
+### Themes (5 Professional Options)
 1. **Ocean Blue** (`default`) - Professional blue theme
-2. **Midnight Professional** (`dark`) - Dark theme
-3. **Executive Gray** (`corporate`) - Corporate neutral tones
-4. **Forest Professional** (`green`) - Fresh green theme
-5. **Royal Professional** (`purple`) - Elegant purple theme
-6. **Teal Professional** (`teal`) - Modern teal theme
-7. **Sunset Professional** (`orange`) - Warm orange theme
-8. **Indigo Professional** (`indigo`) - Deep indigo theme
-9. **Crimson Professional** (`red`) - Bold red theme
-10. **Rose Professional** (`pink`) - Elegant rose theme
+2. **Executive Gray** (`corporate`) - Corporate neutral tones
+3. **Forest Professional** (`green`) - Fresh green theme
+4. **Teal Professional** (`teal`) - Modern teal theme
+5. **Sunset Professional** (`orange`) - Warm orange theme
 
 ### Fonts (7 Options)
 1. **Nunito Sans** (`nunitosans`) - Default font

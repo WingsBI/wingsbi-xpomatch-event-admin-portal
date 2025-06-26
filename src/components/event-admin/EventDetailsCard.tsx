@@ -22,7 +22,6 @@ import {
   People,
   Business,
   CalendarToday,
-  Share,
 } from '@mui/icons-material';
 import { Event } from '@/types';
 
@@ -76,10 +75,7 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
     }
   };
 
-  const handleShare = () => {
-    const eventUrl = `${window.location.origin}/event/${event.eventId}`;
-    navigator.clipboard.writeText(eventUrl);
-  };
+
 
   return (
     <>

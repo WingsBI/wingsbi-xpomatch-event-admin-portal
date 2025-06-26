@@ -72,6 +72,30 @@ export interface ExhibitorRegistrationResponse {
   };
 }
 
+export interface Exhibitor {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  companyName?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  status: 'active' | 'inactive' | 'pending';
+  registrationDate: string;
+  lastLoginDate?: string;
+}
+
+export interface ExhibitorsListResponse {
+  version: string | null;
+  statusCode: number;
+  message: string | null;
+  isError: boolean | null;
+  responseException: any;
+  result: Exhibitor[];
+}
+
 class FieldMappingApiService {
   private baseURL: string;
 
@@ -489,6 +513,57 @@ class FieldMappingApiService {
           newlyRegisteredEmails: [],
           alreadyRegisteredEmails: []
         }
+      };
+    }
+  }
+
+  /**
+   * Get all exhibitors
+   */
+  async getAllExhibitors(identifier: string): Promise<ExhibitorsListResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/getAllExhibitor`;
+      
+      console.log('Calling get all exhibitors API:', {
+        url: apiUrl,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Get all exhibitors response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Get all exhibitors response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to fetch exhibitors`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching exhibitors:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
       };
     }
   }

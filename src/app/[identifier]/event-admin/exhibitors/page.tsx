@@ -48,7 +48,7 @@ export default function ExhibitorsPage() {
           }}
         >
           <iframe
-            src="/iframe/exhibitors"
+            src={`/iframe/exhibitors?identifier=${identifier}`}
             style={{
               width: '100%',
               height: '100%',

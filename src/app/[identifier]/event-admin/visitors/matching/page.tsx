@@ -22,8 +22,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
+  Menu,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
-import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person } from '@mui/icons-material';
+import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person, Settings, Palette } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
@@ -62,6 +66,8 @@ export default function VisitorsMatchingPage() {
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fileStorageId, setFileStorageId] = useState<number | null>(null);
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
+  const settingsOpen = Boolean(settingsAnchorEl);
   
   // Display all mappings evenly distributed
 
@@ -128,6 +134,12 @@ export default function VisitorsMatchingPage() {
       
       // Check if user is authenticated
       const token = localStorage.getItem('jwtToken');
+      console.log('JWT Token check:', {
+        hasToken: !!token,
+        tokenLength: token?.length,
+        tokenStart: token?.substring(0, 20) + '...'
+      });
+      
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }
@@ -146,7 +158,15 @@ export default function VisitorsMatchingPage() {
       
       // Handle authentication errors specifically
       if (suggestResponse.statusCode === 401 || standardFieldsResponse.statusCode === 401) {
-        throw new Error('Authentication failed. Your session may have expired. Please log in again.');
+        console.error('401 Authentication Error Details:', {
+          suggestResponse: suggestResponse.statusCode === 401 ? suggestResponse : 'OK',
+          standardFieldsResponse: standardFieldsResponse.statusCode === 401 ? standardFieldsResponse : 'OK',
+          currentToken: localStorage.getItem('jwtToken')?.substring(0, 20) + '...'
+        });
+        
+        // Clear invalid token
+        localStorage.removeItem('jwtToken');
+        throw new Error('Authentication failed. Your session has expired. Please log in again.');
       }
       
       // Check if both APIs returned successful responses
@@ -261,6 +281,14 @@ export default function VisitorsMatchingPage() {
     setSelectedMappings(defaultMappings);
   };
 
+  const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
+    setSettingsAnchorEl(event.currentTarget);
+  };
+
+  const handleSettingsClose = () => {
+    setSettingsAnchorEl(null);
+  };
+
   // Pagination settings
   const itemsPerPage = 9; // Show 9 mappings per page for better visibility and no scroll
   const totalPages = Math.ceil(fieldMappings.length / itemsPerPage);
@@ -318,7 +346,13 @@ export default function VisitorsMatchingPage() {
               </Box>
               
               <Box display="flex" gap={2} alignItems="center">
-                <SimpleThemeSelector />
+                <IconButton
+                  onClick={handleSettingsClick}
+                  size="small"
+                  aria-label="settings"
+                >
+                  <Settings />
+                </IconButton>
                 <Button
                   variant="contained"
                   startIcon={<Upload />}
@@ -450,7 +484,13 @@ export default function VisitorsMatchingPage() {
             </Box>
             
             <Box display="flex" gap={1} alignItems="center">
-              <SimpleThemeSelector />
+              <IconButton
+                onClick={handleSettingsClick}
+                size="small"
+                aria-label="settings"
+              >
+                <Settings />
+              </IconButton>
               <Button
                 variant="outlined"
                 startIcon={<Upload />}
@@ -856,6 +896,54 @@ export default function VisitorsMatchingPage() {
             </DialogActions>
           </Dialog>
           
+          {/* Settings Menu */}
+          <Menu
+            anchorEl={settingsAnchorEl}
+            open={settingsOpen}
+            onClose={handleSettingsClose}
+            onClick={handleSettingsClose}
+            PaperProps={{
+              elevation: 0,
+              sx: {
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                mt: 1.5,
+                '& .MuiAvatar-root': {
+                  width: 32,
+                  height: 32,
+                  ml: -0.5,
+                  mr: 1,
+                },
+                '&:before': {
+                  content: '""',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  right: 14,
+                  width: 10,
+                  height: 10,
+                  bgcolor: 'background.paper',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  zIndex: 0,
+                },
+              },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <Box sx={{ p: 2, minWidth: 200 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <ListItemIcon sx={{ minWidth: 'auto' }}>
+                  <Palette fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Theme" />
+              </Box>
+              <Box sx={{ pl: 4 }}>
+                <SimpleThemeSelector variant="icon" showLabel={false} />
+              </Box>
+            </Box>
+          </Menu>
+
           {/* Add CSS animations */}
           <style jsx global>{`
             @keyframes pulse {

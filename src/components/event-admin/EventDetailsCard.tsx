@@ -22,7 +22,6 @@ import {
   People,
   Business,
   CalendarToday,
-  Share,
 } from '@mui/icons-material';
 import { Event } from '@/types';
 
@@ -76,10 +75,7 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
     }
   };
 
-  const handleShare = () => {
-    const eventUrl = `${window.location.origin}/event/${event.eventId}`;
-    navigator.clipboard.writeText(eventUrl);
-  };
+
 
   return (
     <>
@@ -111,13 +107,6 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
               </Box>
             </Box>
             <Box display="flex" gap={1}>
-              <Button
-                variant="outlined"
-                startIcon={<Share />}
-                onClick={handleShare}
-              >
-                Share
-              </Button>
               <Button
                 variant="contained"
                 startIcon={<Edit />}

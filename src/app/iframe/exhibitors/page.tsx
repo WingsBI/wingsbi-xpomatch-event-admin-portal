@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 
 import { mockVisitors, mockExhibitors } from '@/lib/mockData';
+import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
 
 interface ExhibitorCardProps {
   exhibitor: {
@@ -338,10 +339,86 @@ function ExhibitorListView() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterIndustry, setFilterIndustry] = useState('all');
   const [exhibitors, setExhibitors] = useState(mockExhibitors);
+  const [realExhibitors, setRealExhibitors] = useState<Exhibitor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
+    loadExhibitors();
   }, []);
+
+  const loadExhibitors = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Try to get identifier from URL params or use a default
+      const params = new URLSearchParams(window.location.search);
+      const identifier = params.get('identifier') || 'DEMO2024'; // fallback to a default
+
+      console.log('Loading exhibitors for identifier:', identifier);
+
+      const response = await fieldMappingApi.getAllExhibitors(identifier);
+      
+      if (response.statusCode === 200 && response.result.length > 0) {
+        console.log('Real exhibitors loaded:', response.result);
+        
+        // Convert real API data to the format expected by the UI
+        const convertedExhibitors = response.result.map((exhibitor, index) => ({
+          id: exhibitor.id.toString(),
+          firstName: exhibitor.firstName,
+          lastName: exhibitor.lastName,
+          email: exhibitor.email,
+          company: exhibitor.companyName || '',
+          jobTitle: 'Exhibitor',
+          phone: exhibitor.phoneNumber || '',
+          country: exhibitor.country || '',
+          status: 'registered',
+          interests: ['AI/ML', 'Cloud Computing', 'Digital Innovation', 'Business Strategy'][Math.floor(Math.random() * 4)] ? ['AI/ML', 'Cloud Computing', 'Digital Innovation'] : ['Business Strategy', 'Product Development'],
+          type: 'exhibitor' as const,
+          eventId: 'default',
+          registrationDate: new Date(exhibitor.registrationDate),
+          invitationSent: true,
+          invitationDate: new Date(),
+          checkedIn: false,
+          lastActivity: new Date(),
+          createdAt: new Date(exhibitor.registrationDate),
+          updatedAt: new Date(),
+          customData: {
+            location: [exhibitor.city, exhibitor.country].filter(Boolean).join(', '),
+            avatar: '',
+            experience: '5+ years in the industry',
+            matchScore: Math.floor(Math.random() * 20) + 80, // 80-99%
+            industry: ['Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail'][index % 5],
+            lookingFor: ['Partnerships', 'Investment', 'Customers'],
+            // companyDescription: exhibitor.companyName ? `${exhibitor.companyName} specializing in innovative solutions and cutting-edge technology. We help businesses transform and grow through our comprehensive service offerings.` : 'Specializing in innovative solutions and cutting-edge technology. We help businesses transform and grow through our comprehensive service offerings.',
+            products: [
+              'Enterprise Solutions',
+              'Cloud Services', 
+              'Digital Transformation',
+              'Consulting Services'
+            ],
+            boothNumber: `${String.fromCharCode(65 + (index % 10))}${index + 1}`,
+            boothSize: ['Standard', 'Premium', 'Large'][index % 3],
+            website: exhibitor.companyName ? `https://${exhibitor.companyName.toLowerCase().replace(/\s+/g, '')}.com` : '',
+          }
+        }));
+
+        setExhibitors(convertedExhibitors as any);
+        setRealExhibitors(response.result);
+      } else {
+        console.log('No real exhibitors found, using mock data');
+        // Keep using mock data if no real data available
+      }
+    } catch (err) {
+      console.error('Error loading exhibitors:', err);
+      setError('Failed to load exhibitors');
+      // Keep using mock data on error
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get unique industries for filter
   const industries = Array.from(new Set(
@@ -464,9 +541,24 @@ function ExhibitorListView() {
       {/* Results Count */}
       <Box mb={2}>
         <Typography variant="body2" color="text.secondary">
-          Showing {filteredExhibitors.length} of {exhibitors.length} exhibitors
+          {loading ? 'Loading exhibitors...' : `Showing ${filteredExhibitors.length} of ${exhibitors.length} exhibitors`}
+          {realExhibitors.length > 0 && ' (Live Data)'}
         </Typography>
       </Box>
+
+      {/* Error Alert */}
+      {error && (
+        <Box mb={2}>
+          <Typography variant="body2" color="error.main" sx={{ 
+            bgcolor: 'error.light', 
+            p: 1, 
+            borderRadius: 1,
+            opacity: 0.1 
+          }}>
+            {error} - Showing demo data instead
+          </Typography>
+        </Box>
+      )}
 
       {/* Exhibitors Grid */}
       <Grid container spacing={3}>

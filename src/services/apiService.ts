@@ -270,6 +270,66 @@ class ApiService {
       throw error;
     }
   }
+
+  // Visitors API methods
+  async getAllVisitors(identifier: string, isIframe: boolean = false): Promise<ApiResponse<any>> {
+    try {
+      // Get token from Redux store or localStorage for authentication
+      let token = null;
+      
+      if (isIframe) {
+        // For iframe context, try to get token from localStorage
+        try {
+          token = localStorage.getItem('jwtToken');
+          console.log('Got token from localStorage (iframe context):', !!token);
+        } catch (e) {
+          console.log('Could not access localStorage in iframe context');
+        }
+      } else {
+        // For normal context, get from Redux store
+        const state = store.getState();
+        token = state.auth?.token;
+        console.log('Got token from Redux store:', !!token);
+      }
+      
+      // Use the Azure API base URL for external API calls
+      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const url = `${azureApiUrl}/api/${identifier}/RegisterUsers/getAllVisitors`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+              // Add auth token if available
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      
+      console.log('Making API call to:', url);
+      console.log('Is iframe context:', isIframe);
+      console.log('Has token:', !!token);
+      console.log('With headers:', headers);
+      
+      const response = await axios.get(url, {
+        timeout: 30000,
+        headers,
+      });
+      
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('API Error details:', error);
+      // If 401 and we're in iframe context, try a different approach
+      if ((error as any).response?.status === 401 && isIframe) {
+        console.log('401 in iframe context - this might be expected, check if API requires auth for iframes');
+      }
+      throw error;
+    }
+  }
 }
 
 // Create singleton instance

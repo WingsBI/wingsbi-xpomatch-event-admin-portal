@@ -163,4 +163,50 @@ export interface EventAdminThemeSettings {
   isThemeAssigned: boolean;
   themeConfig?: ThemeConfig;
   canChangeTheme: boolean; // Will be true for Event Admin
+}
+
+// API Visitor types
+export interface ApiVisitorData {
+  id: number;
+  salutation: string;
+  firstName: string;
+  mIddleName: string;
+  lastName: string;
+  email: string;
+  gender: string;
+  dateOfBirth: string | null;
+  roleId: number;
+  userStatusId: number;
+}
+
+export interface VisitorsApiResponse {
+  version: string | null;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: any | null;
+  result: ApiVisitorData[];
+}
+
+// Transformed visitor for the UI
+export interface TransformedVisitor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  company?: string;
+  jobTitle?: string;
+  country?: string;
+  status: string;
+  interests?: string[];
+  type: 'visitor' | 'exhibitor';
+  customData?: {
+    location?: string;
+    experience?: string;
+    matchScore?: number;
+    industry?: string;
+    lookingFor?: string[];
+    salutation?: string;
+    middleName?: string;
+  };
 } 

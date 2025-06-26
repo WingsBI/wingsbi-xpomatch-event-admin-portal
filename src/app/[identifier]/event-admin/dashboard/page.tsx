@@ -25,7 +25,6 @@ import {
 import { Event, Participant, DashboardStats } from '@/types';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
-import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
@@ -252,7 +251,7 @@ export default function EventAdminDashboard() {
       <Box
         component="main"
         sx={{
-          p: 3,
+          p: 2,
         }}
       >
           <Container maxWidth="xl">
@@ -266,7 +265,6 @@ export default function EventAdminDashboard() {
                   Manage your event and track participant engagement
                 </Typography>
               </Box>
-              <SimpleThemeSelector />
             </Box>
 
             {/* Event Details */}

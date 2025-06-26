@@ -1,11 +1,12 @@
 'use client';
 
-import React, { ReactNode, useEffect, useState, useCallback } from 'react';
+import React, { ReactNode, useEffect, useState, useCallback, Profiler } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
 import { useInView } from 'react-intersection-observer';
+import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 import {
   Box,
   AppBar,
@@ -57,6 +58,7 @@ import {
   Brightness7,
   Fullscreen,
   FullscreenExit,
+  Palette,
 } from '@mui/icons-material';
 import { RootState, AppDispatch } from '@/store';
 import {
@@ -94,7 +96,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
   ] : [
     // Default for event-admin role - full navigation
     { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
-    { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
+    
     {
       text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [
         { text: 'Visitors List', href: `/${identifier}/event-admin/visitors` },
@@ -107,7 +109,12 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'Exhibitors Matching', href: `/${identifier}/event-admin/exhibitors/matching` },
       ]
     },
-    { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [] },
+    { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [
+      { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
+      { text: 'Profile Settings', icon: <Settings />, href: `/${identifier}/event-admin/admins`, children: [] },
+      { text: 'Theme Settings', icon: <Palette />, href: '#', children: [] },
+    ] },
+
   ];
 
   // Simplify navigation for mobile devices
@@ -339,6 +346,21 @@ export default function ResponsiveDashboardLayout({
     dispatch(removeNotification(notificationId));
   };
 
+  const handleThemeDialogOpen = () => {
+    // Close sidebar on mobile
+    if (isMobile) {
+      dispatch(setSidebarOpen(false));
+    }
+    
+    // Find and click the hidden theme selector button
+    setTimeout(() => {
+      const themeButton = document.querySelector('[data-theme-selector-button] button') as HTMLButtonElement;
+      if (themeButton) {
+        themeButton.click();
+      }
+    }, 100);
+  };
+
   const renderNavigationItem = (item: any, level = 0) => (
     <motion.div
       key={item.text}
@@ -349,7 +371,15 @@ export default function ResponsiveDashboardLayout({
       <ListItem disablePadding sx={{ mb: 0.5, pl: level * 2 }}>
         <ListItemButton
           onClick={() => {
-            if (item.children && item.children.length > 0) {
+            // If sidebar is collapsed and this is a top-level item, expand sidebar first
+            if (ui.sidebarCollapsed && level === 0 && !isMobile) {
+              dispatch(toggleSidebar());
+              return;
+            }
+            
+            if (item.text === 'Theme Settings') {
+              handleThemeDialogOpen();
+            } else if (item.children && item.children.length > 0) {
               handleExpandClick(item.text);
             } else {
               router.push(item.href);
@@ -466,15 +496,14 @@ export default function ResponsiveDashboardLayout({
           <Box sx={{
             width: {
               xs: 'auto',
-              md: forceHideSidebar ? '0px' : ui.sidebarCollapsed ? '72px' : `${drawerWidth}px`
+              md: forceHideSidebar ? '0px' : ui.sidebarCollapsed ? '0px' : `${drawerWidth}px`
             },
             display: {
               xs: 'flex',
-              md: forceHideSidebar ? 'none' : 'flex'
+              md: forceHideSidebar ? 'none' : ui.sidebarCollapsed ? 'none' : 'flex'
             },
             alignItems: 'center',
             px: { xs: 2, md: ui.sidebarCollapsed ? 1 : 3 },
-            borderRight: { md: forceHideSidebar ? 'none' : '1px solid rgba(255,255,255,0.1)' },
             minHeight: '64px',
             transition: theme.transitions.create(['width', 'padding'], {
               easing: theme.transitions.easing.sharp,
@@ -499,7 +528,7 @@ export default function ResponsiveDashboardLayout({
 
             {/* Desktop Brand */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' }}>
-              {!ui.sidebarCollapsed ? (
+              {!ui.sidebarCollapsed && (
                 <Box>
                   <Typography variant="h6" fontWeight="bold" noWrap sx={{ color: 'white' }}>
                     {isMobile ? 'AI Match' : 'AI Matchmaking'}
@@ -511,10 +540,6 @@ export default function ResponsiveDashboardLayout({
                           'Event Administrator'}
                   </Typography>
                 </Box>
-              ) : (
-                <Avatar sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.2)' }}>
-                  {user?.name?.[0] || 'U'}
-                </Avatar>
               )}
             </Box>
 
@@ -537,7 +562,14 @@ export default function ResponsiveDashboardLayout({
             flexGrow: 1,
             display: 'flex',
             alignItems: 'center',
-            px: { xs: 1, md: 3 },
+            px: { 
+              xs: 1, 
+              md: ui.sidebarCollapsed ? 4 : 3 
+            },
+            pl: { 
+              xs: 1, 
+              md: ui.sidebarCollapsed ? 13 : 3
+            },
             minWidth: 0, // Allow content to shrink
             overflow: 'hidden' // Prevent overflow
           }}>
@@ -636,13 +668,13 @@ export default function ResponsiveDashboardLayout({
               sx: { mt: 1, minWidth: 200 },
             }}
           >
-            <MenuItem>
+            {/* <MenuItem>
               <ListItemIcon>
                 <Settings fontSize="small" />
               </ListItemIcon>
               Profile Settings
             </MenuItem>
-            <Divider />
+            <Divider /> */}
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <Logout fontSize="small" />
@@ -780,6 +812,13 @@ export default function ResponsiveDashboardLayout({
           </Alert>
         </Snackbar>
       ))}
+
+      {/* Hidden Theme Selector for programmatic access */}
+      <Box sx={{ position: 'absolute', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}>
+        <div data-theme-selector-button>
+          <SimpleThemeSelector variant="button" showLabel={false} />
+        </div>
+      </Box>
     </Box>
   );
 } 

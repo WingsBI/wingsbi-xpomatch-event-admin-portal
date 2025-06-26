@@ -107,6 +107,13 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
               </Box>
             </Box>
             <Box display="flex" gap={1}>
+              {/* <Button
+                variant="outlined"
+                startIcon={<Share />}
+                onClick={handleShare}
+              >
+                Share
+              </Button> */}
               <Button
                 variant="contained"
                 startIcon={<Edit />}

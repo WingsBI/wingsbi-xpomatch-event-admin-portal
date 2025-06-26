@@ -18,7 +18,9 @@ import {
   MenuItem,
   Button,
   IconButton,
-  Divider
+  Divider,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { 
   Business, 
@@ -36,32 +38,40 @@ import {
   Person
 } from '@mui/icons-material';
 
-import { mockVisitors, mockExhibitors } from '@/lib/mockData';
+import { apiService } from '@/services/apiService';
+import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types';
 
 interface VisitorCardProps {
-  visitor: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    company?: string;
-    jobTitle?: string;
-    country?: string;
-    status: string;
-    interests?: string[];
-    type: 'visitor' | 'exhibitor';
-    customData?: {
-      location?: string;
-      experience?: string;
-      matchScore?: number;
-      industry?: string;
-      lookingFor?: string[];
-    };
-  };
+  visitor: TransformedVisitor;
   exhibitorCompany: string;
   exhibitorServices: string[];
   isClient: boolean;
 }
+
+// Transform API visitor data to UI format
+const transformVisitorData = (apiVisitor: ApiVisitorData): TransformedVisitor => {
+  return {
+    id: apiVisitor.id.toString(),
+    firstName: apiVisitor.firstName,
+    lastName: apiVisitor.lastName,
+    email: apiVisitor.email,
+    company: 'Unknown Company', // Default since API doesn't provide company
+    jobTitle: 'Professional', // Default since API doesn't provide job title
+    country: 'Unknown', // Default since API doesn't provide country
+    status: apiVisitor.userStatusId === 1 ? 'registered' : 'invited',
+    interests: [], // Default empty array since API doesn't provide interests
+    type: 'visitor',
+    customData: {
+      salutation: apiVisitor.salutation,
+      middleName: apiVisitor.mIddleName,
+      location: 'Unknown Location',
+      experience: '1-3 years', // Default experience
+      matchScore: 0,
+      industry: 'Technology',
+      lookingFor: ['Networking', 'Business Solutions'],
+    },
+  };
+};
 
 function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }: VisitorCardProps) {
   const getInitials = (firstName: string, lastName: string) => {
@@ -139,7 +149,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
             </Avatar>
             <Box>
               <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
-                {visitor.firstName} {visitor.lastName}
+                {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                 {visitor.jobTitle}
@@ -357,15 +367,42 @@ function VisitorListView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterExperience, setFilterExperience] = useState('all');
-  const [visitors, setVisitors] = useState(mockVisitors);
+  const [visitors, setVisitors] = useState<TransformedVisitor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
+    fetchVisitors();
   }, []);
+
+  const fetchVisitors = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Get identifier from URL path (e.g., /iframe/visitors would be accessed via /AIFF2026/iframe/visitors)
+      const pathParts = window.location.pathname.split('/');
+      const identifier = pathParts.find(part => part.startsWith('AIFF')) || 'AIFF2026';
+      console.log('Using identifier:', identifier);
+      const response = await apiService.getAllVisitors(identifier, true);
+      
+      if (response.success && response.data?.result) {
+        const transformedVisitors = response.data.result.map(transformVisitorData);
+        setVisitors(transformedVisitors);
+      } else {
+        setError('Failed to fetch visitors data');
+      }
+    } catch (err: any) {
+      console.error('Error fetching visitors:', err);
+      setError(err.message || 'Failed to fetch visitors data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get unique experience levels for filter
   const experiences = Array.from(new Set(
-    mockVisitors
+    visitors
       .map(visitor => visitor.customData?.experience)
       .filter(Boolean)
   ));
@@ -482,31 +519,60 @@ function VisitorListView() {
         </Grid>
       </Box>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={fetchVisitors}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <Box display="flex" justifyContent="center" alignItems="center" py={8}>
+          <CircularProgress size={48} />
+          <Typography variant="body1" sx={{ ml: 2 }}>
+            Loading visitors...
+          </Typography>
+        </Box>
+      )}
+
       {/* Results Count */}
-      <Box mb={2}>
-        <Typography variant="body2" color="text.secondary">
-          Showing {filteredVisitors.length} of {visitors.length} visitors
-        </Typography>
-      </Box>
+      {!loading && !error && (
+        <Box mb={2}>
+          <Typography variant="body2" color="text.secondary">
+            Showing {filteredVisitors.length} of {visitors.length} visitors
+          </Typography>
+        </Box>
+      )}
 
       {/* Visitors Grid */}
-      <Grid container spacing={3}>
-        {filteredVisitors.map((visitor) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={visitor.id}>
-            <Suspense fallback={<VisitorCardSkeleton />}>
-              <VisitorCard
-                visitor={visitor}
-                exhibitorCompany={sampleExhibitorCompany}
-                exhibitorServices={sampleExhibitorServices}
-                isClient={isClient}
-              />
-            </Suspense>
-          </Grid>
-        ))}
-      </Grid>
+      {!loading && !error && (
+        <Grid container spacing={3}>
+          {filteredVisitors.map((visitor) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={visitor.id}>
+              <Suspense fallback={<VisitorCardSkeleton />}>
+                <VisitorCard
+                  visitor={visitor}
+                  exhibitorCompany={sampleExhibitorCompany}
+                  exhibitorServices={sampleExhibitorServices}
+                  isClient={isClient}
+                />
+              </Suspense>
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
       {/* Empty State */}
-      {filteredVisitors.length === 0 && (
+      {!loading && !error && filteredVisitors.length === 0 && visitors.length > 0 && (
         <Box textAlign="center" py={8}>
           <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" mb={1}>
@@ -514,6 +580,19 @@ function VisitorListView() {
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Try adjusting your search criteria or filters
+          </Typography>
+        </Box>
+      )}
+
+      {/* No Data State */}
+      {!loading && !error && visitors.length === 0 && (
+        <Box textAlign="center" py={8}>
+          <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" mb={1}>
+            No visitors uploaded yet
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Upload visitor data to see them here
           </Typography>
         </Box>
       )}

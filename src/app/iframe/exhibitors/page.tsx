@@ -155,12 +155,13 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
                 )}
                 {commonInterests.length > 0 && (
                   <Chip
-                    label={`${commonInterests.length} Common Interests`}
+                    label={`${commonInterests.length} Match`}
                     size="small"
                     sx={{ 
                       bgcolor: '#e8f5e8',
                       color: '#2e7d32',
-                      fontWeight: 500
+                      fontWeight: 500,
+                      fontSize: '0.7rem'
                     }}
                   />
                 )}

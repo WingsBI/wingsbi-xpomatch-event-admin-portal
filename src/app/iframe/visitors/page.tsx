@@ -380,10 +380,40 @@ function VisitorListView() {
     try {
       setLoading(true);
       setError(null);
-      // Get identifier from URL path (e.g., /iframe/visitors would be accessed via /AIFF2026/iframe/visitors)
-      const pathParts = window.location.pathname.split('/');
-      const identifier = pathParts.find(part => part.startsWith('AIFF')) || 'AIFF2026';
-      console.log('Using identifier:', identifier);
+      
+      // Extract identifier from URL path only - no static fallbacks
+      let identifier: string | null = null;
+      
+      // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/visitors)
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      console.log('URL path parts:', pathParts);
+      
+      // Look for identifier in URL path - it should be the first segment
+      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+        identifier = pathParts[0];
+        console.log('Found identifier in URL path:', identifier);
+      } else {
+        // Method 2: Try to get from parent window if iframe is embedded
+        try {
+          if (window.parent && window.parent !== window) {
+            const parentUrl = window.parent.location.pathname;
+            const parentParts = parentUrl.split('/').filter(Boolean);
+            if (parentParts.length > 0) {
+              identifier = parentParts[0];
+              console.log('Found identifier from parent window:', identifier);
+            }
+          }
+        } catch (e) {
+          console.log('Cannot access parent window URL (cross-origin)');
+        }
+      }
+      
+      // If no identifier found, throw error
+      if (!identifier) {
+        throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/visitors)');
+      }
+      
+      console.log('Using identifier for API call:', identifier);
       const response = await apiService.getAllVisitors(identifier, true);
       
       if (response.success && response.data?.result) {

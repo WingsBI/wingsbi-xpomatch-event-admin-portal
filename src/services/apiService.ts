@@ -43,8 +43,24 @@ class ApiService {
     this.axiosInstance.interceptors.request.use(
       (config) => {
         const state = store.getState();
-        const identifier = state.app?.identifier || 'default';
+        let identifier = state.app?.identifier;
         const token = state.auth?.token;
+
+        // If no identifier in Redux, extract from current URL path
+        if (!identifier) {
+          if (typeof window !== 'undefined') {
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            if (pathParts.length > 0 && pathParts[0] !== 'api') {
+              identifier = pathParts[0];
+              console.log('Using identifier from URL path:', identifier);
+            }
+          }
+        }
+
+        // Throw error if no identifier found
+        if (!identifier) {
+          throw new Error('No event identifier found. Please access through a valid event URL.');
+        }
 
         console.log('API Request:', {
           url: config.url,

@@ -33,9 +33,9 @@ export const extractIdentifierFromURL = (): string => {
     const path = window.location.pathname;
     const segments = path.split('/').filter(Boolean);
     // Extract the first segment as identifier (e.g., AI2025 from /AI2025/dashboard)
-    return segments[0] || 'default';
+    return segments[0] || '';
   }
-  return 'default';
+  return '';
 };
 
 const persistConfig = {

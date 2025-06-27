@@ -37,7 +37,6 @@ import {
   GetApp
 } from '@mui/icons-material';
 
-import { mockVisitors, mockExhibitors } from '@/lib/mockData';
 import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
 
 interface ExhibitorCardProps {
@@ -339,7 +338,7 @@ function ExhibitorListView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterIndustry, setFilterIndustry] = useState('all');
-  const [exhibitors, setExhibitors] = useState(mockExhibitors);
+  const [exhibitors, setExhibitors] = useState<any[]>([]);
   const [realExhibitors, setRealExhibitors] = useState<Exhibitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -354,9 +353,37 @@ function ExhibitorListView() {
       setLoading(true);
       setError(null);
 
-      // Try to get identifier from URL params or use a default
-      const params = new URLSearchParams(window.location.search);
-      const identifier = params.get('identifier') || 'DEMO2024'; // fallback to a default
+      // Extract identifier from URL path only - no static fallbacks
+      let identifier: string | null = null;
+      
+      // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/exhibitors)
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      console.log('URL path parts:', pathParts);
+      
+      // Look for identifier in URL path - it should be the first segment
+      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+        identifier = pathParts[0];
+        console.log('Found identifier in URL path:', identifier);
+      } else {
+        // Method 2: Try to get from parent window if iframe is embedded
+        try {
+          if (window.parent && window.parent !== window) {
+            const parentUrl = window.parent.location.pathname;
+            const parentParts = parentUrl.split('/').filter(Boolean);
+            if (parentParts.length > 0) {
+              identifier = parentParts[0];
+              console.log('Found identifier from parent window:', identifier);
+            }
+          }
+        } catch (e) {
+          console.log('Cannot access parent window URL (cross-origin)');
+        }
+      }
+      
+      // If no identifier found, throw error
+      if (!identifier) {
+        throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/exhibitors)');
+      }
 
       console.log('Loading exhibitors for identifier:', identifier);
 
@@ -378,7 +405,7 @@ function ExhibitorListView() {
           status: 'registered',
           interests: ['AI/ML', 'Cloud Computing', 'Digital Innovation', 'Business Strategy'][Math.floor(Math.random() * 4)] ? ['AI/ML', 'Cloud Computing', 'Digital Innovation'] : ['Business Strategy', 'Product Development'],
           type: 'exhibitor' as const,
-          eventId: 'default',
+          eventId: identifier,
           registrationDate: new Date(exhibitor.registrationDate),
           invitationSent: true,
           invitationDate: new Date(),
@@ -393,7 +420,6 @@ function ExhibitorListView() {
             matchScore: Math.floor(Math.random() * 20) + 80, // 80-99%
             industry: ['Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail'][index % 5],
             lookingFor: ['Partnerships', 'Investment', 'Customers'],
-            // companyDescription: exhibitor.companyName ? `${exhibitor.companyName} specializing in innovative solutions and cutting-edge technology. We help businesses transform and grow through our comprehensive service offerings.` : 'Specializing in innovative solutions and cutting-edge technology. We help businesses transform and grow through our comprehensive service offerings.',
             products: [
               'Enterprise Solutions',
               'Cloud Services', 
@@ -406,24 +432,25 @@ function ExhibitorListView() {
           }
         }));
 
-        setExhibitors(convertedExhibitors as any);
+        setExhibitors(convertedExhibitors);
         setRealExhibitors(response.result);
       } else {
-        console.log('No real exhibitors found, using mock data');
-        // Keep using mock data if no real data available
+        console.log('No exhibitors found for this event');
+        setExhibitors([]);
+        setError('No exhibitors found for this event');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading exhibitors:', err);
-      setError('Failed to load exhibitors');
-      // Keep using mock data on error
+      setError(err.message || 'Failed to load exhibitors');
+      setExhibitors([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get unique industries for filter
+  // Get unique industries for filter from current exhibitors
   const industries = Array.from(new Set(
-    mockExhibitors
+    exhibitors
       .map(exhibitor => exhibitor.customData?.industry)
       .filter(Boolean)
   ));
@@ -547,37 +574,60 @@ function ExhibitorListView() {
         </Typography>
       </Box>
 
+      {/* Loading State */}
+      {loading && (
+        <Box display="flex" justifyContent="center" alignItems="center" py={8}>
+          <Typography variant="body1" sx={{ ml: 2 }}>
+            Loading exhibitors...
+          </Typography>
+        </Box>
+      )}
+
       {/* Error Alert */}
-      {error && (
-        <Box mb={2}>
-          <Typography variant="body2" color="error.main" sx={{ 
-            bgcolor: 'error.light', 
-            p: 1, 
-            borderRadius: 1,
-            opacity: 0.1 
-          }}>
-            {error} - Showing demo data instead
+      {error && !loading && (
+        <Box mb={2} textAlign="center" py={8}>
+          <Business sx={{ fontSize: 64, color:"Grey", mb: 2 }} />
+          <Typography variant="h6" sx={{color:"Grey"}} mb={1}>
+            {error}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please check your connection or try again later
           </Typography>
         </Box>
       )}
 
       {/* Exhibitors Grid */}
-      <Grid container spacing={3}>
-        {filteredExhibitors.map((exhibitor) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
-            <Suspense fallback={<ExhibitorCardSkeleton />}>
-              <ExhibitorCard
-                exhibitor={exhibitor}
-                visitorInterests={sampleVisitorInterests}
-                isClient={isClient}
-              />
-            </Suspense>
-          </Grid>
-        ))}
-      </Grid>
+      {!loading && !error && (
+        <Grid container spacing={3}>
+          {filteredExhibitors.map((exhibitor) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
+              <Suspense fallback={<ExhibitorCardSkeleton />}>
+                <ExhibitorCard
+                  exhibitor={exhibitor}
+                  visitorInterests={sampleVisitorInterests}
+                  isClient={isClient}
+                />
+              </Suspense>
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
       {/* Empty State */}
-      {filteredExhibitors.length === 0 && (
+      {!loading && !error && filteredExhibitors.length === 0 && exhibitors.length === 0 && (
+        <Box textAlign="center" py={8}>
+          <Business sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" mb={1}>
+            No exhibitors available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            No exhibitors have been registered for this event yet
+          </Typography>
+        </Box>
+      )}
+
+      {/* No Search Results */}
+      {!loading && !error && filteredExhibitors.length === 0 && exhibitors.length > 0 && (
         <Box textAlign="center" py={8}>
           <Business sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" mb={1}>

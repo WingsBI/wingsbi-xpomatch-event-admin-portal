@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authApi, LoginCredentials } from '@/services/authApi';
+import { setIdentifier } from './appSlice';
 
 export interface User {
   id: string;
@@ -34,7 +35,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3
 // Async thunks for authentication using the dedicated auth API service
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
-  async (credentials: LoginCredentials, { rejectWithValue }) => {
+  async (credentials: LoginCredentials, { rejectWithValue, dispatch }) => {
     try {
       const response = await authApi.login(credentials);
       
@@ -54,6 +55,15 @@ export const loginUser = createAsyncThunk(
         localStorage.setItem('refreshToken', response.data.refreshToken);
       }
       
+      // Store the identifier for iframe components to use
+      if (credentials.identifier) {
+        localStorage.setItem('currentEventIdentifier', credentials.identifier);
+        sessionStorage.setItem('currentEventIdentifier', credentials.identifier);
+        
+        // Update the Redux store identifier
+        dispatch(setIdentifier(credentials.identifier));
+      }
+      
       return response.data;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Login failed');
@@ -71,6 +81,10 @@ export const logoutUser = createAsyncThunk(
       localStorage.removeItem('jwtToken');
       localStorage.removeItem('refreshToken');
       
+      // Clear stored identifier
+      localStorage.removeItem('currentEventIdentifier');
+      sessionStorage.removeItem('currentEventIdentifier');
+      
       return success;
     } catch (error) {
       console.error('Logout error:', error);
@@ -78,6 +92,8 @@ export const logoutUser = createAsyncThunk(
       // Still clear tokens even if logout API fails
       localStorage.removeItem('jwtToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('currentEventIdentifier');
+      sessionStorage.removeItem('currentEventIdentifier');
       
       return false;
     }

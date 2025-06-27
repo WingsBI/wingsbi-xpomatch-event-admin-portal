@@ -43,7 +43,7 @@ const getDeviceType = (width: number): DeviceType => {
 };
 
 const initialState: AppState = {
-  identifier: 'default',
+  identifier: '',
   responsive: {
     deviceType: 'desktop',
     orientation: 'landscape',

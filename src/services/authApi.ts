@@ -205,10 +205,19 @@ class AuthApiService {
       });
 
       console.log('Logout response status:', response.status);
+      
+      // If the logout endpoint doesn't exist (404), we still consider it successful
+      // since we'll clear the local storage anyway
+      if (response.status === 404) {
+        console.log('Logout endpoint not found (404), but clearing local session');
+        return true;
+      }
+      
       return response.ok;
     } catch (error) {
       console.error('Logout error:', error);
-      return false;
+      // Even if logout API fails, we still want to clear local state
+      return true;
     }
   }
 

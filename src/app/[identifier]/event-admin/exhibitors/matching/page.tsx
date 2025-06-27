@@ -253,12 +253,20 @@ export default function ExhibitorsMatchingPage() {
   };
 
   const handleReset = () => {
-    // Reset to default mappings from POST API
-    const defaultMappings: { [key: string]: string } = {};
-    fieldMappings.forEach((mapping: FieldMapping) => {
-      defaultMappings[mapping.excelColumn] = mapping.standardField;
-    });
-    setSelectedMappings(defaultMappings);
+    // Clear all mapping data and return to upload state
+    setFieldMappings([]);
+    setStandardFields([]);
+    setSelectedMappings({});
+    setFileStorageId(null);
+    setCurrentPage(1);
+    setError('No mapping data found. Please upload an Excel file first.');
+    setRegistrationResult(null);
+    
+    // Clear session storage
+    sessionStorage.removeItem('fieldMappingData');
+    sessionStorage.removeItem('standardFieldsData');
+    sessionStorage.removeItem('fileStorageId');
+    sessionStorage.removeItem('uploadType');
   };
 
   // Pagination settings

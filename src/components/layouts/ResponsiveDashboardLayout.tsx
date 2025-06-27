@@ -76,7 +76,7 @@ import { logoutUser } from '@/store/slices/authSlice';
 
 interface ResponsiveDashboardLayoutProps {
   children: ReactNode;
-  title: string;
+  title: string | ReactNode;
   breadcrumbs?: Array<{ label: string; href?: string }>;
 }
 

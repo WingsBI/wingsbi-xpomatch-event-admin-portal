@@ -271,31 +271,36 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         )}
 
         {/* Action Buttons */}
-        <Box display="flex" gap={1} mt={2}>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box display="flex" gap={1}>
+            <IconButton size="small" sx={{ color: '#0077b5' }}>
+              <LinkedIn fontSize="small" />
+            </IconButton>
+            <IconButton size="small" sx={{ color: '#1da1f2' }}>
+              <Twitter fontSize="small" />
+            </IconButton>
+            <IconButton size="small" sx={{ color: '#757575' }}>
+              <Language fontSize="small" />
+            </IconButton>
+          </Box>
+
           <Button
-            variant="outlined"
+            variant="contained"
             size="small"
             startIcon={<ConnectIcon />}
             sx={{ 
-              flex: 1,
-              borderColor: theme.palette.primary.main,
-              color: theme.palette.primary.main,
+              bgcolor: theme.palette.primary.main,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 500,
+              px: 2,
               '&:hover': {
-                borderColor: theme.palette.primary.dark,
-                backgroundColor: theme.palette.primary.light + '20'
+                bgcolor: theme.palette.primary.dark,
               }
             }}
           >
             Connect
           </Button>
-          <IconButton size="small" sx={{ color: theme.palette.primary.main }}>
-            <LinkedIn />
-          </IconButton>
-          {exhibitor.customData?.website && (
-            <IconButton size="small" sx={{ color: theme.palette.primary.main }}>
-              <Language />
-            </IconButton>
-          )}
         </Box>
       </CardContent>
     </Card>

@@ -79,11 +79,11 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
 
   return (
     <>
-      <Card>
-        <CardContent sx={{ p: 3 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+      <Card sx={{ borderRadius: 2 }}>
+        <CardContent sx={{ p: 2 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
             <Box>
-              <Typography variant="h4" component="h1" gutterBottom>
+              <Typography variant="h5" component="h1" gutterBottom>
                 {event.name}
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>
@@ -130,40 +130,42 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
             </Typography>
           )}
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Box display="flex" alignItems="center" mb={2}>
-                <CalendarToday sx={{ mr: 2, color: 'text.secondary' }} />
-                <Box>
-                  <Typography variant="subtitle2">Start Date</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatDate(event.startDate)}
-                  </Typography>
+          <Grid container spacing={3} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <Box display="flex" flexWrap="wrap" gap={9} mb={2}>
+                <Box display="flex" alignItems="center" minWidth="200px">
+                  <CalendarToday sx={{ mr: 2, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="subtitle2">Start Date</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(event.startDate)}
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
 
-              <Box display="flex" alignItems="center" mb={2}>
-                <CalendarToday sx={{ mr: 2, color: 'text.secondary' }} />
-                <Box>
-                  <Typography variant="subtitle2">End Date</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatDate(event.endDate)}
-                  </Typography>
+                <Box display="flex" alignItems="center" minWidth="200px">
+                  <CalendarToday sx={{ mr: 2, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="subtitle2">End Date</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(event.endDate)}
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
 
-              <Box display="flex" alignItems="center" mb={2}>
-                <LocationOn sx={{ mr: 2, color: 'text.secondary' }} />
-                <Box>
-                  <Typography variant="subtitle2">Location</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {event.location}
-                  </Typography>
+                <Box display="flex" alignItems="center" minWidth="200px">
+                  <LocationOn sx={{ mr: 2, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="subtitle2">Location</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {event.location}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            {/* <Grid item xs={12} md={6}>
               <Box display="flex" alignItems="center" mb={2}>
                 <People sx={{ mr: 2, color: 'text.secondary' }} />
                 <Box>
@@ -195,7 +197,7 @@ export default function EventDetailsCard({ event, onEventUpdate }: EventDetailsC
                   </Box>
                 </Box>
               )}
-            </Grid>
+            </Grid> */}
           </Grid>
         </CardContent>
       </Card>

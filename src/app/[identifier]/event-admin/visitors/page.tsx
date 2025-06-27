@@ -20,10 +20,7 @@ export default function VisitorsPage() {
   }, [identifier, dispatch]);
 
   return (
-    <ResponsiveDashboardLayout title="Visitors" breadcrumbs={[
-      { label: 'Dashboard', href: `/${identifier}/event-admin/dashboard` },
-      { label: 'Visitors' }
-    ]}>
+    <ResponsiveDashboardLayout title="Visitors" >
       <Container maxWidth="xl" sx={{ height: '100%' }}>
         <Box 
           sx={{ 

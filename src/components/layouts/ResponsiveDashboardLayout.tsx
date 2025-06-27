@@ -59,6 +59,8 @@ import {
   Fullscreen,
   FullscreenExit,
   Palette,
+  CalendarMonth,
+  Favorite,
 } from '@mui/icons-material';
 import { RootState, AppDispatch } from '@/store';
 import {
@@ -98,21 +100,22 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
     
     {
-      text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [
-        { text: 'Visitors List', href: `/${identifier}/event-admin/visitors` },
-        { text: 'Visitors Matching', href: `/${identifier}/event-admin/visitors/matching` },
-      ]
+      text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: []
     },
     {
-      text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [
-        { text: 'Exhibitors List', href: `/${identifier}/event-admin/exhibitors` },
-        { text: 'Exhibitors Matching', href: `/${identifier}/event-admin/exhibitors/matching` },
-      ]
+      text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: []
     },
+
+    { text: 'Meetings', icon: <CalendarMonth />, href: `/${identifier}/event-admin/attributes`, children: [] },
+
+    { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/attributes`, children: [] },
+
     { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [
       { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
       { text: 'Profile Settings', icon: <Settings />, href: `/${identifier}/event-admin/admins`, children: [] },
       { text: 'Theme Settings', icon: <Palette />, href: '#', children: [] },
+      { text: 'Visitors Onboarding',icon: <People />, href: `/${identifier}/event-admin/visitors/matching` },
+      { text: 'Exhibitors Onboarding',icon: <Business />, href: `/${identifier}/event-admin/exhibitors/matching` },
     ] },
 
   ];
@@ -530,15 +533,15 @@ export default function ResponsiveDashboardLayout({
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' }}>
               {!ui.sidebarCollapsed && (
                 <Box>
-                  <Typography variant="h6" fontWeight="bold" noWrap sx={{ color: 'white' }}>
-                    {isMobile ? 'AI Match' : 'AI Matchmaking'}
+                  <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white' }}>
+                    {isMobile ? 'Xpo Match' : 'Xpo Match'}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }} noWrap>
+                  {/* <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }} noWrap>
                     {user?.role === 'it-admin' ? 'IT Administrator' :
                       user?.role === 'visitor' ? 'Visitor Portal' :
                         user?.role === 'exhibitor' ? 'Exhibitor Portal' :
                           'Event Administrator'}
-                  </Typography>
+                  </Typography> */}
                 </Box>
               )}
             </Box>

@@ -22,6 +22,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { 
   Business, 
   LocationOn,
@@ -31,6 +32,7 @@ import {
   Twitter,
   Language,
   Star,
+  Favorite,
   ConnectWithoutContact as ConnectIcon,
   FiberManualRecord as InterestPoint,
   TrendingUp,
@@ -40,6 +42,7 @@ import {
 
 import { apiService } from '@/services/apiService';
 import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types';
+import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
 
 interface VisitorCardProps {
   visitor: TransformedVisitor;
@@ -74,6 +77,8 @@ const transformVisitorData = (apiVisitor: ApiVisitorData): TransformedVisitor =>
 };
 
 function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }: VisitorCardProps) {
+  const theme = useTheme();
+  
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -131,13 +136,13 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
         },
       }}
     >
-      <CardContent sx={{ p: 1.5, pb: 1 }}>
+      <CardContent sx={{ p: 2, pb: 1 }}>
         {/* Header with Visitor Info and Match Score */}
         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center">
             <Avatar
               sx={{
-                bgcolor: '#4285f4',
+                bgcolor: theme.palette.primary.main,
                 width: 52,
                 height: 52,
                 mr: 1,
@@ -157,18 +162,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
               <Typography variant="body2" color="primary" fontWeight="500">
                 {visitor.company}
               </Typography>
-              <Box display="flex" alignItems="center" gap={1} mt={1}>
-                <Chip
-                  label="Visitor"
-                  size="small"
-                  sx={{
-                    bgcolor: '#e3f2fd',
-                    color: '#1565c0',
-                    fontWeight: 500
-                  }}
-                />
-               
-              </Box>
+              {/* Removed Visitor chip */}
               <Box>
               {totalRelevantItems > 0 && (
                   <Chip
@@ -186,9 +180,9 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
           </Box>
 
           <Box display="flex" alignItems="center">
-            <Star sx={{ color: getMatchScoreColor(matchScore), mr: 0.5, fontSize: 18 }} />
+          <Favorite sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
             <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
-              {matchScore}%
+              {matchScore}
             </Typography>
           </Box>
         </Box>
@@ -204,14 +198,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
             </Box>
           )}
 
-          {visitor.customData?.experience && (
-            <Box display="flex" alignItems="center">
-              <Work sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                {visitor.customData.experience}
-              </Typography>
-            </Box>
-          )}
+          {/* Removed experience display */}
         </Box>
 
         {/* Relevant Interests */}
@@ -316,13 +303,13 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
             size="small"
             startIcon={<ConnectIcon />}
             sx={{ 
-              bgcolor: '#1a73e8',
+              bgcolor: theme.palette.primary.main,
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 500,
               px: 2,
               '&:hover': {
-                bgcolor: '#1565c0',
+                bgcolor: theme.palette.primary.dark,
               }
             }}
           >
@@ -363,6 +350,8 @@ function VisitorCardSkeleton() {
 }
 
 function VisitorListView() {
+  const theme = useTheme();
+  const { currentThemeName, setTheme: setSimpleTheme, setFontFamily: setSimpleFontFamily } = useSimpleTheme();
   const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -374,7 +363,35 @@ function VisitorListView() {
   useEffect(() => {
     setIsClient(true);
     fetchVisitors();
-  }, []);
+
+    // Listen for theme changes from localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme' && e.newValue) {
+        setSimpleTheme(e.newValue);
+      }
+      if (e.key === 'fontFamily' && e.newValue) {
+        setSimpleFontFamily(e.newValue);
+      }
+    };
+
+    // Listen for theme changes from parent window (if iframe is embedded)
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'THEME_CHANGE' && event.data.theme) {
+        setSimpleTheme(event.data.theme);
+      }
+      if (event.data.type === 'FONT_CHANGE' && event.data.fontFamily) {
+        setSimpleFontFamily(event.data.fontFamily);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [setSimpleTheme, setSimpleFontFamily]);
 
   const fetchVisitors = async () => {
     try {
@@ -456,10 +473,10 @@ function VisitorListView() {
   const sampleExhibitorServices = ["AI Chatbots", "ML Analytics", "Computer Vision"];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
       {/* Header */}
-      <Box mb={3}>
-        <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+      <Box mb={2}>
+        <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
           Visitors Directory
         </Typography>
         <Typography variant="body1" color="text.secondary">
@@ -502,7 +519,7 @@ function VisitorListView() {
             </FormControl>
           </Grid>
           <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
+            <FormControl fullWidth >
               <Select
                 value={filterExperience}
                 onChange={(e) => setFilterExperience(e.target.value)}
@@ -524,8 +541,8 @@ function VisitorListView() {
                 variant="contained"
                 startIcon={<TrendingUp />}
                 sx={{ 
-                  bgcolor: '#4285f4',
-                  '&:hover': { bgcolor: '#1976d2' }
+                  bgcolor: theme.palette.primary.main,
+                  '&:hover': { bgcolor: theme.palette.primary.dark }
                 }}
               >
                 View Analytics
@@ -534,11 +551,11 @@ function VisitorListView() {
                 variant="outlined"
                 startIcon={<GetApp />}
                 sx={{ 
-                  borderColor: '#4285f4',
-                  color: '#4285f4',
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
                   '&:hover': { 
-                    borderColor: '#1976d2',
-                    backgroundColor: '#f5f9ff'
+                    borderColor: theme.palette.primary.dark,
+                    backgroundColor: theme.palette.primary.light + '20'
                   }
                 }}
               >
@@ -632,8 +649,10 @@ function VisitorListView() {
 
 export default function VisitorListPage() {
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
-      <VisitorListView />
-    </Box>
+    <SimpleThemeProvider>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <VisitorListView />
+      </Box>
+    </SimpleThemeProvider>
   );
 } 

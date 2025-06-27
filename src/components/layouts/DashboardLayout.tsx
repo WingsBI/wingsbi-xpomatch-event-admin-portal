@@ -116,11 +116,9 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
         }}
       >
         <Typography variant="h6" fontWeight="bold">
-          AI Matchmaking
+          Xpo Match
         </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.8 }}>
-          {getRoleTitle()}
-        </Typography>
+        
       </Box>
       
       <Divider />

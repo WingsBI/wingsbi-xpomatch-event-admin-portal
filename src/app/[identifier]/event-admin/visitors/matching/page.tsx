@@ -324,16 +324,12 @@ export default function VisitorsMatchingPage() {
     return (
       <ResponsiveDashboardLayout 
         title="Visitors Field Mapping"
-        breadcrumbs={[
-          { label: 'Event Admin', href: `/${identifier}/event-admin` },
-          { label: 'Visitors', href: `/${identifier}/event-admin/visitors` },
-          { label: 'Field Mapping' }
-        ]}
+        
       >
         <Box
           component="main"
           sx={{
-            p: 3,
+            p: 1,
             height: '100vh',
             overflow: 'auto',
           }}

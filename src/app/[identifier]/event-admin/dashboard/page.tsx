@@ -241,25 +241,23 @@ export default function EventAdminDashboard() {
   return (
     <RoleBasedRoute allowedRoles={['event-admin', 'it-admin']}>
       <ResponsiveDashboardLayout 
-        title={`${identifier} Event Dashboard`}
-        breadcrumbs={[
-          { label: 'Event Admin', href: `/${identifier}/event-admin` },
-          { label: 'Dashboard' }
-        ]}
-      >
+        title={`Event Dashboard`}  >
+
+          
+          
       {/* Main Content */}
       <Box
         component="main"
         sx={{
-          p: 2,
+          p: 0,
         }}
       >
           <Container maxWidth="xl">
             {/* Header with Welcome Message */}
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Box>
-                <Typography variant="h4" component="h1" gutterBottom>
-                  Welcome, {user?.name || 'Ritesh Amilkanthwar'}!
+                <Typography variant="h5" component="h1" gutterBottom>
+                  Welcome, {user?.name }!
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
                   Manage your event and track participant engagement
@@ -269,7 +267,7 @@ export default function EventAdminDashboard() {
 
             {/* Event Details */}
             {event && (
-              <Box mb={4}>
+              <Box mb={1}>
                 <EventDetailsCard event={event} onEventUpdate={fetchDashboardData} />
               </Box>
             )}

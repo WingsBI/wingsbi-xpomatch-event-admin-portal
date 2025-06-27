@@ -20,10 +20,9 @@ export default function ExhibitorsPage() {
   }, [identifier, dispatch]);
 
   return (
-    <ResponsiveDashboardLayout title="Exhibitors" breadcrumbs={[
-      { label: 'Dashboard', href: `/${identifier}/event-admin/dashboard` },
-      { label: 'Exhibitors' }
-    ]}>
+    <ResponsiveDashboardLayout title="Exhibitors" 
+    
+    >
       <Container maxWidth="xl" sx={{ height: '100%' }}>
         <Box 
           sx={{ 

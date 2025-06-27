@@ -296,16 +296,15 @@ export default function ExhibitorsMatchingPage() {
     return (
       <ResponsiveDashboardLayout 
         title="Exhibitors Field Mapping"
-        breadcrumbs={[
-          { label: 'Event Admin', href: `/${identifier}/event-admin` },
-          { label: 'Exhibitors', href: `/${identifier}/event-admin/exhibitors` },
-          { label: 'Field Mapping' }
-        ]}
+        
+
+
+        
       >
         <Box
           component="main"
           sx={{
-            p: 3,
+            p: 1,
             height: '100vh',
             overflow: 'auto',
           }}

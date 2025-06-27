@@ -20,6 +20,7 @@ import {
   IconButton,
   Divider
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
   Person,
   LocationOn,
@@ -34,10 +35,12 @@ import {
   Groups,
   Business,
   FiberManualRecord as InterestPoint,
-  GetApp
+  GetApp,
+  Favorite
 } from '@mui/icons-material';
 
 import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
+import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
 
 interface ExhibitorCardProps {
   exhibitor: {
@@ -69,6 +72,8 @@ interface ExhibitorCardProps {
 }
 
 function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardProps) {
+  const theme = useTheme();
+  
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -108,13 +113,13 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
         },
       }}
     >
-      <CardContent sx={{ p: 1.5, pb: 1}}>
+      <CardContent sx={{ p: 2, pb: 1}}>
         {/* Header with Company Info and Match Score */}
         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center">
             <Avatar
               sx={{
-                bgcolor: '#ff6f00',
+                bgcolor: theme.palette.primary.main,
                 width: 52,
                 height: 52,
                 mr: 1,
@@ -132,18 +137,10 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
                 {exhibitor.firstName} {exhibitor.lastName} • {exhibitor.jobTitle}
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
-                <Chip
-                  label="Exhibitor"
-                  size="small"
-                  sx={{ 
-                    bgcolor: '#fff3e0',
-                    color: '#e65100',
-                    fontWeight: 500
-                  }}
-                />
+                
                 {exhibitor.customData?.boothNumber && (
                   <Chip
-                    label={`Booth ${exhibitor.customData.boothNumber}`}
+                    label={` ${exhibitor.customData.boothNumber}`}
                     size="small"
                     sx={{ 
                       bgcolor: '#e3f2fd',
@@ -169,9 +166,9 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
           </Box>
           
           <Box display="flex" alignItems="center">
-            <Star sx={{ color: getMatchScoreColor(matchScore), mr: 0.5, fontSize: 18 }} />
+            <Favorite sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
             <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
-              {matchScore}%
+              {matchScore}
             </Typography>
           </Box>
         </Box>
@@ -281,21 +278,21 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
             startIcon={<ConnectIcon />}
             sx={{ 
               flex: 1,
-              borderColor: '#4285f4',
-              color: '#4285f4',
+              borderColor: theme.palette.primary.main,
+              color: theme.palette.primary.main,
               '&:hover': {
-                borderColor: '#1976d2',
-                backgroundColor: '#f5f9ff'
+                borderColor: theme.palette.primary.dark,
+                backgroundColor: theme.palette.primary.light + '20'
               }
             }}
           >
             Connect
           </Button>
-          <IconButton size="small" sx={{ color: '#4285f4' }}>
+          <IconButton size="small" sx={{ color: theme.palette.primary.main }}>
             <LinkedIn />
           </IconButton>
           {exhibitor.customData?.website && (
-            <IconButton size="small" sx={{ color: '#4285f4' }}>
+            <IconButton size="small" sx={{ color: theme.palette.primary.main }}>
               <Language />
             </IconButton>
           )}
@@ -334,6 +331,8 @@ function ExhibitorCardSkeleton() {
 }
 
 function ExhibitorListView() {
+  const theme = useTheme();
+  const { currentThemeName, setTheme: setSimpleTheme, setFontFamily: setSimpleFontFamily } = useSimpleTheme();
   const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -346,7 +345,35 @@ function ExhibitorListView() {
   useEffect(() => {
     setIsClient(true);
     loadExhibitors();
-  }, []);
+
+    // Listen for theme changes from localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme' && e.newValue) {
+        setSimpleTheme(e.newValue);
+      }
+      if (e.key === 'fontFamily' && e.newValue) {
+        setSimpleFontFamily(e.newValue);
+      }
+    };
+
+    // Listen for theme changes from parent window (if iframe is embedded)
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'THEME_CHANGE' && event.data.theme) {
+        setSimpleTheme(event.data.theme);
+      }
+      if (event.data.type === 'FONT_CHANGE' && event.data.fontFamily) {
+        setSimpleFontFamily(event.data.fontFamily);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [setSimpleTheme, setSimpleFontFamily]);
 
   const loadExhibitors = async () => {
     try {
@@ -473,10 +500,10 @@ function ExhibitorListView() {
   const sampleVisitorInterests = ['AI/ML', 'Web Development', 'Cloud Computing', 'Product Strategy'];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
       {/* Header */}
-      <Box mb={3}>
-        <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+      <Box mb={2}>
+        <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
           Exhibitors Directory
         </Typography>
         <Typography variant="body1" color="text.secondary">
@@ -541,8 +568,8 @@ function ExhibitorListView() {
                 variant="contained"
                 startIcon={<TrendingUp />}
                 sx={{ 
-                  bgcolor: '#4285f4',
-                  '&:hover': { bgcolor: '#1976d2' }
+                  bgcolor: theme.palette.primary.main,
+                  '&:hover': { bgcolor: theme.palette.primary.dark }
                 }}
               >
                 View Analytics
@@ -551,11 +578,11 @@ function ExhibitorListView() {
                 variant="outlined"
                 startIcon={<GetApp />}
                 sx={{ 
-                  borderColor: '#4285f4',
-                  color: '#4285f4',
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
                   '&:hover': { 
-                    borderColor: '#1976d2',
-                    backgroundColor: '#f5f9ff'
+                    borderColor: theme.palette.primary.dark,
+                    backgroundColor: theme.palette.primary.light + '20'
                   }
                 }}
               >
@@ -644,8 +671,10 @@ function ExhibitorListView() {
 
 export default function ExhibitorListPage() {
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
-      <ExhibitorListView />
-    </Box>
+    <SimpleThemeProvider>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <ExhibitorListView />
+      </Box>
+    </SimpleThemeProvider>
   );
 } 

@@ -53,10 +53,32 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
 
   const handleThemeSelect = (themeName: string) => {
     setTheme(themeName);
+    
+    // Send theme change message to all iframes
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+      if (iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'THEME_CHANGE',
+          theme: themeName
+        }, '*');
+      }
+    });
   };
 
   const handleFontSelect = (fontFamily: string) => {
     setFontFamily(fontFamily);
+    
+    // Send font change message to all iframes
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+      if (iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'FONT_CHANGE',
+          fontFamily: fontFamily
+        }, '*');
+      }
+    });
   };
 
   const getFontDisplayName = (fontKey: string) => {

@@ -22,8 +22,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
 } from '@mui/material';
-import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business } from '@mui/icons-material';
+import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business, Settings } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import type { ExhibitorRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
@@ -62,7 +63,7 @@ export default function ExhibitorsMatchingPage() {
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fileStorageId, setFileStorageId] = useState<number | null>(null);
-  
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // Display all mappings evenly distributed
 
   useEffect(() => {
@@ -269,6 +270,11 @@ export default function ExhibitorsMatchingPage() {
     sessionStorage.removeItem('uploadType');
   };
 
+  const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    setSettingsOpen(true);
+  };
+
   // Pagination settings
   const itemsPerPage = 9; // Show 9 mappings per page for better visibility and no scroll
   const totalPages = Math.ceil(fieldMappings.length / itemsPerPage);
@@ -325,7 +331,13 @@ export default function ExhibitorsMatchingPage() {
               </Box>
               
               <Box display="flex" gap={2} alignItems="center">
-                <SimpleThemeSelector />
+              <IconButton
+                  onClick={handleSettingsClick}
+                  size="small"
+                  aria-label="settings"
+                >
+                  <Settings />
+                </IconButton>
                 <Button
                   variant="contained"
                   startIcon={<Upload />}
@@ -423,11 +435,7 @@ export default function ExhibitorsMatchingPage() {
   return (
     <ResponsiveDashboardLayout 
       title="Exhibitors Field Mapping"
-      breadcrumbs={[
-        { label: 'Event Admin', href: `/${identifier}/event-admin` },
-        { label: 'Exhibitors', href: `/${identifier}/event-admin/exhibitors` },
-        { label: 'Field Mapping' }
-      ]}
+      
     >
       <Box
         component="main"

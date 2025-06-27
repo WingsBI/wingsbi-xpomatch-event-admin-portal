@@ -11,6 +11,9 @@ import {
   Card,
   CardContent,
   Button,
+  Autocomplete,
+  TextField,
+  Paper,
 } from '@mui/material';
 import {
   People, 
@@ -20,6 +23,7 @@ import {
   Email,
   Dashboard as DashboardIcon,
   Add,
+  Search,
 } from '@mui/icons-material';
 
 import { Event, Participant, DashboardStats } from '@/types';
@@ -44,6 +48,42 @@ export default function EventAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [visitorsUploadOpen, setVisitorsUploadOpen] = useState(false);
   const [exhibitorsUploadOpen, setExhibitorsUploadOpen] = useState(false);
+
+  // Define searchable pages
+  const searchablePages = [
+    {
+      title: 'Dashboard',
+      path: `/${identifier}/event-admin/dashboard`,
+      description: 'Main dashboard overview'
+    },
+    {
+      title: 'Exhibitors',
+      path: `/${identifier}/event-admin/exhibitors`,
+      description: 'Manage exhibitors'
+    },
+    {
+      title: 'Exhibitors Onboarding',
+      path: `/${identifier}/event-admin/exhibitors/matching`,
+      description: 'Map exhibitor fields'
+    },
+    {
+      title: 'Visitors',
+      path: `/${identifier}/event-admin/visitors`,
+      description: 'Manage visitors'
+    },
+    {
+      title: 'Visitors Onboarding',
+      path: `/${identifier}/event-admin/visitors/matching`,
+      description: 'Map visitor fields'
+    }
+  ];
+
+  // Handle page navigation from search
+  const handlePageSelect = (selectedPage: any) => {
+    if (selectedPage && selectedPage.path) {
+      router.push(selectedPage.path);
+    }
+  };
 
   // Set identifier in Redux store when component mounts
   useEffect(() => {
@@ -241,7 +281,71 @@ export default function EventAdminDashboard() {
   return (
     <RoleBasedRoute allowedRoles={['event-admin', 'it-admin']}>
       <ResponsiveDashboardLayout 
-        title={`Event Dashboard`}  >
+        title={
+          <Box sx={{ minWidth: 300, maxWidth: 400 }}>
+            <Autocomplete
+              options={searchablePages}
+              getOptionLabel={(option) => option.title}
+              onChange={(event, value) => handlePageSelect(value)}
+              renderOption={(props, option) => (
+                <Box component="li" {...props}>
+                  <Box>
+                    <Typography variant="body2" fontWeight="medium">
+                      {option.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.description}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search pages..."
+                  variant="outlined"
+                  size="small"
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />,
+                    sx: {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)',
+                      borderRadius: 2,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'primary.main',
+                      },
+                      '& input': {
+                        color: 'text.primary',
+                      },
+                      '& input::placeholder': {
+                        color: 'text.secondary',
+                        opacity: 0.8,
+                      },
+                    },
+                  }}
+                />
+              )}
+              PaperComponent={(props) => (
+                <Paper 
+                  {...props} 
+                  sx={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                  }} 
+                />
+              )}
+            />
+          </Box>
+        }
+      >
 
           
           

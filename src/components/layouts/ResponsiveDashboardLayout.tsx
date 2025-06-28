@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useEffect, useState, useCallback, Profiler } from 'react';
+import React, { ReactNode, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -111,11 +111,11 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/attributes`, children: [] },
 
     { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [
-      { text: 'Event Details', icon: <Event />, href: `/${identifier}/event-admin/event`, children: [] },
-      { text: 'Profile Settings', icon: <Settings />, href: `/${identifier}/event-admin/admins`, children: [] },
-      { text: 'Theme Settings', icon: <Palette />, href: '#', children: [] },
-      { text: 'Visitors Onboarding',icon: <People />, href: `/${identifier}/event-admin/visitors/matching` },
-      { text: 'Exhibitors Onboarding',icon: <Business />, href: `/${identifier}/event-admin/exhibitors/matching` },
+      { text: 'Event Details', href: `/${identifier}/event-admin/event`, children: [] },
+      { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
+      { text: 'Theme Settings', href: '#', children: [] },
+      { text: 'Visitors Onboarding', href: `/${identifier}/event-admin/visitors/matching`, children: [] },
+      { text: 'Exhibitors Onboarding', href: `/${identifier}/event-admin/exhibitors/matching`, children: [] },
     ] },
 
   ];
@@ -173,13 +173,13 @@ export default function ResponsiveDashboardLayout({
     if (forceHideSidebar) return 0; // Return 0 when hidden
 
     // Handle collapsed state for all device types
-    if (ui.sidebarCollapsed) return 72;
+    if (ui.sidebarCollapsed) return 64;
 
-    if (isTV) return 270; // TV screens (>= 2560px)
-    if (isLargeMonitor) return 250; // Large monitors (>= 1920px)
-    if (isDesktop) return 230; // Desktop (1280px - 1920px)
-    if (isTablet) return 210; // Tablet (960px - 1280px)
-    return 230; // Default width
+    if (isTV) return 240; // TV screens (>= 2560px) - reduced from 270
+    if (isLargeMonitor) return 220; // Large monitors (>= 1920px) - reduced from 250
+    if (isDesktop) return 200; // Desktop (1280px - 1920px) - reduced from 230
+    if (isTablet) return 180; // Tablet (960px - 1280px) - reduced from 210
+    return 200; // Default width - reduced from 230
   };
 
   const drawerWidth = getDrawerWidth();
@@ -364,14 +364,14 @@ export default function ResponsiveDashboardLayout({
     }, 100);
   };
 
-  const renderNavigationItem = (item: any, level = 0) => (
-    <motion.div
-      key={item.text}
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: level * 0.1 }}
-    >
-      <ListItem disablePadding sx={{ mb: 0.5, pl: level * 2 }}>
+  // Memoize navigation items to prevent recalculation on every render
+  const navigationItems = useMemo(() => {
+    return getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier);
+  }, [user?.role, responsive.deviceType, identifier]);
+
+  // Optimized navigation item renderer - defined before drawerContent
+  const renderNavigationItem = useCallback((item: any, level = 0) => (
+    <ListItem key={item.text} disablePadding sx={{ mb: level === 0 ? 0.25 : 0.1, pl: level * 1.2 }}>
         <ListItemButton
           onClick={() => {
             // If sidebar is collapsed and this is a top-level item, expand sidebar first
@@ -392,82 +392,102 @@ export default function ResponsiveDashboardLayout({
             }
           }}
           sx={{
-            borderRadius: 2,
-            minHeight: ui.sidebarCollapsed && level === 0 ? 56 : 48,
+          borderRadius: level === 0 ? 1.5 : 1,
+          minHeight: ui.sidebarCollapsed && level === 0 ? 40 : level === 0 ? 36 : 32,
+          py: level === 0 ? 0.5 : 0.25,
+          px: level === 0 ? 1 : 0.75,
             '&:hover': {
-              backgroundColor: 'primary.main',
-              color: 'white',
+            backgroundColor: level === 0 ? 'primary.main' : 'primary.light',
+            color: level === 0 ? 'white' : 'primary.dark',
               '& .MuiListItemIcon-root': {
-                color: 'white',
-              },
+              color: level === 0 ? 'white' : 'primary.dark',
+            },
             },
           }}
         >
-          {item.icon && (
+        {item.icon && level === 0 && (
             <ListItemIcon sx={{
-              minWidth: ui.sidebarCollapsed ? 0 : 40,
+            minWidth: ui.sidebarCollapsed ? 0 : 32,
               justifyContent: 'center',
-              color: 'inherit'
+            color: 'inherit',
+            '& svg': {
+              fontSize: '1.1rem' // Smaller icons
+            }
             }}>
               {item.icon}
             </ListItemIcon>
           )}
+
+        {/* Small bullet point for child items */}
+        {level > 0 && (
+          <Box sx={{
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            backgroundColor: 'text.secondary',
+            mr: 1.5,
+            ml: 0.5,
+            flexShrink: 0
+          }} />
+        )}
 
           {(!ui.sidebarCollapsed || isMobile) && (
             <>
               <ListItemText
                 primary={item.text}
                 primaryTypographyProps={{
-                  fontSize: {
-                    xs: '0.875rem', // Mobile
-                    sm: '0.9rem',   // Large phones
-                    md: '1rem',     // Tablets
-                    lg: '1.1rem',   // Desktop
-                    xl: '1.2rem',   // Large monitors
-                  }
+                fontSize: level === 0 ? '0.85rem' : '0.8rem', // Even smaller for child items
+                fontWeight: level === 0 ? 500 : 400,
+                lineHeight: 1.2,
+                color: level > 0 ? 'text.secondary' : 'inherit'
                 }}
               />
               {item.children && item.children.length > 0 && (
-                <IconButton size="small">
-                  {expandedItems.includes(item.text) ? <ExpandLess /> : <ExpandMore />}
+              <IconButton size="small" sx={{ p: 0.25 }}>
+                {expandedItems.includes(item.text) ? 
+                  <ExpandLess sx={{ fontSize: '1rem' }} /> : 
+                  <ExpandMore sx={{ fontSize: '1rem' }} />
+                }
                 </IconButton>
               )}
             </>
           )}
         </ListItemButton>
-      </ListItem>
 
       {item.children && item.children.length > 0 && (!ui.sidebarCollapsed || isMobile) && (
         <Collapse in={expandedItems.includes(item.text)} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
+          <List component="div" disablePadding sx={{ pl: 0.5 }}>
             {item.children.map((child: any) => renderNavigationItem(child, level + 1))}
           </List>
         </Collapse>
       )}
-    </motion.div>
-  );
+    </ListItem>
+  ), [ui.sidebarCollapsed, isMobile, expandedItems, dispatch, router, handleThemeDialogOpen, handleExpandClick]);
 
-  const navigationItems = getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier);
-
-  const drawer = (
+  // Memoize drawer content to prevent re-renders
+  const drawer = useMemo(() => (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', pt: '64px' }}>
       {/* Navigation */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', p: ui.sidebarCollapsed ? 1 : 2, pt: 2 }}>
-        <List>
+      <Box sx={{ flexGrow: 1, overflow: 'auto', p: ui.sidebarCollapsed ? 0.5 : 1.5, pt: 1.5 }}>
+        <List sx={{ py: 0 }}>
           {navigationItems.map(item => renderNavigationItem(item))}
         </List>
       </Box>
 
       {/* Collapse button for desktop */}
       {!isMobile && (
-        <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ p: 0.5, borderTop: '1px solid', borderColor: 'divider' }}>
           <Tooltip title={ui.sidebarCollapsed ? 'Expand' : 'Collapse'}>
             <IconButton
               onClick={handleDrawerToggle}
               sx={{
                 width: '100%',
                 justifyContent: 'center',
-                color: 'text.primary'
+                color: 'text.primary',
+                py: 0.5,
+                '& svg': {
+                  fontSize: '1.1rem'
+                }
               }}
             >
               {ui.sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
@@ -476,7 +496,7 @@ export default function ResponsiveDashboardLayout({
         </Box>
       )}
     </Box>
-  );
+  ), [navigationItems, ui.sidebarCollapsed, isMobile, handleDrawerToggle, renderNavigationItem]);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }} {...swipeHandlers}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useMemo, useCallback, AwaitedReactNode, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from 'react';
 import {
   Box,
   Card,
@@ -71,6 +71,51 @@ interface ExhibitorCardProps {
   isClient: boolean;
 }
 
+// Transform API exhibitor data to UI format - only use actual API data
+const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, index: number) => {
+  return {
+    // API fields - only use actual data from API
+    id: apiExhibitor.id.toString(),
+    firstName: apiExhibitor.firstName || '',
+    lastName: apiExhibitor.lastName || '',
+    email: apiExhibitor.email || '',
+    company: apiExhibitor.companyName || '',
+    jobTitle: apiExhibitor.jobTitle || '',
+    phone: apiExhibitor.phoneNumber || null,
+    country: apiExhibitor.country || null,
+    
+    // Only use API data, no fallbacks to generated data
+    interests: apiExhibitor.interests || [],
+    status: apiExhibitor.status || 'registered',
+    type: 'exhibitor' as const,
+    eventId: identifier,
+    registrationDate: apiExhibitor.registrationDate ? new Date(apiExhibitor.registrationDate) : new Date(),
+    invitationSent: apiExhibitor.invitationSent ?? false,
+    invitationDate: apiExhibitor.invitationDate ? new Date(apiExhibitor.invitationDate) : null,
+    checkedIn: apiExhibitor.checkedIn ?? false,
+    lastActivity: apiExhibitor.lastActivity ? new Date(apiExhibitor.lastActivity) : null,
+    createdAt: apiExhibitor.createdAt ? new Date(apiExhibitor.createdAt) : new Date(apiExhibitor.registrationDate || new Date()),
+    updatedAt: apiExhibitor.updatedAt ? new Date(apiExhibitor.updatedAt) : new Date(),
+    
+    customData: {
+      // Only API-based fields
+      location: [apiExhibitor.city, apiExhibitor.country].filter(Boolean).join(', ') || null,
+      avatar: apiExhibitor.avatar || (apiExhibitor.companyName?.charAt(0).toUpperCase()) || `${apiExhibitor.firstName?.charAt(0) || ''}${apiExhibitor.lastName?.charAt(0) || ''}`,
+      
+      // Only use API data when available
+      matchScore: apiExhibitor.matchScore || null,
+      industry: apiExhibitor.industry || null,
+      experience: apiExhibitor.experience || null,
+      lookingFor: apiExhibitor.lookingFor || [],
+      companyDescription: apiExhibitor.companyDescription || null,
+      products: apiExhibitor.products || [],
+      boothNumber: apiExhibitor.boothNumber || null,
+      boothSize: apiExhibitor.boothSize || null,
+      website: apiExhibitor.website || null,
+    }
+  };
+};
+
 function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardProps) {
   const theme = useTheme();
   
@@ -86,17 +131,15 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
   };
 
   // Calculate match based on common interests
-  const commonInterests = exhibitor.interests?.filter(interest => 
-    visitorInterests.some(visitorInterest => 
+  const commonInterests = exhibitor.interests?.filter((interest: string) => 
+    visitorInterests.some((visitorInterest: string) => 
       visitorInterest.toLowerCase().includes(interest.toLowerCase()) ||
       interest.toLowerCase().includes(visitorInterest.toLowerCase())
     )
   ) || [];
 
-  // Calculate match score only on client side
-  const matchScore = isClient ? (() => {
-    return Math.min(95, 60 + (commonInterests.length * 10) + Math.floor(Math.random() * 15));
-  })() : 0;
+  // Calculate match score only on client side - only if both have interests
+  const matchScore = isClient && exhibitor.customData?.matchScore ? exhibitor.customData.matchScore : 0;
 
   return (
     <Card 
@@ -134,13 +177,13 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
                 {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                {exhibitor.firstName} {exhibitor.lastName} • {exhibitor.jobTitle}
+                {exhibitor.firstName} {exhibitor.lastName}
+                {exhibitor.jobTitle && ` • ${exhibitor.jobTitle}`}
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
-                
                 {exhibitor.customData?.boothNumber && (
                   <Chip
-                    label={` ${exhibitor.customData.boothNumber}`}
+                    label={exhibitor.customData.boothNumber}
                     size="small"
                     sx={{ 
                       bgcolor: '#e3f2fd',
@@ -165,15 +208,18 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
             </Box>
           </Box>
           
+          {matchScore > 0 && (
           <Box display="flex" alignItems="center">
-            <Favorite sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
+              <Favorite sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
             <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
-              {matchScore}
+                {matchScore}
             </Typography>
           </Box>
+          )}
         </Box>
 
-        {/* Location and Industry */}
+        {/* Location and Industry - only show if data exists */}
+        {(exhibitor.customData?.location || exhibitor.customData?.industry) && (
         <Box mb={1}>
           {exhibitor.customData?.location && (
             <Box display="flex" alignItems="center" mb={1}>
@@ -193,15 +239,16 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
             </Box>
           )}
         </Box>
+        )}
 
-        {/* Products/Services Offered */}
+        {/* Products/Services Offered - only show if data exists */}
         {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
           <Box mb={1}>
             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
               Products & Services:
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {exhibitor.customData.products.slice(0, 3).map((service, index) => (
+              {exhibitor.customData.products.slice(0, 3).map((service: any, index: number) => (
                 <Chip
                   key={index}
                   label={service}
@@ -230,7 +277,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
           </Box>
         )}
 
-        {/* Company Description */}
+        {/* Company Description - only show if data exists */}
         {exhibitor.customData?.companyDescription && (
           <Box mb={1}>
             <Typography variant="body2" color="text.secondary" sx={{ 
@@ -245,14 +292,14 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
           </Box>
         )}
 
-        {/* Common Interests */}
+        {/* Common Interests - only show if data exists */}
         {commonInterests.length > 0 && (
           <Box mb={1}>
             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
               Common Interests:
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {commonInterests.slice(0, 3).map((interest, index) => (
+              {commonInterests.slice(0, 3).map((interest: any, index: number) => (
                 <Chip
                   key={index}
                   label={interest}
@@ -380,96 +427,48 @@ function ExhibitorListView() {
     };
   }, [setSimpleTheme, setSimpleFontFamily]);
 
-  const loadExhibitors = async () => {
+  const loadExhibitors = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Extract identifier from URL path only - no static fallbacks
+      // Extract identifier from URL with fallback logic
       let identifier: string | null = null;
       
-      // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/exhibitors)
-      const pathParts = window.location.pathname.split('/').filter(Boolean);
-      console.log('URL path parts:', pathParts);
-      
-      // Look for identifier in URL path - it should be the first segment
-      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
-        identifier = pathParts[0];
-        console.log('Found identifier in URL path:', identifier);
+      // Method 1: Check URL search params first (e.g., ?identifier=DEMO2024)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('identifier')) {
+        identifier = urlParams.get('identifier');
       } else {
-        // Method 2: Try to get from parent window if iframe is embedded
-        try {
-          if (window.parent && window.parent !== window) {
-            const parentUrl = window.parent.location.pathname;
-            const parentParts = parentUrl.split('/').filter(Boolean);
-            if (parentParts.length > 0) {
-              identifier = parentParts[0];
-              console.log('Found identifier from parent window:', identifier);
-            }
-          }
-        } catch (e) {
-          console.log('Cannot access parent window URL (cross-origin)');
+        // Method 2: Extract from URL path (e.g., /DEMO2024/iframe/exhibitors)
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+          identifier = pathParts[0];
         }
       }
       
-      // If no identifier found, throw error
+      // Method 3: Use common identifiers as fallback
       if (!identifier) {
-        throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/exhibitors)');
+        // Try common identifiers in order of likelihood
+        const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
+        identifier = commonIdentifiers[0]; // Default to DEMO2024
       }
 
-      console.log('Loading exhibitors for identifier:', identifier);
-
+      console.log('Loading exhibitors with identifier:', identifier);
       const response = await fieldMappingApi.getAllExhibitors(identifier);
       
-      if (response.statusCode === 200 && response.result.length > 0) {
-        console.log('Real exhibitors loaded:', response.result);
-        
-        // Convert real API data to the format expected by the UI
-        const convertedExhibitors = response.result.map((exhibitor, index) => ({
-          id: exhibitor.id.toString(),
-          firstName: exhibitor.firstName,
-          lastName: exhibitor.lastName,
-          email: exhibitor.email,
-          company: exhibitor.companyName || '',
-          jobTitle: 'Exhibitor',
-          phone: exhibitor.phoneNumber || '',
-          country: exhibitor.country || '',
-          status: 'registered',
-          interests: ['AI/ML', 'Cloud Computing', 'Digital Innovation', 'Business Strategy'][Math.floor(Math.random() * 4)] ? ['AI/ML', 'Cloud Computing', 'Digital Innovation'] : ['Business Strategy', 'Product Development'],
-          type: 'exhibitor' as const,
-          eventId: identifier,
-          registrationDate: new Date(exhibitor.registrationDate),
-          invitationSent: true,
-          invitationDate: new Date(),
-          checkedIn: false,
-          lastActivity: new Date(),
-          createdAt: new Date(exhibitor.registrationDate),
-          updatedAt: new Date(),
-          customData: {
-            location: [exhibitor.city, exhibitor.country].filter(Boolean).join(', '),
-            avatar: '',
-            experience: '5+ years in the industry',
-            matchScore: Math.floor(Math.random() * 20) + 80, // 80-99%
-            industry: ['Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail'][index % 5],
-            lookingFor: ['Partnerships', 'Investment', 'Customers'],
-            products: [
-              'Enterprise Solutions',
-              'Cloud Services', 
-              'Digital Transformation',
-              'Consulting Services'
-            ],
-            boothNumber: `${String.fromCharCode(65 + (index % 10))}${index + 1}`,
-            boothSize: ['Standard', 'Premium', 'Large'][index % 3],
-            website: exhibitor.companyName ? `https://${exhibitor.companyName.toLowerCase().replace(/\s+/g, '')}.com` : '',
-          }
-        }));
-
-        setExhibitors(convertedExhibitors);
-        setRealExhibitors(response.result);
+      if (response.statusCode === 200) {
+        if (response.result && response.result.length > 0) {
+          const convertedExhibitors = response.result.map((exhibitor, index) => transformExhibitorData(exhibitor, identifier!, index));
+          setExhibitors(convertedExhibitors);
+          setRealExhibitors(response.result);
+        } else {
+          setExhibitors([]);
+          setError('No exhibitors found for this event');
+        }
       } else {
-        console.log('No exhibitors found for this event');
         setExhibitors([]);
-        setError('No exhibitors found for this event');
+        setError(response.message || 'Failed to load exhibitors');
       }
     } catch (err: any) {
       console.error('Error loading exhibitors:', err);
@@ -478,17 +477,11 @@ function ExhibitorListView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Get unique industries for filter from current exhibitors
-  const industries = Array.from(new Set(
-    exhibitors
-      .map(exhibitor => exhibitor.customData?.industry)
-      .filter(Boolean)
-  ));
-
-  // Filter exhibitors based on search and filters
-  const filteredExhibitors = exhibitors.filter(exhibitor => {
+  // Memoize filtered exhibitors for better performance
+  const filteredExhibitors = useMemo(() => {
+    return exhibitors.filter(exhibitor => {
     const matchesSearch = 
       exhibitor.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exhibitor.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -500,9 +493,42 @@ function ExhibitorListView() {
 
     return matchesSearch && matchesStatus && matchesIndustry;
   });
+  }, [exhibitors, searchTerm, filterStatus, filterIndustry]);
+
+  // Memoize unique industries for filter
+  const industries = useMemo(() => {
+    return Array.from(new Set(
+      exhibitors
+        .map(exhibitor => exhibitor.customData?.industry)
+        .filter(Boolean)
+    ));
+  }, [exhibitors]);
 
   // Sample visitor interests for match calculation
-  const sampleVisitorInterests = ['AI/ML', 'Web Development', 'Cloud Computing', 'Product Strategy'];
+  const sampleVisitorInterests: string[] = [];
+
+  // Show skeleton loading immediately
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
+        <Box mb={2}>
+          <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+            Exhibitors Directory
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Loading exhibitors...
+          </Typography>
+        </Box>
+        <Grid container spacing={3}>
+          {[...Array(8)].map((_, index) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+              <ExhibitorCardSkeleton />
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
@@ -519,7 +545,7 @@ function ExhibitorListView() {
       {/* Search and Filters */}
       <Box mb={3}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               placeholder="Search exhibitors..."
@@ -535,7 +561,7 @@ function ExhibitorListView() {
               sx={{ bgcolor: 'background.paper' }}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <Select
                 value={filterStatus}
@@ -550,7 +576,8 @@ function ExhibitorListView() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
+          {industries.length > 0 && (
+            <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <Select
                 value={filterIndustry}
@@ -567,34 +594,7 @@ function ExhibitorListView() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Box display="flex" gap={1}>
-              <Button
-                variant="contained"
-                startIcon={<TrendingUp />}
-                sx={{ 
-                  bgcolor: theme.palette.primary.main,
-                  '&:hover': { bgcolor: theme.palette.primary.dark }
-                }}
-              >
-                View Analytics
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<GetApp />}
-                sx={{ 
-                  borderColor: theme.palette.primary.main,
-                  color: theme.palette.primary.main,
-                  '&:hover': { 
-                    borderColor: theme.palette.primary.dark,
-                    backgroundColor: theme.palette.primary.light + '20'
-                  }
-                }}
-              >
-                Export
-              </Button>
-            </Box>
-          </Grid>
+          )}
         </Grid>
       </Box>
 
@@ -605,15 +605,6 @@ function ExhibitorListView() {
           {realExhibitors.length > 0 && ' (Live Data)'}
         </Typography>
       </Box>
-
-      {/* Loading State */}
-      {loading && (
-        <Box display="flex" justifyContent="center" alignItems="center" py={8}>
-          <Typography variant="body1" sx={{ ml: 2 }}>
-            Loading exhibitors...
-          </Typography>
-        </Box>
-      )}
 
       {/* Error Alert */}
       {error && !loading && (
@@ -630,19 +621,19 @@ function ExhibitorListView() {
 
       {/* Exhibitors Grid */}
       {!loading && !error && (
-        <Grid container spacing={3}>
-          {filteredExhibitors.map((exhibitor) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
-              <Suspense fallback={<ExhibitorCardSkeleton />}>
-                <ExhibitorCard
-                  exhibitor={exhibitor}
-                  visitorInterests={sampleVisitorInterests}
-                  isClient={isClient}
-                />
-              </Suspense>
-            </Grid>
-          ))}
-        </Grid>
+      <Grid container spacing={3}>
+        {filteredExhibitors.map((exhibitor) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
+            <Suspense fallback={<ExhibitorCardSkeleton />}>
+              <ExhibitorCard
+                exhibitor={exhibitor}
+                visitorInterests={sampleVisitorInterests}
+                isClient={isClient}
+              />
+            </Suspense>
+          </Grid>
+        ))}
+      </Grid>
       )}
 
       {/* Empty State */}
@@ -678,8 +669,8 @@ export default function ExhibitorListPage() {
   return (
     <SimpleThemeProvider>
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <ExhibitorListView />
-      </Box>
+      <ExhibitorListView />
+    </Box>
     </SimpleThemeProvider>
   );
 } 

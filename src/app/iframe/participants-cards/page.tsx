@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { 
   Box, 
   Card, 
@@ -18,7 +18,12 @@ import {
   MenuItem,
   Button,
   IconButton,
-  Divider
+  Divider,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { 
   Person, 
@@ -32,19 +37,21 @@ import {
   Twitter,
   Language,
   Star,
-  ConnectWithoutContact as ConnectIcon
+  ConnectWithoutContact as ConnectIcon,
+  FiberManualRecord as InterestPoint,
+  TrendingUp,
+  GetApp,
+  Close,
 } from '@mui/icons-material';
 
-import { mockVisitors, mockExhibitors } from '@/lib/mockData';
-
 // This would typically fetch from your database
-async function getParticipants() {
-  // Using mock data for demonstration
+const getEventData = (eventId: string) => {
+  // In a real app, this would fetch from your API based on eventId
   return {
-    visitors: mockVisitors,
-    exhibitors: mockExhibitors,
+    visitors: [],
+    exhibitors: [],
   };
-}
+};
 
 interface ParticipantCardProps {
   participant: {
@@ -309,9 +316,12 @@ function ParticipantCards() {
   const [industryFilter, setIndustryFilter] = useState('All Industries');
   
   // Get data synchronously for client-side filtering
-  const data = {
-    visitors: mockVisitors,
-    exhibitors: mockExhibitors,
+  const data: {
+    visitors: ParticipantCardProps['participant'][];
+    exhibitors: ParticipantCardProps['participant'][];
+  } = {
+    visitors: [],
+    exhibitors: [],
   };
   const allParticipants = [...data.visitors, ...data.exhibitors];
 

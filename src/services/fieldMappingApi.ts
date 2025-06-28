@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
 
 export interface FieldMappingResponse {
   version: string;
@@ -73,6 +73,7 @@ export interface ExhibitorRegistrationResponse {
 }
 
 export interface Exhibitor {
+  // Current API fields
   id: number;
   firstName: string;
   lastName: string;
@@ -82,9 +83,36 @@ export interface Exhibitor {
   address?: string;
   city?: string;
   country?: string;
-  status: 'active' | 'inactive' | 'pending';
+  status?: 'active' | 'inactive' | 'pending' | 'registered' | 'checked-in' | 'invited';
   registrationDate: string;
   lastLoginDate?: string;
+  
+  // Future API fields that will be added gradually
+  jobTitle?: string;
+  salutation?: string;
+  middleName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  interests?: string[];
+  avatar?: string;
+  invitationSent?: boolean;
+  invitationDate?: string;
+  checkedIn?: boolean;
+  lastActivity?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  
+  // Custom data fields that will come from API in future
+  industry?: string;
+  experience?: string;
+  matchScore?: number;
+  lookingFor?: string[];
+  companyDescription?: string;
+  products?: string[];
+  boothNumber?: string;
+  boothSize?: string;
+  website?: string;
+  location?: string;
 }
 
 export interface ExhibitorsListResponse {

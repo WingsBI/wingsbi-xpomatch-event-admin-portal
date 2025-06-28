@@ -14,6 +14,17 @@ import {
   Autocomplete,
   TextField,
   Paper,
+  Chip,
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Divider,
+  LinearProgress,
+  Alert,
 } from '@mui/material';
 import {
   People, 
@@ -24,6 +35,16 @@ import {
   Dashboard as DashboardIcon,
   Add,
   Search,
+  Groups,
+  Event as EventIcon,
+  TrendingUp,
+  Edit,
+  Visibility,
+  MoreVert,
+  Person,
+  CheckCircle,
+  Schedule,
+  EmailOutlined,
 } from '@mui/icons-material';
 
 import { Event, Participant, DashboardStats } from '@/types';
@@ -32,7 +53,7 @@ import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
-import { mockVisitors, mockExhibitors, mockEvent, mockStats } from '@/lib/mockData';
+import { apiService } from '@/services/apiService';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
 
@@ -43,8 +64,19 @@ export default function EventAdminDashboard() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   
+  // State for real data
+  const [stats, setStats] = useState<DashboardStats>({
+    totalEvents: 0,
+    activeEvents: 0,
+    totalParticipants: 0,
+    registeredVisitors: 0,
+    registeredExhibitors: 0,
+    pendingInvitations: 0,
+    matchmakingScore: 0,
+  });
+  const [visitors, setVisitors] = useState<Participant[]>([]);
+  const [exhibitors, setExhibitors] = useState<Participant[]>([]);
   const [event, setEvent] = useState<Event | null>(null);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [visitorsUploadOpen, setVisitorsUploadOpen] = useState(false);
   const [exhibitorsUploadOpen, setExhibitorsUploadOpen] = useState(false);
@@ -93,22 +125,143 @@ export default function EventAdminDashboard() {
   }, [identifier, dispatch]);
 
   useEffect(() => {
-    fetchDashboardData();
+    loadDashboardData();
   }, [identifier]);
 
-  const fetchDashboardData = async () => {
+  const loadDashboardData = async () => {
     try {
-      // Using mock data for demonstration, but customize for identifier
-      const customEvent = {
-        ...mockEvent,
+      setLoading(true);
+      
+      // Load real data from APIs
+      const [visitorsResponse, exhibitorsResponse] = await Promise.all([
+        // Load visitors using apiService
+        apiService.getAllVisitors(identifier).catch(() => ({ success: false, data: { result: [] } })),
+        // Load exhibitors using fieldMappingApi
+        fieldMappingApi.getAllExhibitors(identifier).catch(() => ({ statusCode: 404, result: [] }))
+      ]);
+      
+      console.log('Dashboard API responses:', { visitorsResponse, exhibitorsResponse });
+      
+      // Process visitors data
+      let visitorsData: Participant[] = [];
+      if (visitorsResponse && visitorsResponse.success && visitorsResponse.data?.result) {
+        // Transform API data to Participant format using actual API structure
+        visitorsData = visitorsResponse.data.result.map((visitor: any) => ({
+          id: visitor.id?.toString() || '',
+          firstName: visitor.firstName || '',
+          lastName: visitor.lastName || '',
+          email: visitor.email || '',
+          company: visitor.userProfile?.companyName || '',
+          jobTitle: visitor.userProfile?.jobTitle || visitor.userProfile?.designation || '',
+          phone: visitor.userProfile?.phone || '',
+          country: visitor.customData?.countryName || '',
+          status: visitor.statusName === 'Active' ? 'registered' : 'invited',
+          type: 'visitor' as const,
+          eventId: identifier,
+          registrationDate: visitor.createdDate ? new Date(visitor.createdDate) : new Date(),
+          invitationSent: true, // Assume sent if they exist in system
+          invitationDate: visitor.createdDate ? new Date(visitor.createdDate) : undefined,
+          checkedIn: false, // Not provided in API
+          lastActivity: visitor.modifiedDate ? new Date(visitor.modifiedDate) : undefined,
+          createdAt: visitor.createdDate ? new Date(visitor.createdDate) : new Date(),
+          updatedAt: visitor.modifiedDate ? new Date(visitor.modifiedDate) : new Date(),
+          interests: [], // Not provided in current API
+          customData: {
+            salutation: visitor.salutation || '',
+            middleName: visitor.mIddleName || '',
+            gender: visitor.gender || '',
+            dateOfBirth: visitor.dateOfBirth,
+            nationality: visitor.userProfile?.nationality || '',
+            linkedInProfile: visitor.userProfile?.linkedInProfile || '',
+            instagramProfile: visitor.userProfile?.instagramProfile || '',
+            gitHubProfile: visitor.userProfile?.gitHubProfile || '',
+            twitterProfile: visitor.userProfile?.twitterProfile || '',
+            businessEmail: visitor.userProfile?.businessEmail || '',
+            experienceYears: visitor.userProfile?.experienceYears || 0,
+            decisionmaker: visitor.userProfile?.decisionmaker || false,
+            addressLine1: visitor.customData?.addressLine1 || '',
+            addressLine2: visitor.customData?.addressLine2 || '',
+            cityName: visitor.customData?.cityName || '',
+            stateName: visitor.customData?.stateName || '',
+            postalCode: visitor.customData?.postalCode || '',
+            location: [visitor.customData?.cityName, visitor.customData?.stateName, visitor.customData?.countryName].filter(Boolean).join(', ') || '',
+            avatar: `${visitor.firstName?.charAt(0) || ''}${visitor.lastName?.charAt(0) || ''}`,
+          }
+        }));
+      }
+      
+      // Process exhibitors data
+      let exhibitorsData: Participant[] = [];
+      if (exhibitorsResponse && exhibitorsResponse.statusCode === 200 && exhibitorsResponse.result) {
+        // Transform API data to Participant format
+        exhibitorsData = exhibitorsResponse.result.map((exhibitor: any) => ({
+          id: exhibitor.id?.toString() || '',
+          firstName: exhibitor.firstName || '',
+          lastName: exhibitor.lastName || '',
+          email: exhibitor.email || '',
+          company: exhibitor.companyName || '',
+          jobTitle: exhibitor.jobTitle || '',
+          phone: exhibitor.phoneNumber || '',
+          country: exhibitor.country || '',
+          status: exhibitor.status || 'registered',
+          type: 'exhibitor' as const,
         eventId: identifier,
-        name: `${identifier} Event`,
-        description: `Event management dashboard for ${identifier}`
-      };
-      setEvent(customEvent);
-      setStats(mockStats);
+          registrationDate: exhibitor.registrationDate ? new Date(exhibitor.registrationDate) : new Date(),
+          invitationSent: exhibitor.invitationSent ?? false,
+          invitationDate: exhibitor.invitationDate ? new Date(exhibitor.invitationDate) : undefined,
+          checkedIn: exhibitor.checkedIn ?? false,
+          lastActivity: exhibitor.lastActivity ? new Date(exhibitor.lastActivity) : undefined,
+          createdAt: exhibitor.createdAt ? new Date(exhibitor.createdAt) : new Date(),
+          updatedAt: exhibitor.updatedAt ? new Date(exhibitor.updatedAt) : new Date(),
+          interests: exhibitor.interests || [],
+          customData: {
+            boothNumber: exhibitor.boothNumber,
+            boothSize: exhibitor.boothSize,
+            website: exhibitor.website,
+            ...exhibitor.customData
+          }
+        }));
+      }
+      
+      // Update state with real data
+      setVisitors(visitorsData);
+      setExhibitors(exhibitorsData);
+      
+      // Calculate dynamic stats from actual data
+      const registeredVisitors = visitorsData.filter(v => v.status === 'registered').length;
+      const registeredExhibitors = exhibitorsData.filter(e => e.status === 'registered').length;
+      const invitedVisitors = visitorsData.filter(v => v.status === 'invited').length;
+      const invitedExhibitors = exhibitorsData.filter(e => e.status === 'invited').length;
+      const totalPendingInvitations = invitedVisitors + invitedExhibitors;
+      
+      setStats({
+        totalEvents: 1,
+        activeEvents: 1,
+        totalParticipants: visitorsData.length + exhibitorsData.length,
+        registeredVisitors: visitorsData.length, // Total visitors (registered + invited)
+        registeredExhibitors: exhibitorsData.length, // Total exhibitors (registered + invited)
+        pendingInvitations: totalPendingInvitations,
+        matchmakingScore: 0, // TODO: Calculate based on actual matching data
+      });
+      
+      // TODO: Load actual event data when API is available
+      setEvent(null);
+      
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error loading dashboard data:', error);
+      // Set fallback empty state
+      setStats({
+        totalEvents: 1,
+        activeEvents: 1,
+        totalParticipants: 0,
+        registeredVisitors: 0,
+        registeredExhibitors: 0,
+        pendingInvitations: 0,
+        matchmakingScore: 0,
+      });
+      setVisitors([]);
+      setExhibitors([]);
+      setEvent(null);
     } finally {
       setLoading(false);
     }
@@ -164,6 +317,11 @@ export default function EventAdminDashboard() {
         
         // Redirect to matching page
         router.push(`/${identifier}/event-admin/visitors/matching`);
+        
+        // Reload dashboard data to reflect new uploads
+        setTimeout(() => {
+          loadDashboardData();
+        }, 1000);
       } else {
         // Handle API errors
         const errorMessage = suggestResponse.statusCode !== 200 
@@ -219,6 +377,11 @@ export default function EventAdminDashboard() {
         
         // Redirect to matching page
         router.push(`/${identifier}/event-admin/exhibitors/matching`);
+        
+        // Reload dashboard data to reflect new uploads
+        setTimeout(() => {
+          loadDashboardData();
+        }, 1000);
       } else {
         // Handle API errors
         const errorMessage = suggestResponse.statusCode !== 200 
@@ -243,7 +406,7 @@ export default function EventAdminDashboard() {
       value: stats?.registeredVisitors || 0,
       icon: <People sx={{ fontSize: 40 }} />,
       color: '#2e7d32',
-      subtitle: `${mockVisitors.filter(v => v.status === 'registered').length} registered`,
+      subtitle: `${visitors.filter(v => v.status === 'registered').length} registered`,
       action: {
         label: 'Add Visitors',
         icon: <Add />,
@@ -255,7 +418,7 @@ export default function EventAdminDashboard() {
       value: stats?.registeredExhibitors || 0,
       icon: <Business sx={{ fontSize: 40 }} />,
       color: '#ed6c02',
-      subtitle: `${mockExhibitors.filter(e => e.status === 'registered').length} registered`,
+      subtitle: `${exhibitors.filter(e => e.status === 'registered').length} registered`,
       action: {
         label: 'Add Exhibitors',
         icon: <Add />,
@@ -275,8 +438,6 @@ export default function EventAdminDashboard() {
       }
     },
   ];
-
-
 
   return (
     <RoleBasedRoute allowedRoles={['event-admin', 'it-admin']}>
@@ -346,9 +507,6 @@ export default function EventAdminDashboard() {
           </Box>
         }
       >
-
-          
-          
       {/* Main Content */}
       <Box
         component="main"
@@ -361,7 +519,7 @@ export default function EventAdminDashboard() {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Box>
                 <Typography variant="h5" component="h1" gutterBottom>
-                  Welcome, {user?.name }!
+                  Welcome, {user?.firstName} {user?.lastName}!
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
                   Manage your event and track participant engagement
@@ -370,11 +528,9 @@ export default function EventAdminDashboard() {
             </Box>
 
             {/* Event Details */}
-            {event && (
-              <Box mb={1}>
-                <EventDetailsCard event={event} onEventUpdate={fetchDashboardData} />
-              </Box>
-            )}
+            <Box mb={1}>
+              <EventDetailsCard onEventUpdate={loadDashboardData} />
+            </Box>
 
             {/* Stats Cards with Actions */}
             <Grid container spacing={3}>

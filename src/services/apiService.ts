@@ -367,6 +367,115 @@ export const eventsApi = {
   delete: (id: string) => apiService.delete(`/events/${id}`),
   getTheme: (id: string) => apiService.get(`/events/${id}/theme`),
   updateTheme: (id: string, theme: any) => apiService.put(`/events/${id}/theme`, theme),
+  
+  // New API methods for event details and theme management
+  getEventDetails: async (identifier: string) => {
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/Event/GetEventDetails`;
+    
+    const token = localStorage.getItem('jwtToken');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await axios.get(url, { headers, timeout: 30000 });
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('Error fetching event details:', error);
+      throw error;
+    }
+  },
+
+  updateEventDetails: async (identifier: string, eventData: any) => {
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/Event/UpdateEventDetails`;
+    
+    const token = localStorage.getItem('jwtToken');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await axios.put(url, eventData, { headers, timeout: 30000 });
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('Error updating event details:', error);
+      throw error;
+    }
+  },
+
+  getEventThemeDetails: async (identifier: string) => {
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/Event/getEventThemeDetails`;
+    
+    const token = localStorage.getItem('jwtToken');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await axios.get(url, { headers, timeout: 30000 });
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('Error fetching event theme details:', error);
+      throw error;
+    }
+  },
+
+  updateEventTheme: async (identifier: string, themeData: any) => {
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/Event/updateEventTheme`;
+    
+    const token = localStorage.getItem('jwtToken');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await axios.put(url, themeData, { headers, timeout: 30000 });
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('Error updating event theme:', error);
+      throw error;
+    }
+  },
 };
 
 export const usersApi = {

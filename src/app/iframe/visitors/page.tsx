@@ -51,27 +51,59 @@ interface VisitorCardProps {
   isClient: boolean;
 }
 
-// Transform API visitor data to UI format
-const transformVisitorData = (apiVisitor: ApiVisitorData): TransformedVisitor => {
+// Transform API visitor data to UI format - only use actual API data
+const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, index: number): TransformedVisitor => {
   return {
+    // API fields - only use actual data from API
     id: apiVisitor.id.toString(),
-    firstName: apiVisitor.firstName,
-    lastName: apiVisitor.lastName,
-    email: apiVisitor.email,
-    company: 'Unknown Company', // Default since API doesn't provide company
-    jobTitle: 'Professional', // Default since API doesn't provide job title
-    country: 'Unknown', // Default since API doesn't provide country
-    status: apiVisitor.userStatusId === 1 ? 'registered' : 'invited',
-    interests: [], // Default empty array since API doesn't provide interests
-    type: 'visitor',
+    firstName: apiVisitor.firstName || '',
+    lastName: apiVisitor.lastName || '',
+    email: apiVisitor.email || '',
+    
+    // Only use API data, no fallbacks to generated data
+    company: apiVisitor.userProfile?.companyName || '',
+    jobTitle: apiVisitor.userProfile?.jobTitle || apiVisitor.userProfile?.designation || '',
+    phone: apiVisitor.userProfile?.phone || undefined,
+    country: apiVisitor.customData?.countryName || undefined,
+    interests: [], // Not provided in current API response
+    status: apiVisitor.statusName === 'Active' ? 'registered' : 'invited',
+    type: 'visitor' as const,
+    eventId: identifier,
+    registrationDate: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : new Date(),
+    invitationSent: true, // Assume sent if they exist in system
+    invitationDate: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : undefined,
+    checkedIn: false, // Not provided in API
+    lastActivity: apiVisitor.modifiedDate ? new Date(apiVisitor.modifiedDate) : undefined,
+    createdAt: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : new Date(),
+    updatedAt: apiVisitor.modifiedDate ? new Date(apiVisitor.modifiedDate) : new Date(),
+    
     customData: {
-      salutation: apiVisitor.salutation,
-      middleName: apiVisitor.mIddleName,
-      location: 'Unknown Location',
-      experience: '1-3 years', // Default experience
-      matchScore: 0,
-      industry: 'Technology',
-      lookingFor: ['Networking', 'Business Solutions'],
+      // Only API-based fields
+      salutation: apiVisitor.salutation || '',
+      middleName: apiVisitor.mIddleName || '',
+      gender: apiVisitor.gender || '',
+      dateOfBirth: apiVisitor.dateOfBirth,
+      nationality: apiVisitor.userProfile?.nationality || '',
+      linkedInProfile: apiVisitor.userProfile?.linkedInProfile || '',
+      instagramProfile: apiVisitor.userProfile?.instagramProfile || '',
+      gitHubProfile: apiVisitor.userProfile?.gitHubProfile || '',
+      twitterProfile: apiVisitor.userProfile?.twitterProfile || '',
+      businessEmail: apiVisitor.userProfile?.businessEmail || '',
+      experienceYears: apiVisitor.userProfile?.experienceYears || 0,
+      decisionmaker: apiVisitor.userProfile?.decisionmaker || false,
+      addressLine1: apiVisitor.customData?.addressLine1 || '',
+      addressLine2: apiVisitor.customData?.addressLine2 || '',
+      cityName: apiVisitor.customData?.cityName || '',
+      stateName: apiVisitor.customData?.stateName || '',
+      postalCode: apiVisitor.customData?.postalCode || '',
+      location: [apiVisitor.customData?.cityName, apiVisitor.customData?.stateName, apiVisitor.customData?.countryName].filter(Boolean).join(', ') || undefined,
+      avatar: `${apiVisitor.firstName?.charAt(0) || ''}${apiVisitor.lastName?.charAt(0) || ''}`,
+      
+      // Only use API data when available
+      experience: apiVisitor.userProfile?.experienceYears ? `${apiVisitor.userProfile.experienceYears} years` : undefined,
+      matchScore: undefined, // Not provided in current API
+      industry: undefined, // Not provided in current API
+      lookingFor: [], // Not provided in current API
     },
   };
 };
@@ -274,13 +306,15 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
           </Box>
         )}
 
-        {/* Show interest level */}
+        {/* Show interest level - only if match score exists from API */}
+        {visitor.customData?.matchScore && (
         <Box mb={1}>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <TrendingUp sx={{ fontSize: 12 }} />
-            Interest Level: {matchScore >= 90 ? 'Very High' : matchScore >= 80 ? 'High' : matchScore >= 70 ? 'Medium' : 'Low'}
+              Interest Level: {visitor.customData.matchScore >= 90 ? 'Very High' : visitor.customData.matchScore >= 80 ? 'High' : visitor.customData.matchScore >= 70 ? 'Medium' : 'Low'}
           </Typography>
         </Box>
+        )}
 
         <Divider sx={{ mb: 2 }} />
 
@@ -434,7 +468,7 @@ function VisitorListView() {
       const response = await apiService.getAllVisitors(identifier, true);
       
       if (response.success && response.data?.result) {
-        const transformedVisitors = response.data.result.map(transformVisitorData);
+        const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, identifier, index));
         setVisitors(transformedVisitors);
       } else {
         setError('Failed to fetch visitors data');
@@ -468,9 +502,9 @@ function VisitorListView() {
     return matchesSearch && matchesStatus && matchesExperience;
   });
 
-  // Sample exhibitor data for match calculation
-  const sampleExhibitorCompany = "AI Technologies Inc";
-  const sampleExhibitorServices = ["AI Chatbots", "ML Analytics", "Computer Vision"];
+  // Sample exhibitor data for match calculation - removed static data
+  const sampleExhibitorCompany = "";
+  const sampleExhibitorServices: string[] = [];
 
   return (
     <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
@@ -487,7 +521,7 @@ function VisitorListView() {
       {/* Search and Filters */}
       <Box mb={3}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               placeholder="Search visitors..."
@@ -503,7 +537,7 @@ function VisitorListView() {
               sx={{ bgcolor: 'background.paper' }}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <Select
                 value={filterStatus}
@@ -518,8 +552,9 @@ function VisitorListView() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth >
+          {experiences.length > 0 && (
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
               <Select
                 value={filterExperience}
                 onChange={(e) => setFilterExperience(e.target.value)}
@@ -535,34 +570,8 @@ function VisitorListView() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Box display="flex" gap={1}>
-              <Button
-                variant="contained"
-                startIcon={<TrendingUp />}
-                sx={{ 
-                  bgcolor: theme.palette.primary.main,
-                  '&:hover': { bgcolor: theme.palette.primary.dark }
-                }}
-              >
-                View Analytics
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<GetApp />}
-                sx={{ 
-                  borderColor: theme.palette.primary.main,
-                  color: theme.palette.primary.main,
-                  '&:hover': { 
-                    borderColor: theme.palette.primary.dark,
-                    backgroundColor: theme.palette.primary.light + '20'
-                  }
-                }}
-              >
-                Export
-              </Button>
-            </Box>
-          </Grid>
+          )}
+         
         </Grid>
       </Box>
 

@@ -316,7 +316,10 @@ function ParticipantCards() {
   const [industryFilter, setIndustryFilter] = useState('All Industries');
   
   // Get data synchronously for client-side filtering
-  const data = {
+  const data: {
+    visitors: ParticipantCardProps['participant'][];
+    exhibitors: ParticipantCardProps['participant'][];
+  } = {
     visitors: [],
     exhibitors: [],
   };

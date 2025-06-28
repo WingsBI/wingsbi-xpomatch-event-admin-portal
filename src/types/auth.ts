@@ -11,7 +11,7 @@ export interface User {
   lastLoginAt?: string;
 }
 
-export type UserRole = 'event-admin' | 'visitor' | 'exhibitor';
+export type UserRole = 'it-admin' | 'event-admin' | 'visitor' | 'exhibitor';
 
 export interface LoginCredentials {
   email: string;

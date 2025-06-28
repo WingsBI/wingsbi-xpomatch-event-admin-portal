@@ -1,15 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authApi, LoginCredentials } from '@/services/authApi';
 import { setIdentifier } from './appSlice';
-
-export interface User {
-  id: string;
-  email: string;
-  role: 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
-  eventId?: string;
-  name?: string;
-  avatar?: string;
-}
+import { User } from '@/types/auth';
 
 interface AuthState {
   user: User | null;
@@ -165,9 +157,11 @@ export const restoreAuthState = createAsyncThunk(
         user: {
           id: '1',
           email: 'restored@user.com',
+          firstName: 'Restored',
+          lastName: 'User',
           role: 'event-admin' as const,
           eventId: identifier,
-          name: 'Restored User',
+          createdAt: new Date().toISOString(),
         },
         token,
         refreshToken,

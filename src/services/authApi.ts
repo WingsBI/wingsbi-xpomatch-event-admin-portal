@@ -28,10 +28,12 @@ export interface AuthResponse {
     user: {
       id: string;
       email: string;
+      firstName: string;
+      lastName: string;
       role: 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
       eventId?: string;
-      name?: string;
       avatar?: string;
+      createdAt: string;
     };
     token: string;
     refreshToken?: string;
@@ -168,10 +170,12 @@ class AuthApiService {
           user: {
             id: userId,
             email: userEmail,
+            firstName: firstName || 'Unknown',
+            lastName: lastName || 'User',
             role: userRole,
             eventId: eventId,
-            name: userName,
             avatar: jwtPayload?.avatar,
+            createdAt: new Date().toISOString(),
           },
           token: jwtToken,
           refreshToken: refreshToken,
@@ -270,10 +274,12 @@ class AuthApiService {
           user: {
             id: jwtPayload?.sub || data.userId || '1',
             email: jwtPayload?.email || data.email,
+            firstName: jwtPayload?.firstName || 'Unknown',
+            lastName: jwtPayload?.lastName || 'User',
             role: this.mapRoleToString(jwtPayload?.role || data.role || '2', jwtPayload?.roleName || data.roleName),
             eventId: jwtPayload?.eventId || data.eventId,
-            name: jwtPayload?.name || data.name,
             avatar: jwtPayload?.avatar || data.avatar,
+            createdAt: new Date().toISOString(),
           },
           token: newToken,
           refreshToken: newRefreshToken,

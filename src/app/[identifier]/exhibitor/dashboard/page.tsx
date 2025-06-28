@@ -53,7 +53,7 @@ export default function ExhibitorDashboard() {
       <Container maxWidth="xl">
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" gutterBottom>
-            Welcome, {user?.name || 'Exhibitor'}!
+            Welcome, {user?.firstName} {user?.lastName}!
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Manage your booth and connect with visitors at {identifier}

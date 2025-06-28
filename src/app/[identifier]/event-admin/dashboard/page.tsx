@@ -519,7 +519,7 @@ export default function EventAdminDashboard() {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Box>
                 <Typography variant="h5" component="h1" gutterBottom>
-                  Welcome, {user?.name }!
+                  Welcome, {user?.firstName} {user?.lastName}!
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
                   Manage your event and track participant engagement

@@ -40,9 +40,10 @@ export const extractIdentifierFromURL = (): string => {
 
 const persistConfig = {
   key: 'root',
-  version: 1,
+  version: 2,
   storage: clientStorage,
-  whitelist: ['auth', 'app'], // Only persist auth and app state
+  whitelist: ['app'], // Only persist app state, NOT auth state for security
+  // Removing 'auth' from whitelist prevents automatic login with old tokens
 };
 
 const rootReducer = combineReducers({

@@ -460,7 +460,7 @@ export default function EventAdminDashboard() {
                   </Box>
                 </Box>
               )}
-              renderInput={(params) => (
+                                renderInput={(params) => (
                 <TextField
                   {...params}
                   placeholder="Search pages..."
@@ -468,7 +468,7 @@ export default function EventAdminDashboard() {
                   size="small"
                   InputProps={{
                     ...params.InputProps,
-                    startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />,
+                    startAdornment: <Search sx={{ color: 'rgba(255, 255, 255, 0.8)', mr: 1 ,opacity: 0.7 }} />,
                     sx: {
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                       backdropFilter: 'blur(10px)',
@@ -486,8 +486,8 @@ export default function EventAdminDashboard() {
                         color: 'text.primary',
                       },
                       '& input::placeholder': {
-                        color: 'text.secondary',
-                        opacity: 0.8,
+                        color: 'white',
+                        opacity: 0.7,
                       },
                     },
                   }}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { User, LoginCredentials, AuthResponse, UserRole } from '@/types/auth';
+import { cookies } from 'next/headers';
 
 // Mock user database - replace with your actual database integration
 const mockUsers: Record<string, User & { password: string; userId: string }> = {
@@ -72,13 +73,42 @@ export async function POST(request: NextRequest) {
     const token = generateToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    return NextResponse.json({
+    // Create response
+    const response = NextResponse.json({
       success: true,
       user: user,
       token,
       refreshToken,
       message: `Login successful as ${role || 'event-admin'}`,
     } as AuthResponse);
+
+    // Set HTTP-only cookies for secure token storage
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+      maxAge: 24 * 60 * 60, // 24 hours
+      path: '/',
+    };
+
+    const refreshCookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/',
+    };
+
+    // Set authentication cookies
+    response.cookies.set('auth-token', token, cookieOptions);
+    response.cookies.set('refresh-token', refreshToken, refreshCookieOptions);
+    response.cookies.set('user-data', JSON.stringify(user), {
+      ...cookieOptions,
+      httpOnly: false, // Allow client-side access for user data
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Login error:', error);

@@ -35,8 +35,9 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
 import { RootState, AppDispatch } from "@/store";
-import { loginUser, restoreAuthState } from "@/store/slices/authSlice";
+import { loginUser, restoreAuthState, clearAuth } from "@/store/slices/authSlice";
 import { addNotification, setIdentifier } from "@/store/slices/appSlice";
+import { clearAllAuthData, isValidUserData, getAuthenticationStatus } from '@/utils/authUtils';
 
 // Define color themes
 const colorThemes = {
@@ -94,13 +95,56 @@ export default function EventLoginPage() {
 
   // Try to restore authentication state on page load
   useEffect(() => {
-    const storedToken = localStorage.getItem('jwtToken');
-    
-    if (storedToken && !isAuthenticated && !authLoading && identifier) {
-      console.log("Attempting to restore authentication state from localStorage");
-      dispatch(restoreAuthState(identifier));
-    }
-  }, [isAuthenticated, authLoading, identifier, dispatch]);
+    const restoreAuth = async () => {
+      // First, check if we already have valid authentication
+      if (isAuthenticated && user && isValidUserData(user)) {
+        console.log("User already authenticated with valid data");
+        return;
+      }
+
+      // Check authentication status
+      const authStatus = getAuthenticationStatus();
+      console.log("Authentication status:", authStatus);
+
+      // If we don't have valid stored data, clear everything
+      if (!authStatus.isValid) {
+        console.log("No valid authentication data found, clearing all stored data");
+        clearAllAuthData();
+        return;
+      }
+
+      // Only attempt restore if we have valid tokens and are not already loading
+      if (authStatus.hasLocalStorageToken && !isAuthenticated && !authLoading && identifier) {
+        console.log("Found stored token, attempting to validate authentication state");
+        
+        try {
+          // Validate the token by calling the /me endpoint
+          const response = await fetch('/api/auth/me', {
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user && data.token && isValidUserData(data.user)) {
+              console.log("Token is valid, restoring authentication state");
+              dispatch(restoreAuthState(identifier));
+            } else {
+              console.log("Token validation failed or invalid user data, clearing stored data");
+              clearAllAuthData();
+            }
+          } else {
+            console.log("Token validation failed with status:", response.status);
+            clearAllAuthData();
+          }
+        } catch (error) {
+          console.error("Error validating stored token:", error);
+          clearAllAuthData();
+        }
+      }
+    };
+
+    restoreAuth();
+  }, [isAuthenticated, authLoading, identifier, dispatch, user]);
 
   // Cleanup redirecting state if navigation doesn't happen
   useEffect(() => {
@@ -117,7 +161,8 @@ export default function EventLoginPage() {
 
   // Redirect authenticated users to their appropriate dashboard
   useEffect(() => {
-    if (isAuthenticated && user && !hasJustLoggedIn && !isRedirecting) {
+    // Only redirect if user is properly authenticated with valid data
+    if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn && !isRedirecting) {
       const userRole = user.role;
       let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
       
@@ -127,11 +172,18 @@ export default function EventLoginPage() {
         redirectPath = `/${identifier}/event-admin/exhibitors`;
       }
       
-      console.log("User already authenticated, redirecting to:", redirectPath);
+      console.log("User properly authenticated, redirecting to:", redirectPath);
+      console.log("User data:", { id: user.id, email: user.email, role: user.role });
       setIsRedirecting(true);
       router.push(redirectPath);
+    } else if (isAuthenticated && (!user || !isValidUserData(user))) {
+      // If authenticated but no valid user data, something is wrong - clear auth
+      console.log("Authenticated but invalid user data found - clearing authentication");
+      clearAllAuthData();
+      // Force logout in Redux
+      dispatch(clearAuth());
     }
-  }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router]);
+  }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router, dispatch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,22 +2,32 @@
 
 ## Overview
 
-This implementation resolves the cross-domain authentication issue where users were getting logged in on production without proper authentication tokens. The solution replaces `localStorage`-based token storage with secure HTTP-only cookies.
+This implementation resolves the cross-domain authentication issue where users were getting logged in on production without proper authentication tokens. The solution replaces `localStorage`-based token storage with secure HTTP-only cookies and implements strict validation to prevent automatic login with invalid tokens.
 
-## Problem
+## Problems Solved
 
+### 1. Cross-Domain Authentication Issue
 The original issue occurred because:
 1. **localStorage is origin-specific**: Tokens stored on `localhost:3000` are not accessible on `https://xpomatch-dev-event-admin-portal.azurewebsites.net`
 2. **State inconsistency**: The application showed users as "logged in" but API calls failed with 401 unauthorized errors
 3. **Security vulnerability**: Tokens stored in localStorage are vulnerable to XSS attacks
 
+### 2. Automatic Login with Invalid Tokens
+A critical issue was discovered where users were being automatically logged in when accessing the deployed link without proper authentication:
+1. **Invalid token restoration**: The app was automatically restoring authentication state from old/expired tokens
+2. **Insufficient validation**: No proper validation of stored tokens before considering users authenticated
+3. **Missing user data validation**: Incomplete or corrupt user data was being accepted
+
 ## Solution
 
 The new implementation uses:
 1. **HTTP-Only Cookies**: Secure token storage that's inaccessible to client-side JavaScript
-2. **Cross-domain compatibility**: Proper cookie settings for subdomain sharing
-3. **Fallback mechanism**: localStorage as backup for iframe scenarios
-4. **CORS configuration**: Proper headers for cross-origin requests
+2. **Strict Token Validation**: All stored tokens are validated with the server before being accepted
+3. **User Data Validation**: Complete validation of user data structure and content
+4. **Automatic Cleanup**: Invalid/expired tokens are automatically cleared
+5. **Cross-domain compatibility**: Proper cookie settings for subdomain sharing
+6. **Fallback mechanism**: localStorage as backup for iframe scenarios
+7. **CORS configuration**: Proper headers for cross-origin requests
 
 ## Key Components
 
@@ -32,6 +42,7 @@ The new implementation uses:
 - Validates authentication from cookies
 - Returns user data and token status
 - Handles token expiration
+- Performs strict validation of user data structure
 
 #### Logout Route (`logout/route.ts`)
 - Clears all authentication cookies
@@ -54,20 +65,30 @@ The new implementation uses:
 ### 4. Redux Integration (`/src/store/slices/authSlice.ts`)
 
 - **Cookie restoration**: Restores auth state from cookies on app start
+- **Strict validation**: Only accepts complete and valid user data
 - **Dual storage**: Updates both cookies and localStorage for compatibility
 - **Error handling**: Proper error states and recovery
+- **Automatic cleanup**: Clears invalid data automatically
 
 ### 5. Middleware (`middleware.ts`)
 
 - **CORS handling**: Proper cross-origin headers
-- **Route protection**: Automatic redirects for unauthenticated users
+- **Conservative route protection**: Only redirects when tokens are properly validated
 - **Preflight support**: Handles OPTIONS requests
 
-### 6. Cookie Manager Utility (`/src/utils/cookieManager.ts`)
+### 6. Authentication Utilities (`/src/utils/authUtils.ts`)
 
-- **Centralized management**: Consistent cookie operations
-- **Security defaults**: Proper settings for authentication cookies
-- **Helper methods**: Easy-to-use functions for common operations
+- **Centralized cleanup**: `clearAllAuthData()` function for consistent data clearing
+- **User validation**: `isValidUserData()` for strict user data validation
+- **Token validation**: `isValidTokenFormat()` for basic token format checking
+- **Status checking**: `getAuthenticationStatus()` for comprehensive auth status
+
+### 7. Main Page Protection (`/src/app/[identifier]/page.tsx`)
+
+- **Strict validation**: Only accepts tokens that pass server validation
+- **Complete user data**: Requires all user fields to be present and valid
+- **Automatic cleanup**: Clears invalid data immediately
+- **No automatic login**: Users must provide valid credentials
 
 ## Configuration
 
@@ -147,6 +168,12 @@ if (cookieManager.isAuthenticated()) {
 
 // Using context
 const { isAuthenticated } = useAuth();
+
+// Using utilities for detailed status
+const authStatus = getAuthenticationStatus();
+if (authStatus.isValid) {
+  // User has valid authentication
+}
 ```
 
 ## Security Features
@@ -156,23 +183,63 @@ const { isAuthenticated } = useAuth();
 3. **SameSite Protection**: CSRF attack prevention
 4. **Automatic Expiration**: Tokens expire after set time
 5. **Secure Headers**: Proper CORS and security headers
+6. **Strict Validation**: Server-side token and user data validation
+7. **Automatic Cleanup**: Invalid data is immediately cleared
+
+## Testing the Fix
+
+### Verify No Automatic Login
+
+1. **Clear all browser data**:
+   - Open browser dev tools → Application → Storage
+   - Clear all localStorage, sessionStorage, and cookies
+   - Or use incognito/private browsing mode
+
+2. **Access the deployed link directly**:
+   - Go to `https://xpomatch-dev-event-admin-portal.azurewebsites.net/AUTO/event-admin/dashboard`
+   - **Expected**: You should be redirected to the login page
+   - **Expected**: You should NOT be automatically logged in
+
+3. **Test with invalid tokens**:
+   - Manually add invalid data to localStorage: `localStorage.setItem('jwtToken', 'invalid-token')`
+   - Refresh the page
+   - **Expected**: Invalid token should be cleared and you should see login page
+
+4. **Test proper login flow**:
+   - Login with valid credentials on localhost
+   - Navigate to production URL
+   - **Expected**: Authentication should persist properly with valid cookies
+
+### Verify Cross-Domain Authentication
+
+1. **Login on localhost**:
+   - Go to `http://localhost:3000/AUTO/auth/event-admin/login`
+   - Login with valid credentials
+   - Check that cookies are set in dev tools
+
+2. **Navigate to production**:
+   - Go to production URL
+   - **Expected**: Should remain authenticated
+   - **Expected**: API calls should work without 401 errors
 
 ## Migration from localStorage
 
 The implementation maintains backward compatibility:
 
-1. **Automatic migration**: Existing localStorage tokens are still read
-2. **Gradual transition**: New logins use cookies, old sessions continue working
+1. **Automatic migration**: Existing localStorage tokens are validated before use
+2. **Gradual transition**: New logins use cookies, old sessions are validated
 3. **Iframe support**: localStorage fallback for embedded contexts
+4. **Automatic cleanup**: Invalid data is cleared automatically
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Cookies not set**: Check if domain and path are correct
-2. **CORS errors**: Verify origin is in allowed list
-3. **Authentication loops**: Clear all cookies and localStorage
-4. **iframe issues**: Ensure localStorage fallback is working
+1. **Automatic login issue**: Clear all browser data and test in incognito mode
+2. **Cookies not set**: Check if domain and path are correct
+3. **CORS errors**: Verify origin is in allowed list
+4. **Authentication loops**: Clear all cookies and localStorage
+5. **iframe issues**: Ensure localStorage fallback is working
 
 ### Debug Steps
 
@@ -180,34 +247,35 @@ The implementation maintains backward compatibility:
 2. Verify CORS headers in Network tab
 3. Check console for authentication errors
 4. Test with cleared browser data
+5. Check authentication status with `getAuthenticationStatus()`
 
-## Testing
+### Debug Commands (Browser Console)
 
-### Local Testing
+```javascript
+// Check authentication status
+getAuthenticationStatus()
 
-1. Login on `localhost:3000`
-2. Navigate to production URL (if available)
-3. Verify authentication persists
-4. Test API calls work properly
+// Clear all auth data
+clearAllAuthData()
 
-### Production Testing
-
-1. Deploy changes to production
-2. Test cross-domain navigation
-3. Verify cookie security settings
-4. Test logout functionality
+// Check if user data is valid
+isValidUserData(JSON.parse(localStorage.getItem('user')))
+```
 
 ## Benefits
 
 1. **Security**: HTTP-only cookies prevent XSS attacks
-2. **Compatibility**: Works across subdomains and different environments
-3. **User Experience**: Seamless authentication across domains
-4. **Maintainability**: Centralized cookie management
-5. **Standards Compliance**: Follows modern web security practices
+2. **Reliability**: Strict validation prevents automatic login with invalid tokens
+3. **Compatibility**: Works across subdomains and different environments
+4. **User Experience**: Seamless authentication across domains (only when properly authenticated)
+5. **Maintainability**: Centralized authentication management
+6. **Standards Compliance**: Follows modern web security practices
+7. **No false positives**: Users are only considered authenticated when they have valid, verified credentials
 
 ## Next Steps
 
 1. **Monitor**: Watch for authentication errors in production
 2. **Optimize**: Fine-tune cookie expiration times
 3. **Enhance**: Add refresh token rotation
-4. **Scale**: Consider session management for high traffic 
+4. **Scale**: Consider session management for high traffic
+5. **Security**: Regular token validation and cleanup 

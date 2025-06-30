@@ -48,14 +48,16 @@ export function middleware(request: NextRequest) {
       // Add redirect parameter to return user to original page after login
       loginUrl.searchParams.set('redirect', pathname);
       
+      console.log(`No auth token found for protected route ${pathname}, redirecting to login`);
       return NextResponse.redirect(loginUrl);
     }
 
-    // If token exists but user is on login page, redirect to dashboard
+    // If token exists but user is on login page, validate token first
     if (authToken && pathname.includes('/login')) {
-      const identifier = pathname.split('/')[1];
-      const dashboardUrl = new URL(`/${identifier}/event-admin/dashboard`, request.url);
-      return NextResponse.redirect(dashboardUrl);
+      // Let the client-side validation handle this case
+      // Don't automatically redirect here as the token might be invalid
+      console.log(`Auth token found but user on login page: ${pathname}`);
+      return NextResponse.next();
     }
   }
 

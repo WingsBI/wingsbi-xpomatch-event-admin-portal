@@ -16,6 +16,19 @@ interface ApiError {
   details?: any;
 }
 
+// Helper function to get cookie value
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    const cookieValue = parts.pop()?.split(';').shift();
+    return cookieValue || null;
+  }
+  return null;
+}
+
 class ApiService {
   private axiosInstance: AxiosInstance;
   private baseURL: string;
@@ -30,6 +43,7 @@ class ApiService {
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
       timeout: 30000,
+      withCredentials: true, // Important: include cookies in requests
       headers: {
         'Content-Type': 'application/json',
       },
@@ -44,7 +58,7 @@ class ApiService {
       (config) => {
         const state = store.getState();
         let identifier = state.app?.identifier;
-        const token = state.auth?.token;
+        let token = state.auth?.token;
 
         // If no identifier in Redux, extract from current URL path
         if (!identifier) {
@@ -55,6 +69,18 @@ class ApiService {
               console.log('Using identifier from URL path:', identifier);
             }
           }
+        }
+
+        // If no token in Redux, try to get from cookies
+        if (!token && typeof document !== 'undefined') {
+          token = getCookie('auth-token');
+          console.log('Using token from cookie:', !!token);
+        }
+
+        // Fallback to localStorage for iframe scenarios
+        if (!token && typeof localStorage !== 'undefined') {
+          token = localStorage.getItem('authToken') || localStorage.getItem('jwtToken');
+          console.log('Using token from localStorage:', !!token);
         }
 
         // Throw error if no identifier found
@@ -79,7 +105,7 @@ class ApiService {
           }
         }
 
-        // Add auth token
+        // Add auth token to headers as fallback
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -113,9 +139,31 @@ class ApiService {
         // Handle 401 errors (unauthorized)
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
-          console.log('Handling 401 error - token may need refresh');
-          // Attempt to refresh token or redirect to login
-          // This would be implemented based on your auth strategy
+          console.log('Handling 401 error - checking authentication status');
+          
+          // Try to refresh authentication
+          try {
+            const response = await fetch('/api/auth/me', {
+              credentials: 'include'
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.token) {
+                // Update the authorization header and retry
+                originalRequest.headers.Authorization = `Bearer ${data.token}`;
+                return this.axiosInstance(originalRequest);
+              }
+            }
+          } catch (refreshError) {
+            console.error('Failed to refresh authentication:', refreshError);
+          }
+          
+          // If refresh failed, user needs to login again
+          if (typeof window !== 'undefined') {
+            window.location.href = window.location.pathname.replace(/\/[^\/]+\/dashboard.*/, '/auth/event-admin/login');
+          }
+          
           return Promise.reject(error);
         }
 
@@ -290,22 +338,16 @@ class ApiService {
   // Visitors API methods
   async getAllVisitors(identifier: string, isIframe: boolean = false): Promise<ApiResponse<any>> {
     try {
-      // Get token from Redux store or localStorage for authentication
+      // Get token from cookies first, then fallback to localStorage
       let token = null;
       
-      if (isIframe) {
-        // For iframe context, try to get token from localStorage
-        try {
-          token = localStorage.getItem('jwtToken');
-          console.log('Got token from localStorage (iframe context):', !!token);
-        } catch (e) {
-          console.log('Could not access localStorage in iframe context');
-        }
-      } else {
-        // For normal context, get from Redux store
-        const state = store.getState();
-        token = state.auth?.token;
-        console.log('Got token from Redux store:', !!token);
+      if (typeof document !== 'undefined') {
+        token = getCookie('auth-token');
+      }
+      
+      if (!token && typeof localStorage !== 'undefined') {
+        token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+        console.log('Got token from localStorage (fallback):', !!token);
       }
       
       // Use the Azure API base URL for external API calls
@@ -316,10 +358,10 @@ class ApiService {
         'Content-Type': 'application/json',
       };
       
-              // Add auth token if available
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
+      // Add auth token if available
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
       
       console.log('Making API call to:', url);
       console.log('Is iframe context:', isIframe);
@@ -329,6 +371,7 @@ class ApiService {
       const response = await axios.get(url, {
         timeout: 30000,
         headers,
+        withCredentials: true, // Include cookies
       });
       
       return {

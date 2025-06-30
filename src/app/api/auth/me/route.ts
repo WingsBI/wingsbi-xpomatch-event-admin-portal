@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { User } from '@/types/auth';
 
 // Mock user database - same as login route
@@ -37,32 +38,59 @@ const mockUsers: Record<string, User> = {
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const cookieStore = cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    const userDataCookie = cookieStore.get('user-data')?.value;
+
+    if (!token || !userDataCookie) {
       return NextResponse.json(
-        { error: 'Authorization token required' },
+        { success: false, error: 'No authentication token found' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
-    // Validate and decode token
-    const user = validateToken(token);
-    if (!user) {
+    // Validate token (in real implementation, verify JWT signature)
+    if (!token.startsWith('token_')) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
+        { success: false, error: 'Invalid token format' },
         { status: 401 }
       );
     }
 
-    return NextResponse.json(user);
+    try {
+      // Decode token payload
+      const tokenData = token.replace('token_', '');
+      const payload = JSON.parse(Buffer.from(tokenData, 'base64').toString());
+      
+      // Check if token is expired
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < currentTime) {
+        return NextResponse.json(
+          { success: false, error: 'Token expired' },
+          { status: 401 }
+        );
+      }
+
+      // Parse user data
+      const userData: User = JSON.parse(userDataCookie);
+
+      return NextResponse.json({
+        success: true,
+        user: userData,
+        token: token
+      });
+
+    } catch (parseError) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token or user data' },
+        { status: 401 }
+      );
+    }
 
   } catch (error) {
     console.error('Auth validation error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

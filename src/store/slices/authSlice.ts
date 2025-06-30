@@ -21,6 +21,19 @@ const initialState: AuthState = {
   error: null,
 };
 
+// Helper function to get cookie value
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    const cookieValue = parts.pop()?.split(';').shift();
+    return cookieValue || null;
+  }
+  return null;
+}
+
 // Get API base URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
@@ -39,18 +52,23 @@ export const loginUser = createAsyncThunk(
         return rejectWithValue('Invalid response from server');
       }
       
-      // Store tokens in localStorage for persistence
-      if (response.data.token) {
+      // Store tokens in both cookies (via API) and localStorage for compatibility
+      if (response.data.token && typeof localStorage !== 'undefined') {
         localStorage.setItem('jwtToken', response.data.token);
+        localStorage.setItem('authToken', response.data.token);
       }
-      if (response.data.refreshToken) {
+      if (response.data.refreshToken && typeof localStorage !== 'undefined') {
         localStorage.setItem('refreshToken', response.data.refreshToken);
       }
       
       // Store the identifier for iframe components to use
       if (credentials.identifier) {
-        localStorage.setItem('currentEventIdentifier', credentials.identifier);
-        sessionStorage.setItem('currentEventIdentifier', credentials.identifier);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('currentEventIdentifier', credentials.identifier);
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('currentEventIdentifier', credentials.identifier);
+        }
         
         // Update the Redux store identifier
         dispatch(setIdentifier(credentials.identifier));
@@ -67,25 +85,41 @@ export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
   async ({ identifier, token }: { identifier: string; token?: string }, { dispatch }) => {
     try {
-      const success = await authApi.logout(identifier, token);
+      // Call logout API to clear cookies
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      const success = response.ok;
       
       // Clear tokens from localStorage
-      localStorage.removeItem('jwtToken');
-      localStorage.removeItem('refreshToken');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('currentEventIdentifier');
+      }
       
       // Clear stored identifier
-      localStorage.removeItem('currentEventIdentifier');
-      sessionStorage.removeItem('currentEventIdentifier');
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('currentEventIdentifier');
+      }
       
       return success;
     } catch (error) {
       console.error('Logout error:', error);
       
       // Still clear tokens even if logout API fails
-      localStorage.removeItem('jwtToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('currentEventIdentifier');
-      sessionStorage.removeItem('currentEventIdentifier');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('currentEventIdentifier');
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('currentEventIdentifier');
+      }
       
       return false;
     }
@@ -106,11 +140,12 @@ export const refreshTokenAsync = createAsyncThunk(
         return rejectWithValue('Invalid response from server');
       }
       
-      // Store new tokens in localStorage
-      if (response.data.token) {
+      // Store new tokens in localStorage for compatibility
+      if (response.data.token && typeof localStorage !== 'undefined') {
         localStorage.setItem('jwtToken', response.data.token);
+        localStorage.setItem('authToken', response.data.token);
       }
-      if (response.data.refreshToken) {
+      if (response.data.refreshToken && typeof localStorage !== 'undefined') {
         localStorage.setItem('refreshToken', response.data.refreshToken);
       }
       
@@ -121,51 +156,67 @@ export const refreshTokenAsync = createAsyncThunk(
   }
 );
 
-// Action to restore auth state from localStorage
+// Action to restore auth state from cookies or localStorage
 export const restoreAuthState = createAsyncThunk(
   'auth/restoreAuthState',
   async (identifier: string, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('jwtToken');
-      const refreshToken = localStorage.getItem('refreshToken');
+      // First try to restore from cookies via API
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+      });
       
-      if (!token) {
-        return rejectWithValue('No stored token found');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user && data.token) {
+          // Update localStorage as fallback
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('jwtToken', data.token);
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+          }
+          return {
+            user: data.user,
+            token: data.token,
+            refreshToken: null, // refreshToken is httpOnly, can't access from client
+          };
+        }
       }
       
-      // Check if token is expired
-      if (authApi.isTokenExpired(token)) {
-        if (refreshToken) {
-          // Try to refresh the token
-          const response = await authApi.refreshToken(identifier, refreshToken);
-          if (response.success && response.data) {
-            return response.data;
+      // Fallback to localStorage for compatibility
+      if (typeof localStorage !== 'undefined') {
+        const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+        const userStr = localStorage.getItem('user');
+        
+        if (token && userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            
+            // Check if token is expired
+            if (authApi.isTokenExpired(token)) {
+              if (refreshToken) {
+                // Try to refresh the token
+                const response = await authApi.refreshToken(identifier, refreshToken);
+                if (response.success && response.data) {
+                  return response.data;
+                }
+              }
+              return rejectWithValue('Token expired and refresh failed');
+            }
+            
+            return {
+              user,
+              token,
+              refreshToken,
+            };
+          } catch (parseError) {
+            return rejectWithValue('Invalid stored user data');
           }
         }
-        return rejectWithValue('Token expired and refresh failed');
       }
       
-      // Validate token with API
-      const isValid = await authApi.validateToken(identifier, token);
-      if (!isValid) {
-        return rejectWithValue('Token validation failed');
-      }
-      
-      // Return dummy data since we need to decode the token properly
-      // In a real app, you might want to fetch user profile
-      return {
-        user: {
-          id: '1',
-          email: 'restored@user.com',
-          firstName: 'Restored',
-          lastName: 'User',
-          role: 'event-admin' as const,
-          eventId: identifier,
-          createdAt: new Date().toISOString(),
-        },
-        token,
-        refreshToken,
-      };
+      return rejectWithValue('No stored authentication found');
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to restore auth state');
     }

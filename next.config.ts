@@ -42,11 +42,6 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  // Environment variables configuration
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-  },
-
   // Image configuration if using next/image
   images: {
     domains: ['localhost', 'xpomatch-dev-event-admin-portal.azurewebsites.net'],

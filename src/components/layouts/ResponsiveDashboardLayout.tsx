@@ -371,7 +371,8 @@ export default function ResponsiveDashboardLayout({
 
   // Optimized navigation item renderer - defined before drawerContent
   const renderNavigationItem = useCallback((item: any, level = 0) => (
-    <ListItem key={item.text} disablePadding sx={{ mb: level === 0 ? 0.25 : 0.1, pl: level * 1.2 }}>
+    <React.Fragment key={item.text}>
+      <ListItem disablePadding sx={{ mb: level === 0 ? 0.25 : 0.1, pl: level * 1.2 }}>
         <ListItemButton
           onClick={() => {
             // If sidebar is collapsed and this is a top-level item, expand sidebar first
@@ -392,68 +393,70 @@ export default function ResponsiveDashboardLayout({
             }
           }}
           sx={{
-          borderRadius: level === 0 ? 1.5 : 1,
-          minHeight: ui.sidebarCollapsed && level === 0 ? 40 : level === 0 ? 36 : 32,
-          py: level === 0 ? 0.5 : 0.25,
-          px: level === 0 ? 1 : 0.75,
+            borderRadius: level === 0 ? 1.5 : 1,
+            minHeight: ui.sidebarCollapsed && level === 0 ? 40 : level === 0 ? 36 : 32,
+            py: level === 0 ? 0.5 : 0.25,
+            px: level === 0 ? 1 : 0.75,
             '&:hover': {
-            backgroundColor: level === 0 ? 'primary.main' : 'primary.light',
-            color: level === 0 ? 'white' : 'primary.dark',
-              '& .MuiListItemIcon-root': {
+              backgroundColor: level === 0 ? 'primary.main' : 'primary.light',
               color: level === 0 ? 'white' : 'primary.dark',
-            },
+              '& .MuiListItemIcon-root': {
+                color: level === 0 ? 'white' : 'primary.dark',
+              },
             },
           }}
         >
-        {item.icon && level === 0 && (
+          {item.icon && level === 0 && (
             <ListItemIcon sx={{
-            minWidth: ui.sidebarCollapsed ? 0 : 32,
+              minWidth: ui.sidebarCollapsed ? 0 : 32,
               justifyContent: 'center',
-            color: 'inherit',
-            '& svg': {
-              fontSize: '1.1rem' // Smaller icons
-            }
+              color: 'inherit',
+              '& svg': {
+                fontSize: '1.1rem' // Smaller icons
+              }
             }}>
               {item.icon}
             </ListItemIcon>
           )}
 
-        {/* Small bullet point for child items */}
-        {level > 0 && (
-          <Box sx={{
-            width: 4,
-            height: 4,
-            borderRadius: '50%',
-            backgroundColor: 'text.secondary',
-            mr: 1.5,
-            ml: 0.5,
-            flexShrink: 0
-          }} />
-        )}
+          {/* Small bullet point for child items */}
+          {level > 0 && (
+            <Box sx={{
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
+              backgroundColor: 'text.secondary',
+              mr: 1.5,
+              ml: 0.5,
+              flexShrink: 0
+            }} />
+          )}
 
           {(!ui.sidebarCollapsed || isMobile) && (
             <>
               <ListItemText
                 primary={item.text}
                 primaryTypographyProps={{
-                fontSize: level === 0 ? '0.85rem' : '0.8rem', // Even smaller for child items
-                fontWeight: level === 0 ? 500 : 400,
-                lineHeight: 1.2,
-                color: level > 0 ? 'text.secondary' : 'inherit'
+                  fontSize: level === 0 ? '0.85rem' : '0.8rem', // Even smaller for child items
+                  fontWeight: level === 0 ? 500 : 400,
+                  lineHeight: 1.2,
+                  color: level > 0 ? 'text.secondary' : 'inherit'
                 }}
               />
               {item.children && item.children.length > 0 && (
-              <IconButton size="small" sx={{ p: 0.25 }}>
-                {expandedItems.includes(item.text) ? 
-                  <ExpandLess sx={{ fontSize: '1rem' }} /> : 
-                  <ExpandMore sx={{ fontSize: '1rem' }} />
-                }
+                <IconButton size="small" sx={{ p: 0.25 }}>
+                  {expandedItems.includes(item.text) ? 
+                    <ExpandLess sx={{ fontSize: '1rem' }} /> : 
+                    <ExpandMore sx={{ fontSize: '1rem' }} />
+                  }
                 </IconButton>
               )}
             </>
           )}
         </ListItemButton>
+      </ListItem>
 
+      {/* Render children in a separate fragment to prevent parent from moving */}
       {item.children && item.children.length > 0 && (!ui.sidebarCollapsed || isMobile) && (
         <Collapse in={expandedItems.includes(item.text)} timeout="auto" unmountOnExit>
           <List component="div" disablePadding sx={{ pl: 0.5 }}>
@@ -461,7 +464,7 @@ export default function ResponsiveDashboardLayout({
           </List>
         </Collapse>
       )}
-    </ListItem>
+    </React.Fragment>
   ), [ui.sidebarCollapsed, isMobile, expandedItems, dispatch, router, handleThemeDialogOpen, handleExpandClick]);
 
   // Memoize drawer content to prevent re-renders
@@ -576,7 +579,7 @@ export default function ResponsiveDashboardLayout({
                 color: 'white'
               }}
             >
-              AI Matchmaking
+              Xpo Match
             </Typography>
           </Box>
 

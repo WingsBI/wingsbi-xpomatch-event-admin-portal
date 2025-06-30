@@ -169,6 +169,11 @@ export const restoreAuthState = createAsyncThunk(
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.user && data.token) {
+          // Validate that user data is complete
+          if (!data.user.id || !data.user.email) {
+            return rejectWithValue('Incomplete user data from server');
+          }
+          
           // Update localStorage as fallback
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem('jwtToken', data.token);
@@ -183,7 +188,7 @@ export const restoreAuthState = createAsyncThunk(
         }
       }
       
-      // Fallback to localStorage for compatibility
+      // Fallback to localStorage for compatibility - but with strict validation
       if (typeof localStorage !== 'undefined') {
         const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
         const refreshToken = localStorage.getItem('refreshToken');
@@ -192,6 +197,17 @@ export const restoreAuthState = createAsyncThunk(
         if (token && userStr) {
           try {
             const user = JSON.parse(userStr);
+            
+            // Validate user data structure
+            if (!user.id || !user.email || !user.role) {
+              console.error('Invalid user data structure:', user);
+              // Clear invalid data
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('user');
+              localStorage.removeItem('refreshToken');
+              return rejectWithValue('Invalid stored user data structure');
+            }
             
             // Check if token is expired
             if (authApi.isTokenExpired(token)) {
@@ -202,7 +218,23 @@ export const restoreAuthState = createAsyncThunk(
                   return response.data;
                 }
               }
+              // Clear expired data
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('user');
+              localStorage.removeItem('refreshToken');
               return rejectWithValue('Token expired and refresh failed');
+            }
+            
+            // Validate token with API to ensure it's still valid
+            const isValid = await authApi.validateToken(identifier, token);
+            if (!isValid) {
+              // Clear invalid data
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('user');
+              localStorage.removeItem('refreshToken');
+              return rejectWithValue('Token validation failed');
             }
             
             return {
@@ -211,13 +243,25 @@ export const restoreAuthState = createAsyncThunk(
               refreshToken,
             };
           } catch (parseError) {
-            return rejectWithValue('Invalid stored user data');
+            // Clear corrupted data
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            localStorage.removeItem('refreshToken');
+            return rejectWithValue('Invalid stored user data format');
           }
         }
       }
       
       return rejectWithValue('No stored authentication found');
     } catch (error) {
+      // Clear any stored data on error
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('refreshToken');
+      }
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to restore auth state');
     }
   }

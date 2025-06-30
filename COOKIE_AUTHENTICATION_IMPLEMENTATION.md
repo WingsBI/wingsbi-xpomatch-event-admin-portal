@@ -17,6 +17,14 @@ A critical issue was discovered where users were being automatically logged in w
 1. **Invalid token restoration**: The app was automatically restoring authentication state from old/expired tokens
 2. **Insufficient validation**: No proper validation of stored tokens before considering users authenticated
 3. **Missing user data validation**: Incomplete or corrupt user data was being accepted
+4. **Redux Persist auto-restoration**: Redux Persist was automatically restoring auth state from localStorage, bypassing all validation
+
+### 3. Root Cause - Redux Persist
+The main culprit was **Redux Persist** automatically restoring authentication state:
+- Redux Persist was configured to persist the 'auth' state in localStorage
+- On app startup, it would automatically restore the auth state, making users appear "authenticated"
+- This bypassed all token validation and security checks
+- Users would be automatically redirected to dashboards without proper authentication
 
 ## Solution
 
@@ -25,9 +33,11 @@ The new implementation uses:
 2. **Strict Token Validation**: All stored tokens are validated with the server before being accepted
 3. **User Data Validation**: Complete validation of user data structure and content
 4. **Automatic Cleanup**: Invalid/expired tokens are automatically cleared
-5. **Cross-domain compatibility**: Proper cookie settings for subdomain sharing
-6. **Fallback mechanism**: localStorage as backup for iframe scenarios
-7. **CORS configuration**: Proper headers for cross-origin requests
+5. **No Auto-Restore**: Removed auth state from Redux Persist to prevent automatic login
+6. **Manual Login Required**: Users must explicitly login through the form
+7. **Cross-domain compatibility**: Proper cookie settings for subdomain sharing
+8. **Fallback mechanism**: localStorage as backup for iframe scenarios
+9. **CORS configuration**: Proper headers for cross-origin requests
 
 ## Key Components
 
@@ -83,12 +93,19 @@ The new implementation uses:
 - **Token validation**: `isValidTokenFormat()` for basic token format checking
 - **Status checking**: `getAuthenticationStatus()` for comprehensive auth status
 
-### 7. Main Page Protection (`/src/app/[identifier]/page.tsx`)
+### 7. Redux Store Configuration (`/src/store/index.ts`)
+
+- **Auth state not persisted**: Removed 'auth' from Redux Persist whitelist
+- **Version bump**: Cleared any existing persisted auth state
+- **Fresh auth required**: Users must authenticate fresh on each app visit
+
+### 8. Main Page Protection (`/src/app/[identifier]/page.tsx`)
 
 - **Strict validation**: Only accepts tokens that pass server validation
 - **Complete user data**: Requires all user fields to be present and valid
 - **Automatic cleanup**: Clears invalid data immediately
 - **No automatic login**: Users must provide valid credentials
+- **Redux persist cleanup**: Removes any old persisted auth state
 
 ## Configuration
 
@@ -200,12 +217,17 @@ if (authStatus.isValid) {
    - **Expected**: You should be redirected to the login page
    - **Expected**: You should NOT be automatically logged in
 
-3. **Test with invalid tokens**:
-   - Manually add invalid data to localStorage: `localStorage.setItem('jwtToken', 'invalid-token')`
-   - Refresh the page
-   - **Expected**: Invalid token should be cleared and you should see login page
+3. **Test with old persisted data**:
+   - The app will automatically clear any old persisted auth state
+   - Check console for "Clearing old persisted auth state for security" message
+   - **Expected**: No automatic login occurs
 
-4. **Test proper login flow**:
+4. **Test direct identifier URL**:
+   - Go to `https://xpomatch-dev-event-admin-portal.azurewebsites.net/AUTO`
+   - **Expected**: You should see the login form, NOT be redirected to dashboard
+   - **Expected**: You must enter credentials to proceed
+
+5. **Test proper login flow**:
    - Login with valid credentials on localhost
    - Navigate to production URL
    - **Expected**: Authentication should persist properly with valid cookies
@@ -272,10 +294,46 @@ isValidUserData(JSON.parse(localStorage.getItem('user')))
 6. **Standards Compliance**: Follows modern web security practices
 7. **No false positives**: Users are only considered authenticated when they have valid, verified credentials
 
+## Deployment
+
+### Critical Changes to Deploy
+
+These changes fix the automatic login security issue and MUST be deployed:
+
+1. **Redux Persist Configuration** (`src/store/index.ts`):
+   - Removed 'auth' from persist whitelist
+   - Bumped version to clear old persisted state
+
+2. **Main Page Logic** (`src/app/[identifier]/page.tsx`):
+   - Strict redirect logic (only after form submission)
+   - No automatic auth restoration
+   - Old persisted state cleanup
+
+3. **Auth Utilities** (`src/utils/authUtils.ts`):
+   - Validation functions for user data and tokens
+   - Centralized cleanup function
+
+4. **Updated Middleware** (`middleware.ts`):
+   - More conservative token validation
+
+### Deployment Steps
+
+1. **Build the application**:
+   ```bash
+   npm run build
+   ```
+
+2. **Test locally** to ensure no automatic login occurs
+
+3. **Deploy to production** using your deployment method
+
+4. **Verify fix** by testing the scenarios in the "Testing the Fix" section
+
 ## Next Steps
 
 1. **Monitor**: Watch for authentication errors in production
-2. **Optimize**: Fine-tune cookie expiration times
-3. **Enhance**: Add refresh token rotation
-4. **Scale**: Consider session management for high traffic
-5. **Security**: Regular token validation and cleanup 
+2. **Verify**: Confirm no users are automatically logged in after deployment
+3. **Optimize**: Fine-tune cookie expiration times
+4. **Enhance**: Add refresh token rotation
+5. **Scale**: Consider session management for high traffic
+6. **Security**: Regular token validation and cleanup 

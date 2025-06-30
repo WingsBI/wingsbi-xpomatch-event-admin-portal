@@ -157,10 +157,14 @@ export const refreshTokenAsync = createAsyncThunk(
 );
 
 // Action to restore auth state from cookies or localStorage
+// This should only be called when explicitly requested, not automatically
 export const restoreAuthState = createAsyncThunk(
   'auth/restoreAuthState',
   async (identifier: string, { rejectWithValue }) => {
     try {
+      // Only restore if explicitly called - don't auto-restore on app start
+      console.log("Explicit auth state restoration requested for identifier:", identifier);
+      
       // First try to restore from cookies via API
       const response = await fetch('/api/auth/me', {
         credentials: 'include',
@@ -188,72 +192,10 @@ export const restoreAuthState = createAsyncThunk(
         }
       }
       
-      // Fallback to localStorage for compatibility - but with strict validation
-      if (typeof localStorage !== 'undefined') {
-        const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-        const refreshToken = localStorage.getItem('refreshToken');
-        const userStr = localStorage.getItem('user');
-        
-        if (token && userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            
-            // Validate user data structure
-            if (!user.id || !user.email || !user.role) {
-              console.error('Invalid user data structure:', user);
-              // Clear invalid data
-              localStorage.removeItem('jwtToken');
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('user');
-              localStorage.removeItem('refreshToken');
-              return rejectWithValue('Invalid stored user data structure');
-            }
-            
-            // Check if token is expired
-            if (authApi.isTokenExpired(token)) {
-              if (refreshToken) {
-                // Try to refresh the token
-                const response = await authApi.refreshToken(identifier, refreshToken);
-                if (response.success && response.data) {
-                  return response.data;
-                }
-              }
-              // Clear expired data
-              localStorage.removeItem('jwtToken');
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('user');
-              localStorage.removeItem('refreshToken');
-              return rejectWithValue('Token expired and refresh failed');
-            }
-            
-            // Validate token with API to ensure it's still valid
-            const isValid = await authApi.validateToken(identifier, token);
-            if (!isValid) {
-              // Clear invalid data
-              localStorage.removeItem('jwtToken');
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('user');
-              localStorage.removeItem('refreshToken');
-              return rejectWithValue('Token validation failed');
-            }
-            
-            return {
-              user,
-              token,
-              refreshToken,
-            };
-          } catch (parseError) {
-            // Clear corrupted data
-            localStorage.removeItem('jwtToken');
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            localStorage.removeItem('refreshToken');
-            return rejectWithValue('Invalid stored user data format');
-          }
-        }
-      }
-      
-      return rejectWithValue('No stored authentication found');
+      // Don't fallback to localStorage for automatic restoration
+      // This prevents auto-login with potentially stale data
+      console.log("No valid server session found, requiring manual login");
+      return rejectWithValue('No valid server session found');
     } catch (error) {
       // Clear any stored data on error
       if (typeof localStorage !== 'undefined') {

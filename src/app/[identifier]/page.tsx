@@ -91,6 +91,25 @@ export default function EventLoginPage() {
     if (identifier) {
       dispatch(setIdentifier(identifier));
     }
+    
+    // One-time cleanup of any persisted auth state for security
+    if (typeof localStorage !== 'undefined') {
+      const persistedState = localStorage.getItem('persist:root');
+      if (persistedState) {
+        try {
+          const parsed = JSON.parse(persistedState);
+          if (parsed.auth) {
+            console.log("Clearing old persisted auth state for security");
+            delete parsed.auth;
+            localStorage.setItem('persist:root', JSON.stringify(parsed));
+          }
+        } catch (error) {
+          // If parsing fails, remove the entire persisted state
+          console.log("Clearing corrupted persisted state");
+          localStorage.removeItem('persist:root');
+        }
+      }
+    }
   }, [identifier, dispatch]);
 
   // Try to restore authentication state on page load
@@ -113,9 +132,10 @@ export default function EventLoginPage() {
         return;
       }
 
-      // Only attempt restore if we have valid tokens and are not already loading
-      if (authStatus.hasLocalStorageToken && !isAuthenticated && !authLoading && identifier) {
-        console.log("Found stored token, attempting to validate authentication state");
+      // Don't automatically restore authentication - just validate and clear if invalid
+      // Let users login manually for better security
+      if (authStatus.hasLocalStorageToken && identifier) {
+        console.log("Found stored token, validating but not auto-restoring");
         
         try {
           // Validate the token by calling the /me endpoint
@@ -126,8 +146,9 @@ export default function EventLoginPage() {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.user && data.token && isValidUserData(data.user)) {
-              console.log("Token is valid, restoring authentication state");
-              dispatch(restoreAuthState(identifier));
+              console.log("Token is valid, but requiring manual login for security");
+              // Don't automatically restore - user should login manually
+              // This prevents accidental auto-logins
             } else {
               console.log("Token validation failed or invalid user data, clearing stored data");
               clearAllAuthData();
@@ -161,8 +182,9 @@ export default function EventLoginPage() {
 
   // Redirect authenticated users to their appropriate dashboard
   useEffect(() => {
-    // Only redirect if user is properly authenticated with valid data
-    if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn && !isRedirecting) {
+    // Only redirect if user just logged in successfully through the form
+    // This prevents automatic redirects when users visit the page directly
+    if (isAuthenticated && user && isValidUserData(user) && hasJustLoggedIn && !isRedirecting) {
       const userRole = user.role;
       let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
       
@@ -172,7 +194,7 @@ export default function EventLoginPage() {
         redirectPath = `/${identifier}/event-admin/exhibitors`;
       }
       
-      console.log("User properly authenticated, redirecting to:", redirectPath);
+      console.log("User just logged in successfully, redirecting to:", redirectPath);
       console.log("User data:", { id: user.id, email: user.email, role: user.role });
       setIsRedirecting(true);
       router.push(redirectPath);
@@ -182,6 +204,30 @@ export default function EventLoginPage() {
       clearAllAuthData();
       // Force logout in Redux
       dispatch(clearAuth());
+    } else if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn) {
+      // If user is authenticated but didn't just login, they might have valid session
+      // But we should validate this session before redirecting
+      console.log("User appears authenticated from previous session, validating...");
+      
+      // Validate current session
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(response => response.ok ? response.json() : null)
+        .then(data => {
+          if (data && data.success && data.user && isValidUserData(data.user)) {
+            console.log("Session validated, user can stay authenticated");
+            // Session is valid, user can continue to be authenticated
+            // But don't auto-redirect them - let them use the login form if they want
+          } else {
+            console.log("Session validation failed, clearing authentication");
+            clearAllAuthData();
+            dispatch(clearAuth());
+          }
+        })
+        .catch(error => {
+          console.error("Session validation error:", error);
+          clearAllAuthData();
+          dispatch(clearAuth());
+        });
     }
   }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router, dispatch]);
 

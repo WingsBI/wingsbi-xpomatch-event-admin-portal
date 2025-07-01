@@ -371,7 +371,7 @@ class ApiService {
       const response = await axios.get(url, {
         timeout: 30000,
         headers,
-        withCredentials: true, // Include cookies
+        // Removed withCredentials: true to avoid CORS issues when server uses wildcard origin
       });
       
       return {

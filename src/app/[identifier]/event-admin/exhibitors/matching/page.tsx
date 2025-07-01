@@ -560,7 +560,10 @@ export default function ExhibitorsMatchingPage() {
           {/* Registration Result Dialog */}
           <Dialog
             open={registrationDialogOpen}
-            onClose={() => setRegistrationDialogOpen(false)}
+            onClose={() => {
+              setRegistrationDialogOpen(false);
+              handleReset(); // Clear mapped data when dialog is closed
+            }}
             maxWidth="sm"
             fullWidth
             PaperProps={{
@@ -847,7 +850,8 @@ export default function ExhibitorsMatchingPage() {
               <Button 
                 onClick={() => {
                   setRegistrationDialogOpen(false);
-                  router.back();
+                  handleReset(); // Clear mapped data before navigating back
+                  router.push(`/${identifier}/event-admin/exhibitors`);
                 }}
                 variant="contained"
                 sx={{

@@ -26,8 +26,9 @@ import {
   Menu,
   ListItemIcon,
   ListItemText,
+  TextField,
 } from '@mui/material';
-import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person, Settings, Palette } from '@mui/icons-material';
+import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person, Settings, Palette, Add } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
@@ -58,6 +59,9 @@ export default function VisitorsMatchingPage() {
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const [standardFields, setStandardFields] = useState<StandardField[]>([]);
   const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
+  const [customFieldValues, setCustomFieldValues] = useState<{ [key: string]: string }>({});
+  const [customFieldValidationMessages, setCustomFieldValidationMessages] = useState<{ [key: string]: string }>({});
+  const [isCustomFieldFlags, setIsCustomFieldFlags] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -223,6 +227,72 @@ export default function VisitorsMatchingPage() {
       ...prev,
       [excelColumn]: selectedField
     }));
+    
+    // Set isCustomField flag based on selection
+    setIsCustomFieldFlags(prev => ({
+      ...prev,
+      [excelColumn]: selectedField === 'CUSTOM_FIELD'
+    }));
+    
+    // Clear custom field value and validation message if not selecting custom field
+    if (selectedField !== 'CUSTOM_FIELD') {
+      setCustomFieldValues(prev => {
+        const newValues = { ...prev };
+        delete newValues[excelColumn];
+        return newValues;
+      });
+      
+      setCustomFieldValidationMessages(prev => {
+        const newMessages = { ...prev };
+        delete newMessages[excelColumn];
+        return newMessages;
+      });
+    }
+  };
+
+  const handleCustomFieldChange = (excelColumn: string, customFieldName: string) => {
+    let validationMessage = '';
+    let transformedValue = customFieldName;
+    
+    // Check for invalid characters
+    const hasSpaces = customFieldName.includes(' ');
+    const hasUpperCase = customFieldName !== customFieldName.toLowerCase();
+    
+    if (hasSpaces || hasUpperCase) {
+      const issues = [];
+      if (hasSpaces) issues.push('spaces');
+      if (hasUpperCase) issues.push('uppercase letters');
+      
+      validationMessage = `Field names cannot contain ${issues.join(' or ')}. Use lowercase letters only.`;
+      
+      // Transform the value: remove spaces and convert to lowercase
+      transformedValue = customFieldName.replace(/\s+/g, '').toLowerCase();
+    }
+    
+    // Update the field value with transformed text
+    setCustomFieldValues(prev => ({
+      ...prev,
+      [excelColumn]: transformedValue
+    }));
+    
+    // Update validation message
+    setCustomFieldValidationMessages(prev => ({
+      ...prev,
+      [excelColumn]: validationMessage
+    }));
+    
+    // Clear validation message after 3 seconds if there was an issue
+    if (validationMessage) {
+      setTimeout(() => {
+        setCustomFieldValidationMessages(prev => {
+          const newMessages = { ...prev };
+          if (newMessages[excelColumn] === validationMessage) {
+            delete newMessages[excelColumn];
+          }
+          return newMessages;
+        });
+      }, 3000);
+    }
   };
 
   const handleSave = async () => {
@@ -235,14 +305,35 @@ export default function VisitorsMatchingPage() {
         throw new Error('File storage ID not found. Please upload an Excel file first.');
       }
 
+      // Validate custom fields have names
+      const invalidCustomFields = Object.entries(selectedMappings)
+        .filter(([excelColumn, standardField]) => 
+          standardField === 'CUSTOM_FIELD' && 
+          (!customFieldValues[excelColumn] || customFieldValues[excelColumn].trim() === '')
+        );
+
+      if (invalidCustomFields.length > 0) {
+        throw new Error('Please provide names for all custom fields before saving.');
+      }
+
       // Create the registration payload with proper structure
       const mappings = Object.entries(selectedMappings)
         .filter(([excelColumn, standardField]) => standardField) // Only include mapped fields
-        .map(([excelColumn, standardField], index) => ({
-          standardFieldIndex: index + 1,
-          standardField,
-          excelColumn
-        }));
+        .map(([excelColumn, standardField], index) => {
+          // For custom fields, use the custom field name instead of 'CUSTOM_FIELD'
+          const finalFieldName = standardField === 'CUSTOM_FIELD' 
+            ? customFieldValues[excelColumn].trim()
+            : standardField;
+          
+          const isCustom = isCustomFieldFlags[excelColumn] || false;
+          
+          return {
+            standardFieldIndex: isCustom ? null : index + 1,
+            standardField: finalFieldName,
+            excelColumn,
+            isCustomField: isCustom
+          };
+        });
 
       if (mappings.length === 0) {
         throw new Error('No field mappings selected. Please map at least one field.');
@@ -277,6 +368,9 @@ export default function VisitorsMatchingPage() {
     setFieldMappings([]);
     setStandardFields([]);
     setSelectedMappings({});
+    setCustomFieldValues({});
+    setCustomFieldValidationMessages({});
+    setIsCustomFieldFlags({});
     setFileStorageId(null);
     setCurrentPage(1);
     setError('No mapping data found. Please upload an Excel file first.');
@@ -421,28 +515,67 @@ export default function VisitorsMatchingPage() {
                 </Typography>
               </Grid>
               <Grid item xs={6}>
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={selectedMappings[mapping.excelColumn] || ''}
-                    onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
-                    displayEmpty
-                    sx={{ 
-                      '& .MuiSelect-select': { 
-                        py: 1,
-                        fontSize: '0.9rem'
-                      }
-                    }}
-                  >
-                    <MenuItem value="" sx={{ fontSize: '0.9rem' }}>
-                      <em>Select field</em>
-                    </MenuItem>
-                    {standardFields.map((field) => (
-                      <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.9rem' }}>
-                        {field.fieldName}
+                <Box>
+                  <FormControl fullWidth size="small">
+                    <Select
+                      value={selectedMappings[mapping.excelColumn] || ''}
+                      onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
+                      displayEmpty
+                      sx={{ 
+                        '& .MuiSelect-select': { 
+                          py: 1,
+                          fontSize: '0.9rem'
+                        }
+                      }}
+                    >
+                      <MenuItem value="CUSTOM_FIELD" sx={{ fontSize: '0.9rem', color: 'primary.main', fontWeight: 'medium' }}>
+                        <Box sx={{ fontSize: '0.8rem',display: 'flex', alignItems: 'left', gap: 0 }}>
+                          <Add sx={{ fontSize: 15 }} />
+                          Custom Field
+                        </Box>
                       </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                      {standardFields.map((field) => (
+                        <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.9rem' }}>
+                          {field.fieldName}
+                        </MenuItem>
+                      ))}
+                      
+                    </Select>
+                  </FormControl>
+                  
+                  {selectedMappings[mapping.excelColumn] === 'CUSTOM_FIELD' && (
+                    <Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Enter custom field"
+                        value={customFieldValues[mapping.excelColumn] || ''}
+                        onChange={(e) => handleCustomFieldChange(mapping.excelColumn, e.target.value)}
+                        sx={{ 
+                          mt: 1,
+                          '& .MuiInputBase-input': {
+                            fontSize: '0.8rem' 
+                          }
+                        }}
+                        autoFocus
+                      />
+                      {customFieldValidationMessages[mapping.excelColumn] && (
+                        <Typography 
+                          variant="caption" 
+                          color="warning.main" 
+                          sx={{ 
+                            display: 'block', 
+                            mt: 0.5, 
+                            fontSize: '0.75rem',
+                            fontWeight: 500
+                          }}
+                        >
+                          {customFieldValidationMessages[mapping.excelColumn]}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Box>
               </Grid>
             </Grid>
           </CardContent>

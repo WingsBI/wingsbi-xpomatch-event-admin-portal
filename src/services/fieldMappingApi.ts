@@ -36,9 +36,10 @@ export interface StandardFieldsResponse {
 }
 
 export interface UserRegistrationMapping {
-  standardFieldIndex: number;
+  standardFieldIndex: number | null;
   standardField: string;
   excelColumn: string;
+  isCustomField: boolean;
 }
 
 export interface UserRegistrationPayload {

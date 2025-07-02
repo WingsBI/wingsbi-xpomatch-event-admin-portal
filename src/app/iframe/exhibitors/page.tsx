@@ -138,8 +138,14 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
     )
   ) || [];
 
-  // Calculate match score only on client side - only if both have interests
-  const matchScore = isClient && exhibitor.customData?.matchScore ? exhibitor.customData.matchScore : 0;
+  // Calculate match score only on client side
+  const matchScore = isClient ? (() => {
+    let score = 60; // Base score
+    score += commonInterests.length * 8;
+    
+    if (exhibitor.company && exhibitor.company.toLowerCase().includes(commonInterests[0].toLowerCase())) score += 15;
+    return Math.min(98, score + Math.floor(Math.random() * 10));
+  })() : 0;
 
   return (
     <Card 
@@ -208,14 +214,14 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
             </Box>
           </Box>
           
-          {matchScore > 0 && (
+          
           <Box display="flex" alignItems="center">
-              <Favorite sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
+              <Favorite sx={{ color: 'rgba(255, 0, 0, 0.5)', fontSize: 20 }} />
             <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
                 {matchScore}
             </Typography>
           </Box>
-          )}
+          
         </Box>
 
         {/* Location and Industry - only show if data exists */}

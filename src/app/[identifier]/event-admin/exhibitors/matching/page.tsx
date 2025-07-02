@@ -25,7 +25,7 @@ import {
   IconButton,
   TextField,
 } from '@mui/material';
-import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business, Settings, Add } from '@mui/icons-material';
+import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business, Settings, Add, Close, RestoreFromTrash } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import type { ExhibitorRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
@@ -68,6 +68,7 @@ export default function ExhibitorsMatchingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [fileStorageId, setFileStorageId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
   // Display all mappings evenly distributed
 
   useEffect(() => {
@@ -276,6 +277,18 @@ export default function ExhibitorsMatchingPage() {
     }
   };
 
+  const handleRemoveField = (excelColumn: string) => {
+    setRemovedFields(prev => new Set(prev).add(excelColumn));
+  };
+
+  const handleRestoreField = (excelColumn: string) => {
+    setRemovedFields(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(excelColumn);
+      return newSet;
+    });
+  };
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -288,8 +301,8 @@ export default function ExhibitorsMatchingPage() {
 
       // Validate custom fields have names
       const invalidCustomFields = Object.entries(selectedMappings)
-        .filter(([excelColumn, standardField]) =>
-          standardField === 'CUSTOM_FIELD' &&
+        .filter(([excelColumn, standardField]) => 
+          standardField === 'CUSTOM_FIELD' && 
           (!customFieldValues[excelColumn] || customFieldValues[excelColumn].trim() === '')
         );
 
@@ -299,15 +312,15 @@ export default function ExhibitorsMatchingPage() {
 
       // Create the registration payload with proper structure
       const mappings = Object.entries(selectedMappings)
-        .filter(([excelColumn, standardField]) => standardField) // Only include mapped fields
+        .filter(([excelColumn, standardField]) => standardField && !removedFields.has(excelColumn)) // Only include mapped fields that are not removed
         .map(([excelColumn, standardField], index) => {
           // For custom fields, use the custom field name instead of 'CUSTOM_FIELD'
-          const finalFieldName = standardField === 'CUSTOM_FIELD'
+          const finalFieldName = standardField === 'CUSTOM_FIELD' 
             ? customFieldValues[excelColumn].trim()
             : standardField;
-
+          
           const isCustom = isCustomFieldFlags[excelColumn] || false;
-
+          
           return {
             standardFieldIndex: isCustom ? null : index + 1,
             standardField: finalFieldName,
@@ -329,7 +342,7 @@ export default function ExhibitorsMatchingPage() {
 
       // Call the registration API
       const response = await fieldMappingApi.registerExhibitors(identifier, payload);
-
+      
       console.log('Registration response:', response);
 
       // Set the result and show dialog
@@ -337,8 +350,8 @@ export default function ExhibitorsMatchingPage() {
       setRegistrationDialogOpen(true);
 
     } catch (error) {
-      console.error('Error registering users:', error);
-      setError(error instanceof Error ? error.message : 'Failed to register users');
+      console.error('Error registering exhibitors:', error);
+      setError(error instanceof Error ? error.message : 'Failed to register exhibitors');
     } finally {
       setIsSaving(false);
     }
@@ -356,6 +369,7 @@ export default function ExhibitorsMatchingPage() {
     setCurrentPage(1);
     setError('No mapping data found. Please upload an Excel file first.');
     setRegistrationResult(null);
+    setRemovedFields(new Set());
 
     // Clear session storage - using exhibitors-specific keys
     sessionStorage.removeItem('exhibitors_fieldMappingData');
@@ -475,87 +489,133 @@ export default function ExhibitorsMatchingPage() {
 
   const renderMappingColumn = (mappings: FieldMapping[]) => (
     <Box sx={{ height: '100%', overflow: 'hidden' }}>
-      {mappings.map((mapping, index) => (
-        <Card key={mapping.excelColumn} sx={{ mb: 2, boxShadow: 2, borderRadius: 2 }}>
-          <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={5}>
-                <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.9rem', wordBreak: 'break-word', lineHeight: 1.4 }}>
+      {mappings.map((mapping, index) => {
+        const isRemoved = removedFields.has(mapping.excelColumn);
+        return (
+          <Card 
+            key={mapping.excelColumn} 
+            sx={{ 
+              mb: 2, 
+              boxShadow: 2, 
+              borderRadius: 2,
+              opacity: isRemoved ? 0.5 : 1,
+              border: isRemoved ? '1px dashed #ccc' : 'none'
+            }}
+          >
+            <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.9rem', wordBreak: 'break-word', lineHeight: 1.4, flex: 1 }}>
                   {mapping.excelColumn}
                 </Typography>
-              </Grid>
-              <Grid item xs={1} display="flex" justifyContent="center">
-                <Typography variant="body1" color="primary" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
-                  →
+                {!isRemoved ? (
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveField(mapping.excelColumn)}
+                    sx={{ 
+                      p: 0.5, 
+                      ml: 1,
+                      color: 'error.main',
+                      '&:hover': { backgroundColor: 'error.light', color: 'white' }
+                    }}
+                  >
+                    <Close sx={{ fontSize: 16 }} />
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRestoreField(mapping.excelColumn)}
+                    sx={{ 
+                      p: 0.5, 
+                      ml: 1,
+                      color: 'success.main',
+                      '&:hover': { backgroundColor: 'success.light', color: 'white' }
+                    }}
+                  >
+                    <RestoreFromTrash sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
+              </Box>
+              
+              {isRemoved ? (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.8rem' }}>
+                  Field removed - will not be included in registration
                 </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Box>
-                  <FormControl fullWidth size="small">
-                    <Select
-                      value={selectedMappings[mapping.excelColumn] || ''}
-                      onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
-                      displayEmpty
-                      sx={{
-                        '& .MuiSelect-select': {
-                          py: 1,
-                          fontSize: '0.9rem'
-                        }
-                      }}
-                    >
-                      <MenuItem value="CUSTOM_FIELD" sx={{ fontSize: '0.9rem', color: 'primary.main', fontWeight: 'medium' }}>
-                        <Box sx={{ fontSize: '0.8rem', display: 'flex', alignItems: 'left', gap: 0 }}>
-                          <Add sx={{ fontSize: 15 }} />
-                          Custom Field
-                        </Box>
-                      </MenuItem>
-                      {standardFields.map((field) => (
-                        <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.9rem' }}>
-                          {field.fieldName}
-                        </MenuItem>
-                      ))}
-
-                    </Select>
-                  </FormControl>
-
-                  {selectedMappings[mapping.excelColumn] === 'CUSTOM_FIELD' && (
+              ) : (
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={1} display="flex" justifyContent="center">
+                    <Typography variant="body1" color="primary" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+                      →
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={11}>
                     <Box>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Enter custom field"
-                        value={customFieldValues[mapping.excelColumn] || ''}
-                        onChange={(e) => handleCustomFieldChange(mapping.excelColumn, e.target.value)}
-                        sx={{
-                          mt: 1,
-                          '& .MuiInputBase-input': {
-                            fontSize: '0.8rem'
-                          }
-                        }}
-                        autoFocus
-                      />
-                      {customFieldValidationMessages[mapping.excelColumn] && (
-                        <Typography
-                          variant="caption"
-                          color="warning.main"
-                          sx={{
-                            display: 'block',
-                            mt: 0.5,
-                            fontSize: '0.75rem',
-                            fontWeight: 500
+                      <FormControl fullWidth size="small">
+                        <Select
+                          value={selectedMappings[mapping.excelColumn] || ''}
+                          onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
+                          displayEmpty
+                          sx={{ 
+                            '& .MuiSelect-select': { 
+                              py: 1,
+                              fontSize: '0.9rem'
+                            }
                           }}
                         >
-                          {customFieldValidationMessages[mapping.excelColumn]}
-                        </Typography>
+                          <MenuItem value="CUSTOM_FIELD" sx={{ fontSize: '0.9rem', color: 'primary.main', fontWeight: 'medium' }}>
+                            <Box sx={{ fontSize: '0.8rem',display: 'flex', alignItems: 'left', gap: 0 }}>
+                              <Add sx={{ fontSize: 15 }} />
+                              Custom Field
+                            </Box>
+                          </MenuItem>
+                          {standardFields.map((field) => (
+                            <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.9rem' }}>
+                              {field.fieldName}
+                            </MenuItem>
+                          ))}
+                          
+                        </Select>
+                      </FormControl>
+                      
+                      {selectedMappings[mapping.excelColumn] === 'CUSTOM_FIELD' && (
+                        <Box>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            placeholder="Enter custom field"
+                            value={customFieldValues[mapping.excelColumn] || ''}
+                            onChange={(e) => handleCustomFieldChange(mapping.excelColumn, e.target.value)}
+                            sx={{ 
+                              mt: 1,
+                              '& .MuiInputBase-input': {
+                                fontSize: '0.8rem' 
+                              }
+                            }}
+                            autoFocus
+                          />
+                          {customFieldValidationMessages[mapping.excelColumn] && (
+                            <Typography 
+                              variant="caption" 
+                              color="warning.main" 
+                              sx={{ 
+                                display: 'block', 
+                                mt: 0.5, 
+                                fontSize: '0.75rem',
+                                fontWeight: 500
+                              }}
+                            >
+                              {customFieldValidationMessages[mapping.excelColumn]}
+                            </Typography>
+                          )}
+                        </Box>
                       )}
                     </Box>
-                  )}
-                </Box>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-      ))}
+                  </Grid>
+                </Grid>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
     </Box>
   );
 

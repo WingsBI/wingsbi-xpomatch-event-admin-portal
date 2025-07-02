@@ -84,10 +84,10 @@ export default function VisitorsMatchingPage() {
       setLoading(true);
       setError(null);
 
-      // Get data from session storage first
-      const mappingData = sessionStorage.getItem('fieldMappingData');
-      const standardFieldsData = sessionStorage.getItem('standardFieldsData');
-      const storedFileStorageId = sessionStorage.getItem('fileStorageId');
+      // Get data from session storage first - using visitors-specific keys
+      const mappingData = sessionStorage.getItem('visitors_fieldMappingData');
+      const standardFieldsData = sessionStorage.getItem('visitors_standardFieldsData');
+      const storedFileStorageId = sessionStorage.getItem('visitors_fileStorageId');
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
@@ -201,11 +201,11 @@ export default function VisitorsMatchingPage() {
         });
         setSelectedMappings(defaultMappings);
         
-        // Also store in session storage for future use
-        sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('fileStorageId', responseFileStorageId.toString());
-        sessionStorage.setItem('uploadType', 'visitors');
+        // Also store in session storage for future use - using visitors-specific keys
+        sessionStorage.setItem('visitors_fieldMappingData', JSON.stringify(mappingsData));
+        sessionStorage.setItem('visitors_standardFieldsData', JSON.stringify(standardFieldsResponse.result));
+        sessionStorage.setItem('visitors_fileStorageId', responseFileStorageId.toString());
+        sessionStorage.setItem('visitors_uploadType', 'visitors');
         
       } else {
         // Handle API errors
@@ -376,11 +376,11 @@ export default function VisitorsMatchingPage() {
     setError('No mapping data found. Please upload an Excel file first.');
     setRegistrationResult(null);
     
-    // Clear session storage
-    sessionStorage.removeItem('fieldMappingData');
-    sessionStorage.removeItem('standardFieldsData');
-    sessionStorage.removeItem('fileStorageId');
-    sessionStorage.removeItem('uploadType');
+    // Clear session storage - using visitors-specific keys
+    sessionStorage.removeItem('visitors_fieldMappingData');
+    sessionStorage.removeItem('visitors_standardFieldsData');
+    sessionStorage.removeItem('visitors_fileStorageId');
+    sessionStorage.removeItem('visitors_uploadType');
   };
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -417,7 +417,7 @@ export default function VisitorsMatchingPage() {
   if (error && fieldMappings.length === 0) {
     return (
       <ResponsiveDashboardLayout 
-        title="Visitors Field Mapping"
+        title="Visitors Onboarding"
         
       >
         <Box
@@ -429,41 +429,30 @@ export default function VisitorsMatchingPage() {
           }}
         >
           <Container maxWidth="xl">
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <Button
-                  variant="outlined"
-                  startIcon={<ArrowBack />}
-                  onClick={() => router.back()}
-                >
-                  Back
-                </Button>
-                <Typography variant="h5">
-                  Visitors Field Mapping
+          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+              <Box display="flex" flexDirection="column" gap={1}>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<ArrowBack />}
+                    onClick={() => router.back()}
+                  >
+                    Back
+                  </Button>
+                  
+                </Box>
+
+                <Typography variant="h6">
+                    Visitors Field Mapping
                 </Typography>
-              </Box>
-              
-              <Box display="flex" gap={2} alignItems="center">
-                <IconButton
-                  onClick={handleSettingsClick}
-                  size="small"
-                  aria-label="settings"
-                >
-                  <Settings />
-                </IconButton>
-                <Button
-                  variant="contained"
-                  startIcon={<Upload />}
-                  onClick={() => setUploadDialogOpen(true)}
-                >
-                  Upload Excel File
-                </Button>
+
+                <Typography variant="body1" sx={{ fontSize: '0.85rem' }}>
+                  Upload an Excel file to start mapping visitor fields.
+                </Typography>
               </Box>
             </Box>
 
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
+            
             
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
@@ -586,12 +575,8 @@ export default function VisitorsMatchingPage() {
 
   return (
     <ResponsiveDashboardLayout 
-      title="Visitors Field Mapping"
-      breadcrumbs={[
-        { label: 'Event Admin', href: `/${identifier}/event-admin` },
-        { label: 'Visitors', href: `/${identifier}/event-admin/visitors` },
-        { label: 'Field Mapping' }
-      ]}
+      title="Visitors Onboarding"
+      
     >
       <Box
         component="main"
@@ -621,13 +606,7 @@ export default function VisitorsMatchingPage() {
             </Box>
             
             <Box display="flex" gap={1} alignItems="center">
-              <IconButton
-                onClick={handleSettingsClick}
-                size="small"
-                aria-label="settings"
-              >
-                <Settings />
-              </IconButton>
+              
               <Button
                 variant="outlined"
                 startIcon={<Upload />}

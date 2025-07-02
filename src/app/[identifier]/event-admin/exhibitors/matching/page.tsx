@@ -52,7 +52,7 @@ export default function ExhibitorsMatchingPage() {
   const router = useRouter();
   const params = useParams();
   const identifier = params?.identifier as string;
-  
+
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const [standardFields, setStandardFields] = useState<StandardField[]>([]);
   const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
@@ -79,36 +79,36 @@ export default function ExhibitorsMatchingPage() {
       setLoading(true);
       setError(null);
 
-      // Get data from session storage first
-      const mappingData = sessionStorage.getItem('fieldMappingData');
-      const standardFieldsData = sessionStorage.getItem('standardFieldsData');
-      const storedFileStorageId = sessionStorage.getItem('fileStorageId');
+      // Get data from session storage first - using exhibitors-specific keys
+      const mappingData = sessionStorage.getItem('exhibitors_fieldMappingData');
+      const standardFieldsData = sessionStorage.getItem('exhibitors_standardFieldsData');
+      const storedFileStorageId = sessionStorage.getItem('exhibitors_fileStorageId');
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
         const fields = JSON.parse(standardFieldsData);
-        
+
         // Set fileStorageId if available
         if (storedFileStorageId) {
           setFileStorageId(parseInt(storedFileStorageId, 10));
         }
-        
+
         // Check if we actually have data from the APIs
         if (!fields || fields.length === 0) {
           setError('No standard fields available. Please ensure your backend API is configured to return field data.');
           return;
         }
-        
+
         // Ensure mappings is an array (handle both old and new API response formats)
         const mappingsArray = Array.isArray(mappings) ? mappings : (mappings?.mappings || []);
         if (!mappingsArray || mappingsArray.length === 0) {
           setError('No field mapping suggestions available. Please ensure your backend API is configured to process Excel files and return mapping suggestions.');
           return;
         }
-        
+
         setFieldMappings(mappingsArray);
         setStandardFields(fields);
-        
+
         // Set default selections based on standardField from POST API
         const defaultMappings: { [key: string]: string } = {};
         mappingsArray.forEach((mapping: FieldMapping) => {
@@ -130,37 +130,37 @@ export default function ExhibitorsMatchingPage() {
   const handleFileUpload = async (file: File) => {
     try {
       console.log('Uploading exhibitors file:', file.name);
-      
+
       // Check if user is authenticated
       const token = localStorage.getItem('jwtToken');
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }
-      
+
       setLoading(true);
       setError(null);
-      
+
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
         fieldMappingApi.suggestExhibitorMapping(identifier, file),
         fieldMappingApi.getAllExhibitorStandardFields(identifier)
       ]);
-      
+
       console.log('Suggest mapping response:', suggestResponse);
       console.log('Standard fields response:', standardFieldsResponse);
-      
+
       // Handle authentication errors specifically
       if (suggestResponse.statusCode === 401 || standardFieldsResponse.statusCode === 401) {
         throw new Error('Authentication failed. Your session may have expired. Please log in again.');
       }
-      
+
       // Check if both APIs returned successful responses
       if (suggestResponse.statusCode === 200 && standardFieldsResponse.statusCode === 200) {
         // Check if we have data from both APIs
         if (!standardFieldsResponse.result || standardFieldsResponse.result.length === 0) {
           throw new Error('No standard fields available from backend. Please configure your backend API to return field data.');
         }
-        
+
         // Extract mappings from the nested structure
         const mappingsData = (suggestResponse.result as any)?.mappings || suggestResponse.result;
         if (!mappingsData || mappingsData.length === 0) {
@@ -169,28 +169,28 @@ export default function ExhibitorsMatchingPage() {
 
         // Extract fileStorageId from the suggest response
         const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId; // Default fallback
-        
+
         // Update state directly instead of using session storage
         setFieldMappings(mappingsData);
         setStandardFields(standardFieldsResponse.result);
         setFileStorageId(responseFileStorageId);
-        
+
         // Set default selections based on standardField from POST API
         const defaultMappings: { [key: string]: string } = {};
         mappingsData.forEach((mapping: FieldMapping) => {
           defaultMappings[mapping.excelColumn] = mapping.standardField;
         });
         setSelectedMappings(defaultMappings);
-        
-        // Also store in session storage for future use
-        sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('fileStorageId', responseFileStorageId.toString());
-        sessionStorage.setItem('uploadType', 'exhibitors');
-        
+
+        // Also store in session storage for future use - using exhibitors-specific keys
+        sessionStorage.setItem('exhibitors_fieldMappingData', JSON.stringify(mappingsData));
+        sessionStorage.setItem('exhibitors_standardFieldsData', JSON.stringify(standardFieldsResponse.result));
+        sessionStorage.setItem('exhibitors_fileStorageId', responseFileStorageId.toString());
+        sessionStorage.setItem('exhibitors_uploadType', 'exhibitors');
+
       } else {
         // Handle API errors
-        const errorMessage = suggestResponse.statusCode !== 200 
+        const errorMessage = suggestResponse.statusCode !== 200
           ? (suggestResponse.message || 'Failed to process Excel file')
           : (standardFieldsResponse.message || 'Failed to load standard fields');
         throw new Error(errorMessage);
@@ -208,13 +208,13 @@ export default function ExhibitorsMatchingPage() {
       ...prev,
       [excelColumn]: selectedField
     }));
-    
+
     // Set isCustomField flag based on selection
     setIsCustomFieldFlags(prev => ({
       ...prev,
       [excelColumn]: selectedField === 'CUSTOM_FIELD'
     }));
-    
+
     // Clear custom field value and validation message if not selecting custom field
     if (selectedField !== 'CUSTOM_FIELD') {
       setCustomFieldValues(prev => {
@@ -222,7 +222,7 @@ export default function ExhibitorsMatchingPage() {
         delete newValues[excelColumn];
         return newValues;
       });
-      
+
       setCustomFieldValidationMessages(prev => {
         const newMessages = { ...prev };
         delete newMessages[excelColumn];
@@ -234,34 +234,34 @@ export default function ExhibitorsMatchingPage() {
   const handleCustomFieldChange = (excelColumn: string, customFieldName: string) => {
     let validationMessage = '';
     let transformedValue = customFieldName;
-    
+
     // Check for invalid characters
     const hasSpaces = customFieldName.includes(' ');
     const hasUpperCase = customFieldName !== customFieldName.toLowerCase();
-    
+
     if (hasSpaces || hasUpperCase) {
       const issues = [];
       if (hasSpaces) issues.push('spaces');
       if (hasUpperCase) issues.push('uppercase letters');
-      
+
       validationMessage = `Field names cannot contain ${issues.join(' or ')}. Use lowercase letters only.`;
-      
+
       // Transform the value: remove spaces and convert to lowercase
       transformedValue = customFieldName.replace(/\s+/g, '').toLowerCase();
     }
-    
+
     // Update the field value with transformed text
     setCustomFieldValues(prev => ({
       ...prev,
       [excelColumn]: transformedValue
     }));
-    
+
     // Update validation message
     setCustomFieldValidationMessages(prev => ({
       ...prev,
       [excelColumn]: validationMessage
     }));
-    
+
     // Clear validation message after 3 seconds if there was an issue
     if (validationMessage) {
       setTimeout(() => {
@@ -288,8 +288,8 @@ export default function ExhibitorsMatchingPage() {
 
       // Validate custom fields have names
       const invalidCustomFields = Object.entries(selectedMappings)
-        .filter(([excelColumn, standardField]) => 
-          standardField === 'CUSTOM_FIELD' && 
+        .filter(([excelColumn, standardField]) =>
+          standardField === 'CUSTOM_FIELD' &&
           (!customFieldValues[excelColumn] || customFieldValues[excelColumn].trim() === '')
         );
 
@@ -302,12 +302,12 @@ export default function ExhibitorsMatchingPage() {
         .filter(([excelColumn, standardField]) => standardField) // Only include mapped fields
         .map(([excelColumn, standardField], index) => {
           // For custom fields, use the custom field name instead of 'CUSTOM_FIELD'
-          const finalFieldName = standardField === 'CUSTOM_FIELD' 
+          const finalFieldName = standardField === 'CUSTOM_FIELD'
             ? customFieldValues[excelColumn].trim()
             : standardField;
-          
+
           const isCustom = isCustomFieldFlags[excelColumn] || false;
-          
+
           return {
             standardFieldIndex: isCustom ? null : index + 1,
             standardField: finalFieldName,
@@ -329,7 +329,7 @@ export default function ExhibitorsMatchingPage() {
 
       // Call the registration API
       const response = await fieldMappingApi.registerExhibitors(identifier, payload);
-      
+
       console.log('Registration response:', response);
 
       // Set the result and show dialog
@@ -356,12 +356,12 @@ export default function ExhibitorsMatchingPage() {
     setCurrentPage(1);
     setError('No mapping data found. Please upload an Excel file first.');
     setRegistrationResult(null);
-    
-    // Clear session storage
-    sessionStorage.removeItem('fieldMappingData');
-    sessionStorage.removeItem('standardFieldsData');
-    sessionStorage.removeItem('fileStorageId');
-    sessionStorage.removeItem('uploadType');
+
+    // Clear session storage - using exhibitors-specific keys
+    sessionStorage.removeItem('exhibitors_fieldMappingData');
+    sessionStorage.removeItem('exhibitors_standardFieldsData');
+    sessionStorage.removeItem('exhibitors_fileStorageId');
+    sessionStorage.removeItem('exhibitors_uploadType');
   };
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -375,7 +375,7 @@ export default function ExhibitorsMatchingPage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentMappings = fieldMappings.slice(startIndex, endIndex);
-  
+
   // Distribute current page mappings evenly across 3 columns for better space utilization
   const itemsPerColumn = Math.ceil(currentMappings.length / 3);
   const column1 = currentMappings.slice(0, itemsPerColumn);
@@ -394,12 +394,12 @@ export default function ExhibitorsMatchingPage() {
 
   if (error && fieldMappings.length === 0) {
     return (
-      <ResponsiveDashboardLayout 
-        title="Exhibitors Field Mapping"
-        
+      <ResponsiveDashboardLayout
+        title="Exhibitors Onboarding"
 
 
-        
+
+
       >
         <Box
           component="main"
@@ -410,42 +410,32 @@ export default function ExhibitorsMatchingPage() {
           }}
         >
           <Container maxWidth="xl">
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <Button
-                  variant="outlined"
-                  startIcon={<ArrowBack />}
-                  onClick={() => router.back()}
-                >
-                  Back
-                </Button>
-                <Typography variant="h5">
-                  Exhibitors Field Mapping
+            <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+              <Box display="flex" flexDirection="column" gap={1}>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<ArrowBack />}
+                    onClick={() => router.back()}
+                  >
+                    Back
+                  </Button>
+                  
+                </Box>
+
+                <Typography variant="h6">
+                    Exhibitors Field Mapping
                 </Typography>
-              </Box>
-              
-              <Box display="flex" gap={2} alignItems="center">
-              <IconButton
-                  onClick={handleSettingsClick}
-                  size="small"
-                  aria-label="settings"
-                >
-                  <Settings />
-                </IconButton>
-                <Button
-                  variant="contained"
-                  startIcon={<Upload />}
-                  onClick={() => setUploadDialogOpen(true)}
-                >
-                  Upload Excel File
-                </Button>
+
+                <Typography variant="body1" sx={{ fontSize: '0.85rem' }}>
+                  Upload an Excel file to start mapping exhibitor fields.
+                </Typography>
               </Box>
             </Box>
 
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-            
+
+
+
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
@@ -479,6 +469,10 @@ export default function ExhibitorsMatchingPage() {
     );
   }
 
+
+
+
+
   const renderMappingColumn = (mappings: FieldMapping[]) => (
     <Box sx={{ height: '100%', overflow: 'hidden' }}>
       {mappings.map((mapping, index) => (
@@ -502,8 +496,8 @@ export default function ExhibitorsMatchingPage() {
                       value={selectedMappings[mapping.excelColumn] || ''}
                       onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
                       displayEmpty
-                      sx={{ 
-                        '& .MuiSelect-select': { 
+                      sx={{
+                        '& .MuiSelect-select': {
                           py: 1,
                           fontSize: '0.9rem'
                         }
@@ -520,10 +514,10 @@ export default function ExhibitorsMatchingPage() {
                           {field.fieldName}
                         </MenuItem>
                       ))}
-                      
+
                     </Select>
                   </FormControl>
-                  
+
                   {selectedMappings[mapping.excelColumn] === 'CUSTOM_FIELD' && (
                     <Box>
                       <TextField
@@ -532,7 +526,7 @@ export default function ExhibitorsMatchingPage() {
                         placeholder="Enter custom field"
                         value={customFieldValues[mapping.excelColumn] || ''}
                         onChange={(e) => handleCustomFieldChange(mapping.excelColumn, e.target.value)}
-                        sx={{ 
+                        sx={{
                           mt: 1,
                           '& .MuiInputBase-input': {
                             fontSize: '0.8rem'
@@ -541,12 +535,12 @@ export default function ExhibitorsMatchingPage() {
                         autoFocus
                       />
                       {customFieldValidationMessages[mapping.excelColumn] && (
-                        <Typography 
-                          variant="caption" 
-                          color="warning.main" 
-                          sx={{ 
-                            display: 'block', 
-                            mt: 0.5, 
+                        <Typography
+                          variant="caption"
+                          color="warning.main"
+                          sx={{
+                            display: 'block',
+                            mt: 0.5,
                             fontSize: '0.75rem',
                             fontWeight: 500
                           }}
@@ -565,10 +559,18 @@ export default function ExhibitorsMatchingPage() {
     </Box>
   );
 
+
+
+
+
+
+
+
+
   return (
-    <ResponsiveDashboardLayout 
-      title="Exhibitors Field Mapping"
-      
+    <ResponsiveDashboardLayout
+      title="Exhibitors Onboarding"
+
     >
       <Box
         component="main"
@@ -595,10 +597,12 @@ export default function ExhibitorsMatchingPage() {
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Exhibitors Field Mapping
               </Typography>
+
+
             </Box>
-            
+
             <Box display="flex" gap={1} alignItems="center">
-              <SimpleThemeSelector />
+              
               <Button
                 variant="outlined"
                 startIcon={<Upload />}
@@ -643,19 +647,19 @@ export default function ExhibitorsMatchingPage() {
               </Typography>
             </Alert>
             {totalPages > 1 && (
-              <Pagination 
-                count={totalPages} 
-                page={currentPage} 
+              <Pagination
+                count={totalPages}
+                page={currentPage}
                 onChange={(event, value) => setCurrentPage(value)}
                 size="small"
                 color="primary"
               />
             )}
           </Box>
-          
+
           {/* Maximized Mapping Content - No Scroll, 3 Columns */}
-          <Paper sx={{ 
-            p: 3, 
+          <Paper sx={{
+            p: 3,
             flex: 1,
             overflow: 'hidden',
             display: 'flex',
@@ -708,16 +712,16 @@ export default function ExhibitorsMatchingPage() {
               }
             }}
           >
-            <DialogTitle sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+            <DialogTitle sx={{
+              display: 'flex',
+              alignItems: 'center',
               gap: 2,
               background: '#f8fafc',
               borderBottom: '1px solid #e5e7eb',
               py: 2,
               px: 3
             }}>
-              <Box sx={{ 
+              <Box sx={{
                 background: '#10b981',
                 borderRadius: '50%',
                 p: 1,
@@ -740,7 +744,7 @@ export default function ExhibitorsMatchingPage() {
               {registrationResult && (
                 <Box>
                   {/* Compact Success Summary */}
-                  <Box sx={{ 
+                  <Box sx={{
                     background: '#f0fdf4',
                     border: '1px solid #bbf7d0',
                     borderRadius: 1,
@@ -749,7 +753,7 @@ export default function ExhibitorsMatchingPage() {
                     textAlign: 'center'
                   }}>
                     <Box display="flex" alignItems="center" justifyContent="center" gap={1.5} mb={1}>
-                      <Box sx={{ 
+                      <Box sx={{
                         background: '#10b981',
                         borderRadius: '50%',
                         p: 1,
@@ -767,7 +771,7 @@ export default function ExhibitorsMatchingPage() {
                       New Exhibitors Registered
                     </Typography>
                   </Box>
-                  
+
                   {/* User Lists Section - Side by Side */}
                   <Grid container spacing={2}>
                     {/* Newly Registered Column */}
@@ -777,17 +781,17 @@ export default function ExhibitorsMatchingPage() {
                           <CheckCircle sx={{ fontSize: 16, color: '#10b981' }} />
                           Newly Added ({registrationResult.result.newlyRegisteredEmails.length})
                         </Typography>
-                        <Box sx={{ 
+                        <Box sx={{
                           background: '#f0fdf4',
                           border: '1px solid #bbf7d0',
                           borderRadius: 1,
                           p: 1
                         }}>
                           {registrationResult.result.newlyRegisteredEmails.map((email, index) => (
-                            <Box key={index} sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 1, 
+                            <Box key={index} sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
                               mb: 0.5,
                               p: 1,
                               background: 'white',
@@ -795,7 +799,7 @@ export default function ExhibitorsMatchingPage() {
                               border: '1px solid #e5e7eb',
                               '&:last-child': { mb: 0 }
                             }}>
-                              <Typography variant="caption" sx={{ 
+                              <Typography variant="caption" sx={{
                                 background: '#10b981',
                                 color: 'white',
                                 borderRadius: '50%',
@@ -810,8 +814,8 @@ export default function ExhibitorsMatchingPage() {
                               }}>
                                 {index + 1}
                               </Typography>
-                              <Typography variant="body2" sx={{ 
-                                color: '#374151', 
+                              <Typography variant="body2" sx={{
+                                color: '#374151',
                                 fontSize: '0.8rem',
                                 wordBreak: 'break-word',
                                 overflow: 'hidden',
@@ -824,7 +828,7 @@ export default function ExhibitorsMatchingPage() {
                         </Box>
                       </Grid>
                     )}
-                    
+
                     {/* Already Registered Section */}
                     {registrationResult.result.alreadyRegisteredEmails.length > 0 && (
                       <Grid item xs={registrationResult.result.newlyRegisteredEmails.length > 0 ? 6 : 12}>
@@ -832,7 +836,7 @@ export default function ExhibitorsMatchingPage() {
                           <Business sx={{ fontSize: 16, color: '#d97706' }} />
                           Already Registered ({registrationResult.result.alreadyRegisteredEmails.length})
                         </Typography>
-                        <Box sx={{ 
+                        <Box sx={{
                           background: '#fef3c7',
                           border: '1px solid #fcd34d',
                           borderRadius: 1,
@@ -845,10 +849,10 @@ export default function ExhibitorsMatchingPage() {
                                 {registrationResult.result.alreadyRegisteredEmails
                                   .slice(0, Math.ceil(registrationResult.result.alreadyRegisteredEmails.length / 2))
                                   .map((email: string, index: number) => (
-                                    <Box key={index} sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      gap: 1, 
+                                    <Box key={index} sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 1,
                                       mb: 0.5,
                                       p: 1,
                                       background: 'white',
@@ -856,7 +860,7 @@ export default function ExhibitorsMatchingPage() {
                                       border: '1px solid #e5e7eb',
                                       '&:last-child': { mb: 0 }
                                     }}>
-                                      <Typography variant="caption" sx={{ 
+                                      <Typography variant="caption" sx={{
                                         background: '#d97706',
                                         color: 'white',
                                         borderRadius: '50%',
@@ -871,8 +875,8 @@ export default function ExhibitorsMatchingPage() {
                                       }}>
                                         {index + 1}
                                       </Typography>
-                                      <Typography variant="body2" sx={{ 
-                                        color: '#374151', 
+                                      <Typography variant="body2" sx={{
+                                        color: '#374151',
                                         fontSize: '0.8rem',
                                         wordBreak: 'break-word',
                                         overflow: 'hidden',
@@ -887,10 +891,10 @@ export default function ExhibitorsMatchingPage() {
                                 {registrationResult.result.alreadyRegisteredEmails
                                   .slice(Math.ceil(registrationResult.result.alreadyRegisteredEmails.length / 2))
                                   .map((email: string, index: number) => (
-                                    <Box key={index} sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      gap: 1, 
+                                    <Box key={index} sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 1,
                                       mb: 0.5,
                                       p: 1,
                                       background: 'white',
@@ -898,7 +902,7 @@ export default function ExhibitorsMatchingPage() {
                                       border: '1px solid #e5e7eb',
                                       '&:last-child': { mb: 0 }
                                     }}>
-                                      <Typography variant="caption" sx={{ 
+                                      <Typography variant="caption" sx={{
                                         background: '#d97706',
                                         color: 'white',
                                         borderRadius: '50%',
@@ -913,8 +917,8 @@ export default function ExhibitorsMatchingPage() {
                                       }}>
                                         {Math.ceil(registrationResult.result.alreadyRegisteredEmails.length / 2) + index + 1}
                                       </Typography>
-                                      <Typography variant="body2" sx={{ 
-                                        color: '#374151', 
+                                      <Typography variant="body2" sx={{
+                                        color: '#374151',
                                         fontSize: '0.8rem',
                                         wordBreak: 'break-word',
                                         overflow: 'hidden',
@@ -929,10 +933,10 @@ export default function ExhibitorsMatchingPage() {
                           ) : (
                             /* Single column when sharing space with newly registered users */
                             registrationResult.result.alreadyRegisteredEmails.map((email: string, index: number) => (
-                              <Box key={index} sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 1, 
+                              <Box key={index} sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
                                 mb: 0.5,
                                 p: 1,
                                 background: 'white',
@@ -940,7 +944,7 @@ export default function ExhibitorsMatchingPage() {
                                 border: '1px solid #e5e7eb',
                                 '&:last-child': { mb: 0 }
                               }}>
-                                <Typography variant="caption" sx={{ 
+                                <Typography variant="caption" sx={{
                                   background: '#d97706',
                                   color: 'white',
                                   borderRadius: '50%',
@@ -955,8 +959,8 @@ export default function ExhibitorsMatchingPage() {
                                 }}>
                                   {index + 1}
                                 </Typography>
-                                <Typography variant="body2" sx={{ 
-                                  color: '#374151', 
+                                <Typography variant="body2" sx={{
+                                  color: '#374151',
                                   fontSize: '0.8rem',
                                   wordBreak: 'break-word',
                                   overflow: 'hidden',
@@ -974,13 +978,13 @@ export default function ExhibitorsMatchingPage() {
                 </Box>
               )}
             </DialogContent>
-            <DialogActions sx={{ 
+            <DialogActions sx={{
               background: '#f8fafc',
               borderTop: '1px solid #e5e7eb',
               p: 2,
               justifyContent: 'flex-end'
             }}>
-              <Button 
+              <Button
                 onClick={() => {
                   setRegistrationDialogOpen(false);
                   handleReset(); // Clear mapped data before navigating back
@@ -1007,7 +1011,7 @@ export default function ExhibitorsMatchingPage() {
               </Button>
             </DialogActions>
           </Dialog>
-          
+
           {/* Add CSS animations */}
           <style jsx global>{`
             @keyframes pulse {

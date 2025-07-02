@@ -28,7 +28,7 @@ import {
   ListItemText,
   TextField,
 } from '@mui/material';
-import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person, Settings, Palette, Add } from '@mui/icons-material';
+import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person, Settings, Palette, Add, Close, RestoreFromTrash } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
@@ -72,6 +72,7 @@ export default function VisitorsMatchingPage() {
   const [fileStorageId, setFileStorageId] = useState<number | null>(null);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const settingsOpen = Boolean(settingsAnchorEl);
+  const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
   
   // Display all mappings evenly distributed
 
@@ -84,10 +85,10 @@ export default function VisitorsMatchingPage() {
       setLoading(true);
       setError(null);
 
-      // Get data from session storage first
-      const mappingData = sessionStorage.getItem('fieldMappingData');
-      const standardFieldsData = sessionStorage.getItem('standardFieldsData');
-      const storedFileStorageId = sessionStorage.getItem('fileStorageId');
+      // Get data from session storage first - using visitors-specific keys
+      const mappingData = sessionStorage.getItem('visitors_fieldMappingData');
+      const standardFieldsData = sessionStorage.getItem('visitors_standardFieldsData');
+      const storedFileStorageId = sessionStorage.getItem('visitors_fileStorageId');
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
@@ -201,11 +202,11 @@ export default function VisitorsMatchingPage() {
         });
         setSelectedMappings(defaultMappings);
         
-        // Also store in session storage for future use
-        sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('fileStorageId', responseFileStorageId.toString());
-        sessionStorage.setItem('uploadType', 'visitors');
+        // Also store in session storage for future use - using visitors-specific keys
+        sessionStorage.setItem('visitors_fieldMappingData', JSON.stringify(mappingsData));
+        sessionStorage.setItem('visitors_standardFieldsData', JSON.stringify(standardFieldsResponse.result));
+        sessionStorage.setItem('visitors_fileStorageId', responseFileStorageId.toString());
+        sessionStorage.setItem('visitors_uploadType', 'visitors');
         
       } else {
         // Handle API errors
@@ -318,7 +319,7 @@ export default function VisitorsMatchingPage() {
 
       // Create the registration payload with proper structure
       const mappings = Object.entries(selectedMappings)
-        .filter(([excelColumn, standardField]) => standardField) // Only include mapped fields
+        .filter(([excelColumn, standardField]) => standardField && !removedFields.has(excelColumn)) // Only include mapped fields that are not removed
         .map(([excelColumn, standardField], index) => {
           // For custom fields, use the custom field name instead of 'CUSTOM_FIELD'
           const finalFieldName = standardField === 'CUSTOM_FIELD' 
@@ -363,6 +364,18 @@ export default function VisitorsMatchingPage() {
     }
   };
 
+  const handleRemoveField = (excelColumn: string) => {
+    setRemovedFields(prev => new Set(prev).add(excelColumn));
+  };
+
+  const handleRestoreField = (excelColumn: string) => {
+    setRemovedFields(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(excelColumn);
+      return newSet;
+    });
+  };
+
   const handleReset = () => {
     // Clear all mapping data and return to upload state
     setFieldMappings([]);
@@ -375,12 +388,13 @@ export default function VisitorsMatchingPage() {
     setCurrentPage(1);
     setError('No mapping data found. Please upload an Excel file first.');
     setRegistrationResult(null);
+    setRemovedFields(new Set());
     
-    // Clear session storage
-    sessionStorage.removeItem('fieldMappingData');
-    sessionStorage.removeItem('standardFieldsData');
-    sessionStorage.removeItem('fileStorageId');
-    sessionStorage.removeItem('uploadType');
+    // Clear session storage - using visitors-specific keys
+    sessionStorage.removeItem('visitors_fieldMappingData');
+    sessionStorage.removeItem('visitors_standardFieldsData');
+    sessionStorage.removeItem('visitors_fileStorageId');
+    sessionStorage.removeItem('visitors_uploadType');
   };
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -417,7 +431,7 @@ export default function VisitorsMatchingPage() {
   if (error && fieldMappings.length === 0) {
     return (
       <ResponsiveDashboardLayout 
-        title="Visitors Field Mapping"
+        title="Visitors Onboarding"
         
       >
         <Box
@@ -429,41 +443,30 @@ export default function VisitorsMatchingPage() {
           }}
         >
           <Container maxWidth="xl">
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <Button
-                  variant="outlined"
-                  startIcon={<ArrowBack />}
-                  onClick={() => router.back()}
-                >
-                  Back
-                </Button>
-                <Typography variant="h5">
-                  Visitors Field Mapping
+          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+              <Box display="flex" flexDirection="column" gap={1}>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<ArrowBack />}
+                    onClick={() => router.back()}
+                  >
+                    Back
+                  </Button>
+                  
+                </Box>
+
+                <Typography variant="h6">
+                    Visitors Field Mapping
                 </Typography>
-              </Box>
-              
-              <Box display="flex" gap={2} alignItems="center">
-                <IconButton
-                  onClick={handleSettingsClick}
-                  size="small"
-                  aria-label="settings"
-                >
-                  <Settings />
-                </IconButton>
-                <Button
-                  variant="contained"
-                  startIcon={<Upload />}
-                  onClick={() => setUploadDialogOpen(true)}
-                >
-                  Upload Excel File
-                </Button>
+
+                <Typography variant="body1" sx={{ fontSize: '0.85rem' }}>
+                  Upload an Excel file to start mapping visitor fields.
+                </Typography>
               </Box>
             </Box>
 
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
+            
             
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
@@ -500,21 +503,65 @@ export default function VisitorsMatchingPage() {
 
   const renderMappingColumn = (mappings: FieldMapping[]) => (
     <Box sx={{ height: '100%', overflow: 'hidden' }}>
-      {mappings.map((mapping, index) => (
-        <Card key={mapping.excelColumn} sx={{ mb: 2, boxShadow: 2, borderRadius: 2 }}>
-          <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={5}>
-                <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.9rem', wordBreak: 'break-word', lineHeight: 1.4 }}>
+      {mappings.map((mapping, index) => {
+        const isRemoved = removedFields.has(mapping.excelColumn);
+        return (
+          <Card 
+            key={mapping.excelColumn} 
+            sx={{ 
+              mb: 2, 
+              boxShadow: 2, 
+              borderRadius: 2,
+              opacity: isRemoved ? 0.5 : 1,
+              border: isRemoved ? '1px dashed #ccc' : 'none'
+            }}
+          >
+            <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.9rem', wordBreak: 'break-word', lineHeight: 1.4, flex: 1 }}>
                   {mapping.excelColumn}
                 </Typography>
-              </Grid>
-              <Grid item xs={1} display="flex" justifyContent="center">
-                <Typography variant="body1" color="primary" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
-                  →
+                {!isRemoved ? (
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveField(mapping.excelColumn)}
+                    sx={{ 
+                      p: 0.5, 
+                      ml: 1,
+                      color: 'error.main',
+                      '&:hover': { backgroundColor: 'error.light', color: 'white' }
+                    }}
+                  >
+                    <Close sx={{ fontSize: 16 }} />
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRestoreField(mapping.excelColumn)}
+                    sx={{ 
+                      p: 0.5, 
+                      ml: 1,
+                      color: 'success.main',
+                      '&:hover': { backgroundColor: 'success.light', color: 'white' }
+                    }}
+                  >
+                    <RestoreFromTrash sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
+              </Box>
+              
+              {isRemoved ? (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.8rem' }}>
+                  Field removed - will not be included in registration
                 </Typography>
-              </Grid>
-              <Grid item xs={6}>
+              ) : (
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={1} display="flex" justifyContent="center">
+                    <Typography variant="body1" color="primary" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+                      →
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={11}>
                 <Box>
                   <FormControl fullWidth size="small">
                     <Select
@@ -578,20 +625,18 @@ export default function VisitorsMatchingPage() {
                 </Box>
               </Grid>
             </Grid>
+            )}
           </CardContent>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </Box>
   );
 
   return (
     <ResponsiveDashboardLayout 
-      title="Visitors Field Mapping"
-      breadcrumbs={[
-        { label: 'Event Admin', href: `/${identifier}/event-admin` },
-        { label: 'Visitors', href: `/${identifier}/event-admin/visitors` },
-        { label: 'Field Mapping' }
-      ]}
+      title="Visitors Onboarding"
+      
     >
       <Box
         component="main"
@@ -621,13 +666,7 @@ export default function VisitorsMatchingPage() {
             </Box>
             
             <Box display="flex" gap={1} alignItems="center">
-              <IconButton
-                onClick={handleSettingsClick}
-                size="small"
-                aria-label="settings"
-              >
-                <Settings />
-              </IconButton>
+              
               <Button
                 variant="outlined"
                 startIcon={<Upload />}

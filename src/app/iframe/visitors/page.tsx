@@ -212,7 +212,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
           </Box>
 
           <Box display="flex" alignItems="center">
-          <Favorite sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
+          <Favorite sx={{ color: 'rgba(255, 0, 0, 0.5)', fontSize: 20 }} />
             <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
               {matchScore}
             </Typography>

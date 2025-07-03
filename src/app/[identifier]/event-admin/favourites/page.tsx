@@ -44,7 +44,6 @@ import {
   MoreVert,
   Star,
   StarBorder,
-  Add,
   FilterList,
   Search,
   Delete,
@@ -293,14 +292,12 @@ export default function FavouritesPage() {
       case 0: return filtered; // All
       case 1: return filtered.filter(f => f.type === 'visitor'); // Visitors
       case 2: return filtered.filter(f => f.type === 'exhibitor'); // Exhibitors
-      case 3: return filtered.filter(f => f.priority === 'high'); // High Priority
       default: return filtered;
     }
   };
 
   const getVisitorCount = () => favourites.filter(f => f.type === 'visitor').length;
   const getExhibitorCount = () => favourites.filter(f => f.type === 'exhibitor').length;
-  const getHighPriorityCount = () => favourites.filter(f => f.priority === 'high').length;
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -321,73 +318,53 @@ export default function FavouritesPage() {
         title="My Favourites"
         
       >
-        <Container maxWidth="xl" sx={{ mt: 3, mb: 4 }}>
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="primary">
-                  {favourites.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total Favourites
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="info.main">
-                  {getVisitorCount()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Visitors
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="success.main">
-                  {getExhibitorCount()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Exhibitors
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="error.main">
-                  {getHighPriorityCount()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  High Priority
-                </Typography>
-              </Paper>
-            </Grid>
-          </Grid>
+        <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
+          {/* Header with action buttons and stats */}
+          <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+            {/* Action buttons */}
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <TextField
+                placeholder="Search favourites..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                size="small"
+                sx={{ minWidth: 250 }}
+                InputProps={{
+                  startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<FilterList />}
+              >
+                Filter
+              </Button>
+            </Box>
 
-          <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
-            <TextField
-              placeholder="Search favourites..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              size="small"
-              sx={{ minWidth: 250 }}
-              InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
-            />
-            <Button
-              variant="outlined"
-              startIcon={<FilterList />}
-            >
-              Filter
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-            >
-              Add Favourite
-            </Button>
+            {/* Mini stats badges */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Chip 
+                label={`${favourites.length} Total`}
+                variant="outlined"
+                color="primary"
+                size="small"
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+              <Chip 
+                label={`${getVisitorCount()} Visitors`}
+                variant="outlined"
+                color="info"
+                size="small" 
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+              <Chip 
+                label={`${getExhibitorCount()} Exhibitors`}
+                variant="outlined"
+                color="success"
+                size="small"
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+            </Box>
           </Box>
 
           <Paper sx={{ mb: 3 }}>
@@ -404,13 +381,6 @@ export default function FavouritesPage() {
                 label={
                   <Badge badgeContent={getExhibitorCount()} color="success">
                     Exhibitors
-                  </Badge>
-                } 
-              />
-              <Tab 
-                label={
-                  <Badge badgeContent={getHighPriorityCount()} color="error">
-                    High Priority
                   </Badge>
                 } 
               />

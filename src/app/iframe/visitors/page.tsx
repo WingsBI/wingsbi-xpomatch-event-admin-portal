@@ -96,7 +96,7 @@ const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, in
       cityName: apiVisitor.customData?.cityName || '',
       stateName: apiVisitor.customData?.stateName || '',
       postalCode: apiVisitor.customData?.postalCode || '',
-      location: [apiVisitor.customData?.cityName, apiVisitor.customData?.stateName, apiVisitor.customData?.countryName].filter(Boolean).join(', ') || undefined,
+      location: [apiVisitor.customData?.countryName].filter(Boolean).join(', ') || undefined,
       avatar: `${apiVisitor.firstName?.charAt(0) || ''}${apiVisitor.lastName?.charAt(0) || ''}`,
       
       // Only use API data when available
@@ -324,9 +324,9 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
             <IconButton size="small" sx={{ color: '#0077b5' }}>
               <LinkedIn fontSize="small" />
             </IconButton>
-            <IconButton size="small" sx={{ color: '#1da1f2' }}>
+            {/* <IconButton size="small" sx={{ color: '#1da1f2' }}>
               <Twitter fontSize="small" />
-            </IconButton>
+            </IconButton> */}
             <IconButton size="small" sx={{ color: '#757575' }}>
               <Language fontSize="small" />
             </IconButton>

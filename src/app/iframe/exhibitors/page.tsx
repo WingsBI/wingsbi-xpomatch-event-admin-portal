@@ -352,9 +352,9 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
             <IconButton size="small" sx={{ color: '#0077b5' }}>
               <LinkedIn fontSize="small" />
             </IconButton>
-            <IconButton size="small" sx={{ color: '#1da1f2' }}>
+            {/* <IconButton size="small" sx={{ color: '#1da1f2' }}>
               <Twitter fontSize="small" />
-            </IconButton>
+            </IconButton> */}
             <IconButton size="small" sx={{ color: '#757575' }}>
               <Language fontSize="small" />
             </IconButton>

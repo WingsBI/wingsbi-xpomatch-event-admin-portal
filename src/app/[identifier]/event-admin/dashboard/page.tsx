@@ -533,9 +533,7 @@ export default function EventAdminDashboard() {
                 <Typography variant="h5" component="h1" gutterBottom>
                   Welcome, {user?.firstName} {user?.lastName}!
                 </Typography>
-                <Typography variant="subtitle1" color="text.secondary">
-                  Manage your event and track participant engagement
-                </Typography>
+               
               </Box>
             </Box>
 

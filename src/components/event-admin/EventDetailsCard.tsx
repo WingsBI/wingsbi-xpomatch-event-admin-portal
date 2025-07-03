@@ -250,18 +250,7 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
                   color={getStatusColor(eventDetails.statusName) as any}
                   sx={{ textTransform: 'capitalize' }}
                 />
-                <Typography
-                  variant="body2"
-                  sx={{
-                    bgcolor: 'grey.100',
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 1,
-                    fontFamily: 'monospace',
-                  }}
-                >
-                  {eventDetails.marketingAbbreviation}
-                </Typography>
+                
               </Box>
             </Box>
             <Box display="flex" gap={1}>

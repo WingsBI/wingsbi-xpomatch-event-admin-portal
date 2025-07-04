@@ -175,7 +175,7 @@ export interface ApiVisitorData {
   lastName: string;
   email: string;
   gender: string;
-  dateOfBirth: string | null;
+   dateOfBirth: string | null;
   roleId: number;
   roleName: string;
   userStatusId: number;

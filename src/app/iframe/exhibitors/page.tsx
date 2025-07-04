@@ -42,6 +42,7 @@ import {
 
 import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
+import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
 
 interface ExhibitorCardProps {
   exhibitor: {
@@ -84,6 +85,7 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
     jobTitle: apiExhibitor.jobTitle || '',
     phone: apiExhibitor.phoneNumber || null,
     country: apiExhibitor.country || null,
+    
     
     // Only use API data, no fallbacks to generated data
     interests: apiExhibitor.interests || [],
@@ -190,8 +192,8 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
                 {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                {exhibitor.firstName} {exhibitor.lastName}
-                {exhibitor.jobTitle && ` • ${exhibitor.jobTitle}`}
+               
+                {exhibitor.company && `${exhibitor.company}`}
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
                 {exhibitor.customData?.boothNumber && (
@@ -225,22 +227,29 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
           <Box display="flex" alignItems="center">
             <IconButton 
               onClick={handleFavoriteClick}
-              size="small"
+              size="large"
               sx={{ 
                 p: 0.5,
                 mr: 0.5,
                 '&:hover': {
-                  bgcolor: 'rgba(255, 0, 0, 0.1)'
+                   
+                color: '#b0bec5',
+                filter: 'drop-shadow(0 0 2px rgba(255, 0, 0, 0.1))',
+                  //bgcolor: 'rgba(255, 0, 0, 0.1)'
                 }
               }}
             >
               {isFavorite ? (
                 <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
               ) : (
-                <FavoriteBorder sx={{ color: '#757575', fontSize: 20 }} />
+                <FavoriteBorder  sx={{
+              
+                color: '#b0bec5',
+                filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+              }} />
               )}
             </IconButton>
-            <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
+            <Typography variant="h6" fontWeight="600" color={getMatchScoreColor(matchScore)}>
               {matchScore}
             </Typography>
           </Box>
@@ -352,9 +361,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
             <IconButton size="small" sx={{ color: '#0077b5' }}>
               <LinkedIn fontSize="small" />
             </IconButton>
-            {/* <IconButton size="small" sx={{ color: '#1da1f2' }}>
-              <Twitter fontSize="small" />
-            </IconButton> */}
+           
             <IconButton size="small" sx={{ color: '#757575' }}>
               <Language fontSize="small" />
             </IconButton>
@@ -631,7 +638,7 @@ function ExhibitorListView() {
       <Box mb={2}>
         <Typography variant="body2" color="text.secondary">
           {loading ? 'Loading exhibitors...' : `Showing ${filteredExhibitors.length} of ${exhibitors.length} exhibitors`}
-          {realExhibitors.length > 0 && ' (Live Data)'}
+          {realExhibitors.length > 0 }
         </Typography>
       </Box>
 

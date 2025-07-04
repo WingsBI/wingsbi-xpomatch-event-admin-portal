@@ -50,6 +50,9 @@ import {
   Visibility,
   Message,
   Edit,
+  LinkedIn,
+  Language,
+  ConnectWithoutContact as ConnectIcon,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -259,24 +262,6 @@ export default function FavouritesPage() {
     setSelectedItem(null);
   };
 
-  const getPriorityColor = (priority: FavouriteItem['priority']) => {
-    switch (priority) {
-      case 'high': return 'error';
-      case 'medium': return 'warning';
-      case 'low': return 'success';
-      default: return 'default';
-    }
-  };
-
-  const getStatusColor = (status: FavouriteItem['status']) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'pending': return 'warning';
-      case 'inactive': return 'error';
-      default: return 'default';
-    }
-  };
-
   const getFilteredFavourites = () => {
     let filtered = favourites;
 
@@ -298,14 +283,6 @@ export default function FavouritesPage() {
 
   const getVisitorCount = () => favourites.filter(f => f.type === 'visitor').length;
   const getExhibitorCount = () => favourites.filter(f => f.type === 'exhibitor').length;
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
 
   const handleRemoveFavourite = (id: string) => {
     setFavourites(prev => prev.filter(f => f.id !== id));
@@ -390,170 +367,350 @@ export default function FavouritesPage() {
           <Grid container spacing={3}>
             {getFilteredFavourites().map((item) => (
               <Grid item xs={12} sm={6} lg={4} key={item.id}>
-                <Card sx={{ 
-                  height: '100%',
-                  transition: 'all 0.3s',
-                  '&:hover': { 
-                    transform: 'translateY(-4px)',
-                    boxShadow: 6
-                  }
-                }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
-                          {item.avatar}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="h6" component="div">
-                            {item.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {item.jobTitle}
-                          </Typography>
+                {item.type === 'visitor' ? (
+                  // Visitor Card - matching iframe visitor design
+                  <Card sx={{
+                    height: '100%',
+                    borderRadius: 3,
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                    border: '1px solid #e8eaed',
+                    bgcolor: 'background.paper',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    },
+                  }}>
+                    <CardContent sx={{ p: 2, pb: 1 }}>
+                      {/* Header with Visitor Info and Match Score */}
+                      <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
+                        <Box display="flex" alignItems="center">
+                          <Avatar
+                            sx={{
+                              bgcolor: 'primary.main',
+                              width: 52,
+                              height: 52,
+                              mr: 1,
+                              fontSize: '1.2rem',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            {item.avatar}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+                              {item.name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                              {item.jobTitle}
+                            </Typography>
+                            <Typography variant="body2" color="primary" fontWeight="500">
+                              {item.company}
+                            </Typography>
+                            <Box>
+                              {item.interests.length > 0 && (
+                                <Chip
+                                  label={`${item.interests.length} Relevant Interest${item.interests.length > 1 ? 's' : ''}`}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: '#e8f5e8',
+                                    color: '#2e7d32',
+                                    fontWeight: 500
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
                         </Box>
-                      </Box>
-                      <IconButton size="small" onClick={(e) => handleMenuClick(e, item)}>
-                        <MoreVert />
-                      </IconButton>
-                    </Box>
 
-                    <Box sx={{ mb: 2 }}>
-                      <Chip 
-                        icon={item.type === 'visitor' ? <Person /> : <Business />}
-                        label={item.type}
-                        size="small"
-                        color={item.type === 'visitor' ? 'info' : 'success'}
-                        sx={{ mr: 1 }}
-                      />
-                      <Chip 
-                        label={item.priority}
-                        size="small"
-                        color={getPriorityColor(item.priority)}
-                        sx={{ mr: 1 }}
-                      />
-                      <Chip 
-                        label={item.status}
-                        size="small"
-                        color={getStatusColor(item.status)}
-                      />
-                    </Box>
-
-                    <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'medium' }}>
-                      {item.company}
-                    </Typography>
-
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                        <Email fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">
-                          {item.email}
-                        </Typography>
-                      </Box>
-                      {item.phone && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          <Phone fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {item.phone}
-                          </Typography>
-                        </Box>
-                      )}
-                      {item.location && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <LocationOn fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {item.location}
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Match Score
-                        </Typography>
-                        <Typography variant="h6" color="primary">
-                          {item.matchScore}%
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Rating
-                        </Typography>
-                        <Rating value={item.rating} readOnly size="small" />
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Interests:
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        {item.interests.slice(0, 3).map((interest, idx) => (
-                          <Chip
-                            key={idx}
-                            label={interest}
-                            variant="outlined"
+                        <Box display="flex" alignItems="center">
+                          <IconButton 
+                            onClick={(e) => handleMenuClick(e, item)}
                             size="small"
-                          />
-                        ))}
-                        {item.interests.length > 3 && (
-                          <Chip
-                            label={`+${item.interests.length - 3} more`}
-                            variant="outlined"
-                            size="small"
-                            color="primary"
-                          />
+                            sx={{ 
+                              p: 0.5,
+                              mr: 0.5,
+                              '&:hover': {
+                                bgcolor: 'rgba(255, 0, 0, 0.1)'
+                              }
+                            }}
+                          >
+                            <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+                          </IconButton>
+                          <Typography variant="body2" fontWeight="600" color={
+                            item.matchScore >= 95 ? '#4caf50' :
+                            item.matchScore >= 90 ? '#2196f3' :
+                            item.matchScore >= 85 ? '#ff9800' : '#757575'
+                          }>
+                            {item.matchScore}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Location */}
+                      <Box mb={1}>
+                        {item.location && (
+                          <Box display="flex" alignItems="center" mb={1}>
+                            <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {item.location}
+                            </Typography>
+                          </Box>
                         )}
                       </Box>
-                    </Box>
 
-                    <Divider sx={{ mb: 2 }} />
+                      {/* Relevant Interests */}
+                      {item.interests.length > 0 && (
+                        <Box mb={1}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                            <Star sx={{ fontSize: 14, mr: 0.5 }} />
+                            Relevant Interests:
+                          </Typography>
+                          <Box display="flex" flexWrap="wrap" gap={0.5}>
+                            {item.interests.slice(0, 3).map((interest, index) => (
+                              <Chip
+                                key={index}
+                                label={interest}
+                                size="small"
+                                sx={{ 
+                                  fontSize: '0.75rem',
+                                  bgcolor: '#e3f2fd',
+                                  color: '#1565c0',
+                                  border: 'none',
+                                  fontWeight: 500
+                                }}
+                              />
+                            ))}
+                            {item.interests.length > 3 && (
+                              <Chip
+                                label={`+${item.interests.length - 3}`}
+                                size="small"
+                                sx={{ 
+                                  fontSize: '0.75rem',
+                                  bgcolor: '#e3f2fd',
+                                  color: '#1565c0'
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      )}
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Added: {formatDate(item.addedDate)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Contacts: {item.contactCount}
-                      </Typography>
-                    </Box>
+                      <Divider sx={{ mb: 2 }} />
 
-                    {item.lastContact && (
-                      <Typography variant="body2" color="text.secondary">
-                        Last contact: {formatDate(item.lastContact)}
-                      </Typography>
-                    )}
+                      {/* Action Buttons */}
+                      <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Box display="flex" gap={1}>
+                          <IconButton size="small" sx={{ color: '#0077b5' }}>
+                            <LinkedIn fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" sx={{ color: '#757575' }}>
+                            <Language fontSize="small" />
+                          </IconButton>
+                        </Box>
 
-                    {item.notes && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                          "{item.notes.length > 100 ? item.notes.substring(0, 100) + '...' : item.notes}"
-                        </Typography>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<ConnectIcon />}
+                          sx={{ 
+                            bgcolor: 'primary.main',
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            px: 2,
+                            '&:hover': {
+                              bgcolor: 'primary.dark',
+                            }
+                          }}
+                        >
+                          Connect
+                        </Button>
                       </Box>
-                    )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  // Exhibitor Card - matching iframe exhibitor design
+                  <Card sx={{
+                    height: '100%',
+                    borderRadius: 3,
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                    border: '1px solid #e8eaed',
+                    bgcolor: 'background.paper',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    },
+                  }}>
+                    <CardContent sx={{ p: 2, pb: 1}}>
+                      {/* Header with Company Info and Match Score */}
+                      <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
+                        <Box display="flex" alignItems="center">
+                          <Avatar
+                            sx={{
+                              bgcolor: 'primary.main',
+                              width: 52,
+                              height: 52,
+                              mr: 1,
+                              fontSize: '1.2rem',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            {item.company ? item.company.charAt(0).toUpperCase() : item.avatar}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+                              {item.company || item.name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                              {item.name}
+                              {item.jobTitle && ` • ${item.jobTitle}`}
+                            </Typography>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              {item.customData?.boothNumber && (
+                                <Chip
+                                  label={item.customData.boothNumber}
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: '#e3f2fd',
+                                    color: '#1565c0',
+                                    fontWeight: 500
+                                  }}
+                                />
+                              )}
+                              {item.interests.length > 0 && (
+                                <Chip
+                                  label={`${item.interests.length} Match`}
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: '#e8f5e8',
+                                    color: '#2e7d32',
+                                    fontWeight: 500,
+                                    fontSize: '0.7rem'
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                        
+                        <Box display="flex" alignItems="center">
+                          <IconButton 
+                            onClick={(e) => handleMenuClick(e, item)}
+                            size="small"
+                            sx={{ 
+                              p: 0.5,
+                              mr: 0.5,
+                              '&:hover': {
+                                bgcolor: 'rgba(255, 0, 0, 0.1)'
+                              }
+                            }}
+                          >
+                            <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+                          </IconButton>
+                          <Typography variant="body2" fontWeight="600" color={
+                            item.matchScore >= 95 ? '#4caf50' :
+                            item.matchScore >= 90 ? '#2196f3' :
+                            item.matchScore >= 85 ? '#ff9800' : '#757575'
+                          }>
+                            {item.matchScore}
+                          </Typography>
+                        </Box>
+                      </Box>
 
-                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                      <Button
-                        size="small"
-                        startIcon={<Message />}
-                        variant="outlined"
-                        fullWidth
-                      >
-                        Contact
-                      </Button>
-                      <Button
-                        size="small"
-                        startIcon={<Visibility />}
-                        variant="outlined"
-                        fullWidth
-                      >
-                        View Profile
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
+                      {/* Location and Industry */}
+                      {(item.location || item.customData?.industry) && (
+                        <Box mb={1}>
+                          {item.location && (
+                            <Box display="flex" alignItems="center" mb={1}>
+                              <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                {item.location}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          {item.customData?.industry && (
+                            <Box display="flex" alignItems="center">
+                              <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                {item.customData.industry}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Products/Services Offered */}
+                      {item.customData?.products && item.customData.products.length > 0 && (
+                        <Box mb={1}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                            Products & Services:
+                          </Typography>
+                          <Box display="flex" flexWrap="wrap" gap={0.5}>
+                            {item.customData.products.slice(0, 3).map((service, index) => (
+                              <Chip
+                                key={index}
+                                label={service}
+                                size="small"
+                                sx={{ 
+                                  fontSize: '0.75rem',
+                                  bgcolor: '#f1f3f4',
+                                  color: '#5f6368',
+                                  border: 'none'
+                                }}
+                              />
+                            ))}
+                            {item.customData.products.length > 3 && (
+                              <Chip
+                                label={`+${item.customData.products.length - 3} more`}
+                                size="small"
+                                sx={{ 
+                                  fontSize: '0.75rem',
+                                  bgcolor: '#f1f3f4',
+                                  color: '#5f6368',
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      )}
+
+                      <Divider sx={{ mb: 2 }} />
+
+                      {/* Action Buttons */}
+                      <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Box display="flex" gap={1}>
+                          <IconButton size="small" sx={{ color: '#0077b5' }}>
+                            <LinkedIn fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" sx={{ color: '#757575' }}>
+                            <Language fontSize="small" />
+                          </IconButton>
+                        </Box>
+
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<ConnectIcon />}
+                          sx={{ 
+                            bgcolor: 'primary.main',
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            px: 2,
+                            '&:hover': {
+                              bgcolor: 'primary.dark',
+                            }
+                          }}
+                        >
+                          Connect
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                )}
               </Grid>
             ))}
           </Grid>

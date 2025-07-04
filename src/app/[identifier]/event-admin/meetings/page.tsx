@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
@@ -58,6 +58,8 @@ import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardL
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
+import { eventsApi } from '@/services/apiService';
+import { ApiEventDetails } from '@/types';
 
 interface Meeting {
   id: string;
@@ -286,6 +288,7 @@ const mockMeetings: Meeting[] = [
 
 export default function MeetingsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const identifier = params.identifier as string;
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -296,6 +299,8 @@ export default function MeetingsPage() {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [eventDetails, setEventDetails] = useState<ApiEventDetails | null>(null);
+  const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
 
   // Set identifier in Redux store when component mounts
   useEffect(() => {
@@ -303,6 +308,38 @@ export default function MeetingsPage() {
       dispatch(setIdentifier(identifier));
     }
   }, [identifier, dispatch]);
+
+  // Check for view parameter and set appropriate view
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'calendar') {
+      setShowCalendar(true);
+    } else if (viewParam === 'list') {
+      setShowCalendar(false);
+    }
+  }, [searchParams]);
+
+  // Load event details to get start and end dates
+  useEffect(() => {
+    const loadEventDetails = async () => {
+      try {
+        const response = await eventsApi.getEventDetails(identifier);
+        if (response.success && response.data?.result) {
+          setEventDetails(response.data.result);
+          // Set initial week to event start date
+          const eventStartDate = new Date(response.data.result.startDateTime);
+          const weekStart = getWeekStart(eventStartDate);
+          setCurrentWeekStart(weekStart);
+        }
+      } catch (error) {
+        console.error('Error loading event details:', error);
+      }
+    };
+
+    if (identifier) {
+      loadEventDetails();
+    }
+  }, [identifier]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -330,8 +367,8 @@ export default function MeetingsPage() {
   const getFilteredMeetings = () => {
     const now = new Date();
     switch (tabValue) {
-      case 0: // All meetings
-        return meetings;
+      case 0: // Pending meetings
+        return meetings.filter(m => m.status === 'scheduled');
       case 1: // Upcoming
         return meetings.filter(m => m.dateTime > now && m.status === 'scheduled');
       case 2: // Completed
@@ -412,6 +449,84 @@ export default function MeetingsPage() {
     });
   };
 
+  // Weekly calendar helper functions
+  const getWeekStart = (date: Date) => {
+    const start = new Date(date);
+    const day = start.getDay();
+    const diff = start.getDate() - day; // Start from Sunday
+    start.setDate(diff);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  };
+
+  const getWeekDays = (weekStart: Date) => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  };
+
+  const getHourSlots = () => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour++) {
+      slots.push(hour);
+    }
+    return slots;
+  };
+
+  const getMeetingsForDateAndHour = (date: Date, hour: number) => {
+    return meetings.filter(meeting => {
+      const meetingDate = meeting.dateTime;
+      return meetingDate.getDate() === date.getDate() &&
+             meetingDate.getMonth() === date.getMonth() &&
+             meetingDate.getFullYear() === date.getFullYear() &&
+             meetingDate.getHours() === hour;
+    });
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const newWeekStart = new Date(currentWeekStart);
+    if (direction === 'prev') {
+      newWeekStart.setDate(newWeekStart.getDate() - 7);
+    } else {
+      newWeekStart.setDate(newWeekStart.getDate() + 7);
+    }
+    
+    // Check if new week is within event dates
+    if (eventDetails) {
+      const eventStart = new Date(eventDetails.startDateTime);
+      const eventEnd = new Date(eventDetails.endDateTime);
+      const weekEnd = new Date(newWeekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      // Allow navigation if week overlaps with event duration
+      if (weekEnd >= eventStart && newWeekStart <= eventEnd) {
+        setCurrentWeekStart(newWeekStart);
+      }
+    } else {
+      setCurrentWeekStart(newWeekStart);
+    }
+  };
+
+  const isDateInEventRange = (date: Date) => {
+    if (!eventDetails) return true;
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    eventStart.setHours(0, 0, 0, 0);
+    eventEnd.setHours(23, 59, 59, 999);
+    return date >= eventStart && date <= eventEnd;
+  };
+
+  const formatHour = (hour: number) => {
+    if (hour === 0) return '12 AM';
+    if (hour === 12) return '12 PM';
+    if (hour < 12) return `${hour} AM`;
+    return `${hour - 12} PM`;
+  };
+
   return (
     <RoleBasedRoute allowedRoles={['event-admin']}>
       <ResponsiveDashboardLayout 
@@ -429,13 +544,6 @@ export default function MeetingsPage() {
                 onClick={() => setOpenDialog(true)}
               >
                 Schedule Meeting
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={showCalendar ? <ViewList /> : <CalendarMonth />}
-                onClick={() => setShowCalendar(!showCalendar)}
-              >
-                {showCalendar ? 'List View' : 'Calendar View'}
               </Button>
             </Box>
 
@@ -472,7 +580,7 @@ export default function MeetingsPage() {
             </Box>
           </Box>
 
-          {/* Calendar View */}
+          {/* Weekly Calendar View */}
           {showCalendar ? (
             <Paper sx={{ 
               mb: 3, 
@@ -483,7 +591,7 @@ export default function MeetingsPage() {
               width: '100%',
               borderRadius: 1
             }}>
-              {/* Calendar Header */}
+              {/* Weekly Calendar Header */}
               <Box sx={{ 
                 p: 2, 
                 display: 'flex', 
@@ -492,150 +600,156 @@ export default function MeetingsPage() {
                 bgcolor: 'primary.main',
                 color: 'white'
               }}>
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                <Box>
+                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    {eventDetails ? eventDetails.title : 'Weekly Calendar'}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => navigateMonth('prev')}
-                    sx={{ 
-                      color: 'white', 
-                      borderColor: 'white',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                    }}
-                  >
-                    <ChevronLeft />
-                  </Button>
-                  <Button 
-                    variant="contained" 
-                    size="small"
-                    onClick={() => setCurrentDate(new Date())}
-                    sx={{ 
-                      bgcolor: 'white', 
-                      color: 'primary.main',
-                      '&:hover': { bgcolor: 'grey.100' }
-                    }}
-                  >
-                    Today
-                  </Button>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => navigateMonth('next')}
-                    sx={{ 
-                      color: 'white', 
-                      borderColor: 'white',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                    }}
-                  >
-                    <ChevronRight />
-                  </Button>
+                  {eventDetails && (
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      {eventDetails.locationDetails?.venueName && `${eventDetails.locationDetails.venueName} • `}
+                      {eventDetails.categoryName}
+                    </Typography>
+                  )}
                 </Box>
+                
+                {eventDetails && (
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
+                      <Box>
+                        <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                          Event Start
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          {new Date(eventDetails.startDateTime).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </Typography>
               </Box>
 
-              {/* Weekday Headers */}
+                      <Box sx={{ mx: 1, opacity: 0.6 }}>→</Box>
+                      
+                      <Box>
+                        <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                          Event End
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          {new Date(eventDetails.endDateTime).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {(() => {
+                        const start = new Date(eventDetails.startDateTime);
+                        const end = new Date(eventDetails.endDateTime);
+                        const diffTime = Math.abs(end.getTime() - start.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return `${diffDays} day${diffDays > 1 ? 's' : ''} duration`;
+                      })()}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Week Days Header */}
               <Box sx={{ display: 'flex', bgcolor: 'grey.100', borderBottom: 1, borderColor: 'grey.300' }}>
-                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => (
-                  <Box key={day} sx={{ 
+                {/* Time column header */}
+                <Box sx={{ width: 80, p: 1, borderRight: 1, borderColor: 'grey.300' }}>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+                    Time
+                  </Typography>
+                </Box>
+                
+                {/* Day headers */}
+                {getWeekDays(currentWeekStart).map((day, index) => {
+                  const isInEventRange = isDateInEventRange(day);
+                  const isToday = day.toDateString() === new Date().toDateString();
+                  
+                  return (
+                    <Box key={index} sx={{ 
                     flex: 1, 
                     p: 1, 
                     textAlign: 'center', 
                     borderRight: index < 6 ? 1 : 0, 
-                    borderColor: 'grey.300' 
-                  }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: { xs: '0.8rem', sm: '1rem' } }}>
-                      {day}
+                      borderColor: 'grey.300',
+                      bgcolor: !isInEventRange ? 'grey.200' : isToday ? 'primary.50' : 'transparent'
+                    }}>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: isToday ? 'bold' : 'normal',
+                        color: !isInEventRange ? 'text.disabled' : isToday ? 'primary.main' : 'text.primary',
+                        fontSize: '0.85rem'
+                      }}>
+                        {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: isToday ? 'bold' : 'normal',
+                        color: !isInEventRange ? 'text.disabled' : isToday ? 'primary.main' : 'text.primary',
+                        fontSize: '0.9rem'
+                      }}>
+                        {day.getDate()}
                     </Typography>
                   </Box>
-                ))}
+                  );
+                })}
               </Box>
 
-              {/* Calendar Grid */}
+              {/* Time Grid */}
               <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(7, 1fr)',
-                border: 0,
-                '& > *': {
-                  borderRight: '1px solid',
-                  borderBottom: '1px solid',
-                  borderColor: 'grey.300'
-                },
-                '& > *:nth-of-type(7n)': {
-                  borderRight: 'none'
-                }
+                height: 'calc(24 * 50px)', 
+                overflow: 'auto',
+                position: 'relative'
               }}>
-                {(() => {
-                  const daysInMonth = getDaysInMonth(currentDate);
-                  const firstDay = getFirstDayOfMonth(currentDate);
-                  const totalCells = Math.ceil((daysInMonth + firstDay) / 7) * 7;
-                  const cells = [];
-                  
-                  for (let i = 0; i < totalCells; i++) {
-                    const dayNumber = i - firstDay + 1;
-                    const isValidDay = dayNumber >= 1 && dayNumber <= daysInMonth;
-                    
-                    if (isValidDay) {
-                      const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNumber);
-                      const dayMeetings = getMeetingsForDate(dayDate);
-                      const isToday = dayDate.toDateString() === new Date().toDateString();
-                      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-                      
-                      cells.push(
-                        <Box key={dayNumber} sx={{ 
-                          minHeight: { xs: 80, sm: 90, md: 100 }, 
-                          p: { xs: 0.5, sm: 0.75, md: 1 },
-                          bgcolor: isToday ? 'primary.50' : isWeekend ? 'grey.25' : 'white',
+                {getHourSlots().map((hour) => (
+                  <Box key={hour} sx={{ 
                           display: 'flex',
-                          flexDirection: 'column',
-                          position: 'relative',
-                          '&:hover': { 
-                            bgcolor: isToday ? 'primary.100' : 'grey.50',
-                            cursor: 'pointer'
-                          }
-                        }}>
-                          {/* Day number */}
+                    height: 50,
+                    borderBottom: 1, 
+                    borderColor: 'grey.200',
+                    '&:hover': { bgcolor: 'grey.25' }
+                  }}>
+                    {/* Time label */}
                           <Box sx={{ 
+                      width: 80, 
+                      p: 1, 
+                      borderRight: 1, 
+                      borderColor: 'grey.300',
                             display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            mb: { xs: 0.5, sm: 0.75, md: 1 }
-                          }}>
-                            <Typography 
-                              variant="body1" 
-                              sx={{ 
-                                fontWeight: isToday ? 'bold' : 'normal',
-                                bgcolor: isToday ? 'primary.main' : 'transparent',
-                                color: isToday ? 'white' : 'inherit',
-                                borderRadius: isToday ? '50%' : 0,
-                                width: isToday ? { xs: 24, sm: 28, md: 32 } : 'auto',
-                                height: isToday ? { xs: 24, sm: 28, md: 32 } : 'auto',
-                                display: 'flex',
-                                alignItems: 'center',
+                      alignItems: 'flex-start',
                                 justifyContent: 'center',
-                                fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' }
-                              }}
-                            >
-                              {dayNumber}
+                      bgcolor: 'grey.50'
+                    }}>
+                      <Typography variant="caption" sx={{ 
+                        fontSize: '0.7rem', 
+                        color: 'text.secondary',
+                        lineHeight: 1.2
+                      }}>
+                        {formatHour(hour)}
                             </Typography>
-                            {dayMeetings.length > 0 && (
-                              <Chip 
-                                label={dayMeetings.length}
-                                size="small"
-                                color="primary"
-                                sx={{ 
-                                  height: { xs: 16, sm: 18, md: 20 }, 
-                                  fontSize: { xs: '0.6rem', sm: '0.65rem', md: '0.7rem' },
-                                  '& .MuiChip-label': { px: { xs: 0.5, sm: 0.75, md: 1 } }
-                                }}
-                              />
-                            )}
                           </Box>
 
-                          {/* Meetings */}
-                          <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                            {dayMeetings.slice(0, 2).map((meeting, index) => (
+                    {/* Day columns */}
+                    {getWeekDays(currentWeekStart).map((day, dayIndex) => {
+                      const isInEventRange = isDateInEventRange(day);
+                      const hourMeetings = getMeetingsForDateAndHour(day, hour);
+                      
+                      return (
+                        <Box key={dayIndex} sx={{ 
+                          flex: 1, 
+                          borderRight: dayIndex < 6 ? 1 : 0, 
+                          borderColor: 'grey.300',
+                          position: 'relative',
+                          bgcolor: !isInEventRange ? 'grey.100' : 'white',
+                          cursor: isInEventRange ? 'pointer' : 'default',
+                          '&:hover': isInEventRange ? { bgcolor: 'primary.25' } : {}
+                        }}>
+                          {/* Meetings for this hour */}
+                          {hourMeetings.map((meeting, meetingIndex) => (
                               <Box
                                 key={meeting.id}
                                 onClick={() => {
@@ -643,18 +757,23 @@ export default function MeetingsPage() {
                                   setOpenDialog(true);
                                 }}
                                 sx={{
-                                  p: { xs: 0.25, sm: 0.35, md: 0.5 },
-                                  mb: { xs: 0.25, sm: 0.35, md: 0.5 },
+                                position: 'absolute',
+                                top: 2,
+                                left: 2,
+                                right: 2,
                                   bgcolor: getStatusColor(meeting.status) === 'primary' ? 'primary.main' :
                                            getStatusColor(meeting.status) === 'success' ? 'success.main' :
                                            getStatusColor(meeting.status) === 'warning' ? 'warning.main' :
                                            getStatusColor(meeting.status) === 'error' ? 'error.main' : 'grey.500',
                                   color: 'white',
-                                  borderRadius: 0.5,
+                                borderRadius: 1,
+                                p: 0.5,
                                   cursor: 'pointer',
-                                  lineHeight: 1.1,
+                                zIndex: 1,
+                                height: `${Math.min(meeting.duration, 50) - 4}px`,
+                                overflow: 'hidden',
                                   '&:hover': {
-                                    opacity: 0.8,
+                                  opacity: 0.9,
                                     transform: 'scale(1.02)'
                                   }
                                 }}
@@ -662,62 +781,46 @@ export default function MeetingsPage() {
                                 <Typography variant="caption" sx={{ 
                                   display: 'block',
                                   fontWeight: 'bold',
-                                  color: 'inherit',
+                                fontSize: '0.65rem',
+                                lineHeight: 1.1,
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  fontSize: { xs: '0.6rem', sm: '0.65rem', md: '0.7rem' }
+                                whiteSpace: 'nowrap'
                                 }}>
-                                  {formatTimeOnly(meeting.dateTime)}
+                                {meeting.title}
                                 </Typography>
                                 <Typography variant="caption" sx={{ 
                                   display: 'block',
-                                  color: 'inherit',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  fontSize: { xs: '0.55rem', sm: '0.6rem', md: '0.65rem' }
-                                }}>
-                                  {meeting.title}
+                                fontSize: '0.6rem',
+                                opacity: 0.9,
+                                lineHeight: 1.1
+                              }}>
+                                {formatDuration(meeting.duration)}
                                 </Typography>
                               </Box>
                             ))}
-                            {dayMeetings.length > 2 && (
-                              <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                  color: 'text.secondary',
-                                  fontStyle: 'italic',
-                                  fontSize: { xs: '0.55rem', sm: '0.6rem', md: '0.65rem' }
-                                }}
-                              >
-                                +{dayMeetings.length - 2} more
-                              </Typography>
-                            )}
-                          </Box>
                         </Box>
                       );
-                    } else {
-                      // Empty cell for days outside the current month
-                      cells.push(
-                        <Box key={`empty-${i}`} sx={{ 
-                          minHeight: { xs: 80, sm: 90, md: 100 }, 
-                          bgcolor: 'grey.50'
-                        }} />
-                      );
-                    }
-                  }
-                  
-                  return cells;
-                })()}
+                    })}
+                  </Box>
+                ))}
               </Box>
+
+              {/* Event duration info */}
+              {eventDetails && (
+                <Box sx={{ p: 2, bgcolor: 'grey.50', borderTop: 1, borderColor: 'grey.300' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Event Duration: {new Date(eventDetails.startDateTime).toLocaleDateString()} - {new Date(eventDetails.endDateTime).toLocaleDateString()}
+                  </Typography>
+              </Box>
+              )}
             </Paper>
           ) : (
             <>
               {/* Tabs */}
               <Paper sx={{ mb: 3 }}>
                 <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
-                  <Tab label="All Meetings" />
+                  <Tab label="Pending" />
                   <Tab 
                     label={
                       <Badge badgeContent={getUpcomingCount()} color="warning">
@@ -837,7 +940,7 @@ export default function MeetingsPage() {
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {tabValue === 0 
-                      ? "Schedule your first meeting to get started"
+                      ? "No pending meetings found"
                       : "No meetings in this category"
                     }
                   </Typography>

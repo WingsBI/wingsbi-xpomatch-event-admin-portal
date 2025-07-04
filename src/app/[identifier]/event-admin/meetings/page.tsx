@@ -48,6 +48,10 @@ import {
   Cancel,
   CheckCircle,
   Schedule,
+  ChevronLeft,
+  ChevronRight,
+  ViewModule,
+  ViewList,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -290,6 +294,8 @@ export default function MeetingsPage() {
   const [tabValue, setTabValue] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   // Set identifier in Redux store when component mounts
   useEffect(() => {
@@ -370,92 +376,362 @@ export default function MeetingsPage() {
     return `${mins}m`;
   };
 
+  // Calendar helper functions
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const getMeetingsForDate = (date: Date) => {
+    return meetings.filter(meeting => {
+      const meetingDate = meeting.dateTime;
+      return meetingDate.getDate() === date.getDate() &&
+             meetingDate.getMonth() === date.getMonth() &&
+             meetingDate.getFullYear() === date.getFullYear();
+    });
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    if (direction === 'prev') {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setCurrentDate(newDate);
+  };
+
+  const formatTimeOnly = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   return (
     <RoleBasedRoute allowedRoles={['event-admin']}>
       <ResponsiveDashboardLayout 
         title="Meetings"
         
       >
-        <Container maxWidth="xl" sx={{ mt: 3, mb: 4 }}>
-          {/* Header with stats */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="primary">
-                  {meetings.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total Meetings
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="warning.main">
-                  {getUpcomingCount()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Upcoming
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="success.main">
-                  {getCompletedCount()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Completed
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h4" color="error.main">
-                  {getCancelledCount()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Cancelled
-                </Typography>
-              </Paper>
-            </Grid>
-          </Grid>
+        <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
+          {/* Header with action buttons and stats */}
+          <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+            {/* Action buttons */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setOpenDialog(true)}
+              >
+                Schedule Meeting
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={showCalendar ? <ViewList /> : <CalendarMonth />}
+                onClick={() => setShowCalendar(!showCalendar)}
+              >
+                {showCalendar ? 'List View' : 'Calendar View'}
+              </Button>
+            </Box>
 
-          {/* Action buttons */}
-          <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setOpenDialog(true)}
-            >
-              Schedule Meeting
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<CalendarMonth />}
-            >
-              View Calendar
-            </Button>
+            {/* Mini stats badges */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Chip 
+                label={`${meetings.length} Total`}
+                variant="outlined"
+                color="primary"
+                size="small"
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+              <Chip 
+                label={`${getUpcomingCount()} Upcoming`}
+                variant="outlined"
+                color="warning"
+                size="small" 
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+              <Chip 
+                label={`${getCompletedCount()} Done`}
+                variant="outlined"
+                color="success"
+                size="small"
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+              <Chip 
+                label={`${getCancelledCount()} Cancelled`}
+                variant="outlined"
+                color="error"
+                size="small"
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+            </Box>
           </Box>
 
-          {/* Tabs */}
-          <Paper sx={{ mb: 3 }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
-              <Tab label="All Meetings" />
-              <Tab 
-                label={
-                  <Badge badgeContent={getUpcomingCount()} color="warning">
-                    Upcoming
-                  </Badge>
-                } 
-              />
-              <Tab label="Completed" />
-              <Tab label="Cancelled" />
-            </Tabs>
-          </Paper>
+          {/* Calendar View */}
+          {showCalendar ? (
+            <Paper sx={{ 
+              mb: 3, 
+              overflow: 'hidden', 
+              border: 1, 
+              borderColor: 'grey.300',
+              maxWidth: '100%',
+              width: '100%',
+              borderRadius: 1
+            }}>
+              {/* Calendar Header */}
+              <Box sx={{ 
+                p: 2, 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                bgcolor: 'primary.main',
+                color: 'white'
+              }}>
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                  {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={() => navigateMonth('prev')}
+                    sx={{ 
+                      color: 'white', 
+                      borderColor: 'white',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                    }}
+                  >
+                    <ChevronLeft />
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    onClick={() => setCurrentDate(new Date())}
+                    sx={{ 
+                      bgcolor: 'white', 
+                      color: 'primary.main',
+                      '&:hover': { bgcolor: 'grey.100' }
+                    }}
+                  >
+                    Today
+                  </Button>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={() => navigateMonth('next')}
+                    sx={{ 
+                      color: 'white', 
+                      borderColor: 'white',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                    }}
+                  >
+                    <ChevronRight />
+                  </Button>
+                </Box>
+              </Box>
 
-          {/* Meetings list */}
-          <Grid container spacing={3}>
+              {/* Weekday Headers */}
+              <Box sx={{ display: 'flex', bgcolor: 'grey.100', borderBottom: 1, borderColor: 'grey.300' }}>
+                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => (
+                  <Box key={day} sx={{ 
+                    flex: 1, 
+                    p: 1, 
+                    textAlign: 'center', 
+                    borderRight: index < 6 ? 1 : 0, 
+                    borderColor: 'grey.300' 
+                  }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: { xs: '0.8rem', sm: '1rem' } }}>
+                      {day}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Calendar Grid */}
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                border: 0,
+                '& > *': {
+                  borderRight: '1px solid',
+                  borderBottom: '1px solid',
+                  borderColor: 'grey.300'
+                },
+                '& > *:nth-of-type(7n)': {
+                  borderRight: 'none'
+                }
+              }}>
+                {(() => {
+                  const daysInMonth = getDaysInMonth(currentDate);
+                  const firstDay = getFirstDayOfMonth(currentDate);
+                  const totalCells = Math.ceil((daysInMonth + firstDay) / 7) * 7;
+                  const cells = [];
+                  
+                  for (let i = 0; i < totalCells; i++) {
+                    const dayNumber = i - firstDay + 1;
+                    const isValidDay = dayNumber >= 1 && dayNumber <= daysInMonth;
+                    
+                    if (isValidDay) {
+                      const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNumber);
+                      const dayMeetings = getMeetingsForDate(dayDate);
+                      const isToday = dayDate.toDateString() === new Date().toDateString();
+                      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+                      
+                      cells.push(
+                        <Box key={dayNumber} sx={{ 
+                          minHeight: { xs: 80, sm: 90, md: 100 }, 
+                          p: { xs: 0.5, sm: 0.75, md: 1 },
+                          bgcolor: isToday ? 'primary.50' : isWeekend ? 'grey.25' : 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          position: 'relative',
+                          '&:hover': { 
+                            bgcolor: isToday ? 'primary.100' : 'grey.50',
+                            cursor: 'pointer'
+                          }
+                        }}>
+                          {/* Day number */}
+                          <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            mb: { xs: 0.5, sm: 0.75, md: 1 }
+                          }}>
+                            <Typography 
+                              variant="body1" 
+                              sx={{ 
+                                fontWeight: isToday ? 'bold' : 'normal',
+                                bgcolor: isToday ? 'primary.main' : 'transparent',
+                                color: isToday ? 'white' : 'inherit',
+                                borderRadius: isToday ? '50%' : 0,
+                                width: isToday ? { xs: 24, sm: 28, md: 32 } : 'auto',
+                                height: isToday ? { xs: 24, sm: 28, md: 32 } : 'auto',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' }
+                              }}
+                            >
+                              {dayNumber}
+                            </Typography>
+                            {dayMeetings.length > 0 && (
+                              <Chip 
+                                label={dayMeetings.length}
+                                size="small"
+                                color="primary"
+                                sx={{ 
+                                  height: { xs: 16, sm: 18, md: 20 }, 
+                                  fontSize: { xs: '0.6rem', sm: '0.65rem', md: '0.7rem' },
+                                  '& .MuiChip-label': { px: { xs: 0.5, sm: 0.75, md: 1 } }
+                                }}
+                              />
+                            )}
+                          </Box>
+
+                          {/* Meetings */}
+                          <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                            {dayMeetings.slice(0, 2).map((meeting, index) => (
+                              <Box
+                                key={meeting.id}
+                                onClick={() => {
+                                  setSelectedMeeting(meeting);
+                                  setOpenDialog(true);
+                                }}
+                                sx={{
+                                  p: { xs: 0.25, sm: 0.35, md: 0.5 },
+                                  mb: { xs: 0.25, sm: 0.35, md: 0.5 },
+                                  bgcolor: getStatusColor(meeting.status) === 'primary' ? 'primary.main' :
+                                           getStatusColor(meeting.status) === 'success' ? 'success.main' :
+                                           getStatusColor(meeting.status) === 'warning' ? 'warning.main' :
+                                           getStatusColor(meeting.status) === 'error' ? 'error.main' : 'grey.500',
+                                  color: 'white',
+                                  borderRadius: 0.5,
+                                  cursor: 'pointer',
+                                  lineHeight: 1.1,
+                                  '&:hover': {
+                                    opacity: 0.8,
+                                    transform: 'scale(1.02)'
+                                  }
+                                }}
+                              >
+                                <Typography variant="caption" sx={{ 
+                                  display: 'block',
+                                  fontWeight: 'bold',
+                                  color: 'inherit',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  fontSize: { xs: '0.6rem', sm: '0.65rem', md: '0.7rem' }
+                                }}>
+                                  {formatTimeOnly(meeting.dateTime)}
+                                </Typography>
+                                <Typography variant="caption" sx={{ 
+                                  display: 'block',
+                                  color: 'inherit',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  fontSize: { xs: '0.55rem', sm: '0.6rem', md: '0.65rem' }
+                                }}>
+                                  {meeting.title}
+                                </Typography>
+                              </Box>
+                            ))}
+                            {dayMeetings.length > 2 && (
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  color: 'text.secondary',
+                                  fontStyle: 'italic',
+                                  fontSize: { xs: '0.55rem', sm: '0.6rem', md: '0.65rem' }
+                                }}
+                              >
+                                +{dayMeetings.length - 2} more
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    } else {
+                      // Empty cell for days outside the current month
+                      cells.push(
+                        <Box key={`empty-${i}`} sx={{ 
+                          minHeight: { xs: 80, sm: 90, md: 100 }, 
+                          bgcolor: 'grey.50'
+                        }} />
+                      );
+                    }
+                  }
+                  
+                  return cells;
+                })()}
+              </Box>
+            </Paper>
+          ) : (
+            <>
+              {/* Tabs */}
+              <Paper sx={{ mb: 3 }}>
+                <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
+                  <Tab label="All Meetings" />
+                  <Tab 
+                    label={
+                      <Badge badgeContent={getUpcomingCount()} color="warning">
+                        Upcoming
+                      </Badge>
+                    } 
+                  />
+                  <Tab label="Completed" />
+                  <Tab label="Cancelled" />
+                </Tabs>
+              </Paper>
+
+              {/* Meetings list */}
+              <Grid container spacing={3}>
             {getFilteredMeetings().map((meeting) => (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
@@ -553,19 +829,21 @@ export default function MeetingsPage() {
             ))}
           </Grid>
 
-          {getFilteredMeetings().length === 0 && (
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <CalendarMonth sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary">
-                No meetings found
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {tabValue === 0 
-                  ? "Schedule your first meeting to get started"
-                  : "No meetings in this category"
-                }
-              </Typography>
-            </Paper>
+              {getFilteredMeetings().length === 0 && (
+                <Paper sx={{ p: 4, textAlign: 'center' }}>
+                  <CalendarMonth sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">
+                    No meetings found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {tabValue === 0 
+                      ? "Schedule your first meeting to get started"
+                      : "No meetings in this category"
+                    }
+                  </Typography>
+                </Paper>
+              )}
+            </>
           )}
         </Container>
 

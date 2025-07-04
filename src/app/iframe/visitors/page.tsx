@@ -33,6 +33,7 @@ import {
   Language,
   Star,
   Favorite,
+  FavoriteBorder,
   ConnectWithoutContact as ConnectIcon,
   FiberManualRecord as InterestPoint,
   TrendingUp,
@@ -110,6 +111,12 @@ const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, in
 
 function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }: VisitorCardProps) {
   const theme = useTheme();
+  const [isFavorite, setIsFavorite] = useState(false);
+  
+  const handleFavoriteClick = () => {
+    setIsFavorite(!isFavorite);
+    // TODO: API call to add/remove favorite will be implemented later
+  };
   
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -212,7 +219,23 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
           </Box>
 
           <Box display="flex" alignItems="center">
-          <Favorite sx={{ color: 'rgba(255, 0, 0, 0.5)', fontSize: 20 }} />
+            <IconButton 
+              onClick={handleFavoriteClick}
+              size="small"
+              sx={{ 
+                p: 0.5,
+                mr: 0.5,
+                '&:hover': {
+                  bgcolor: 'rgba(255, 0, 0, 0.1)'
+                }
+              }}
+            >
+              {isFavorite ? (
+                <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+              ) : (
+                <FavoriteBorder sx={{ color: '#757575', fontSize: 20 }} />
+              )}
+            </IconButton>
             <Typography variant="body2" fontWeight="600" color={getMatchScoreColor(matchScore)}>
               {matchScore}
             </Typography>

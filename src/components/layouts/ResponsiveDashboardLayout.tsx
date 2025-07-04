@@ -106,11 +106,14 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: []
     },
 
-    { text: 'Meetings', icon: <CalendarMonth />, href: `/${identifier}/event-admin/meetings`, children: [] },
+    { text: 'Meetings', icon: <CalendarMonth />, children: [
+      { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
+      { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
+    ] },
 
     { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
 
-    { text: 'Settings', icon: <Settings />, href: `/${identifier}/event-admin/attributes`, children: [
+    { text: 'Settings', icon: <Settings />,  children: [
       // { text: 'Event Details', href: `/${identifier}/event-admin/event`, children: [] },
       { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
       { text: 'Theme Settings', href: '#', children: [] },
@@ -119,11 +122,6 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     ] },
 
   ];
-
-  // Simplify navigation for mobile devices
-  if (deviceType === 'mobile') {
-    return baseItems.map(item => ({ ...item, children: [] }));
-  }
 
   return baseItems;
 };

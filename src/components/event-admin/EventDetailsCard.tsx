@@ -62,9 +62,10 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
       console.log('Loading event details for identifier:', identifier);
       const response = await eventsApi.getEventDetails(identifier);
       
-      if (response.success && response.data?.result) {
-        setEventDetails(response.data.result);
-        console.log('Event details loaded:', response.data.result);
+      if (response.success && response.data?.result && response.data.result.length > 0) {
+        // Take the first event from the array
+        setEventDetails(response.data.result[0]);
+        console.log('Event details loaded:', response.data.result[0]);
       } else {
         setError('Failed to load event details');
       }
@@ -77,6 +78,7 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
   };
 
   const getStatusColor = (status: string) => {
+    if (!status) return 'default';
     switch (status.toLowerCase()) {
       case 'active': return 'success';
       case 'upcoming': return 'info';
@@ -99,18 +101,24 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
   };
 
   const formatLocation = (locationDetails: any) => {
-    if (!locationDetails) return 'Not set';
+    if (!locationDetails || !Array.isArray(locationDetails) || locationDetails.length === 0) return 'Not set';
+    
+    const location = locationDetails[0]; // Take the first location
     const parts = [
-      locationDetails.venueName,
-      locationDetails.cityName,
-      locationDetails.stateName,
-      locationDetails.countryName
+      location.venueName,
+      location.cityName,
+      location.stateName,
+      location.countryName
     ].filter(Boolean);
     return parts.join(', ');
   };
 
   const handleEdit = () => {
     if (!eventDetails) return;
+    
+    const firstLocation = eventDetails.locationDetails && Array.isArray(eventDetails.locationDetails) 
+      ? eventDetails.locationDetails[0] 
+      : null;
     
     // Initialize edit form with current data
     setEditedEvent({
@@ -122,16 +130,16 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
         endDate: eventDetails.endDateTime ? eventDetails.endDateTime.slice(0, 16) : null,
       },
       location: {
-        venueName: eventDetails.locationDetails?.venueName || '',
-        addressLine1: eventDetails.locationDetails?.addressLine1 || '',
-        addressLine2: eventDetails.locationDetails?.addressLine2 || null,
+        venueName: firstLocation?.venueName || '',
+        addressLine1: firstLocation?.addressLine1 || '',
+        addressLine2: firstLocation?.addressLine2 || null,
         countryId: 2, // Default values - you may want to fetch these from another API
         stateId: 2,
         cityId: 1,
-        postalCode: eventDetails.locationDetails?.postalCode?.toString() || null,
-        latitude: eventDetails.locationDetails?.latitude || null,
-        longitude: eventDetails.locationDetails?.longitude || null,
-        googleMapLink: eventDetails.locationDetails?.mapLink || null,
+        postalCode: firstLocation?.postalCode?.toString() || null,
+        latitude: firstLocation?.latitude || null,
+        longitude: firstLocation?.longitude || null,
+        googleMapLink: firstLocation?.mapLink || null,
       },
       marketingAbbreviation: eventDetails.marketingAbbreviation,
       themeSelectionId: 1, // Default values

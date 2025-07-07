@@ -123,4 +123,69 @@ export function getAuthenticationStatus(): {
     hasUserData: !!userDataStr,
     isValid: hasValidToken && userDataValid
   };
+}
+
+/**
+ * Get current user data from localStorage
+ */
+export function getCurrentUser(): { id: string; email: string; role: string } | null {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+
+  try {
+    const userDataStr = localStorage.getItem('user');
+    if (!userDataStr) {
+      return null;
+    }
+
+    const userData = JSON.parse(userDataStr);
+    if (!isValidUserData(userData)) {
+      return null;
+    }
+
+    return {
+      id: userData.id,
+      email: userData.email,
+      role: userData.role
+    };
+  } catch (error) {
+    console.error('Error parsing user data from localStorage:', error);
+    return null;
+  }
+}
+
+/**
+ * Get current user ID as number for API calls
+ */
+export function getCurrentUserId(): number | null {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+
+  try {
+    const userDataStr = localStorage.getItem('user');
+    console.log('Raw user data from localStorage:', userDataStr);
+    
+    if (!userDataStr) {
+      console.log('No user data found in localStorage');
+      return null;
+    }
+
+    const userData = JSON.parse(userDataStr);
+    console.log('Parsed user data:', userData);
+    
+    if (!userData || !userData.id) {
+      console.log('User data missing or no ID found');
+      return null;
+    }
+
+    const userId = parseInt(userData.id, 10);
+    console.log('Parsed user ID:', userId);
+    
+    return isNaN(userId) ? null : userId;
+  } catch (error) {
+    console.error('Error getting current user ID:', error);
+    return null;
+  }
 } 

@@ -125,6 +125,171 @@ export interface ExhibitorsListResponse {
   result: Exhibitor[];
 }
 
+export interface FavoritesRequest {
+  visitorId: number;
+  exhibitorId: number;
+  isFavorite: boolean;
+}
+
+export interface FavoritesResponse {
+  version: string;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: any;
+  result: boolean;
+}
+
+export interface GetFavoritesResponse {
+  version: string;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: any;
+  result: {
+    visitorId: number;
+    exhibitorId: number;
+    isFavorite: boolean;
+  }[];
+}
+
+// New interfaces for visitor favorites API
+export interface VisitorFavoriteExhibitor {
+  id: number;
+  companyName: string;
+  companyType: string;
+  hall: string;
+  stand: string;
+  country: string;
+  telephone: string;
+  mobileNumber: string;
+  webSite: string;
+  companyLogoPath: string;
+  profileId: number;
+  addressId: number;
+  isActive: boolean;
+  createdBy: number;
+  createdDate: string;
+  modifiedBy: number;
+  modifiedDate: string;
+  exhibitorProfile: Array<{
+    id: number;
+    companyProfile: string;
+    listingAs: string;
+    receiveEmailEnquiries: string;
+    faceBoolLink: string | null;
+    twitterLink: string;
+    linkedInLink: string;
+    instagramLink: string;
+    youTubeLink: string;
+    isoCertificates: string;
+    isActive: boolean;
+    createdDate: string;
+    createdBy: number;
+    modifiedDate: string | null;
+    modifiedBy: number | null;
+  }>;
+  exhibitorAddress: Array<{
+    id: number;
+    city: string;
+    poBox: string;
+    addressLine1: string;
+    zipPostalCode: string;
+    stateProvince: string;
+    isActive: boolean;
+    createdDate: string;
+    createdBy: number;
+    modifiedDate: string | null;
+    modifiedBy: number | null;
+  }>;
+  exhibitorToUserMaps: Array<{
+    exhibitorUserMapId: number;
+    exhibitorId: number;
+    userId: number;
+    isPrimaryContact: boolean;
+    salutation: string;
+    firstName: string;
+    middleName: string;
+    lastName: string;
+    email: string;
+    gender: string;
+    dateOfBirth: string | null;
+    interest: string;
+    eventId: number;
+    roleId: number;
+    roleName: string;
+    userStatusId: number;
+    userStatusName: string;
+    nationality: string;
+    profilePhoto: string | null;
+    phone: string;
+    linkedInProfile: string;
+    instagramProfile: string;
+    gitHubProfile: string;
+    twitterProfile: string | null;
+    designation: string;
+    jobTitle: string;
+    companyName: string;
+    companyWebsite: string;
+    businessEmail: string;
+    experienceYears: number;
+    decisionMaker: boolean;
+    addressLine1: string;
+    addressLine2: string;
+    cityName: string | null;
+    stateName: string | null;
+    countryName: string | null;
+    postalCode: string;
+    latitude: string;
+    longitude: string;
+  }>;
+  product: Array<{
+    id: number;
+    exhibitorId: number;
+    title: string;
+    category: string;
+    description: string;
+    imagePath: string;
+    isActive: boolean;
+    createdDate: string;
+    createdBy: number;
+    modifiedDate: string | null;
+    modifiedBy: number | null;
+  }>;
+  brand: Array<{
+    id: number;
+    exhibitorId: number;
+    brandName: string;
+    category: string;
+    description: string;
+    logoPath: string;
+    createdBy: number;
+    createdDate: string;
+    modifiedBy: number | null;
+    modifiedDate: string | null;
+    isActive: boolean;
+  }>;
+}
+
+export interface VisitorFavoritesResponse {
+  version: string | null;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: any;
+  result: {
+    id: number;
+    exhibitorId: number;
+    visitorId: number;
+    isFavorite: boolean;
+    createdBy: number;
+    createdDate: string;
+    modifiedBy: number;
+    modifiedDate: string;
+    exhibitors: VisitorFavoriteExhibitor[];
+  };
+}
+
 class FieldMappingApiService {
   private baseURL: string;
 
@@ -137,14 +302,19 @@ class FieldMappingApiService {
    * Get JWT token from localStorage or Redux store
    */
   private getAuthToken(): string | null {
-    // First try to get from localStorage
-    const token = localStorage.getItem('jwtToken');
-    if (token) {
-      return token;
+    // Try different possible token keys
+    const possibleKeys = ['jwtToken', 'authToken', 'token', 'accessToken'];
+    
+    for (const key of possibleKeys) {
+      const token = localStorage.getItem(key);
+      if (token) {
+        console.log(`🔑 Found token with key: ${key}`);
+        return token;
+      }
     }
 
-    // If not in localStorage, could also try to get from Redux store
-    // but localStorage is more reliable for this use case
+    console.log('🔑 No authentication token found in localStorage');
+    console.log('🔑 Available localStorage keys:', Object.keys(localStorage));
     return null;
   }
 
@@ -593,6 +763,185 @@ class FieldMappingApiService {
         isError: true,
         responseException: error,
         result: []
+      };
+    }
+  }
+
+  /**
+   * Add or remove exhibitor from favorites
+   */
+  async addFavorites(identifier: string, payload: FavoritesRequest): Promise<FavoritesResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/Event/addFavorites`;
+      const headers = this.getAuthHeaders();
+      
+      console.log('🔥 ADD FAVORITES API CALL STARTING');
+      console.log('🔥 URL:', apiUrl);
+      console.log('🔥 Payload:', payload);
+      console.log('🔥 Headers:', headers);
+      console.log('🔥 Base URL:', this.baseURL);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('✅ Add favorites response status:', response.status);
+      console.log('✅ Add favorites response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const data = await response.json();
+      console.log('✅ Add favorites response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: "1.0.0.0",
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to update favorites`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: false
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error updating favorites:', error);
+      return {
+        version: "1.0.0.0",
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: false
+      };
+    }
+  }
+
+  /**
+   * Get user's current favorites
+   */
+  async getFavorites(identifier: string, visitorId: number): Promise<GetFavoritesResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/Event/getFavorites?visitorId=${visitorId}`;
+      const headers = this.getAuthHeaders();
+      
+      console.log('🔍 GET FAVORITES API CALL STARTING');
+      console.log('🔍 URL:', apiUrl);
+      console.log('🔍 Visitor ID:', visitorId);
+      console.log('🔍 Headers:', headers);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Get favorites response status:', response.status);
+      
+      const data = await response.json();
+      console.log('✅ Get favorites response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: "1.0.0.0",
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to get favorites`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting favorites:', error);
+      return {
+        version: "1.0.0.0",
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Get visitor's favorite exhibitors with full details
+   */
+  async getVisitorFavorites(identifier: string, visitorId: number): Promise<VisitorFavoritesResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/getVisitorFavorite?visitorId=${visitorId}`;
+      const headers = this.getAuthHeaders();
+      
+      console.log('🔍 GET VISITOR FAVORITES API CALL STARTING');
+      console.log('🔍 URL:', apiUrl);
+      console.log('🔍 Visitor ID:', visitorId);
+      console.log('🔍 Headers:', headers);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Get visitor favorites response status:', response.status);
+      
+      const data = await response.json();
+      console.log('✅ Get visitor favorites response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to get visitor favorites`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: {
+            id: 0,
+            exhibitorId: 0,
+            visitorId: visitorId,
+            isFavorite: false,
+            createdBy: 0,
+            createdDate: '',
+            modifiedBy: 0,
+            modifiedDate: '',
+            exhibitors: []
+          }
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting visitor favorites:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: {
+          id: 0,
+          exhibitorId: 0,
+          visitorId: visitorId,
+          isFavorite: false,
+          createdBy: 0,
+          createdDate: '',
+          modifiedBy: 0,
+          modifiedDate: '',
+          exhibitors: []
+        }
       };
     }
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -18,216 +18,80 @@ import {
   Tab,
   Badge,
   IconButton,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Rating,
   Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Favorite,
   FavoriteBorder,
   Business,
-  Person,
-  Email,
-  Phone,
   LocationOn,
-  MoreVert,
-  Star,
-  StarBorder,
-  FilterList,
   Search,
-  Delete,
-  Visibility,
-  Message,
-  Edit,
   LinkedIn,
   Language,
   ConnectWithoutContact as ConnectIcon,
+  FilterList,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
+import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor } from '@/services/fieldMappingApi';
+import { getCurrentUserId } from '@/utils/authUtils';
 
-interface FavouriteItem {
+interface TransformedExhibitor {
   id: string;
   name: string;
   email: string;
   company: string;
   jobTitle: string;
-  type: 'visitor' | 'exhibitor';
+  type: 'exhibitor';
   avatar: string;
   phone?: string;
   location?: string;
   interests: string[];
-  matchScore: number;
-  rating: number;
-  notes?: string;
-  tags: string[];
-  addedDate: Date;
-  lastContact?: Date;
-  contactCount: number;
-  status: 'active' | 'inactive' | 'pending';
-  priority: 'high' | 'medium' | 'low';
-  customData?: {
+  customData: {
     industry?: string;
-    experience?: string;
-    lookingFor?: string[];
     boothNumber?: string;
     products?: string[];
     website?: string;
+    companyProfile?: string;
+    listingAs?: string;
+    experience?: string;
   };
 }
 
-const mockFavourites: FavouriteItem[] = [
-  {
-    id: '1',
-    name: 'Rahul Sharma',
-    email: 'rahul@company.com',
-    company: 'TechCorp India',
-    jobTitle: 'Senior Software Engineer',
-    type: 'visitor',
-    avatar: 'RS',
-    phone: '+91 98765 43210',
-    location: 'Mumbai, Maharashtra',
-    interests: ['AI/ML', 'Web Development', 'Cloud Computing'],
-    matchScore: 95,
-    rating: 5,
-    notes: 'Excellent potential for AI partnership. Very knowledgeable and interested in our solutions.',
-    tags: ['high-priority', 'ai-expert', 'potential-partner'],
-    addedDate: new Date('2024-01-20T10:00:00'),
-    lastContact: new Date('2024-01-22T15:30:00'),
-    contactCount: 3,
-    status: 'active',
-    priority: 'high',
+// Transform API exhibitor data to UI format
+const transformExhibitorData = (apiExhibitor: VisitorFavoriteExhibitor): TransformedExhibitor => {
+  const userMap = apiExhibitor.exhibitorToUserMaps?.[0];
+  const profile = apiExhibitor.exhibitorProfile?.[0];
+  const address = apiExhibitor.exhibitorAddress?.[0];
+  
+  return {
+    id: apiExhibitor.id.toString(),
+    name: userMap ? `${userMap.firstName} ${userMap.lastName}` : apiExhibitor.companyName,
+    email: userMap?.email || '',
+    company: apiExhibitor.companyName,
+    jobTitle: userMap?.jobTitle || userMap?.designation || '',
+    type: 'exhibitor' as const,
+    avatar: apiExhibitor.companyName?.charAt(0).toUpperCase() || 'E',
+    phone: apiExhibitor.telephone || apiExhibitor.mobileNumber,
+    location: [address?.city, address?.stateProvince, apiExhibitor.country].filter(Boolean).join(', '),
+    interests: userMap?.interest ? userMap.interest.split(', ') : [],
     customData: {
-      industry: 'Technology',
-      experience: '5+ years',
-      lookingFor: ['Partnerships', 'New Technologies', 'Networking']
+      industry: profile?.listingAs,
+      boothNumber: `${apiExhibitor.hall}-${apiExhibitor.stand}`,
+      products: apiExhibitor.product?.map(p => p.title) || [],
+      website: apiExhibitor.webSite,
+      companyProfile: profile?.companyProfile,
+      listingAs: profile?.listingAs,
+      experience: userMap?.experienceYears ? `${userMap.experienceYears}+ years` : undefined,
     }
-  },
-  {
-    id: '7',
-    name: 'Rajesh Gupta',
-    email: 'rajesh@aitech.com',
-    company: 'AI Technologies Inc',
-    jobTitle: 'Chief Executive Officer',
-    type: 'exhibitor',
-    avatar: 'RG',
-    phone: '+91 98765 43216',
-    location: 'Gurgaon, Haryana',
-    interests: ['Artificial Intelligence', 'Machine Learning', 'Enterprise AI'],
-    matchScore: 96,
-    rating: 5,
-    notes: 'Top-tier AI solutions provider. Excellent collaboration potential.',
-    tags: ['key-partner', 'ai-solutions', 'enterprise'],
-    addedDate: new Date('2024-01-18T14:00:00'),
-    lastContact: new Date('2024-01-24T11:00:00'),
-    contactCount: 5,
-    status: 'active',
-    priority: 'high',
-    customData: {
-      industry: 'AI/ML Solutions',
-      experience: '12+ years',
-      lookingFor: ['Enterprise Clients', 'AI Implementation', 'Strategic Alliances'],
-      boothNumber: 'A-101',
-      products: ['AI Chatbots', 'ML Analytics', 'Computer Vision'],
-      website: 'https://aitech.com'
-    }
-  },
-  {
-    id: '4',
-    name: 'Sneha Reddy',
-    email: 'sneha@healthtech.com',
-    company: 'HealthTech Innovations',
-    jobTitle: 'Founder & CEO',
-    type: 'visitor',
-    avatar: 'SR',
-    phone: '+91 98765 43213',
-    location: 'Hyderabad, Telangana',
-    interests: ['Healthcare Technology', 'AI in Medicine', 'Digital Health'],
-    matchScore: 89,
-    rating: 4,
-    notes: 'Innovative healthcare solutions. Strong interest in medical AI applications.',
-    tags: ['healthcare', 'innovation', 'medical-ai'],
-    addedDate: new Date('2024-01-19T09:30:00'),
-    lastContact: new Date('2024-01-23T16:45:00'),
-    contactCount: 2,
-    status: 'active',
-    priority: 'medium',
-    customData: {
-      industry: 'Healthcare',
-      experience: '7+ years',
-      lookingFor: ['Funding', 'Healthcare Partnerships', 'Regulatory Guidance']
-    }
-  },
-  {
-    id: '8',
-    name: 'Kavya Nair',
-    email: 'kavya@blocksecure.com',
-    company: 'BlockSecure Technologies',
-    jobTitle: 'Head of Product',
-    type: 'exhibitor',
-    avatar: 'KN',
-    phone: '+91 98765 43217',
-    location: 'Kochi, Kerala',
-    interests: ['Blockchain', 'Cybersecurity', 'Financial Technology'],
-    matchScore: 87,
-    rating: 4,
-    notes: 'Strong blockchain expertise. Potential for security partnerships.',
-    tags: ['blockchain', 'security', 'fintech'],
-    addedDate: new Date('2024-01-21T11:15:00'),
-    lastContact: new Date('2024-01-24T14:20:00'),
-    contactCount: 4,
-    status: 'active',
-    priority: 'medium',
-    customData: {
-      industry: 'Blockchain & Security',
-      experience: '6+ years',
-      lookingFor: ['Enterprise Partnerships', 'Security Solutions', 'Investment'],
-      boothNumber: 'B-205',
-      products: ['Blockchain Security', 'Smart Contracts', 'Crypto Wallets'],
-      website: 'https://blocksecure.com'
-    }
-  },
-  {
-    id: '6',
-    name: 'Ananya Krishnan',
-    email: 'ananya@greentech.com',
-    company: 'GreenTech Solutions',
-    jobTitle: 'Sustainability Director',
-    type: 'visitor',
-    avatar: 'AK',
-    phone: '+91 98765 43215',
-    location: 'Chennai, Tamil Nadu',
-    interests: ['Clean Energy', 'Environmental Tech', 'Sustainability'],
-    matchScore: 91,
-    rating: 5,
-    notes: 'Passionate about environmental solutions. Great cultural fit.',
-    tags: ['sustainability', 'clean-energy', 'environment'],
-    addedDate: new Date('2024-01-17T13:00:00'),
-    lastContact: new Date('2024-01-21T10:30:00'),
-    contactCount: 1,
-    status: 'pending',
-    priority: 'low',
-    customData: {
-      industry: 'Clean Technology',
-      experience: '6+ years',
-      lookingFor: ['Green Partnerships', 'Environmental Solutions', 'Policy Advocacy']
-    }
-  }
-];
+  };
+};
 
 export default function FavouritesPage() {
   const params = useParams();
@@ -235,11 +99,10 @@ export default function FavouritesPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   
-  const [favourites, setFavourites] = useState<FavouriteItem[]>(mockFavourites);
-  const [tabValue, setTabValue] = useState(0);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedItem, setSelectedItem] = useState<FavouriteItem | null>(null);
-  const [openNotesDialog, setOpenNotesDialog] = useState(false);
+  const [exhibitorFavourites, setExhibitorFavourites] = useState<TransformedExhibitor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tabValue, setTabValue] = useState(1); // 0 = Visitors, 1 = Exhibitors
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -248,54 +111,88 @@ export default function FavouritesPage() {
     }
   }, [identifier, dispatch]);
 
+  useEffect(() => {
+    loadFavorites();
+  }, [identifier]);
+
+  const loadFavorites = async () => {
+    if (!identifier) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get current user ID (defaulting to 1 for now)
+      let currentUserId = getCurrentUserId();
+      if (!currentUserId) {
+        console.log('🔍 No user ID found, using default ID 1 for favorites');
+        currentUserId = 1;
+      }
+
+      console.log('🔍 Loading favorites for visitor:', currentUserId);
+      const response = await fieldMappingApi.getVisitorFavorites(identifier, currentUserId);
+      
+      if (response.statusCode === 200 && response.result?.exhibitors) {
+        const transformedExhibitors = response.result.exhibitors.map(transformExhibitorData);
+        setExhibitorFavourites(transformedExhibitors);
+        console.log('✅ Loaded', transformedExhibitors.length, 'favorite exhibitors');
+      } else {
+        setError(response.message || 'Failed to load favorites');
+        setExhibitorFavourites([]);
+      }
+    } catch (err: any) {
+      console.error('Error loading favorites:', err);
+      setError(err.message || 'Failed to load favorites');
+      setExhibitorFavourites([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, item: FavouriteItem) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedItem(item);
+  const getFilteredExhibitors = () => {
+    if (!searchTerm) return exhibitorFavourites;
+    
+    return exhibitorFavourites.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedItem(null);
+  const handleRemoveFavourite = async (exhibitorId: string) => {
+    // TODO: Implement remove favorite functionality when API is available
+    console.log('Remove favorite:', exhibitorId);
   };
 
-  const getFilteredFavourites = () => {
-    let filtered = favourites;
-
-    if (searchTerm) {
-      filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    switch (tabValue) {
-      case 0: return filtered; // All
-      case 1: return filtered.filter(f => f.type === 'visitor'); // Visitors
-      case 2: return filtered.filter(f => f.type === 'exhibitor'); // Exhibitors
-      default: return filtered;
-    }
-  };
-
-  const getVisitorCount = () => favourites.filter(f => f.type === 'visitor').length;
-  const getExhibitorCount = () => favourites.filter(f => f.type === 'exhibitor').length;
-
-  const handleRemoveFavourite = (id: string) => {
-    setFavourites(prev => prev.filter(f => f.id !== id));
-    handleMenuClose();
-  };
+  if (loading) {
+    return (
+      <RoleBasedRoute allowedRoles={['event-admin']}>
+        <ResponsiveDashboardLayout title="My Favourites">
+          <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+              <CircularProgress size={48} />
+            </Box>
+          </Container>
+        </ResponsiveDashboardLayout>
+      </RoleBasedRoute>
+    );
+  }
 
   return (
     <RoleBasedRoute allowedRoles={['event-admin']}>
-      <ResponsiveDashboardLayout 
-        title="My Favourites"
-        
-      >
+      <ResponsiveDashboardLayout title="My Favourites">
         <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
+          {/* Error Alert */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
           {/* Header with action buttons and stats */}
           <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
             {/* Action buttons */}
@@ -321,21 +218,7 @@ export default function FavouritesPage() {
             {/* Mini stats badges */}
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Chip 
-                label={`${favourites.length} Total`}
-                variant="outlined"
-                color="primary"
-                size="small"
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-              <Chip 
-                label={`${getVisitorCount()} Visitors`}
-                variant="outlined"
-                color="info"
-                size="small" 
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-              <Chip 
-                label={`${getExhibitorCount()} Exhibitors`}
+                label={`${exhibitorFavourites.length} Exhibitors`}
                 variant="outlined"
                 color="success"
                 size="small"
@@ -346,17 +229,10 @@ export default function FavouritesPage() {
 
           <Paper sx={{ mb: 3 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label="All Favourites" />
+              <Tab label="Visitors" disabled />
               <Tab 
                 label={
-                  <Badge badgeContent={getVisitorCount()} color="info">
-                    Visitors
-                  </Badge>
-                } 
-              />
-              <Tab 
-                label={
-                  <Badge badgeContent={getExhibitorCount()} color="success">
+                  <Badge badgeContent={exhibitorFavourites.length} color="success">
                     Exhibitors
                   </Badge>
                 } 
@@ -364,402 +240,232 @@ export default function FavouritesPage() {
             </Tabs>
           </Paper>
 
-          <Grid container spacing={3}>
-            {getFilteredFavourites().map((item) => (
-              <Grid item xs={12} sm={6} lg={4} key={item.id}>
-                {item.type === 'visitor' ? (
-                  // Visitor Card - matching iframe visitor design
-                  <Card sx={{
-                    height: '100%',
-                    borderRadius: 3,
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                    border: '1px solid #e8eaed',
-                    bgcolor: 'background.paper',
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                    },
-                  }}>
-                    <CardContent sx={{ p: 2, pb: 1 }}>
-                      {/* Header with Visitor Info and Match Score */}
-                      <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
-                        <Box display="flex" alignItems="center">
-                          <Avatar
-                            sx={{
-                              bgcolor: 'primary.main',
-                              width: 52,
-                              height: 52,
-                              mr: 1,
-                              fontSize: '1.2rem',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            {item.avatar}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
-                              {item.name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                              {item.jobTitle}
-                            </Typography>
-                            <Typography variant="body2" color="primary" fontWeight="500">
-                              {item.company}
-                            </Typography>
-                            <Box>
-                              {item.interests.length > 0 && (
-                                <Chip
-                                  label={`${item.interests.length} Relevant Interest${item.interests.length > 1 ? 's' : ''}`}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: '#e8f5e8',
-                                    color: '#2e7d32',
-                                    fontWeight: 500
-                                  }}
-                                />
-                              )}
-                            </Box>
-                          </Box>
-                        </Box>
-
-                        <Box display="flex" alignItems="center">
-                          <IconButton 
-                            onClick={(e) => handleMenuClick(e, item)}
-                            size="small"
-                            sx={{ 
-                              p: 0.5,
-                              mr: 0.5,
-                              '&:hover': {
-                                bgcolor: 'rgba(255, 0, 0, 0.1)'
-                              }
-                            }}
-                          >
-                            <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
-                          </IconButton>
-                          <Typography variant="body2" fontWeight="600" color={
-                            item.matchScore >= 95 ? '#4caf50' :
-                            item.matchScore >= 90 ? '#2196f3' :
-                            item.matchScore >= 85 ? '#ff9800' : '#757575'
-                          }>
-                            {item.matchScore}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Location */}
-                      <Box mb={1}>
-                        {item.location && (
-                          <Box display="flex" alignItems="center" mb={1}>
-                            <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              {item.location}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-
-                      {/* Relevant Interests */}
-                      {item.interests.length > 0 && (
-                        <Box mb={1}>
-                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-                            <Star sx={{ fontSize: 14, mr: 0.5 }} />
-                            Relevant Interests:
-                          </Typography>
-                          <Box display="flex" flexWrap="wrap" gap={0.5}>
-                            {item.interests.slice(0, 3).map((interest, index) => (
-                              <Chip
-                                key={index}
-                                label={interest}
-                                size="small"
-                                sx={{ 
-                                  fontSize: '0.75rem',
-                                  bgcolor: '#e3f2fd',
-                                  color: '#1565c0',
-                                  border: 'none',
-                                  fontWeight: 500
-                                }}
-                              />
-                            ))}
-                            {item.interests.length > 3 && (
-                              <Chip
-                                label={`+${item.interests.length - 3}`}
-                                size="small"
-                                sx={{ 
-                                  fontSize: '0.75rem',
-                                  bgcolor: '#e3f2fd',
-                                  color: '#1565c0'
-                                }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                      )}
-
-                      <Divider sx={{ mb: 2 }} />
-
-                      {/* Action Buttons */}
-                      <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Box display="flex" gap={1}>
-                          <IconButton size="small" sx={{ color: '#0077b5' }}>
-                            <LinkedIn fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" sx={{ color: '#757575' }}>
-                            <Language fontSize="small" />
-                          </IconButton>
-                        </Box>
-
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<ConnectIcon />}
-                          sx={{ 
-                            bgcolor: 'primary.main',
-                            borderRadius: 2,
-                            textTransform: 'none',
-                            fontWeight: 500,
-                            px: 2,
-                            '&:hover': {
-                              bgcolor: 'primary.dark',
-                            }
-                          }}
-                        >
-                          Connect
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  // Exhibitor Card - matching iframe exhibitor design
-                  <Card sx={{
-                    height: '100%',
-                    borderRadius: 3,
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                    border: '1px solid #e8eaed',
-                    bgcolor: 'background.paper',
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                    },
-                  }}>
-                    <CardContent sx={{ p: 2, pb: 1}}>
-                      {/* Header with Company Info and Match Score */}
-                      <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
-                        <Box display="flex" alignItems="center">
-                          <Avatar
-                            sx={{
-                              bgcolor: 'primary.main',
-                              width: 52,
-                              height: 52,
-                              mr: 1,
-                              fontSize: '1.2rem',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            {item.company ? item.company.charAt(0).toUpperCase() : item.avatar}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
-                              {item.company || item.name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                              {item.name}
-                              {item.jobTitle && ` • ${item.jobTitle}`}
-                            </Typography>
-                            <Box display="flex" alignItems="center" gap={1}>
-                              {item.customData?.boothNumber && (
-                                <Chip
-                                  label={item.customData.boothNumber}
-                                  size="small"
-                                  sx={{ 
-                                    bgcolor: '#e3f2fd',
-                                    color: '#1565c0',
-                                    fontWeight: 500
-                                  }}
-                                />
-                              )}
-                              {item.interests.length > 0 && (
-                                <Chip
-                                  label={`${item.interests.length} Match`}
-                                  size="small"
-                                  sx={{ 
-                                    bgcolor: '#e8f5e8',
-                                    color: '#2e7d32',
-                                    fontWeight: 500,
-                                    fontSize: '0.7rem'
-                                  }}
-                                />
-                              )}
-                            </Box>
-                          </Box>
-                        </Box>
-                        
-                        <Box display="flex" alignItems="center">
-                          <IconButton 
-                            onClick={(e) => handleMenuClick(e, item)}
-                            size="small"
-                            sx={{ 
-                              p: 0.5,
-                              mr: 0.5,
-                              '&:hover': {
-                                bgcolor: 'rgba(255, 0, 0, 0.1)'
-                              }
-                            }}
-                          >
-                            <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
-                          </IconButton>
-                          <Typography variant="body2" fontWeight="600" color={
-                            item.matchScore >= 95 ? '#4caf50' :
-                            item.matchScore >= 90 ? '#2196f3' :
-                            item.matchScore >= 85 ? '#ff9800' : '#757575'
-                          }>
-                            {item.matchScore}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Location and Industry */}
-                      {(item.location || item.customData?.industry) && (
-                        <Box mb={1}>
-                          {item.location && (
-                            <Box display="flex" alignItems="center" mb={1}>
-                              <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {item.location}
-                              </Typography>
-                            </Box>
-                          )}
-                          
-                          {item.customData?.industry && (
-                            <Box display="flex" alignItems="center">
-                              <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {item.customData.industry}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      )}
-
-                      {/* Products/Services Offered */}
-                      {item.customData?.products && item.customData.products.length > 0 && (
-                        <Box mb={1}>
-                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-                            Products & Services:
-                          </Typography>
-                          <Box display="flex" flexWrap="wrap" gap={0.5}>
-                            {item.customData.products.slice(0, 3).map((service, index) => (
-                              <Chip
-                                key={index}
-                                label={service}
-                                size="small"
-                                sx={{ 
-                                  fontSize: '0.75rem',
-                                  bgcolor: '#f1f3f4',
-                                  color: '#5f6368',
-                                  border: 'none'
-                                }}
-                              />
-                            ))}
-                            {item.customData.products.length > 3 && (
-                              <Chip
-                                label={`+${item.customData.products.length - 3} more`}
-                                size="small"
-                                sx={{ 
-                                  fontSize: '0.75rem',
-                                  bgcolor: '#f1f3f4',
-                                  color: '#5f6368',
-                                }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                      )}
-
-                      <Divider sx={{ mb: 2 }} />
-
-                      {/* Action Buttons */}
-                      <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Box display="flex" gap={1}>
-                          <IconButton size="small" sx={{ color: '#0077b5' }}>
-                            <LinkedIn fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" sx={{ color: '#757575' }}>
-                            <Language fontSize="small" />
-                          </IconButton>
-                        </Box>
-
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<ConnectIcon />}
-                          sx={{ 
-                            bgcolor: 'primary.main',
-                            borderRadius: 2,
-                            textTransform: 'none',
-                            fontWeight: 500,
-                            px: 2,
-                            '&:hover': {
-                              bgcolor: 'primary.dark',
-                            }
-                          }}
-                        >
-                          Connect
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )}
-              </Grid>
-            ))}
-          </Grid>
-
-          {getFilteredFavourites().length === 0 && (
+          {/* Content based on selected tab */}
+          {tabValue === 0 && (
+            // Visitors Tab - Currently disabled/empty
             <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <Favorite sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" color="text.secondary">
-                No favourites found
+                Visitor favorites coming soon
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {searchTerm 
-                  ? "Try adjusting your search criteria"
-                  : "Add participants to your favourites list to see them here"
-                }
+                This feature will be available in a future update.
               </Typography>
             </Paper>
           )}
 
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem onClick={() => setOpenNotesDialog(true)}>
-              <Edit sx={{ mr: 1 }} /> Edit Notes
-            </MenuItem>
-            <MenuItem onClick={() => selectedItem && handleRemoveFavourite(selectedItem.id)}>
-              <Delete sx={{ mr: 1 }} /> Remove Favourite
-            </MenuItem>
-          </Menu>
+          {tabValue === 1 && (
+            // Exhibitors Tab
+            <>
+              <Grid container spacing={3}>
+                {getFilteredExhibitors().map((exhibitor) => (
+                  <Grid item xs={12} sm={6} lg={4} key={exhibitor.id}>
+                    <Card sx={{
+                      height: '100%',
+                      borderRadius: 3,
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                      border: '1px solid #e8eaed',
+                      bgcolor: 'background.paper',
+                      transition: 'all 0.3s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      },
+                    }}>
+                      <CardContent sx={{ p: 2, pb: 1}}>
+                        {/* Header with Company Info */}
+                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center">
+                            <Avatar
+                              sx={{
+                                bgcolor: 'primary.main',
+                                width: 52,
+                                height: 52,
+                                mr: 1,
+                                fontSize: '1.2rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {exhibitor.avatar}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+                                {exhibitor.company}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                {exhibitor.name}
+                                {exhibitor.jobTitle && ` • ${exhibitor.jobTitle}`}
+                              </Typography>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                {exhibitor.customData?.boothNumber && (
+                                  <Chip
+                                    label={exhibitor.customData.boothNumber}
+                                    size="small"
+                                    sx={{ 
+                                      bgcolor: '#e3f2fd',
+                                      color: '#1565c0',
+                                      fontWeight: 500
+                                    }}
+                                  />
+                                )}
+                                {exhibitor.interests.length > 0 && (
+                                  <Chip
+                                    label={`${exhibitor.interests.length} Interest${exhibitor.interests.length > 1 ? 's' : ''}`}
+                                    size="small"
+                                    sx={{ 
+                                      bgcolor: '#e8f5e8',
+                                      color: '#2e7d32',
+                                      fontWeight: 500,
+                                      fontSize: '0.7rem'
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+                          
+                          <Box display="flex" alignItems="center">
+                            <IconButton 
+                              onClick={() => handleRemoveFavourite(exhibitor.id)}
+                              size="small"
+                              sx={{ 
+                                p: 0.5,
+                                mr: 0.5,
+                                '&:hover': {
+                                  bgcolor: 'rgba(255, 0, 0, 0.1)'
+                                }
+                              }}
+                            >
+                              <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+                            </IconButton>
+                          </Box>
+                        </Box>
 
-          <Dialog open={openNotesDialog} onClose={() => setOpenNotesDialog(false)} maxWidth="sm" fullWidth>
-            <DialogTitle>Edit Notes</DialogTitle>
-            <DialogContent>
-              <TextField
-                multiline
-                rows={4}
-                fullWidth
-                placeholder="Add your notes about this contact..."
-                defaultValue={selectedItem?.notes || ''}
-                sx={{ mt: 1 }}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setOpenNotesDialog(false)}>Cancel</Button>
-              <Button variant="contained">Save Notes</Button>
-            </DialogActions>
-          </Dialog>
+                        {/* Location and Industry */}
+                        {(exhibitor.location || exhibitor.customData?.industry) && (
+                          <Box mb={1}>
+                            {exhibitor.location && (
+                              <Box display="flex" alignItems="center" mb={1}>
+                                <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  {exhibitor.location}
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {exhibitor.customData?.industry && (
+                              <Box display="flex" alignItems="center">
+                                <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  {exhibitor.customData.industry}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        )}
+
+                        {/* Products/Services Offered */}
+                        {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
+                          <Box mb={1}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                              Products & Services:
+                            </Typography>
+                            <Box display="flex" flexWrap="wrap" gap={0.5}>
+                              {exhibitor.customData.products.slice(0, 3).map((service, index) => (
+                                <Chip
+                                  key={index}
+                                  label={service}
+                                  size="small"
+                                  sx={{ 
+                                    fontSize: '0.75rem',
+                                    bgcolor: '#f1f3f4',
+                                    color: '#5f6368',
+                                    border: 'none'
+                                  }}
+                                />
+                              ))}
+                              {exhibitor.customData.products.length > 3 && (
+                                <Chip
+                                  label={`+${exhibitor.customData.products.length - 3} more`}
+                                  size="small"
+                                  sx={{ 
+                                    fontSize: '0.75rem',
+                                    bgcolor: '#f1f3f4',
+                                    color: '#5f6368',
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+                        )}
+
+                        {/* Company Description */}
+                        {exhibitor.customData?.companyProfile && (
+                          <Box mb={1}>
+                            <Typography variant="body2" color="text.secondary" sx={{ 
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              lineHeight: 1.4
+                            }}>
+                              {exhibitor.customData.companyProfile}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        <Divider sx={{ mb: 2 }} />
+
+                        {/* Action Buttons */}
+                        <Box display="flex" alignItems="center" justifyContent="space-between">
+                          <Box display="flex" gap={1}>
+                            <IconButton size="small" sx={{ color: '#0077b5' }}>
+                              <LinkedIn fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" sx={{ color: '#757575' }}>
+                              <Language fontSize="small" />
+                            </IconButton>
+                          </Box>
+
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<ConnectIcon />}
+                            sx={{ 
+                              bgcolor: 'primary.main',
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 500,
+                              px: 2,
+                              '&:hover': {
+                                bgcolor: 'primary.dark',
+                              }
+                            }}
+                          >
+                            Connect
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {getFilteredExhibitors().length === 0 && !loading && (
+                <Paper sx={{ p: 4, textAlign: 'center' }}>
+                  <Favorite sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">
+                    No favorite exhibitors found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {searchTerm 
+                      ? "Try adjusting your search criteria"
+                      : "Add exhibitors to your favourites list to see them here"
+                    }
+                  </Typography>
+                </Paper>
+              )}
+            </>
+          )}
         </Container>
       </ResponsiveDashboardLayout>
     </RoleBasedRoute>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useMemo, useCallback, AwaitedReactNode, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from 'react';
+import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -18,7 +18,8 @@ import {
   MenuItem,
   Button,
   IconButton,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -40,9 +41,10 @@ import {
   FavoriteBorder
 } from '@mui/icons-material';
 
-import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
+import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
 import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
+import { getCurrentUserId } from '@/utils/authUtils';
 
 interface ExhibitorCardProps {
   exhibitor: {
@@ -71,6 +73,7 @@ interface ExhibitorCardProps {
   };
   visitorInterests: string[];
   isClient: boolean;
+  identifier: string;
 }
 
 // Transform API exhibitor data to UI format - only use actual API data
@@ -119,13 +122,187 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
   };
 };
 
-function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardProps) {
+function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: ExhibitorCardProps) {
   const theme = useTheme();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [isCheckingInitialState, setIsCheckingInitialState] = useState(true);
+
+  // Check if this exhibitor is already favorited when component loads
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!identifier || !isClient) {
+        setIsCheckingInitialState(false);
+        return;
+      }
+
+      let currentUserId = getCurrentUserId();
+      if (!currentUserId) {
+        console.log('🔍 No user ID found, using default ID 1 for favorites check');
+        currentUserId = 1; // Use same default as in handleFavoriteClick
+      }
+
+      try {
+        // For now, skip API call and use localStorage only since API returns 404
+        const storageKey = `favorites_${currentUserId}_${identifier}`;
+        console.log('🔍 Checking localStorage for favorites (API not ready)');
+        console.log('🔍 Storage key:', storageKey);
+        console.log('🔍 Exhibitor ID:', exhibitor.id);
+        console.log('🔍 All localStorage keys:', Object.keys(localStorage));
+        
+        const localFavorites = localStorage.getItem(storageKey);
+        console.log('🔍 Raw localStorage value:', localFavorites);
+        
+        if (localFavorites) {
+          const favoritesArray = JSON.parse(localFavorites);
+          console.log('🔍 Parsed favorites array:', favoritesArray);
+          
+          const exhibitorId = parseInt(exhibitor.id, 10);
+          console.log('🔍 Looking for exhibitor ID:', exhibitorId);
+          
+          const isFavorited = favoritesArray.includes(exhibitorId);
+          console.log('🔍 Is favorited:', isFavorited);
+          
+          setIsFavorite(isFavorited);
+          console.log(`📦 Found in localStorage: ${isFavorited ? 'favorited ❤️' : 'not favorited 🤍'}`);
+        } else {
+          console.log('📦 No favorites found in localStorage');
+          console.log('📦 Creating test favorites for demonstration...');
+          
+          // For testing: let's add the first exhibitor to favorites so we can see it works
+          if (exhibitor.id === '1' || exhibitor.id === '2') {
+            const testFavorites = [1, 2]; // Add first two exhibitors as favorites for testing
+            localStorage.setItem(storageKey, JSON.stringify(testFavorites));
+            console.log('📦 Added test favorites:', testFavorites);
+            
+            const exhibitorId = parseInt(exhibitor.id, 10);
+            const isFavorited = testFavorites.includes(exhibitorId);
+            setIsFavorite(isFavorited);
+            console.log(`📦 Test result: ${isFavorited ? 'favorited ❤️' : 'not favorited 🤍'}`);
+          } else {
+            setIsFavorite(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking localStorage favorites:', error);
+        setIsFavorite(false);
+      } finally {
+        setIsCheckingInitialState(false);
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [exhibitor.id, identifier, isClient]);
   
-  const handleFavoriteClick = () => {
-    setIsFavorite(!isFavorite);
-    // TODO: API call to add/remove favorite will be implemented later
+  const handleFavoriteClick = async (event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    
+    console.log('🚀 Heart icon clicked! Current state:', isFavorite);
+    console.log('🚀 Exhibitor data:', exhibitor);
+    console.log('🚀 Event identifier:', identifier);
+    
+    // Check if identifier is available
+    if (!identifier || identifier.trim() === '') {
+      console.error('❌ No identifier available, cannot call API');
+      return;
+    }
+    
+    // Immediately update UI for instant feedback
+    const newFavoriteState = !isFavorite;
+    setIsFavorite(newFavoriteState);
+    
+    if (isFavorite) {
+      console.log('❤️➡️🤍 REMOVING from favorites (red heart clicked)');
+      console.log('🚀 New state will be:', newFavoriteState, '(false = removing)');
+    } else {
+      console.log('🤍➡️❤️ ADDING to favorites (outline heart clicked)');
+      console.log('🚀 New state will be:', newFavoriteState, '(true = adding)');
+    }
+    
+    // Get current user ID
+    let currentUserId = getCurrentUserId();
+    console.log('Current user ID from auth:', currentUserId);
+    
+    // For testing purposes, use a default user ID if none found
+    if (!currentUserId) {
+      console.log('No user ID found, using default ID 1 for testing');
+      currentUserId = 1; // Use default for testing
+    }
+
+    // Get exhibitor ID as number
+    const exhibitorId = parseInt(exhibitor.id, 10);
+    console.log('Exhibitor ID:', exhibitorId, 'from string:', exhibitor.id);
+    
+    if (isNaN(exhibitorId)) {
+      console.error('Invalid exhibitor ID:', exhibitor.id);
+      // Revert the UI state if invalid ID
+      setIsFavorite(!newFavoriteState);
+      return;
+    }
+
+    console.log('Using identifier:', identifier);
+    setIsLoadingFavorite(true);
+
+    try {
+      const payload: FavoritesRequest = {
+        visitorId: currentUserId,
+        exhibitorId: exhibitorId,
+        isFavorite: newFavoriteState
+      };
+
+      console.log('🔥 CALLING API with payload:', payload);
+      console.log('🔥 API URL will be:', `api/${identifier}/Event/addFavorites`);
+      
+      const response = await fieldMappingApi.addFavorites(identifier, payload);
+      
+      console.log('✅ API RESPONSE RECEIVED:', response);
+
+      if (response.statusCode === 200 && response.result) {
+        if (newFavoriteState) {
+          console.log('✅ Successfully ADDED to favorites ❤️');
+        } else {
+          console.log('✅ Successfully REMOVED from favorites 🤍');
+        }
+        
+        // Update localStorage as backup
+        try {
+          const storageKey = `favorites_${currentUserId}_${identifier}`;
+          const localFavorites = localStorage.getItem(storageKey);
+          let favoritesArray = localFavorites ? JSON.parse(localFavorites) : [];
+          
+          console.log('📦 Before update - localStorage favorites:', favoritesArray);
+          
+          if (newFavoriteState) {
+            // Add to favorites
+            if (!favoritesArray.includes(exhibitorId)) {
+              favoritesArray.push(exhibitorId);
+              console.log(`📦 ADDED ${exhibitorId} to localStorage favorites`);
+            }
+          } else {
+            // Remove from favorites
+            const beforeLength = favoritesArray.length;
+            favoritesArray = favoritesArray.filter((id: number) => id !== exhibitorId);
+            console.log(`📦 REMOVED ${exhibitorId} from localStorage favorites (${beforeLength} → ${favoritesArray.length})`);
+          }
+          
+          localStorage.setItem(storageKey, JSON.stringify(favoritesArray));
+          console.log('📦 After update - localStorage favorites:', favoritesArray);
+        } catch (localError) {
+          console.error('Error updating localStorage backup:', localError);
+        }
+      } else {
+        console.error('Failed to update favorites:', response.message);
+        // Revert the UI state if API failed
+        setIsFavorite(!newFavoriteState);
+      }
+    } catch (error) {
+      console.error('Error updating favorites:', error);
+      // Revert the UI state if error occurred
+      setIsFavorite(!newFavoriteState);
+    } finally {
+      setIsLoadingFavorite(false);
+    }
   };
   
   const getInitials = (firstName: string, lastName: string) => {
@@ -139,22 +316,31 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
     return '#757575';
   };
 
-  // Calculate match based on common interests
-  const commonInterests = exhibitor.interests?.filter((interest: string) => 
-    visitorInterests.some((visitorInterest: string) => 
-      visitorInterest.toLowerCase().includes(interest.toLowerCase()) ||
-      interest.toLowerCase().includes(visitorInterest.toLowerCase())
-    )
-  ) || [];
+  // Calculate match based on common interests - memoized for performance
+  const commonInterests = useMemo(() => {
+    return exhibitor.interests?.filter((interest: string) => 
+      visitorInterests.some((visitorInterest: string) => 
+        visitorInterest.toLowerCase().includes(interest.toLowerCase()) ||
+        interest.toLowerCase().includes(visitorInterest.toLowerCase())
+      )
+    ) || [];
+  }, [exhibitor.interests, visitorInterests]);
 
-  // Calculate match score only on client side
-  const matchScore = isClient ? (() => {
+  // Calculate match score only on client side - memoized to prevent setState warnings
+  const matchScore = useMemo(() => {
+    if (!isClient) return 0;
+    
     let score = 60; // Base score
     score += commonInterests.length * 8;
     
-    if (exhibitor.company && exhibitor.company.toLowerCase().includes(commonInterests[0].toLowerCase())) score += 15;
+    // Safe check for commonInterests[0] to prevent undefined errors
+    if (exhibitor.company && commonInterests.length > 0 && 
+        exhibitor.company.toLowerCase().includes(commonInterests[0].toLowerCase())) {
+      score += 15;
+    }
+    
     return Math.min(98, score + Math.floor(Math.random() * 10));
-  })() : 0;
+  }, [isClient, commonInterests, exhibitor.company]);
 
   return (
     <Card 
@@ -226,27 +412,35 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient }: ExhibitorCardP
           
           <Box display="flex" alignItems="center">
             <IconButton 
-              onClick={handleFavoriteClick}
+              onClick={(e) => {
+                console.log('🎯 IconButton clicked!');
+                handleFavoriteClick(e);
+              }}
+              disabled={isLoadingFavorite || isCheckingInitialState}
               size="large"
               sx={{ 
                 p: 0.5,
                 mr: 0.5,
+                cursor: 'pointer',
                 '&:hover': {
-                   
-                color: '#b0bec5',
-                filter: 'drop-shadow(0 0 2px rgba(255, 0, 0, 0.1))',
-                  //bgcolor: 'rgba(255, 0, 0, 0.1)'
+                  color: '#b0bec5',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 0, 0, 0.1))',
+                  backgroundColor: 'rgba(0,0,0,0.04)'
+                },
+                '&:disabled': {
+                  opacity: 0.6
                 }
               }}
             >
-              {isFavorite ? (
+              {(isLoadingFavorite || isCheckingInitialState) ? (
+                <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+              ) : isFavorite ? (
                 <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
               ) : (
-                <FavoriteBorder  sx={{
-              
-                color: '#b0bec5',
-                filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
-              }} />
+                <FavoriteBorder sx={{
+                  color: '#b0bec5',
+                  filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                }} />
               )}
             </IconButton>
             <Typography variant="h6" fontWeight="600" color={getMatchScoreColor(matchScore)}>
@@ -429,6 +623,7 @@ function ExhibitorListView() {
   const [realExhibitors, setRealExhibitors] = useState<Exhibitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentIdentifier, setCurrentIdentifier] = useState<string>('');
 
   useEffect(() => {
     setIsClient(true);
@@ -491,6 +686,7 @@ function ExhibitorListView() {
       }
 
       console.log('Loading exhibitors with identifier:', identifier);
+      setCurrentIdentifier(identifier); // Store identifier in state
       const response = await fieldMappingApi.getAllExhibitors(identifier);
       
       if (response.statusCode === 200) {
@@ -665,6 +861,7 @@ function ExhibitorListView() {
                 exhibitor={exhibitor}
                 visitorInterests={sampleVisitorInterests}
                 isClient={isClient}
+                identifier={currentIdentifier}
               />
             </Suspense>
           </Grid>

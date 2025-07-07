@@ -76,6 +76,25 @@ export default function VisitorsMatchingPage() {
   
   // Display all mappings evenly distributed
 
+const FullPageLoader = () => (
+  <Box
+    sx={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      zIndex: 2000, // ensure above Dialog (MUI uses 1300 for Dialogs)
+    }}
+  >
+    <CircularProgress size={60} />
+  </Box>
+);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -690,7 +709,7 @@ export default function VisitorsMatchingPage() {
                 size="small"
                 disabled={isSaving}
               >
-                {isSaving ? 'Registering Users...' : 'Save & Register Users'}
+                {isSaving ? <FullPageLoader/> : 'Save & Register Users'}
               </Button>
             </Box>
           </Box>
@@ -836,209 +855,7 @@ export default function VisitorsMatchingPage() {
                     </Typography>
                   </Box>
                   
-                  {/* User Lists Section - Side by Side */}
-                  <Grid container spacing={2}>
-                    {/* Newly Registered Column */}
-                    {registrationResult.result.newlyRegisteredEmails.length > 0 && (
-                      <Grid item xs={registrationResult.result.alredyRegisteredEmails.length > 0 ? 6 : 12}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#065f46', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <CheckCircle sx={{ fontSize: 16, color: '#10b981' }} />
-                          Newly Added ({registrationResult.result.newlyRegisteredEmails.length})
-                        </Typography>
-                        <Box sx={{ 
-                          background: '#f0fdf4',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: 1,
-                          p: 1
-                        }}>
-                          {registrationResult.result.newlyRegisteredEmails.map((email, index) => (
-                            <Box key={index} sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 1, 
-                              mb: 0.5,
-                              p: 1,
-                              background: 'white',
-                              borderRadius: 0.5,
-                              border: '1px solid #e5e7eb',
-                              '&:last-child': { mb: 0 }
-                            }}>
-                              <Typography variant="caption" sx={{ 
-                                background: '#10b981',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: 20,
-                                height: 20,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.7rem',
-                                fontWeight: 600,
-                                flexShrink: 0
-                              }}>
-                                {index + 1}
-                              </Typography>
-                              <Typography variant="body2" sx={{ 
-                                color: '#374151', 
-                                fontSize: '0.8rem',
-                                wordBreak: 'break-word',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                              }}>
-                                {email}
-                              </Typography>
-                            </Box>
-                          ))}
-                        </Box>
-                      </Grid>
-                    )}
-                    
-                    {/* Already Registered Section */}
-                    {registrationResult.result.alredyRegisteredEmails.length > 0 && (
-                      <Grid item xs={registrationResult.result.newlyRegisteredEmails.length > 0 ? 6 : 12}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#92400e', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Person sx={{ fontSize: 16, color: '#d97706' }} />
-                          Already Registered ({registrationResult.result.alredyRegisteredEmails.length})
-                        </Typography>
-                        <Box sx={{ 
-                          background: '#fef3c7',
-                          border: '1px solid #fcd34d',
-                          borderRadius: 1,
-                          p: 1
-                        }}>
-                          {/* Show in 2 columns if taking full width, otherwise single column */}
-                          {registrationResult.result.newlyRegisteredEmails.length === 0 ? (
-                            <Grid container spacing={1}>
-                              <Grid item xs={6}>
-                                {registrationResult.result.alredyRegisteredEmails
-                                  .slice(0, Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
-                                  .map((email: string, index: number) => (
-                                    <Box key={index} sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      gap: 1, 
-                                      mb: 0.5,
-                                      p: 1,
-                                      background: 'white',
-                                      borderRadius: 0.5,
-                                      border: '1px solid #e5e7eb',
-                                      '&:last-child': { mb: 0 }
-                                    }}>
-                                      <Typography variant="caption" sx={{ 
-                                        background: '#d97706',
-                                        color: 'white',
-                                        borderRadius: '50%',
-                                        width: 20,
-                                        height: 20,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 600,
-                                        flexShrink: 0
-                                      }}>
-                                        {index + 1}
-                                      </Typography>
-                                      <Typography variant="body2" sx={{ 
-                                        color: '#374151', 
-                                        fontSize: '0.8rem',
-                                        wordBreak: 'break-word',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis'
-                                      }}>
-                                        {email}
-                                      </Typography>
-                                    </Box>
-                                  ))}
-                              </Grid>
-                              <Grid item xs={6}>
-                                {registrationResult.result.alredyRegisteredEmails
-                                  .slice(Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2))
-                                  .map((email: string, index: number) => (
-                                    <Box key={index} sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      gap: 1, 
-                                      mb: 0.5,
-                                      p: 1,
-                                      background: 'white',
-                                      borderRadius: 0.5,
-                                      border: '1px solid #e5e7eb',
-                                      '&:last-child': { mb: 0 }
-                                    }}>
-                                      <Typography variant="caption" sx={{ 
-                                        background: '#d97706',
-                                        color: 'white',
-                                        borderRadius: '50%',
-                                        width: 20,
-                                        height: 20,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 600,
-                                        flexShrink: 0
-                                      }}>
-                                        {Math.ceil(registrationResult.result.alredyRegisteredEmails.length / 2) + index + 1}
-                                      </Typography>
-                                      <Typography variant="body2" sx={{ 
-                                        color: '#374151', 
-                                        fontSize: '0.8rem',
-                                        wordBreak: 'break-word',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis'
-                                      }}>
-                                        {email}
-                                      </Typography>
-                                    </Box>
-                                  ))}
-                              </Grid>
-                            </Grid>
-                          ) : (
-                            /* Single column when sharing space with newly registered users */
-                            registrationResult.result.alredyRegisteredEmails.map((email: string, index: number) => (
-                              <Box key={index} sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 1, 
-                                mb: 0.5,
-                                p: 1,
-                                background: 'white',
-                                borderRadius: 0.5,
-                                border: '1px solid #e5e7eb',
-                                '&:last-child': { mb: 0 }
-                              }}>
-                                <Typography variant="caption" sx={{ 
-                                  background: '#d97706',
-                                  color: 'white',
-                                  borderRadius: '50%',
-                                  width: 20,
-                                  height: 20,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
-                                  flexShrink: 0
-                                }}>
-                                  {index + 1}
-                                </Typography>
-                                <Typography variant="body2" sx={{ 
-                                  color: '#374151', 
-                                  fontSize: '0.8rem',
-                                  wordBreak: 'break-word',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis'
-                                }}>
-                                  {email}
-                                </Typography>
-                              </Box>
-                            ))
-                          )}
-                        </Box>
-                      </Grid>
-                    )}
-                  </Grid>
+                
                 </Box>
               )}
             </DialogContent>

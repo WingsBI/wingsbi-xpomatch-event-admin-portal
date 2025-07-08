@@ -33,6 +33,7 @@ import { fieldMappingApi } from '@/services/fieldMappingApi';
 import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
+import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 
 interface FieldMapping {
@@ -449,10 +450,11 @@ export default function VisitorsMatchingPage() {
 
   if (error && fieldMappings.length === 0) {
     return (
-      <ResponsiveDashboardLayout 
-        title="Visitors Onboarding"
-        
-      >
+      <RoleBasedRoute allowedRoles={['event-admin']}>
+        <ResponsiveDashboardLayout 
+          title="Visitors Onboarding"
+          
+        >
         <Box
           component="main"
           sx={{
@@ -517,6 +519,7 @@ export default function VisitorsMatchingPage() {
           </Container>
         </Box>
       </ResponsiveDashboardLayout>
+      </RoleBasedRoute>
     );
   }
 
@@ -653,10 +656,11 @@ export default function VisitorsMatchingPage() {
   );
 
   return (
-    <ResponsiveDashboardLayout 
-      title="Visitors Onboarding"
-      
-    >
+    <RoleBasedRoute allowedRoles={['event-admin']}>
+      <ResponsiveDashboardLayout 
+        title="Visitors Onboarding"
+        
+      >
       <Box
         component="main"
         sx={{
@@ -971,5 +975,6 @@ export default function VisitorsMatchingPage() {
         </Container>
       </Box>
     </ResponsiveDashboardLayout>
+    </RoleBasedRoute>
   );
 } 

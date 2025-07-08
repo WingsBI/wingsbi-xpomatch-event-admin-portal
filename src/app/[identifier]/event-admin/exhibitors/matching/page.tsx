@@ -30,6 +30,7 @@ import { fieldMappingApi } from '@/services/fieldMappingApi';
 import type { ExhibitorRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
+import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 
 interface FieldMapping {
@@ -427,13 +428,14 @@ const FullPageLoader = () => (
 
   if (error && fieldMappings.length === 0) {
     return (
-      <ResponsiveDashboardLayout
-        title="Exhibitors Onboarding"
+      <RoleBasedRoute allowedRoles={['event-admin', 'visitor', 'exhibitor']}>
+        <ResponsiveDashboardLayout
+          title="Exhibitors Onboarding"
 
 
 
 
-      >
+        >
         <Box
           component="main"
           sx={{
@@ -499,6 +501,7 @@ const FullPageLoader = () => (
           </Container>
         </Box>
       </ResponsiveDashboardLayout>
+      </RoleBasedRoute>
     );
   }
 
@@ -647,10 +650,11 @@ const FullPageLoader = () => (
 
 
   return (
-    <ResponsiveDashboardLayout
-      title="Exhibitors Onboarding"
+    <RoleBasedRoute allowedRoles={['event-admin', 'visitor', 'exhibitor']}>
+      <ResponsiveDashboardLayout
+        title="Exhibitors Onboarding"
 
-    >
+      >
       <Box
         component="main"
         sx={{
@@ -919,5 +923,6 @@ const FullPageLoader = () => (
         </Container>
       </Box>
     </ResponsiveDashboardLayout>
+    </RoleBasedRoute>
   );
 } 

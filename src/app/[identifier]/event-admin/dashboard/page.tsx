@@ -452,7 +452,7 @@ export default function EventAdminDashboard() {
   ];
 
   return (
-    <RoleBasedRoute allowedRoles={['event-admin', 'it-admin']}>
+    <RoleBasedRoute allowedRoles={['event-admin']}>
       <ResponsiveDashboardLayout 
         title={
           <Box sx={{ minWidth: 300, maxWidth: 400 }}>

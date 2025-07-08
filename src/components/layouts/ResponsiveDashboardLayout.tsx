@@ -83,17 +83,7 @@ interface ResponsiveDashboardLayoutProps {
 }
 
 const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier: string) => {
-  const baseItems = userRole === 'it-admin' ? [
-    { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/it-admin/dashboard`, children: [] },
-    { text: 'Events', icon: <Event />, href: `/${identifier}/it-admin/events`, children: [] },
-    { text: 'Event Admins', icon: <AdminPanelSettings />, href: `/${identifier}/it-admin/admins`, children: [] },
-    {
-      text: 'Settings', icon: <Settings />, href: `/${identifier}/it-admin/settings`, children: [
-        { text: 'General', href: `/${identifier}/it-admin/settings/general` },
-        { text: 'Security', href: `/${identifier}/it-admin/settings/security` },
-      ]
-    },
-  ] : userRole === 'visitor' || userRole === 'exhibitor' ? [
+  const baseItems = userRole === 'visitor' || userRole === 'exhibitor' ? [
     // Both visitors and exhibitors only see these 2 pages - no dropdown menus
     { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
     { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
@@ -591,12 +581,7 @@ export default function ResponsiveDashboardLayout({
                   <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
                   </Typography>
-                  {/* <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }} noWrap>
-                    {user?.role === 'it-admin' ? 'IT Administrator' :
-                      user?.role === 'visitor' ? 'Visitor Portal' :
-                        user?.role === 'exhibitor' ? 'Exhibitor Portal' :
-                          'Event Administrator'}
-                  </Typography> */}
+                  
                 </Box>
               )}
             </Box>

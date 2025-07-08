@@ -30,7 +30,7 @@ export interface AuthResponse {
       email: string;
       firstName: string;
       lastName: string;
-      role: 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
+      role:  'event-admin' | 'exhibitor' | 'visitor';
       eventId?: string;
       avatar?: string;
       createdAt: string;
@@ -63,7 +63,7 @@ class AuthApiService {
   }
 
   // Map numeric role IDs to string literals
-  private mapRoleToString(role: string | number, roleName?: string): 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor' {
+  private mapRoleToString(role: string | number, roleName?: string): 'event-admin' | 'exhibitor' | 'visitor' {
     // First try to map by roleName if available
     if (roleName) {
       switch (roleName.toLowerCase()) {
@@ -74,16 +74,12 @@ class AuthApiService {
         case 'event-admin':
         case 'eventadmin':
           return 'event-admin';
-        case 'it-admin':
-        case 'itadmin':
-          return 'it-admin';
       }
     }
 
     // Fallback to numeric role mapping
     switch (role.toString()) {
       case '1':
-        return 'it-admin';
       case '2':
         return 'event-admin';
       case '3':
@@ -92,8 +88,8 @@ class AuthApiService {
         return 'visitor';
       default:
         // If it's already a string literal, return as is
-        if (['it-admin', 'event-admin', 'exhibitor', 'visitor'].includes(role as string)) {
-          return role as 'it-admin' | 'event-admin' | 'exhibitor' | 'visitor';
+      if (['event-admin', 'exhibitor', 'visitor'].includes(role as string)) {
+          return role as 'event-admin' | 'exhibitor' | 'visitor';
         }
         return 'event-admin'; // Default fallback
     }

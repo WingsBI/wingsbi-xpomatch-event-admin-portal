@@ -65,7 +65,7 @@ export async function GET(
       fontName: 'Inter',
       createdAt: new Date('2024-01-15T10:30:00Z').toISOString(),
       updatedAt: new Date('2024-01-15T10:30:00Z').toISOString(),
-      createdBy: 'it-admin-user-id',
+      createdBy: 'event-admin-user-id',
     };
 
     // For demonstration, sometimes return null to simulate no theme assigned

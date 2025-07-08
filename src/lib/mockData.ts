@@ -300,7 +300,7 @@ export const mockEvent = {
   maxVisitors: 500,
   maxExhibitors: 100,
   status: 'active' as const,
-  createdBy: 'it-admin-001',
+  createdBy: 'event-admin-001',
   eventAdminId: 'event-admin-001',
   customAttributes: [],
   marketingAbbreviation: 'TECH2024',

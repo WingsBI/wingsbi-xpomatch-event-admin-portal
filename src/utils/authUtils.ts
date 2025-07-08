@@ -49,7 +49,7 @@ export function isValidUserData(user: any): boolean {
   }
 
   // Check valid roles
-  const validRoles = ['event-admin', 'it-admin', 'visitor', 'exhibitor'];
+  const validRoles = ['event-admin', 'visitor', 'exhibitor'];
   if (!validRoles.includes(user.role)) {
     return false;
   }

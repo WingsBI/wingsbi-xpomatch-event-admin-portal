@@ -45,8 +45,6 @@ export default function RoleBasedRoute({
             defaultRedirectPath = `/${identifier}/event-admin/exhibitors`;
           } else if (userRole === 'event-admin') {
             defaultRedirectPath = `/${identifier}/event-admin/dashboard`;
-          } else if (userRole === 'it-admin') {
-            defaultRedirectPath = `/${identifier}/it-admin/dashboard`;
           } else {
             defaultRedirectPath = `/${identifier}`;
           }

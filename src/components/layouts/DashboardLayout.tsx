@@ -38,7 +38,7 @@ import { useRouter, usePathname } from 'next/navigation';
 interface DashboardLayoutProps {
   children: ReactNode;
   title: string;
-  userRole: 'it-admin' | 'event-admin';
+  userRole: 'event-admin';
 }
 
 export default function DashboardLayout({ children, title, userRole }: DashboardLayoutProps) {
@@ -79,14 +79,6 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
   };
 
   const getNavigationItems = () => {
-    if (userRole === 'it-admin') {
-      return [
-        { text: 'Dashboard', icon: <Dashboard />, href: '/it-admin/dashboard' },
-        { text: 'Events', icon: <Event />, href: '/it-admin/events' },
-        { text: 'Event Admins', icon: <AdminPanelSettings />, href: '/it-admin/admins' },
-        { text: 'Settings', icon: <Settings />, href: '/it-admin/settings' },
-      ];
-    } else {
       return [
         { text: 'Dashboard', icon: <Dashboard />, href: '/event-admin/dashboard' },
         { text: 'Event Details', icon: <Event />, href: '/event-admin/event' },
@@ -94,15 +86,14 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
         { text: 'Exhibitors', icon: <Business />, href: '/event-admin/exhibitors' },
         { text: 'Settings', icon: <Settings />, href: '/event-admin/attributes' },
       ];
-    }
   };
 
   const getUserInitials = () => {
-    return userRole === 'it-admin' ? 'IA' : 'EA';
+    return userRole ==  'event-admin';
   };
 
   const getRoleTitle = () => {
-    return userRole === 'it-admin' ? 'IT Administrator' : 'Event Administrator';
+    return userRole == 'event-admin';
   };
 
   const drawer = (

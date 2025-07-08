@@ -51,6 +51,25 @@ interface StandardField {
   modifiedDate: string | null;
 }
 
+const FullPageLoader = () => (
+  <Box
+    sx={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      zIndex: 2000, // ensure above Dialog (MUI uses 1300 for Dialogs)
+    }}
+  >
+    <CircularProgress size={60} />
+  </Box>
+);
+
 export default function VisitorsMatchingPage() {
   const router = useRouter();
   const params = useParams();
@@ -75,25 +94,6 @@ export default function VisitorsMatchingPage() {
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
   
   // Display all mappings evenly distributed
-
-const FullPageLoader = () => (
-  <Box
-    sx={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.7)',
-      zIndex: 2000, // ensure above Dialog (MUI uses 1300 for Dialogs)
-    }}
-  >
-    <CircularProgress size={60} />
-  </Box>
-);
 
   useEffect(() => {
     loadData();
@@ -581,71 +581,71 @@ const FullPageLoader = () => (
                     </Typography>
                   </Grid>
                   <Grid item xs={11}>
-                <Box>
-                  <FormControl fullWidth size="small">
-                    <Select
-                      value={selectedMappings[mapping.excelColumn] || ''}
-                      onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
-                      displayEmpty
-                      sx={{ 
-                        '& .MuiSelect-select': { 
-                          py: 1,
-                          fontSize: '0.9rem'
-                        }
-                      }}
-                    >
-                      <MenuItem value="CUSTOM_FIELD" sx={{ fontSize: '0.9rem', color: 'primary.main', fontWeight: 'medium' }}>
-                        <Box sx={{ fontSize: '0.8rem',display: 'flex', alignItems: 'left', gap: 0 }}>
-                          <Add sx={{ fontSize: 15 }} />
-                          Custom Field
-                        </Box>
-                      </MenuItem>
-                      {standardFields.map((field) => (
-                        <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.9rem' }}>
-                          {field.fieldName}
-                        </MenuItem>
-                      ))}
-                      
-                    </Select>
-                  </FormControl>
-                  
-                  {selectedMappings[mapping.excelColumn] === 'CUSTOM_FIELD' && (
                     <Box>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Enter custom field"
-                        value={customFieldValues[mapping.excelColumn] || ''}
-                        onChange={(e) => handleCustomFieldChange(mapping.excelColumn, e.target.value)}
-                        sx={{ 
-                          mt: 1,
-                          '& .MuiInputBase-input': {
-                            fontSize: '0.8rem' 
-                          }
-                        }}
-                        autoFocus
-                      />
-                      {customFieldValidationMessages[mapping.excelColumn] && (
-                        <Typography 
-                          variant="caption" 
-                          color="warning.main" 
+                      <FormControl fullWidth size="small">
+                        <Select
+                          value={selectedMappings[mapping.excelColumn] || ''}
+                          onChange={(e) => handleMappingChange(mapping.excelColumn, e.target.value)}
+                          displayEmpty
                           sx={{ 
-                            display: 'block', 
-                            mt: 0.5, 
-                            fontSize: '0.75rem',
-                            fontWeight: 500
+                            '& .MuiSelect-select': { 
+                              py: 1,
+                              fontSize: '0.9rem'
+                            }
                           }}
                         >
-                          {customFieldValidationMessages[mapping.excelColumn]}
-                        </Typography>
+                          <MenuItem value="CUSTOM_FIELD" sx={{ fontSize: '0.9rem', color: 'primary.main', fontWeight: 'medium' }}>
+                            <Box sx={{ fontSize: '0.8rem',display: 'flex', alignItems: 'left', gap: 0 }}>
+                              <Add sx={{ fontSize: 15 }} />
+                              Custom Field
+                            </Box>
+                          </MenuItem>
+                          {standardFields.map((field) => (
+                            <MenuItem key={field.id} value={field.fieldName} sx={{ fontSize: '0.9rem' }}>
+                              {field.fieldName}
+                            </MenuItem>
+                          ))}
+                          
+                        </Select>
+                      </FormControl>
+                      
+                      {selectedMappings[mapping.excelColumn] === 'CUSTOM_FIELD' && (
+                        <Box>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            placeholder="Enter custom field"
+                            value={customFieldValues[mapping.excelColumn] || ''}
+                            onChange={(e) => handleCustomFieldChange(mapping.excelColumn, e.target.value)}
+                            sx={{ 
+                              mt: 1,
+                              '& .MuiInputBase-input': {
+                                fontSize: '0.8rem' 
+                              }
+                            }}
+                            autoFocus
+                          />
+                          {customFieldValidationMessages[mapping.excelColumn] && (
+                            <Typography 
+                              variant="caption" 
+                              color="warning.main" 
+                              sx={{ 
+                                display: 'block', 
+                                mt: 0.5, 
+                                fontSize: '0.75rem',
+                                fontWeight: 500
+                              }}
+                            >
+                              {customFieldValidationMessages[mapping.excelColumn]}
+                            </Typography>
+                          )}
+                        </Box>
                       )}
                     </Box>
-                  )}
-                </Box>
-              </Grid>
-            </Grid>
-            )}
-          </CardContent>
+                  </Grid>
+                </Grid>
+              )}
+            </CardContent>
           </Card>
         );
       })}
@@ -823,39 +823,54 @@ const FullPageLoader = () => (
                 </Typography>
               </Box>
             </DialogTitle>
-            <DialogContent sx={{ p: 2 }}>
+            <DialogContent sx={{ p: 3 }}>
               {registrationResult && (
                 <Box>
-                  {/* Compact Success Summary */}
+                  {/* Professional Success Summary */}
                   <Box sx={{ 
-                    background: '#f0fdf4',
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
                     border: '1px solid #bbf7d0',
-                    borderRadius: 1,
-                    p: 2,
+                    borderRadius: 2,
+                    p: 3,
                     mb: 2,
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
                   }}>
-                    <Box display="flex" alignItems="center" justifyContent="center" gap={1.5} mb={1}>
+                    <Box display="flex" alignItems="center" justifyContent="center" gap={2} mb={2}>
                       <Box sx={{ 
-                        background: '#10b981',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                         borderRadius: '50%',
-                        p: 1,
+                        p: 1.5,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                       }}>
-                        <Person sx={{ fontSize: 16, color: 'white' }} />
+                        <Person sx={{ fontSize: 20, color: 'white' }} />
                       </Box>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#065f46' }}>
+                      <Typography variant="h3" sx={{ 
+                        fontWeight: 700, 
+                        color: '#065f46',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                      }}>
                         {registrationResult.result.registeredCount}
                       </Typography>
                     </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#065f46', fontSize: '0.9rem' }}>
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 600, 
+                      color: '#065f46', 
+                      mb: 1
+                    }}>
                       New Visitors Registered
                     </Typography>
+                    <Typography variant="body2" sx={{ 
+                      color: '#047857',
+                      opacity: 0.8,
+                      fontSize: '0.9rem'
+                    }}>
+                      Successfully processed and registered in the system
+                    </Typography>
                   </Box>
-                  
-                
                 </Box>
               )}
             </DialogContent>

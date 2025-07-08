@@ -312,27 +312,6 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
                 </Box>
               </Box>
 
-              {/* <Box display="flex" flexWrap="wrap" gap={9} mb={2}>
-                <Box display="flex" alignItems="center" minWidth="200px">
-                  <Category sx={{ mr: 2, color: 'text.secondary' }} />
-                  <Box>
-                    <Typography variant="subtitle2">Category</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {eventDetails.categoryName}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box display="flex" alignItems="center" minWidth="200px">
-                  <Computer sx={{ mr: 2, color: 'text.secondary' }} />
-                  <Box>
-                    <Typography variant="subtitle2">Mode</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {eventDetails.modeName}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box> */}
             </Grid>
           </Grid>
         </CardContent>

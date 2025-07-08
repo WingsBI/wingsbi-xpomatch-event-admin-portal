@@ -819,39 +819,54 @@ const FullPageLoader = () => (
                 </Typography>
               </Box>
             </DialogTitle>
-            <DialogContent sx={{ p: 2 }}>
+            <DialogContent sx={{ p: 3 }}>
               {registrationResult && (
                 <Box>
-                  {/* Compact Success Summary */}
-                  <Box sx={{
-                    background: '#f0fdf4',
+                  {/* Professional Success Summary */}
+                  <Box sx={{ 
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
                     border: '1px solid #bbf7d0',
-                    borderRadius: 1,
-                    p: 2,
+                    borderRadius: 2,
+                    p: 3,
                     mb: 2,
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
                   }}>
-                    <Box display="flex" alignItems="center" justifyContent="center" gap={1.5} mb={1}>
-                      <Box sx={{
-                        background: '#10b981',
+                    <Box display="flex" alignItems="center" justifyContent="center" gap={2} mb={2}>
+                      <Box sx={{ 
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                         borderRadius: '50%',
-                        p: 1,
+                        p: 1.5,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                       }}>
-                        <Business sx={{ fontSize: 16, color: 'white' }} />
+                        <Business sx={{ fontSize: 20, color: 'white' }} />
                       </Box>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#065f46' }}>
+                      <Typography variant="h3" sx={{ 
+                        fontWeight: 700, 
+                        color: '#065f46',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                      }}>
                         {registrationResult.result.registeredCount}
                       </Typography>
                     </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#065f46', fontSize: '0.9rem' }}>
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 600, 
+                      color: '#065f46', 
+                      mb: 1
+                    }}>
                       New Exhibitors Registered
                     </Typography>
+                    <Typography variant="body2" sx={{ 
+                      color: '#047857',
+                      opacity: 0.8,
+                      fontSize: '0.9rem'
+                    }}>
+                      Successfully processed and registered in the system
+                    </Typography>
                   </Box>
-
-              
                 </Box>
               )}
             </DialogContent>

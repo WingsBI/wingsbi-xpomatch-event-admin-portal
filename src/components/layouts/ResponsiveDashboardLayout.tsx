@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
 import { useInView } from 'react-intersection-observer';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
+import { eventsApi } from '@/services/apiService';
+import { ApiEventDetails } from '@/types';
 import {
   Box,
   AppBar,
@@ -41,7 +43,7 @@ import {
   Menu as MenuIcon,
   Dashboard,
   Event,
-  People,
+  Person,
   Business,
   Settings,
   Logout,
@@ -93,14 +95,14 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     },
   ] : userRole === 'visitor' || userRole === 'exhibitor' ? [
     // Both visitors and exhibitors only see these 2 pages - no dropdown menus
-    { text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: [] },
+    { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
     { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
   ] : [
     // Default for event-admin role - full navigation
     { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
     
     {
-      text: 'Visitors', icon: <People />, href: `/${identifier}/event-admin/visitors`, children: []
+      text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: []
     },
     {
       text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: []
@@ -148,6 +150,8 @@ export default function ResponsiveDashboardLayout({
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [eventDetails, setEventDetails] = useState<ApiEventDetails | null>(null);
+  const [eventLoading, setEventLoading] = useState(true);
 
   // Responsive breakpoints using custom theme breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // < 960px
@@ -216,6 +220,34 @@ export default function ResponsiveDashboardLayout({
       dispatch(setSidebarOpen(false));
     }
   }, [shouldHideSidebar, forceHideSidebar, ui.sidebarOpen, responsive.screenWidth, currentViewport.width, isMobile, dispatch]);
+
+  // Load event details
+  const loadEventDetails = useCallback(async () => {
+    try {
+      setEventLoading(true);
+      const response = await eventsApi.getEventDetails(identifier);
+      
+      if (response.success && response.data?.result && response.data.result.length > 0) {
+        const eventData = response.data.result[0];
+        // Clean the event title by removing "exhibitor" text (case insensitive)
+        if (eventData.title) {
+          eventData.title = eventData.title.replace(/exhibitor/gi, '').trim();
+        }
+        setEventDetails(eventData);
+      }
+    } catch (error) {
+      console.error('Error loading event details:', error);
+    } finally {
+      setEventLoading(false);
+    }
+  }, [identifier]);
+
+  // Load event details on mount
+  useEffect(() => {
+    if (identifier) {
+      loadEventDetails();
+    }
+  }, [loadEventDetails]);
 
   // Update responsive state
   useEffect(() => {
@@ -519,15 +551,15 @@ export default function ResponsiveDashboardLayout({
           {/* Left Section - Sidebar Brand (Desktop) / Mobile Menu */}
           <Box sx={{
             width: {
-              xs: 'auto',
-              md: forceHideSidebar ? '0px' : ui.sidebarCollapsed ? '0px' : `${drawerWidth}px`
+              xs: '60%',
+              md: forceHideSidebar ? '0px' : ui.sidebarCollapsed ? '0px' : `${drawerWidth + 100}px`
             },
             display: {
               xs: 'flex',
               md: forceHideSidebar ? 'none' : ui.sidebarCollapsed ? 'none' : 'flex'
             },
             alignItems: 'center',
-            px: { xs: 2, md: ui.sidebarCollapsed ? 1 : 3 },
+            px: { xs: 1, md: ui.sidebarCollapsed ? 1 : 4 },
             minHeight: '64px',
             transition: theme.transitions.create(['width', 'padding'], {
               easing: theme.transitions.easing.sharp,
@@ -543,8 +575,9 @@ export default function ResponsiveDashboardLayout({
               edge="start"
               onClick={handleDrawerToggle}
               sx={{
-                mr: 2,
-                display: { xs: 'block', md: 'none' }
+                mr: 1,
+                display: { xs: 'block', md: 'none' },
+                minWidth: 'auto'
               }}
             >
               <MenuIcon />
@@ -554,8 +587,9 @@ export default function ResponsiveDashboardLayout({
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' }}>
               {!ui.sidebarCollapsed && (
                 <Box>
-                  <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white' }}>
-                    {isMobile ? 'Xpo Match' : 'Xpo Match'}
+                   
+                  <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
                   </Typography>
                   {/* <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }} noWrap>
                     {user?.role === 'it-admin' ? 'IT Administrator' :
@@ -574,10 +608,15 @@ export default function ResponsiveDashboardLayout({
               sx={{
                 display: { xs: 'block', md: 'none' },
                 fontWeight: 'bold',
-                color: 'white'
+                color: 'white',
+                lineHeight: 1.2,
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                fontSize: { xs: '0.9rem', sm: '1rem' }
               }}
             >
-              Xpo Match
+              {eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
             </Typography>
           </Box>
 
@@ -588,11 +627,11 @@ export default function ResponsiveDashboardLayout({
             alignItems: 'center',
             px: { 
               xs: 1, 
-              md: ui.sidebarCollapsed ? 4 : 3 
+              md: ui.sidebarCollapsed ? 2 : 2 
             },
             pl: { 
-              xs: 1, 
-              md: ui.sidebarCollapsed ? 13 : 3
+              xs: 0, 
+              md: ui.sidebarCollapsed ? 8 : 2
             },
             minWidth: 0, // Allow content to shrink
             overflow: 'hidden' // Prevent overflow
@@ -604,8 +643,8 @@ export default function ResponsiveDashboardLayout({
                 component="div"
                 sx={{
                   fontSize: {
-                    xs: '1rem',
-                    sm: '1.125rem',
+                    xs: '0.8rem',
+                    sm: '1rem',
                     md: '1.25rem',
                     lg: '1.5rem',
                     xl: '1.75rem',
@@ -620,7 +659,7 @@ export default function ResponsiveDashboardLayout({
               </Typography>
 
               {breadcrumbs.length > 0 && !responsive.isMobile && (
-                <Breadcrumbs
+                <Breadcrumbs 
                   aria-label="breadcrumb"
                   sx={{
                     mt: 0.5,
@@ -644,9 +683,9 @@ export default function ResponsiveDashboardLayout({
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: { xs: 0.5, md: 1 },
+              gap: { xs: 0.25, md: 1 },
               flexShrink: 0, // Prevent buttons from shrinking
-              pl: { xs: 1, md: 2 }
+              pl: { xs: 0.5, md: 2 }
             }}>
               {/* {!responsive.isMobile && !forceHideSidebar && (
               <>

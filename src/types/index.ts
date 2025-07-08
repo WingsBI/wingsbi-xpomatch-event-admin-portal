@@ -267,6 +267,7 @@ export interface TransformedVisitor {
     dateOfBirth?: string | null;
     nationality?: string;
     linkedInProfile?: string;
+    website?: string;
     instagramProfile?: string;
     gitHubProfile?: string;
     twitterProfile?: string;

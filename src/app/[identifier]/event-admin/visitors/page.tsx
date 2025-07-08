@@ -21,7 +21,7 @@ export default function VisitorsPage() {
   }, [identifier, dispatch]);
 
   return (
-    <RoleBasedRoute allowedRoles={['event-admin']}>
+    <RoleBasedRoute allowedRoles={['event-admin', 'visitor', 'exhibitor']}>
       <ResponsiveDashboardLayout title="Visitors" >
         <Container maxWidth="xl" sx={{ height: '100%' }}>
           <Box 

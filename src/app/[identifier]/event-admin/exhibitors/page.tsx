@@ -21,7 +21,7 @@ export default function ExhibitorsPage() {
   }, [identifier, dispatch]);
 
   return (
-    <RoleBasedRoute allowedRoles={['event-admin']}>
+    <RoleBasedRoute allowedRoles={['event-admin', 'visitor', 'exhibitor']}>
       <ResponsiveDashboardLayout title="Exhibitors" 
       
       >

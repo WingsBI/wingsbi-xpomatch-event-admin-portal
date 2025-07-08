@@ -450,7 +450,7 @@ export default function VisitorsMatchingPage() {
 
   if (error && fieldMappings.length === 0) {
     return (
-      <RoleBasedRoute allowedRoles={['event-admin']}>
+      <RoleBasedRoute allowedRoles={['event-admin', 'visitor', 'exhibitor']}>
         <ResponsiveDashboardLayout 
           title="Visitors Onboarding"
           
@@ -656,7 +656,7 @@ export default function VisitorsMatchingPage() {
   );
 
   return (
-    <RoleBasedRoute allowedRoles={['event-admin']}>
+    <RoleBasedRoute allowedRoles={['event-admin', 'visitor', 'exhibitor']}>
       <ResponsiveDashboardLayout 
         title="Visitors Onboarding"
         

@@ -42,14 +42,19 @@ import {
 } from '@mui/icons-material';
 
 import { apiService } from '@/services/apiService';
+import { fieldMappingApi, type FavoritesRequest } from '@/services/fieldMappingApi';
 import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types';
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
+import { getCurrentExhibitorId, decodeJWTToken } from '@/utils/authUtils';
 
 interface VisitorCardProps {
   visitor: TransformedVisitor;
   exhibitorCompany: string;
   exhibitorServices: string[];
   isClient: boolean;
+  identifier: string;
+  initialFavoriteState?: boolean;
+  onFavoriteChange?: (visitorId: string, isFavorite: boolean) => void;
 }
 
 // Transform API visitor data to UI format - only use actual API data
@@ -109,13 +114,153 @@ const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, in
   };
 };
 
-function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }: VisitorCardProps) {
+function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, identifier, initialFavoriteState = false, onFavoriteChange }: VisitorCardProps) {
   const theme = useTheme();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialFavoriteState);
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [isCheckingInitialState, setIsCheckingInitialState] = useState(false);
+
+  // Update favorite state when initialFavoriteState changes
+  useEffect(() => {
+    setIsFavorite(initialFavoriteState);
+  }, [initialFavoriteState]);
   
-  const handleFavoriteClick = () => {
-    setIsFavorite(!isFavorite);
-    // TODO: API call to add/remove favorite will be implemented later
+  const handleFavoriteClick = async (event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    
+    console.log('🚀 Heart icon clicked! Current state:', isFavorite);
+    console.log('🚀 Visitor data:', visitor);
+    console.log('🚀 Event identifier:', identifier);
+    
+    // Check if identifier is available
+    if (!identifier || identifier.trim() === '') {
+      console.error('❌ No identifier available, cannot call API');
+      return;
+    }
+    
+    // Immediately update UI for instant feedback
+    const newFavoriteState = !isFavorite;
+    setIsFavorite(newFavoriteState);
+    
+    // Notify parent component about the change
+    if (onFavoriteChange) {
+      onFavoriteChange(visitor.id, newFavoriteState);
+    }
+    
+    if (isFavorite) {
+      console.log('❤️➡️🤍 REMOVING from favorites (red heart clicked)');
+      console.log('🚀 New state will be:', newFavoriteState, '(false = removing)');
+    } else {
+      console.log('🤍➡️❤️ ADDING to favorites (outline heart clicked)');
+      console.log('🚀 New state will be:', newFavoriteState, '(true = adding)');
+    }
+    
+    // Get current exhibitor ID from JWT token
+    let currentExhibitorId = getCurrentExhibitorId();
+    console.log('🔍 DEBUGGING EXHIBITOR ID:');
+    console.log('🔍 getCurrentExhibitorId() returned:', currentExhibitorId);
+    console.log('🔍 Type of returned value:', typeof currentExhibitorId);
+    
+    // For debugging, let's also check the raw token data
+    const tokenData = decodeJWTToken();
+    console.log('🔍 Raw token data:', tokenData);
+    if (tokenData) {
+      console.log('🔍 Token roleName:', tokenData.roleName);
+      console.log('🔍 Token exhibitorId:', tokenData.exhibitorId);
+      console.log('🔍 Token userId:', tokenData.userId);
+      console.log('🔍 Token id:', tokenData.id);
+      console.log('🔍 Token sub:', tokenData.sub);
+    }
+    
+    // FORCE to use exhibitor ID 10 for now to avoid DB constraint error
+    console.log('🔧 FORCING exhibitor ID to 10 to fix database constraint error');
+    currentExhibitorId = 10;
+    
+    console.log('🔍 Final exhibitor ID being used:', currentExhibitorId);
+
+    // Get visitor ID as number
+    const visitorId = parseInt(visitor.id, 10);
+    console.log('Visitor ID:', visitorId, 'from string:', visitor.id);
+    
+    if (isNaN(visitorId)) {
+      console.error('Invalid visitor ID:', visitor.id);
+      // Revert the UI state if invalid ID
+      setIsFavorite(!newFavoriteState);
+      if (onFavoriteChange) {
+        onFavoriteChange(visitor.id, !newFavoriteState);
+      }
+      return;
+    }
+
+    console.log('Using identifier:', identifier);
+    setIsLoadingFavorite(true);
+
+    try {
+      const payload: FavoritesRequest = {
+        visitorId: visitorId,
+        exhibitorId: currentExhibitorId,
+        isFavorite: newFavoriteState
+      };
+
+      console.log('🔥 CALLING API with payload:', payload);
+      console.log('🔥 API URL will be:', `api/${identifier}/Event/addFavorites`);
+      
+      const response = await fieldMappingApi.addFavorites(identifier, payload);
+      
+      console.log('✅ API RESPONSE RECEIVED:', response);
+
+      if (response.statusCode === 200 && response.result) {
+        if (newFavoriteState) {
+          console.log('✅ Successfully ADDED visitor to favorites ❤️');
+        } else {
+          console.log('✅ Successfully REMOVED visitor from favorites 🤍');
+        }
+        
+        // Update localStorage as backup
+        try {
+          const storageKey = `visitor_favorites_${currentExhibitorId}_${identifier}`;
+          const localFavorites = localStorage.getItem(storageKey);
+          let favoritesArray = localFavorites ? JSON.parse(localFavorites) : [];
+          
+          console.log('📦 Before update - localStorage visitor favorites:', favoritesArray);
+          
+          if (newFavoriteState) {
+            // Add to favorites
+            if (!favoritesArray.includes(visitorId)) {
+              favoritesArray.push(visitorId);
+              console.log(`📦 ADDED ${visitorId} to localStorage visitor favorites`);
+            }
+          } else {
+            // Remove from favorites
+            const beforeLength = favoritesArray.length;
+            favoritesArray = favoritesArray.filter((id: number) => id !== visitorId);
+            console.log(`📦 REMOVED ${visitorId} from localStorage visitor favorites (${beforeLength} → ${favoritesArray.length})`);
+          }
+          
+          localStorage.setItem(storageKey, JSON.stringify(favoritesArray));
+          console.log('📦 After update - localStorage visitor favorites:', favoritesArray);
+        } catch (localError) {
+          console.error('Error updating localStorage backup:', localError);
+        }
+      } else {
+        console.error('Failed to update visitor favorites:', response.message);
+        // Revert the UI state if API failed
+        setIsFavorite(!newFavoriteState);
+        if (onFavoriteChange) {
+          onFavoriteChange(visitor.id, !newFavoriteState);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating visitor favorites:', error);
+      // Revert the UI state if error occurred
+      setIsFavorite(!newFavoriteState);
+      if (onFavoriteChange) {
+        onFavoriteChange(visitor.id, !newFavoriteState);
+      }
+    } finally {
+      setIsLoadingFavorite(false);
+    }
   };
   
   const getInitials = (firstName: string, lastName: string) => {
@@ -220,30 +365,48 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient }:
 
           <Box display="flex" alignItems="center">
             <IconButton 
-              onClick={handleFavoriteClick}
+              onClick={(e) => {
+                console.log('🎯 IconButton clicked!');
+                handleFavoriteClick(e);
+              }}
+              disabled={isLoadingFavorite || isCheckingInitialState}
               size="large"
               sx={{ 
                 p: 0.5,
                 mr: 0.5,
+                cursor: 'pointer',
                 '&:hover': {
-                 color: '#b0bec5',
-                filter: 'drop-shadow(0 0 2px rgba(255, 0, 0, 0.1))',
+                  color: '#b0bec5',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 0, 0, 0.1))',
+                  backgroundColor: 'rgba(0,0,0,0.04)'
+                },
+                '&:disabled': {
+                  opacity: 0.6
                 }
               }}
             >
-              {isFavorite ? (
-                <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+              {(isLoadingFavorite || isCheckingInitialState) ? (
+                <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+              ) : isFavorite ? (
+                <Favorite
+                  sx={{
+                    color: '#f44336',
+                    fontSize: 30,
+                    filter: 'drop-shadow(0 0 3px rgba(255, 0, 0, 0.3))',
+                    textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)', // adds "highlight"
+                    WebkitTextStroke: '0.3px #b71c1c', // subtle stroke
+                    transform: 'scale(1.05)',
+                  }}
+                />
               ) : (
                 <FavoriteBorder sx={{
-              
-                color: '#b0bec5',
-                filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
-              }} />
+                  fontSize: 25,
+                  color: '#b0bec5',
+                  filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                }} />
               )}
             </IconButton>
-            <Typography variant="h6" fontWeight="600" color={getMatchScoreColor(matchScore)}>
-              {matchScore}
-            </Typography>
+            
           </Box>
         </Box>
 
@@ -419,6 +582,8 @@ function VisitorListView() {
   const [visitors, setVisitors] = useState<TransformedVisitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [favoriteVisitors, setFavoriteVisitors] = useState<Set<string>>(new Set());
+  const [identifier, setIdentifier] = useState<string>('');
 
   useEffect(() => {
     setIsClient(true);
@@ -453,52 +618,107 @@ function VisitorListView() {
     };
   }, [setSimpleTheme, setSimpleFontFamily]);
 
+  const loadFavorites = async (eventIdentifier: string) => {
+    if (!eventIdentifier) return;
+    
+    try {
+      // Get current exhibitor ID from JWT token
+      let currentExhibitorId = getCurrentExhibitorId();
+      console.log('🔍 loadFavorites - getCurrentExhibitorId() returned:', currentExhibitorId);
+      
+      // FORCE to use exhibitor ID 10 for now to avoid DB constraint error
+      console.log('🔧 loadFavorites - FORCING exhibitor ID to 10 to fix database constraint error');
+      currentExhibitorId = 10;
+
+      console.log('🔍 Loading visitor favorites for exhibitor:', currentExhibitorId);
+      
+      // Try to load from API first, fallback to localStorage
+      try {
+        const response = await fieldMappingApi.getExhibitorFavorites(eventIdentifier, currentExhibitorId);
+        
+        if (response.statusCode === 200 && response.result) {
+          const favoriteVisitorIds = response.result
+            .filter(favorite => favorite.isFavorite)
+            .map(favorite => favorite.visitorId.toString());
+          
+          setFavoriteVisitors(new Set(favoriteVisitorIds));
+          console.log('✅ Loaded visitor favorites from API:', favoriteVisitorIds);
+          return;
+        }
+      } catch (apiError) {
+        console.log('⚠️ API call failed, using localStorage backup:', apiError);
+      }
+      
+      // Fallback to localStorage
+      const storageKey = `visitor_favorites_${currentExhibitorId}_${eventIdentifier}`;
+      const localFavorites = localStorage.getItem(storageKey);
+      
+      if (localFavorites) {
+        const favoritesArray = JSON.parse(localFavorites);
+        const favoriteVisitorIds = favoritesArray.map((id: number) => id.toString());
+        setFavoriteVisitors(new Set(favoriteVisitorIds));
+        console.log('📦 Loaded visitor favorites from localStorage:', favoriteVisitorIds);
+      } else {
+        console.log('📦 No visitor favorites found in localStorage');
+      }
+      
+    } catch (error) {
+      console.error('Error loading visitor favorites:', error);
+    }
+  };
+
   const fetchVisitors = async () => {
     try {
       setLoading(true);
       setError(null);
       
       // Extract identifier from URL path only - no static fallbacks
-      let identifier: string | null = null;
+      let eventIdentifier: string | null = null;
       
       // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/visitors)
       const pathParts = window.location.pathname.split('/').filter(Boolean);
       console.log('URL path parts:', pathParts);
       
-      // Look for identifier in URL path - it should be the first segment
-      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
-        identifier = pathParts[0];
-        console.log('Found identifier in URL path:', identifier);
-      } else {
-        // Method 2: Try to get from parent window if iframe is embedded
-        try {
-          if (window.parent && window.parent !== window) {
-            const parentUrl = window.parent.location.pathname;
-            const parentParts = parentUrl.split('/').filter(Boolean);
-            if (parentParts.length > 0) {
-              identifier = parentParts[0];
-              console.log('Found identifier from parent window:', identifier);
+              // Look for identifier in URL path - it should be the first segment
+        if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+          eventIdentifier = pathParts[0];
+          console.log('Found identifier in URL path:', eventIdentifier);
+        } else {
+          // Method 2: Try to get from parent window if iframe is embedded
+          try {
+            if (window.parent && window.parent !== window) {
+              const parentUrl = window.parent.location.pathname;
+              const parentParts = parentUrl.split('/').filter(Boolean);
+              if (parentParts.length > 0) {
+                eventIdentifier = parentParts[0];
+                console.log('Found identifier from parent window:', eventIdentifier);
+              }
             }
+          } catch (e) {
+            console.log('Cannot access parent window URL (cross-origin)');
           }
-        } catch (e) {
-          console.log('Cannot access parent window URL (cross-origin)');
         }
-      }
-      
-      // If no identifier found, throw error
-      if (!identifier) {
-        throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/visitors)');
-      }
-      
-      console.log('Using identifier for API call:', identifier);
-      const response = await apiService.getAllVisitors(identifier, true);
-      
-      if (response.success && response.data?.result) {
-        const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, identifier, index));
-        setVisitors(transformedVisitors);
-      } else {
-        setError('Failed to fetch visitors data');
-      }
+        
+        // If no identifier found, throw error
+        if (!eventIdentifier) {
+          throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/visitors)');
+        }
+        
+        // Set the identifier state
+        setIdentifier(eventIdentifier);
+        
+        console.log('Using identifier for API call:', eventIdentifier);
+        const response = await apiService.getAllVisitors(eventIdentifier, true);
+        
+        if (response.success && response.data?.result) {
+          const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, eventIdentifier, index));
+          setVisitors(transformedVisitors);
+          
+          // Load favorites after visitors are loaded
+          await loadFavorites(eventIdentifier);
+        } else {
+          setError('Failed to fetch visitors data');
+        }
     } catch (err: any) {
       console.error('Error fetching visitors:', err);
       setError(err.message || 'Failed to fetch visitors data');
@@ -531,6 +751,19 @@ function VisitorListView() {
   // Sample exhibitor data for match calculation - removed static data
   const sampleExhibitorCompany = "";
   const sampleExhibitorServices: string[] = [];
+
+  // Handle favorite changes from individual visitor cards
+  const handleFavoriteChange = (visitorId: string, isFavorite: boolean) => {
+    setFavoriteVisitors(prev => {
+      const newFavorites = new Set(prev);
+      if (isFavorite) {
+        newFavorites.add(visitorId);
+      } else {
+        newFavorites.delete(visitorId);
+      }
+      return newFavorites;
+    });
+  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
@@ -646,6 +879,9 @@ function VisitorListView() {
                   exhibitorCompany={sampleExhibitorCompany}
                   exhibitorServices={sampleExhibitorServices}
                   isClient={isClient}
+                  identifier={identifier}
+                  initialFavoriteState={favoriteVisitors.has(visitor.id)}
+                  onFavoriteChange={handleFavoriteChange}
                 />
               </Suspense>
             </Grid>

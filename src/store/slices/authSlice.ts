@@ -61,6 +61,11 @@ export const loginUser = createAsyncThunk(
         localStorage.setItem('refreshToken', response.data.refreshToken);
       }
       
+      // Store user data in localStorage for validation
+      if (response.data.user && typeof localStorage !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
       // Store the identifier for iframe components to use
       if (credentials.identifier) {
         if (typeof localStorage !== 'undefined') {
@@ -156,7 +161,7 @@ export const refreshTokenAsync = createAsyncThunk(
   }
 );
 
-// Action to restore auth state from cookies or localStorage
+// Action to restore auth state from localStorage
 // This should only be called when explicitly requested, not automatically
 export const restoreAuthState = createAsyncThunk(
   'auth/restoreAuthState',
@@ -165,37 +170,43 @@ export const restoreAuthState = createAsyncThunk(
       // Only restore if explicitly called - don't auto-restore on app start
       console.log("Explicit auth state restoration requested for identifier:", identifier);
       
-      // First try to restore from cookies via API
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user && data.token) {
-          // Validate that user data is complete
-          if (!data.user.id || !data.user.email) {
-            return rejectWithValue('Incomplete user data from server');
+      // Try to restore from localStorage - this is compatible with the Azure API system
+      if (typeof localStorage !== 'undefined') {
+        const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+        const userStr = localStorage.getItem('user');
+        
+        if (token && userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            
+            // Validate that user data is complete
+            if (!user.id || !user.email) {
+              console.log("Incomplete user data in localStorage");
+              return rejectWithValue('Incomplete user data');
+            }
+            
+            // Basic token validation (check if it's a JWT)
+            const tokenParts = token.split('.');
+            if (tokenParts.length !== 3) {
+              console.log("Invalid token format in localStorage");
+              return rejectWithValue('Invalid token format');
+            }
+            
+            console.log("Valid authentication data found in localStorage");
+            return {
+              user: user,
+              token: token,
+              refreshToken: localStorage.getItem('refreshToken'),
+            };
+          } catch (parseError) {
+            console.log("Failed to parse user data from localStorage");
+            return rejectWithValue('Failed to parse stored user data');
           }
-          
-          // Update localStorage as fallback
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('jwtToken', data.token);
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-          }
-          return {
-            user: data.user,
-            token: data.token,
-            refreshToken: null, // refreshToken is httpOnly, can't access from client
-          };
         }
       }
       
-      // Don't fallback to localStorage for automatic restoration
-      // This prevents auto-login with potentially stale data
-      console.log("No valid server session found, requiring manual login");
-      return rejectWithValue('No valid server session found');
+      console.log("No valid authentication data found in localStorage");
+      return rejectWithValue('No valid authentication data found');
     } catch (error) {
       // Clear any stored data on error
       if (typeof localStorage !== 'undefined') {

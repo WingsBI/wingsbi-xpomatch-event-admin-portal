@@ -141,25 +141,40 @@ class ApiService {
           originalRequest._retry = true;
           console.log('Handling 401 error - checking authentication status');
           
-          // Try to refresh authentication
-          try {
-            const response = await fetch('/api/auth/me', {
-              credentials: 'include'
-            });
+          // Try to get fresh token from localStorage (compatible with Azure API system)
+          if (typeof localStorage !== 'undefined') {
+            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+            const userStr = localStorage.getItem('user');
             
-            if (response.ok) {
-              const data = await response.json();
-              if (data.success && data.token) {
-                // Update the authorization header and retry
-                originalRequest.headers.Authorization = `Bearer ${data.token}`;
-                return this.axiosInstance(originalRequest);
+            if (token && userStr) {
+              try {
+                const userData = JSON.parse(userStr);
+                
+                // Validate that we have valid data
+                if (userData.id && userData.email) {
+                  // Basic token validation (check if it's a JWT)
+                  const tokenParts = token.split('.');
+                  if (tokenParts.length === 3) {
+                    // Update the authorization header and retry
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    return this.axiosInstance(originalRequest);
+                  }
+                }
+              } catch (parseError) {
+                console.error('Failed to parse stored authentication data:', parseError);
               }
             }
-          } catch (refreshError) {
-            console.error('Failed to refresh authentication:', refreshError);
           }
           
-          // If refresh failed, user needs to login again
+          // If no valid token found, clear storage and redirect to login
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            localStorage.removeItem('refreshToken');
+          }
+          
+          // User needs to login again
           if (typeof window !== 'undefined') {
             window.location.href = window.location.pathname.replace(/\/[^\/]+\/dashboard.*/, '/auth/event-admin/login');
           }

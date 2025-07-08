@@ -71,13 +71,24 @@ export function isValidTokenFormat(token: string): boolean {
     return false;
   }
 
-  // Check if it starts with expected prefix (adjust based on your token format)
-  if (!token.startsWith('token_')) {
+  // Check if it's a JWT token (has 3 parts separated by dots)
+  const tokenParts = token.split('.');
+  if (tokenParts.length !== 3) {
     return false;
   }
 
-  // Check minimum length
-  if (token.length < 20) {
+  // Check minimum length for each part
+  if (tokenParts.some(part => part.length < 4)) {
+    return false;
+  }
+
+  // Check if the first part looks like a JWT header (base64 encoded)
+  try {
+    const header = JSON.parse(atob(tokenParts[0]));
+    if (!header.alg || !header.typ) {
+      return false;
+    }
+  } catch {
     return false;
   }
 

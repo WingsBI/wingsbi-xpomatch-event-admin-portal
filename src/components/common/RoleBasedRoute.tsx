@@ -25,6 +25,11 @@ export default function RoleBasedRoute({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      // Store the current path so user can be redirected back after authentication
+      const currentPath = window.location.pathname;
+      sessionStorage.setItem('intendedPath', currentPath);
+      console.log(`Storing intended path for redirect: ${currentPath}`);
+      
       // Not authenticated - redirect to login
       router.push(`/${identifier}`);
       return;

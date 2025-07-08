@@ -140,27 +140,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const refreshAuth = async () => {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include', // Include cookies
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to refresh auth');
-    }
-
-    const data = await response.json();
-    if (data.success && data.user && data.token) {
-      setUser(data.user);
-      setToken(data.token);
+    // Check localStorage for valid authentication data (compatible with Azure API system)
+    if (typeof localStorage !== 'undefined') {
+      const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+      const userStr = localStorage.getItem('user');
       
-      // Update localStorage as fallback
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      if (token && userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          
+          // Validate that user data is complete
+          if (userData.id && userData.email) {
+            // Basic token validation (check if it's a JWT)
+            const tokenParts = token.split('.');
+            if (tokenParts.length === 3) {
+              setUser(userData);
+              setToken(token);
+              return; // Success
+            }
+          }
+        } catch (parseError) {
+          console.error('Failed to parse stored user data:', parseError);
+        }
       }
-    } else {
-      throw new Error('Invalid auth response');
     }
+    
+    // If we reach here, there's no valid authentication data
+    throw new Error('No valid authentication data found');
   };
 
   const updateUser = (userData: Partial<User>) => {

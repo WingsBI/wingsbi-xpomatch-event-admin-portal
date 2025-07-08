@@ -787,6 +787,7 @@ export default function MeetingsPage() {
                                   textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
                                 }}>
+                                  
                                 {meeting.title}
                                 </Typography>
                                 <Typography variant="caption" sx={{ 

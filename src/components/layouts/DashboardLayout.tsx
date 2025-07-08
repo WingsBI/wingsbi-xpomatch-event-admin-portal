@@ -24,12 +24,13 @@ import {
   Menu as MenuIcon,
   Dashboard,
   Event,
-  People,
+  Person,
   Business,
   Settings,
   Logout,
   AdminPanelSettings,
   Notifications,
+  
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -89,7 +90,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
       return [
         { text: 'Dashboard', icon: <Dashboard />, href: '/event-admin/dashboard' },
         { text: 'Event Details', icon: <Event />, href: '/event-admin/event' },
-        { text: 'Visitors', icon: <People />, href: '/event-admin/visitors' },
+        { text: 'Visitors', icon: <Person />, href: '/event-admin/visitors' },
         { text: 'Exhibitors', icon: <Business />, href: '/event-admin/exhibitors' },
         { text: 'Settings', icon: <Settings />, href: '/event-admin/attributes' },
       ];

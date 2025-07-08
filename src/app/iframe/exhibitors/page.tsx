@@ -69,6 +69,7 @@ interface ExhibitorCardProps {
       boothNumber?: string;
       boothSize?: string;
       website?: string;
+      linkedInProfile?: string;
     };
   };
   visitorInterests: string[];
@@ -435,17 +436,26 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
               {(isLoadingFavorite || isCheckingInitialState) ? (
                 <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
               ) : isFavorite ? (
-                <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+                
+                <Favorite
+                sx={{
+                  color: '#f44336',
+                  fontSize: 30,
+                  filter: 'drop-shadow(0 0 3px rgba(255, 0, 0, 0.3))',
+                  textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)', // adds "highlight"
+                  WebkitTextStroke: '0.3px #b71c1c', // subtle stroke
+                  transform: 'scale(1.05)',
+                }}
+              />
               ) : (
                 <FavoriteBorder sx={{
+                  fontSize: 25,
                   color: '#b0bec5',
                   filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
                 }} />
               )}
             </IconButton>
-            <Typography variant="h6" fontWeight="600" color={getMatchScoreColor(matchScore)}>
-              {matchScore}
-            </Typography>
+            
           </Box>
           
         </Box>
@@ -552,13 +562,22 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
         {/* Action Buttons */}
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box display="flex" gap={1}>
-            <IconButton size="small" sx={{ color: '#0077b5' }}>
-              <LinkedIn fontSize="small" />
-            </IconButton>
+            {exhibitor.customData?.linkedInProfile && (
+              <IconButton size="small" sx={{ color: '#0077b5' }} onClick={() => window.open(exhibitor.customData?.linkedInProfile, '_blank')}>
+                <LinkedIn fontSize="small" />
+              </IconButton>
+            )}
            
+            {exhibitor.customData?.website && (
+              <IconButton size="small" sx={{ color: '#757575' }} onClick={() => window.open(exhibitor.customData?.website, '_blank')}>
+                <Language fontSize="small" />
+              </IconButton>
+            )}
+            
             <IconButton size="small" sx={{ color: '#757575' }}>
-              <Language fontSize="small" />
+              <Business fontSize="small" />
             </IconButton>
+            
           </Box>
 
           <Button

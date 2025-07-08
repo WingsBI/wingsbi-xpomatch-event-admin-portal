@@ -199,4 +199,111 @@ export function getCurrentUserId(): number | null {
     console.error('Error getting current user ID:', error);
     return null;
   }
+}
+
+/**
+ * Decode JWT token to get token data
+ */
+export function decodeJWTToken(): any | null {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+
+  try {
+    const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+    if (!token) {
+      console.log('No JWT token found in localStorage');
+      return null;
+    }
+
+    // Decode JWT token
+    const base64Url = token.split('.')[1];
+    if (!base64Url) {
+      console.log('Invalid token format');
+      return null;
+    }
+
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    
+    const tokenData = JSON.parse(jsonPayload);
+    console.log('Decoded JWT token data:', tokenData);
+    
+    return tokenData;
+  } catch (error) {
+    console.error('Error decoding JWT token:', error);
+    return null;
+  }
+}
+
+/**
+ * Get current exhibitor ID from JWT token (for exhibitors liking visitors)
+ */
+export function getCurrentExhibitorId(): number | null {
+  try {
+    const tokenData = decodeJWTToken();
+    if (!tokenData) {
+      console.log('No token data available');
+      return null;
+    }
+
+    // Check if user is an exhibitor
+    if (tokenData.roleName !== 'Exhibitor') {
+      console.log('Current user is not an exhibitor:', tokenData.roleName);
+      return null;
+    }
+
+    // Look for exhibitor ID in token - it might be stored as exhibitorId, userId, or id
+    const exhibitorId = tokenData.exhibitorId || tokenData.userId || tokenData.id || tokenData.sub;
+    
+    if (!exhibitorId) {
+      console.log('No exhibitor ID found in token data:', tokenData);
+      return null;
+    }
+
+    const parsedId = parseInt(exhibitorId, 10);
+    console.log('Extracted exhibitor ID from token:', parsedId);
+    
+    return isNaN(parsedId) ? null : parsedId;
+  } catch (error) {
+    console.error('Error getting current exhibitor ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Get current visitor ID from JWT token (for visitors liking exhibitors)
+ */
+export function getCurrentVisitorId(): number | null {
+  try {
+    const tokenData = decodeJWTToken();
+    if (!tokenData) {
+      console.log('No token data available');
+      return null;
+    }
+
+    // Check if user is a visitor
+    if (tokenData.roleName !== 'Visitor') {
+      console.log('Current user is not a visitor:', tokenData.roleName);
+      return null;
+    }
+
+    // Look for visitor ID in token - it might be stored as visitorId, userId, or id
+    const visitorId = tokenData.visitorId || tokenData.userId || tokenData.id || tokenData.sub;
+    
+    if (!visitorId) {
+      console.log('No visitor ID found in token data:', tokenData);
+      return null;
+    }
+
+    const parsedId = parseInt(visitorId, 10);
+    console.log('Extracted visitor ID from token:', parsedId);
+    
+    return isNaN(parsedId) ? null : parsedId;
+  } catch (error) {
+    console.error('Error getting current visitor ID:', error);
+    return null;
+  }
 } 

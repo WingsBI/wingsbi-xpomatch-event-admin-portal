@@ -153,6 +153,58 @@ export interface GetFavoritesResponse {
   }[];
 }
 
+// New interfaces for exhibitor favorite visitors API
+export interface ExhibitorFavoriteVisitor {
+  exhibitorFavoriteId: number;
+  exhibitorId: number;
+  visitorId: number;
+  isFavorite: boolean;
+  salutation: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  email: string;
+  gender: string;
+  dateOfBirth: string | null;
+  interest: string;
+  eventId: number;
+  roleId: number;
+  roleName: string;
+  userStatusId: number;
+  userStatusName: string;
+  nationality: string;
+  profilePhoto: string | null;
+  phone: string;
+  linkedInProfile: string;
+  instagramProfile: string;
+  gitHubProfile: string;
+  twitterProfile: string;
+  designation: string;
+  jobTitle: string;
+  companyName: string;
+  companyWebsite: string;
+  businessEmail: string;
+  experienceYears: number;
+  decisionMaker: boolean;
+  addressLine1: string;
+  addressLine2: string;
+  cityName: string;
+  stateName: string;
+  countryName: string;
+  postalCode: string | null;
+  latitude: number;
+  longitude: number;
+}
+
+export interface ExhibitorFavoriteVisitorsResponse {
+  version: string | null;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: any;
+  result: ExhibitorFavoriteVisitor[];
+}
+
 // New interfaces for visitor favorites API
 export interface VisitorFavoriteExhibitor {
   id: number;
@@ -768,7 +820,7 @@ class FieldMappingApiService {
   }
 
   /**
-   * Add or remove exhibitor from favorites
+   * Add or remove exhibitor from favorites (or visitor from favorites - same endpoint)
    */
   async addFavorites(identifier: string, payload: FavoritesRequest): Promise<FavoritesResponse> {
     try {
@@ -942,6 +994,110 @@ class FieldMappingApiService {
           modifiedDate: '',
           exhibitors: []
         }
+      };
+    }
+  }
+
+  /**
+   * Get exhibitor's favorite visitors (which visitors an exhibitor has favorited)
+   */
+  async getExhibitorFavorites(identifier: string, exhibitorId: number): Promise<GetFavoritesResponse> {
+    try {
+      // Call external backend API directly  
+      const apiUrl = `${this.baseURL}/api/${identifier}/Event/getFavorites?exhibitorId=${exhibitorId}`;
+      const headers = this.getAuthHeaders();
+      
+      console.log('🔍 GET EXHIBITOR FAVORITES API CALL STARTING');
+      console.log('🔍 URL:', apiUrl);
+      console.log('🔍 Exhibitor ID:', exhibitorId);
+      console.log('🔍 Headers:', headers);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Get exhibitor favorites response status:', response.status);
+      
+      const data = await response.json();
+      console.log('✅ Get exhibitor favorites response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: "1.0.0.0",
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to get exhibitor favorites`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting exhibitor favorites:', error);
+      return {
+        version: "1.0.0.0",
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Get all favorite visitors for an exhibitor (detailed visitor information)
+   */
+  async getAllExhibitorFavorites(identifier: string, exhibitorId: number): Promise<ExhibitorFavoriteVisitorsResponse> {
+    try {
+      // Call external backend API directly  
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/getAllExhibitorFavorites?exhibitorId=${exhibitorId}`;
+      const headers = this.getAuthHeaders();
+      
+      console.log('🔍 GET ALL EXHIBITOR FAVORITES API CALL STARTING');
+      console.log('🔍 URL:', apiUrl);
+      console.log('🔍 Exhibitor ID:', exhibitorId);
+      console.log('🔍 Headers:', headers);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Get all exhibitor favorites response status:', response.status);
+      
+      const data = await response.json();
+      console.log('✅ Get all exhibitor favorites response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to get exhibitor favorite visitors`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting exhibitor favorite visitors:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
       };
     }
   }

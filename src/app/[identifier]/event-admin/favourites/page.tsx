@@ -33,14 +33,16 @@ import {
   Language,
   ConnectWithoutContact as ConnectIcon,
   FilterList,
+  Person,
+  Work,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
-import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor } from '@/services/fieldMappingApi';
-import { getCurrentUserId } from '@/utils/authUtils';
+import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor } from '@/services/fieldMappingApi';
+import { getCurrentExhibitorId } from '@/utils/authUtils';
 
 interface TransformedExhibitor {
   id: string;
@@ -63,6 +65,67 @@ interface TransformedExhibitor {
     experience?: string;
   };
 }
+
+interface TransformedVisitor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  company: string;
+  jobTitle: string;
+  type: 'visitor';
+  avatar: string;
+  phone?: string;
+  location?: string;
+  interests: string[];
+  status: string;
+  customData: {
+    salutation?: string;
+    middleName?: string;
+    gender?: string;
+    nationality?: string;
+    linkedInProfile?: string;
+    instagramProfile?: string;
+    gitHubProfile?: string;
+    twitterProfile?: string;
+    businessEmail?: string;
+    experienceYears?: number;
+    decisionMaker?: boolean;
+    experience?: string;
+  };
+}
+
+// Transform API visitor data to UI format  
+const transformVisitorData = (apiVisitor: ExhibitorFavoriteVisitor): TransformedVisitor => {
+  return {
+    id: apiVisitor.visitorId.toString(),
+    firstName: apiVisitor.firstName || '',
+    lastName: apiVisitor.lastName || '',
+    email: apiVisitor.email || '',
+    company: apiVisitor.companyName || '',
+    jobTitle: apiVisitor.jobTitle || apiVisitor.designation || '',
+    type: 'visitor' as const,
+    avatar: `${apiVisitor.firstName?.charAt(0) || ''}${apiVisitor.lastName?.charAt(0) || ''}`,
+    phone: apiVisitor.phone || undefined,
+    location: [apiVisitor.cityName, apiVisitor.stateName, apiVisitor.countryName].filter(Boolean).join(', ') || undefined,
+    interests: apiVisitor.interest ? [apiVisitor.interest] : [],
+    status: apiVisitor.userStatusName === 'Active' ? 'registered' : 'invited',
+    customData: {
+      salutation: apiVisitor.salutation || '',
+      middleName: apiVisitor.middleName || '',
+      gender: apiVisitor.gender || '',
+      nationality: apiVisitor.nationality || '',
+      linkedInProfile: apiVisitor.linkedInProfile || '',
+      instagramProfile: apiVisitor.instagramProfile || '',
+      gitHubProfile: apiVisitor.gitHubProfile || '',
+      twitterProfile: apiVisitor.twitterProfile || '',
+      businessEmail: apiVisitor.businessEmail || '',
+      experienceYears: apiVisitor.experienceYears || 0,
+      decisionMaker: apiVisitor.decisionMaker || false,
+      experience: apiVisitor.experienceYears ? `${apiVisitor.experienceYears} years` : undefined,
+    }
+  };
+};
 
 // Transform API exhibitor data to UI format
 const transformExhibitorData = (apiExhibitor: VisitorFavoriteExhibitor): TransformedExhibitor => {
@@ -100,9 +163,10 @@ export default function FavouritesPage() {
   const { user } = useSelector((state: RootState) => state.auth);
   
   const [exhibitorFavourites, setExhibitorFavourites] = useState<TransformedExhibitor[]>([]);
+  const [visitorFavourites, setVisitorFavourites] = useState<TransformedVisitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tabValue, setTabValue] = useState(1); // 0 = Visitors, 1 = Exhibitors
+  const [tabValue, setTabValue] = useState(0); // 0 = Visitors, 1 = Exhibitors
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -122,27 +186,45 @@ export default function FavouritesPage() {
       setLoading(true);
       setError(null);
 
-      // Get current user ID (defaulting to 1 for now)
-      let currentUserId = getCurrentUserId();
-      if (!currentUserId) {
-        console.log('🔍 No user ID found, using default ID 1 for favorites');
-        currentUserId = 1;
+      // Get current exhibitor ID (defaulting to 10 for now)
+      let currentExhibitorId = getCurrentExhibitorId();
+      if (!currentExhibitorId) {
+        console.log('🔍 No exhibitor ID found, using default ID 10 for favorites');
+        currentExhibitorId = 10;
       }
 
-      console.log('🔍 Loading favorites for visitor:', currentUserId);
-      const response = await fieldMappingApi.getVisitorFavorites(identifier, currentUserId);
+      console.log('🔍 Loading favorites for exhibitor:', currentExhibitorId);
       
-      if (response.statusCode === 200 && response.result?.exhibitors) {
-        const transformedExhibitors = response.result.exhibitors.map(transformExhibitorData);
+      // Load both visitor favorites and exhibitor favorites in parallel
+      const [visitorResponse, exhibitorResponse] = await Promise.all([
+        fieldMappingApi.getAllExhibitorFavorites(identifier, currentExhibitorId),
+        fieldMappingApi.getVisitorFavorites(identifier, 1) // Using visitor ID 1 for exhibitor favorites
+      ]);
+      
+      // Process visitor favorites
+      if (visitorResponse.statusCode === 200 && visitorResponse.result) {
+        const transformedVisitors = visitorResponse.result.map(transformVisitorData);
+        setVisitorFavourites(transformedVisitors);
+        console.log('✅ Loaded', transformedVisitors.length, 'favorite visitors');
+      } else {
+        console.error('Failed to load visitor favorites:', visitorResponse.message);
+        setVisitorFavourites([]);
+      }
+      
+      // Process exhibitor favorites  
+      if (exhibitorResponse.statusCode === 200 && exhibitorResponse.result?.exhibitors) {
+        const transformedExhibitors = exhibitorResponse.result.exhibitors.map(transformExhibitorData);
         setExhibitorFavourites(transformedExhibitors);
         console.log('✅ Loaded', transformedExhibitors.length, 'favorite exhibitors');
       } else {
-        setError(response.message || 'Failed to load favorites');
+        console.error('Failed to load exhibitor favorites:', exhibitorResponse.message);
         setExhibitorFavourites([]);
       }
+      
     } catch (err: any) {
       console.error('Error loading favorites:', err);
       setError(err.message || 'Failed to load favorites');
+      setVisitorFavourites([]);
       setExhibitorFavourites([]);
     } finally {
       setLoading(false);
@@ -163,9 +245,25 @@ export default function FavouritesPage() {
     );
   };
 
+  const getFilteredVisitors = () => {
+    if (!searchTerm) return visitorFavourites;
+    
+    return visitorFavourites.filter(item => 
+      item.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
   const handleRemoveFavourite = async (exhibitorId: string) => {
     // TODO: Implement remove favorite functionality when API is available
-    console.log('Remove favorite:', exhibitorId);
+    console.log('Remove favorite exhibitor:', exhibitorId);
+  };
+
+  const handleRemoveVisitorFavourite = async (visitorId: string) => {
+    // TODO: Implement remove visitor favorite functionality when API is available
+    console.log('Remove favorite visitor:', visitorId);
   };
 
   if (loading) {
@@ -218,6 +316,13 @@ export default function FavouritesPage() {
             {/* Mini stats badges */}
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Chip 
+                label={`${visitorFavourites.length} Visitors`}
+                variant="outlined"
+                color="primary"
+                size="small"
+                sx={{ fontSize: '0.9rem', height: 26 }}
+              />
+              <Chip 
                 label={`${exhibitorFavourites.length} Exhibitors`}
                 variant="outlined"
                 color="success"
@@ -229,7 +334,13 @@ export default function FavouritesPage() {
 
           <Paper sx={{ mb: 3 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label="Visitors" disabled />
+              <Tab 
+                label={
+                  <Badge badgeContent={visitorFavourites.length} color="primary">
+                    Visitors
+                  </Badge>
+                } 
+              />
               <Tab 
                 label={
                   <Badge badgeContent={exhibitorFavourites.length} color="success">
@@ -242,15 +353,201 @@ export default function FavouritesPage() {
 
           {/* Content based on selected tab */}
           {tabValue === 0 && (
-            // Visitors Tab - Currently disabled/empty
+            // Visitors Tab
+            <>
+              <Grid container spacing={3}>
+                {getFilteredVisitors().map((visitor) => (
+                  <Grid item xs={12} sm={6} lg={4} key={visitor.id}>
+                    <Card sx={{
+                      height: '100%',
+                      borderRadius: 3,
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                      border: '1px solid #e8eaed',
+                      bgcolor: 'background.paper',
+                      transition: 'all 0.3s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      },
+                    }}>
+                      <CardContent sx={{ p: 2, pb: 1 }}>
+                        {/* Header with Visitor Info */}
+                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center">
+                            <Avatar
+                              sx={{
+                                bgcolor: 'primary.main',
+                                width: 52,
+                                height: 52,
+                                mr: 1,
+                                fontSize: '1.2rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {visitor.avatar}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+                                {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                {visitor.jobTitle}
+                              </Typography>
+                              <Typography variant="body2" color="primary" fontWeight="500">
+                                {visitor.company}
+                              </Typography>
+                              <Box display="flex" alignItems="center" gap={1} mt={1}>
+                                <Chip
+                                  label={visitor.status === 'registered' ? 'Registered' : 'Invited'}
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: visitor.status === 'registered' ? '#e8f5e8' : '#e3f2fd',
+                                    color: visitor.status === 'registered' ? '#2e7d32' : '#1565c0',
+                                    fontWeight: 500
+                                  }}
+                                />
+                                {visitor.interests.length > 0 && (
+                                  <Chip
+                                    label={`${visitor.interests.length} Interest${visitor.interests.length > 1 ? 's' : ''}`}
+                                    size="small"
+                                    sx={{ 
+                                      bgcolor: '#fff3e0',
+                                      color: '#e65100',
+                                      fontWeight: 500,
+                                      fontSize: '0.7rem'
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+                          
+                          <IconButton 
+                            onClick={() => handleRemoveVisitorFavourite(visitor.id)}
+                            size="small"
+                            sx={{ 
+                              p: 0.5,
+                              mr: 0.5,
+                              '&:hover': {
+                                bgcolor: 'rgba(255, 0, 0, 0.1)'
+                              }
+                            }}
+                          >
+                            <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+                          </IconButton>
+                        </Box>
+
+                        {/* Location and Contact */}
+                        <Box mb={1}>
+                          {visitor.location && (
+                            <Box display="flex" alignItems="center" mb={1}>
+                              <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                {visitor.location}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          {visitor.customData?.experience && (
+                            <Box display="flex" alignItems="center">
+                              <Work sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                {visitor.customData.experience}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+
+                        {/* Interests */}
+                        {visitor.interests.length > 0 && (
+                          <Box mb={2}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                              Interests:
+                            </Typography>
+                            <Box display="flex" flexWrap="wrap" gap={0.5}>
+                              {visitor.interests.slice(0, 3).map((interest, index) => (
+                                <Chip
+                                  key={index}
+                                  label={interest}
+                                  size="small"
+                                  sx={{ 
+                                    fontSize: '0.75rem',
+                                    bgcolor: '#e3f2fd',
+                                    color: '#1565c0',
+                                    border: 'none',
+                                    fontWeight: 500
+                                  }}
+                                />
+                              ))}
+                              {visitor.interests.length > 3 && (
+                                <Chip
+                                  label={`+${visitor.interests.length - 3}`}
+                                  size="small"
+                                  sx={{ 
+                                    fontSize: '0.75rem',
+                                    bgcolor: '#e3f2fd',
+                                    color: '#1565c0'
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+                        )}
+
+                        <Divider sx={{ mb: 2 }} />
+
+                        {/* Action Buttons */}
+                        <Box display="flex" alignItems="center" justifyContent="space-between">
+                          <Box display="flex" gap={1}>
+                            {visitor.customData?.linkedInProfile && (
+                              <IconButton size="small" sx={{ color: '#0077b5' }}>
+                                <LinkedIn fontSize="small" />
+                              </IconButton>
+                            )}
+                            <IconButton size="small" sx={{ color: '#757575' }}>
+                              <Language fontSize="small" />
+                            </IconButton>
+                          </Box>
+
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<ConnectIcon />}
+                            sx={{ 
+                              bgcolor: 'primary.main',
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 500,
+                              px: 2,
+                              '&:hover': {
+                                bgcolor: 'primary.dark',
+                              }
+                            }}
+                          >
+                            Connect
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {getFilteredVisitors().length === 0 && !loading && (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
+                  <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" color="text.secondary">
-                Visitor favorites coming soon
+                    No favorite visitors found
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                This feature will be available in a future update.
+                    {searchTerm 
+                      ? "Try adjusting your search criteria"
+                      : "Add visitors to your favourites list to see them here"
+                    }
               </Typography>
             </Paper>
+              )}
+            </>
           )}
 
           {tabValue === 1 && (

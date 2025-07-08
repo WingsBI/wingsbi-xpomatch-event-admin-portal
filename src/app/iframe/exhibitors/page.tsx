@@ -168,21 +168,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
           console.log(`📦 Found in localStorage: ${isFavorited ? 'favorited ❤️' : 'not favorited 🤍'}`);
         } else {
           console.log('📦 No favorites found in localStorage');
-          console.log('📦 Creating test favorites for demonstration...');
-          
-          // For testing: let's add the first exhibitor to favorites so we can see it works
-          if (exhibitor.id === '1' || exhibitor.id === '2') {
-            const testFavorites = [1, 2]; // Add first two exhibitors as favorites for testing
-            localStorage.setItem(storageKey, JSON.stringify(testFavorites));
-            console.log('📦 Added test favorites:', testFavorites);
-            
-            const exhibitorId = parseInt(exhibitor.id, 10);
-            const isFavorited = testFavorites.includes(exhibitorId);
-            setIsFavorite(isFavorited);
-            console.log(`📦 Test result: ${isFavorited ? 'favorited ❤️' : 'not favorited 🤍'}`);
-          } else {
-            setIsFavorite(false);
-          }
+          setIsFavorite(false);
         }
       } catch (error) {
         console.error('Error checking localStorage favorites:', error);

@@ -395,9 +395,9 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                   sx={{
                     color: '#f44336',
                     fontSize: 30,
-                    filter: 'drop-shadow(0 0 3px rgba(255, 0, 0, 0.3))',
+                    filter: 'drop-shadow(0 0 3px #990000)',
                     textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)', // adds "highlight"
-                    WebkitTextStroke: '0.3px #b71c1c', // subtle stroke
+                    WebkitTextStroke: '0.3px #cc0000', // subtle stroke
                     transform: 'scale(1.05)',
                   }}
                 />

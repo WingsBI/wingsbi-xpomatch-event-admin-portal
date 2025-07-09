@@ -63,6 +63,7 @@ interface TransformedExhibitor {
     companyProfile?: string;
     listingAs?: string;
     experience?: string;
+    linkedInProfile?: string;
   };
 }
 
@@ -132,6 +133,66 @@ const transformExhibitorData = (apiExhibitor: VisitorFavoriteExhibitor): Transfo
   const userMap = apiExhibitor.exhibitorToUserMaps?.[0];
   const profile = apiExhibitor.exhibitorProfile?.[0];
   const address = apiExhibitor.exhibitorAddress?.[0];
+  
+  // Helper function to safely get name parts
+  const getFirstName = () => {
+    if (!userMap?.firstName || userMap.firstName === 'null' || userMap.firstName === 'undefined') return '';
+    return userMap.firstName.trim();
+  };
+  
+  const getLastName = () => {
+    if (!userMap?.lastName || userMap.lastName === 'null' || userMap.lastName === 'undefined') return '';
+    return userMap.lastName.trim();
+  };
+  
+  const getCompanyName = () => {
+    if (!apiExhibitor.companyName || apiExhibitor.companyName === 'null' || apiExhibitor.companyName === 'undefined') return 'Unknown Company';
+    return apiExhibitor.companyName.trim();
+  };
+  
+  const getJobTitle = () => {
+    const title = userMap?.jobTitle || userMap?.designation;
+    if (!title || title === 'null' || title === 'undefined') return '';
+    return title.trim();
+  };
+  
+  const getLocation = () => {
+    const locationParts = [
+      address?.city,
+      address?.stateProvince, 
+      apiExhibitor.country
+    ].filter(part => part && part !== 'null' && part !== 'undefined' && part.trim() !== '');
+    
+    return locationParts.length > 0 ? locationParts.join(', ') : '';
+  };
+  
+  const getInterests = () => {
+    if (!userMap?.interest || userMap.interest === 'null' || userMap.interest === 'undefined') return [];
+    return userMap.interest.split(', ').filter(interest => 
+      interest && interest !== 'null' && interest !== 'undefined' && interest.trim() !== ''
+    );
+  };
+  
+  const getBoothNumber = () => {
+    const hall = apiExhibitor.hall;
+    const stand = apiExhibitor.stand;
+    
+    if (!hall || hall === 'null' || hall === 'undefined') return '';
+    if (!stand || stand === 'null' || stand === 'undefined') return hall;
+    
+    return `${hall}-${stand}`;
+  };
+  
+  const getProducts = () => {
+    if (!apiExhibitor.product || !Array.isArray(apiExhibitor.product)) return [];
+    return apiExhibitor.product
+      .map(p => p.title)
+      .filter(title => title && title !== 'null' && title !== 'undefined' && title.trim() !== '');
+  };
+  
+  const companyName = getCompanyName();
+  const firstName = getFirstName();
+  const lastName = getLastName();
   
   return {
     id: apiExhibitor.id.toString(),
@@ -336,14 +397,14 @@ export default function FavouritesPage() {
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab 
                 label={
-                  <Badge badgeContent={visitorFavourites.length} color="primary">
+                  <Badge>
                     Visitors
                   </Badge>
                 } 
               />
               <Tab 
                 label={
-                  <Badge badgeContent={exhibitorFavourites.length} color="success">
+                  <Badge>
                     Exhibitors
                   </Badge>
                 } 
@@ -365,45 +426,80 @@ export default function FavouritesPage() {
                       border: '1px solid #e8eaed',
                       bgcolor: 'background.paper',
                       transition: 'all 0.3s ease-in-out',
+                      display: 'flex',
+                      flexDirection: 'column',
                       '&:hover': {
                         transform: 'translateY(-2px)',
                         boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                       },
                     }}>
-                      <CardContent sx={{ p: 2, pb: 1 }}>
+                      <CardContent sx={{ 
+                        p: 3, 
+                        pb: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%'
+                      }}>
                         {/* Header with Visitor Info */}
-                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
-                          <Box display="flex" alignItems="center">
+                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={3}>
+                          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
                             <Avatar
                               sx={{
                                 bgcolor: 'primary.main',
-                                width: 52,
-                                height: 52,
-                                mr: 1,
-                                fontSize: '1.2rem',
-                                fontWeight: 'bold'
+                                width: 56,
+                                height: 56,
+                                mr: 2,
+                                fontSize: '1.3rem',
+                                fontWeight: 'bold',
+                                flexShrink: 0
                               }}
                             >
                               {visitor.avatar}
                             </Avatar>
-                            <Box>
-                              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography 
+                                variant="h6" 
+                                component="div" 
+                                fontWeight="600" 
+                                sx={{ 
+                                  mb: 0.5,
+                                  lineHeight: 1.3,
+                                  wordBreak: 'break-word'
+                                }}
+                              >
                                 {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                              <Typography 
+                                variant="body2" 
+                                color="text.secondary" 
+                                sx={{ 
+                                  mb: 0.5,
+                                  lineHeight: 1.4
+                                }}
+                              >
                                 {visitor.jobTitle}
                               </Typography>
-                              <Typography variant="body2" color="primary" fontWeight="500">
+                              <Typography 
+                                variant="body2" 
+                                color="primary" 
+                                fontWeight="500"
+                                sx={{ 
+                                  mb: 1,
+                                  lineHeight: 1.4
+                                }}
+                              >
                                 {visitor.company}
                               </Typography>
-                              <Box display="flex" alignItems="center" gap={1} mt={1}>
+                              <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                                 <Chip
                                   label={visitor.status === 'registered' ? 'Registered' : 'Invited'}
                                   size="small"
                                   sx={{ 
                                     bgcolor: visitor.status === 'registered' ? '#e8f5e8' : '#e3f2fd',
                                     color: visitor.status === 'registered' ? '#2e7d32' : '#1565c0',
-                                    fontWeight: 500
+                                    fontWeight: 500,
+                                    fontSize: '0.75rem',
+                                    height: 24
                                   }}
                                 />
                                 {visitor.interests.length > 0 && (
@@ -414,7 +510,8 @@ export default function FavouritesPage() {
                                       bgcolor: '#fff3e0',
                                       color: '#e65100',
                                       fontWeight: 500,
-                                      fontSize: '0.7rem'
+                                      fontSize: '0.7rem',
+                                      height: 24
                                     }}
                                   />
                                 )}
@@ -425,38 +522,44 @@ export default function FavouritesPage() {
                           <IconButton 
                             onClick={() => handleRemoveVisitorFavourite(visitor.id)}
                             size="small"
-                            sx={{ 
-                              p: 0.5,
-                              mr: 0.5,
-                              '&:hover': {
-                                bgcolor: 'rgba(255, 0, 0, 0.1)'
-                              }
+                            sx={{
+                              color: '#f44336',
+                              fontSize: 30,
+                              filter: 'drop-shadow(0 0 3px #990000)',
+                              textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)',
+                              WebkitTextStroke: '0.3px #cc0000',
+                              transform: 'scale(1.05)',
                             }}
                           >
-                            <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
+                            <Favorite sx={{
+                              fontSize: 25,
+                              filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                            }} />
                           </IconButton>
                         </Box>
 
                         {/* Location and Contact */}
-                        <Box mb={1}>
-                          {visitor.location && (
-                            <Box display="flex" alignItems="center" mb={1}>
-                              <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {visitor.location}
-                              </Typography>
-                            </Box>
-                          )}
-                          
-                          {visitor.customData?.experience && (
-                            <Box display="flex" alignItems="center">
-                              <Work sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {visitor.customData.experience}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
+                        {(visitor.location || visitor.customData?.experience) && (
+                          <Box mb={2}>
+                            {visitor.location && (
+                              <Box display="flex" alignItems="center" mb={1}>
+                                <LocationOn sx={{ fontSize: 18, mr: 1.5, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                                  {visitor.location}
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {visitor.customData?.experience && (
+                              <Box display="flex" alignItems="center">
+                                <Work sx={{ fontSize: 18, mr: 1.5, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                                  {visitor.customData.experience}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        )}
 
                         {/* Interests */}
                         {visitor.interests.length > 0 && (
@@ -475,7 +578,8 @@ export default function FavouritesPage() {
                                     bgcolor: '#e3f2fd',
                                     color: '#1565c0',
                                     border: 'none',
-                                    fontWeight: 500
+                                    fontWeight: 500,
+                                    height: 24
                                   }}
                                 />
                               ))}
@@ -486,7 +590,8 @@ export default function FavouritesPage() {
                                   sx={{ 
                                     fontSize: '0.75rem',
                                     bgcolor: '#e3f2fd',
-                                    color: '#1565c0'
+                                    color: '#1565c0',
+                                    height: 24
                                   }}
                                 />
                               )}
@@ -494,19 +599,25 @@ export default function FavouritesPage() {
                           </Box>
                         )}
 
-                        <Divider sx={{ mb: 2 }} />
+                        <Divider sx={{ mb: 2, mt: 'auto' }} />
 
                         {/* Action Buttons */}
                         <Box display="flex" alignItems="center" justifyContent="space-between">
                           <Box display="flex" gap={1}>
-                            {visitor.customData?.linkedInProfile && (
-                              <IconButton size="small" sx={{ color: '#0077b5' }}>
+                            {visitor.customData?.linkedInProfile && visitor.customData.linkedInProfile.trim() !== '' && (
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  color: '#0077b5',
+                                  '&:hover': {
+                                    bgcolor: 'rgba(0, 119, 181, 0.1)'
+                                  }
+                                }}
+                                onClick={() => window.open(visitor.customData?.linkedInProfile, '_blank')}
+                              >
                                 <LinkedIn fontSize="small" />
                               </IconButton>
                             )}
-                            <IconButton size="small" sx={{ color: '#757575' }}>
-                              <Language fontSize="small" />
-                            </IconButton>
                           </Box>
 
                           <Button
@@ -519,6 +630,7 @@ export default function FavouritesPage() {
                               textTransform: 'none',
                               fontWeight: 500,
                               px: 2,
+                              py: 0.75,
                               '&:hover': {
                                 bgcolor: 'primary.dark',
                               }
@@ -563,36 +675,74 @@ export default function FavouritesPage() {
                       border: '1px solid #e8eaed',
                       bgcolor: 'background.paper',
                       transition: 'all 0.3s ease-in-out',
+                      display: 'flex',
+                      flexDirection: 'column',
                       '&:hover': {
                         transform: 'translateY(-2px)',
                         boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                       },
                     }}>
-                      <CardContent sx={{ p: 2, pb: 1}}>
+                      <CardContent sx={{ 
+                        p: 3, 
+                        pb: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%'
+                      }}>
                         {/* Header with Company Info */}
-                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
-                          <Box display="flex" alignItems="center">
+                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={3}>
+                          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
                             <Avatar
                               sx={{
                                 bgcolor: 'primary.main',
-                                width: 52,
-                                height: 52,
-                                mr: 1,
-                                fontSize: '1.2rem',
-                                fontWeight: 'bold'
+                                width: 56,
+                                height: 56,
+                                mr: 2,
+                                fontSize: '1.3rem',
+                                fontWeight: 'bold',
+                                flexShrink: 0
                               }}
                             >
                               {exhibitor.avatar}
                             </Avatar>
-                            <Box>
-                              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography 
+                                variant="h6" 
+                                component="div" 
+                                fontWeight="600" 
+                                sx={{ 
+                                  mb: 0.5,
+                                  lineHeight: 1.3,
+                                  wordBreak: 'break-word'
+                                }}
+                              >
                                 {exhibitor.company}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                {exhibitor.name}
-                                {exhibitor.jobTitle && ` • ${exhibitor.jobTitle}`}
-                              </Typography>
-                              <Box display="flex" alignItems="center" gap={1}>
+                              {exhibitor.name && exhibitor.name !== exhibitor.company && (
+                                <Typography 
+                                  variant="body2" 
+                                  color="text.secondary" 
+                                  sx={{ 
+                                    mb: 0.5,
+                                    lineHeight: 1.4
+                                  }}
+                                >
+                                  {exhibitor.name}
+                                </Typography>
+                              )}
+                              {exhibitor.jobTitle && (
+                                <Typography 
+                                  variant="body2" 
+                                  color="text.secondary" 
+                                  sx={{ 
+                                    mb: 1,
+                                    lineHeight: 1.4
+                                  }}
+                                >
+                                  {exhibitor.jobTitle}
+                                </Typography>
+                              )}
+                              <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                                 {exhibitor.customData?.boothNumber && (
                                   <Chip
                                     label={exhibitor.customData.boothNumber}
@@ -600,7 +750,9 @@ export default function FavouritesPage() {
                                     sx={{ 
                                       bgcolor: '#e3f2fd',
                                       color: '#1565c0',
-                                      fontWeight: 500
+                                      fontWeight: 500,
+                                      fontSize: '0.75rem',
+                                      height: 24
                                     }}
                                   />
                                 )}
@@ -612,7 +764,8 @@ export default function FavouritesPage() {
                                       bgcolor: '#e8f5e8',
                                       color: '#2e7d32',
                                       fontWeight: 500,
-                                      fontSize: '0.7rem'
+                                      fontSize: '0.7rem',
+                                      height: 24
                                     }}
                                   />
                                 )}
@@ -620,30 +773,32 @@ export default function FavouritesPage() {
                             </Box>
                           </Box>
                           
-                          <Box display="flex" alignItems="center">
-                            <IconButton 
-                              onClick={() => handleRemoveFavourite(exhibitor.id)}
-                              size="small"
-                              sx={{ 
-                                p: 0.5,
-                                mr: 0.5,
-                                '&:hover': {
-                                  bgcolor: 'rgba(255, 0, 0, 0.1)'
-                                }
-                              }}
-                            >
-                              <Favorite sx={{ color: '#f44336', fontSize: 20 }} />
-                            </IconButton>
-                          </Box>
+                          <IconButton 
+                            onClick={() => handleRemoveFavourite(exhibitor.id)}
+                            size="small"
+                            sx={{
+                              color: '#f44336',
+                              fontSize: 30,
+                              filter: 'drop-shadow(0 0 3px #990000)',
+                              textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)',
+                              WebkitTextStroke: '0.3px #cc0000',
+                              transform: 'scale(1.05)',
+                            }}
+                          >
+                            <Favorite sx={{
+                              fontSize: 25,
+                              filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                            }} />
+                          </IconButton>
                         </Box>
 
                         {/* Location and Industry */}
                         {(exhibitor.location || exhibitor.customData?.industry) && (
-                          <Box mb={1}>
+                          <Box mb={2}>
                             {exhibitor.location && (
                               <Box display="flex" alignItems="center" mb={1}>
-                                <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
+                                <LocationOn sx={{ fontSize: 18, mr: 1.5, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
                                   {exhibitor.location}
                                 </Typography>
                               </Box>
@@ -651,8 +806,8 @@ export default function FavouritesPage() {
                             
                             {exhibitor.customData?.industry && (
                               <Box display="flex" alignItems="center">
-                                <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
+                                <Business sx={{ fontSize: 18, mr: 1.5, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
                                   {exhibitor.customData.industry}
                                 </Typography>
                               </Box>
@@ -662,7 +817,7 @@ export default function FavouritesPage() {
 
                         {/* Products/Services Offered */}
                         {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
-                          <Box mb={1}>
+                          <Box mb={2}>
                             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                               Products & Services:
                             </Typography>
@@ -676,7 +831,8 @@ export default function FavouritesPage() {
                                     fontSize: '0.75rem',
                                     bgcolor: '#f1f3f4',
                                     color: '#5f6368',
-                                    border: 'none'
+                                    border: 'none',
+                                    height: 24
                                   }}
                                 />
                               ))}
@@ -688,6 +844,7 @@ export default function FavouritesPage() {
                                     fontSize: '0.75rem',
                                     bgcolor: '#f1f3f4',
                                     color: '#5f6368',
+                                    height: 24
                                   }}
                                 />
                               )}
@@ -697,7 +854,7 @@ export default function FavouritesPage() {
 
                         {/* Company Description */}
                         {exhibitor.customData?.companyProfile && (
-                          <Box mb={1}>
+                          <Box mb={2}>
                             <Typography variant="body2" color="text.secondary" sx={{ 
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
@@ -710,17 +867,39 @@ export default function FavouritesPage() {
                           </Box>
                         )}
 
-                        <Divider sx={{ mb: 2 }} />
+                        <Divider sx={{ mb: 2, mt: 'auto' }} />
 
                         {/* Action Buttons */}
                         <Box display="flex" alignItems="center" justifyContent="space-between">
                           <Box display="flex" gap={1}>
-                            <IconButton size="small" sx={{ color: '#0077b5' }}>
-                              <LinkedIn fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" sx={{ color: '#757575' }}>
-                              <Language fontSize="small" />
-                            </IconButton>
+                            {exhibitor.customData?.linkedInProfile && exhibitor.customData.linkedInProfile.trim() !== '' && (
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  color: '#0077b5',
+                                  '&:hover': {
+                                    bgcolor: 'rgba(0, 119, 181, 0.1)'
+                                  }
+                                }}
+                                onClick={() => window.open(exhibitor.customData?.linkedInProfile, '_blank')}
+                              >
+                                <LinkedIn fontSize="small" />
+                              </IconButton>
+                            )}
+                            {exhibitor.customData?.website && exhibitor.customData.website.trim() !== '' && (
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  color: '#757575',
+                                  '&:hover': {
+                                    bgcolor: 'rgba(117, 117, 117, 0.1)'
+                                  }
+                                }}
+                                onClick={() => window.open(exhibitor.customData?.website, '_blank')}
+                              >
+                                <Language fontSize="small" />
+                              </IconButton>
+                            )}
                           </Box>
 
                           <Button
@@ -733,6 +912,7 @@ export default function FavouritesPage() {
                               textTransform: 'none',
                               fontWeight: 500,
                               px: 2,
+                              py: 0.75,
                               '&:hover': {
                                 bgcolor: 'primary.dark',
                               }

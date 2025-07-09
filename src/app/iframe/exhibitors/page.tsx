@@ -70,6 +70,7 @@ interface ExhibitorCardProps {
       boothSize?: string;
       website?: string;
       linkedInProfile?: string;
+      companyType?: string;
     };
   };
   visitorInterests: string[];
@@ -79,6 +80,20 @@ interface ExhibitorCardProps {
 
 // Transform API exhibitor data to UI format - only use actual API data
 const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, index: number) => {
+  // Debug logging for website field
+  console.log('🔍 Transform exhibitor data:', {
+    id: apiExhibitor.id,
+    companyName: apiExhibitor.companyName,
+    webSite: (apiExhibitor as any).webSite,
+    webSiteType: typeof (apiExhibitor as any).webSite,
+    webSiteLength: (apiExhibitor as any).webSite?.length,
+    // Check for alternative website field names
+    website: apiExhibitor.website,
+    companyWebsite: (apiExhibitor as any).companyWebsite,
+    // Log all available fields for debugging
+    allFields: Object.keys(apiExhibitor)
+  });
+
   return {
     // API fields - only use actual data from API
     id: apiExhibitor.id.toString(),
@@ -118,7 +133,8 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
       products: apiExhibitor.products || [],
       boothNumber: apiExhibitor.boothNumber || null,
       boothSize: apiExhibitor.boothSize || null,
-      website: apiExhibitor.website || null,
+      website: (apiExhibitor as any).webSite || null,
+      companyType: apiExhibitor.companyType || null,
     }
   };
 };
@@ -128,6 +144,17 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const [isCheckingInitialState, setIsCheckingInitialState] = useState(true);
+
+  // Debug website data
+  useEffect(() => {
+    console.log('🔍 Website icon check:', {
+      hasWebsite: !!exhibitor.customData?.website,
+      websiteValue: exhibitor.customData?.website,
+      websiteTrimmed: exhibitor.customData?.website?.trim(),
+      exhibitorId: exhibitor.id,
+      companyName: exhibitor.company
+    });
+  }, [exhibitor.customData?.website, exhibitor.id, exhibitor.company]);
 
   // Check if this exhibitor is already favorited when component loads
   useEffect(() => {
@@ -371,6 +398,11 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.jobTitle}
               </Typography>
+              {exhibitor.customData?.companyType && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+                  {exhibitor.customData.companyType}
+                </Typography>
+              )}
               <Box display="flex" alignItems="center" gap={1}>
                 {exhibitor.customData?.boothNumber && (
                   <Chip
@@ -430,9 +462,9 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
                 sx={{
                   color: '#f44336',
                   fontSize: 30,
-                  filter: 'drop-shadow(0 0 3px rgba(255, 0, 0, 0.3))',
+                  filter: 'drop-shadow(0 0 3px #990000)',
                   textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)', // adds "highlight"
-                  WebkitTextStroke: '0.3px #b71c1c', // subtle stroke
+                  WebkitTextStroke: '0.3px #cc0000', // subtle stroke
                   transform: 'scale(1.05)',
                 }}
               />
@@ -562,8 +594,17 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
               </IconButton>
             )}
            
-            {exhibitor.customData?.website && (
-              <IconButton size="small" sx={{ color: '#757575' }} onClick={() => window.open(exhibitor.customData?.website, '_blank')}>
+            {exhibitor.customData?.website && exhibitor.customData.website.trim() !== '' && (
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: '#757575',
+                  '&:hover': {
+                    bgcolor: 'rgba(117, 117, 117, 0.1)'
+                  }
+                }} 
+                onClick={() => window.open(exhibitor.customData?.website, '_blank')}
+              >
                 <Language fontSize="small" />
               </IconButton>
             )}

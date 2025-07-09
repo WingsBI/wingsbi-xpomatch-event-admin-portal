@@ -154,8 +154,8 @@ export default function ExhibitorsTab({ exhibitors, event, onDataUpdate }: Exhib
       
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
-        fieldMappingApi.suggestMapping(identifier, file),
-        fieldMappingApi.getAllStandardFields(identifier)
+        fieldMappingApi.suggestExhibitorMapping(identifier, file),
+        fieldMappingApi.getAllExhibitorStandardFields(identifier)
       ]);
       
       console.log('Suggest mapping response:', suggestResponse);
@@ -183,6 +183,8 @@ export default function ExhibitorsTab({ exhibitors, event, onDataUpdate }: Exhib
         sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
         sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
         sessionStorage.setItem('uploadType', 'exhibitors');
+        sessionStorage.setItem('apiEndpoint', 'getAllExhibitorStandardFields');
+        sessionStorage.setItem('mappingType', 'exhibitor');
         
         // Redirect to matching page
         router.push(`/${identifier}/event-admin/exhibitors/matching`);

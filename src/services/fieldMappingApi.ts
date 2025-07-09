@@ -114,6 +114,7 @@ export interface Exhibitor {
   boothSize?: string;
   website?: string;
   location?: string;
+  companyType?: string;
 }
 
 export interface ExhibitorsListResponse {

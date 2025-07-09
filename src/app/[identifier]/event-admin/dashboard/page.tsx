@@ -288,7 +288,7 @@ export default function EventAdminDashboard() {
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
         fieldMappingApi.suggestMapping(identifier, file),
-        fieldMappingApi.getAllStandardFields(identifier)
+        fieldMappingApi.getAllExhibitorStandardFields(identifier)
       ]);
       
       console.log('Suggest mapping response:', suggestResponse);
@@ -452,10 +452,10 @@ export default function EventAdminDashboard() {
   ];
 
   return (
-    <RoleBasedRoute allowedRoles={['event-admin']}>
+    <RoleBasedRoute allowedRoles={['event-admin']}  >
       <ResponsiveDashboardLayout 
         title={
-          <Box sx={{ minWidth: 300, maxWidth: 400 }}>
+          <Box sx={{ minWidth: 300, maxWidth: 400  }}>
             <Autocomplete
               options={searchablePages}
               getOptionLabel={(option) => option.title}
@@ -475,9 +475,10 @@ export default function EventAdminDashboard() {
                                 renderInput={(params) => (
                 <TextField
                   {...params}
-                  placeholder="Search pages..."
+                  placeholder="Search Anything..."
                   variant="outlined"
                   size="small"
+                  
                   InputProps={{
                     ...params.InputProps,
                     startAdornment: <Search sx={{ color: 'rgba(255, 255, 255, 0.8)', mr: 1 ,opacity: 0.7 }} />,

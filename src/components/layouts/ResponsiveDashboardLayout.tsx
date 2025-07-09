@@ -574,7 +574,7 @@ export default function ResponsiveDashboardLayout({
             </IconButton>
 
             {/* Desktop Brand */}
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' }}>
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' , ml: -4}}>
               {!ui.sidebarCollapsed && (
                 <Box>
                    

@@ -354,7 +354,7 @@ export default function EventAdminDashboard() {
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
         fieldMappingApi.suggestMapping(identifier, file),
-        fieldMappingApi.getAllStandardFields(identifier)
+        fieldMappingApi.getAllExhibitorStandardFields(identifier)
       ]);
       
       console.log('Suggest mapping response:', suggestResponse);

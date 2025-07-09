@@ -320,10 +320,10 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         },
       }}
     >
-      <CardContent sx={{ p: 2, pb: 1 }}>
+      <CardContent sx={{ p: 2, pb: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header with Visitor Info and Match Score */}
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
-          <Box display="flex" alignItems="center">
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2} sx={{ minHeight: '90px' }}>
+          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
             <Avatar
               sx={{
                 bgcolor: theme.palette.primary.main,
@@ -336,14 +336,17 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
             >
               {getInitials(visitor.firstName, visitor.lastName)}
             </Avatar>
-            <Box>
-              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
-                {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, minHeight: '1.5rem' }}>
+                <Person sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0, mt: 0.25 }} />
+                <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
+                  {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
+                </Box>
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {visitor.jobTitle}
               </Typography>
-              <Typography variant="body2" color="primary" fontWeight="500">
+              <Typography variant="body2" color="primary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3, mb: 1 }}>
                 {visitor.company}
               </Typography>
               {/* Removed Visitor chip */}
@@ -410,115 +413,142 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           </Box>
         </Box>
 
-        {/* Location and Experience */}
-        <Box mb={1}>
-          {visitor.customData?.location && (
-            <Box display="flex" alignItems="center" mb={1}>
-              <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                {visitor.customData.location}
+        {/* Content Section - Takes up available space */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Location and Experience */}
+          <Box mb={1}>
+            {visitor.customData?.location && (
+              <Box display="flex" alignItems="center" mb={1}>
+                <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary">
+                  {visitor.customData.location}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          {/* Relevant Interests */}
+          {relevantInterests.length > 0 && (
+            <Box mb={1}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                <InterestPoint sx={{ fontSize: 14, mr: 0.5 }} />
+                Relevant Interests:
               </Typography>
+              <Box display="flex" flexWrap="wrap" gap={0.5}>
+                {relevantInterests.slice(0, 3).map((interest, index) => (
+                  <Chip
+                    key={index}
+                    label={interest}
+                    size="small"
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      bgcolor: '#e3f2fd',
+                      color: '#1565c0',
+                      border: 'none',
+                      fontWeight: 500
+                    }}
+                  />
+                ))}
+                {relevantInterests.length > 3 && (
+                  <Chip
+                    label={`+${relevantInterests.length - 3}`}
+                    size="small"
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      bgcolor: '#e3f2fd',
+                      color: '#1565c0'
+                    }}
+                  />
+                )}
+              </Box>
             </Box>
           )}
 
-          {/* Removed experience display */}
-        </Box>
-
-        {/* Relevant Interests */}
-        {relevantInterests.length > 0 && (
-          <Box mb={1}>
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-              <InterestPoint sx={{ fontSize: 14, mr: 0.5 }} />
-              Relevant Interests:
-            </Typography>
-            <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {relevantInterests.slice(0, 3).map((interest, index) => (
-                <Chip
-                  key={index}
-                  label={interest}
-                  size="small"
-                  sx={{ 
-                    fontSize: '0.75rem',
-                    bgcolor: '#e3f2fd',
-                    color: '#1565c0',
-                    border: 'none',
-                    fontWeight: 500
-                  }}
-                />
-              ))}
-              {relevantInterests.length > 3 && (
-                <Chip
-                  label={`+${relevantInterests.length - 3}`}
-                  size="small"
-                  sx={{ 
-                    fontSize: '0.75rem',
-                    bgcolor: '#e3f2fd',
-                    color: '#1565c0'
-                  }}
-                />
-              )}
+          {/* Looking For (Relevant to exhibitor) */}
+          {relevantLookingFor.length > 0 && (
+            <Box mb={1}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                Looking for (matches your services):
+              </Typography>
+              <Box display="flex" flexWrap="wrap" gap={0.5}>
+                {relevantLookingFor.slice(0, 2).map((item, index) => (
+                  <Chip
+                    key={index}
+                    label={item}
+                    size="small"
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      bgcolor: '#e8f5e8',
+                      color: '#2e7d32',
+                      border: 'none',
+                      fontWeight: 500
+                    }}
+                  />
+                ))}
+                {relevantLookingFor.length > 2 && (
+                  <Chip
+                    label={`+${relevantLookingFor.length - 2}`}
+                    size="small"
+                    sx={{
+                      fontSize: '0.75rem',
+                      bgcolor: '#e8f5e8',
+                      color: '#2e7d32'
+                    }}
+                  />
+                )}
+              </Box>
             </Box>
-          </Box>
-        )}
+          )}
 
-        {/* Looking For (Relevant to exhibitor) */}
-        {relevantLookingFor.length > 0 && (
-          <Box mb={1}>
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-              Looking for (matches your services):
-            </Typography>
-            <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {relevantLookingFor.slice(0, 2).map((item, index) => (
-                <Chip
-                  key={index}
-                  label={item}
-                  size="small"
-                  sx={{ 
-                    fontSize: '0.75rem',
-                    bgcolor: '#e8f5e8',
-                    color: '#2e7d32',
-                    border: 'none',
-                    fontWeight: 500
-                  }}
-                />
-              ))}
-              {relevantLookingFor.length > 2 && (
-                <Chip
-                  label={`+${relevantLookingFor.length - 2}`}
-                  size="small"
-                  sx={{
-                    fontSize: '0.75rem',
-                    bgcolor: '#e8f5e8',
-                    color: '#2e7d32'
-                  }}
-                />
-              )}
+          {/* Show interest level - only if match score exists from API */}
+          {visitor.customData?.matchScore && (
+            <Box mb={1}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <TrendingUp sx={{ fontSize: 12 }} />
+                Interest Level: {visitor.customData.matchScore >= 90 ? 'Very High' : visitor.customData.matchScore >= 80 ? 'High' : visitor.customData.matchScore >= 70 ? 'Medium' : 'Low'}
+              </Typography>
             </Box>
-          </Box>
-        )}
-
-        {/* Show interest level - only if match score exists from API */}
-        {visitor.customData?.matchScore && (
-        <Box mb={1}>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <TrendingUp sx={{ fontSize: 12 }} />
-              Interest Level: {visitor.customData.matchScore >= 90 ? 'Very High' : visitor.customData.matchScore >= 80 ? 'High' : visitor.customData.matchScore >= 70 ? 'Medium' : 'Low'}
-          </Typography>
+          )}
         </Box>
-        )}
 
         <Divider sx={{ mb: 2 }} />
 
         {/* Action Buttons */}
-        <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 'auto' }}>
           <Box display="flex" gap={1}>
-            <IconButton size="small" sx={{ color: '#0077b5' }}>
-              <LinkedIn fontSize="small" />
-            </IconButton>
-           
-            <IconButton size="small" sx={{ color: '#757575' }}>
-              <Language fontSize="small" />
-            </IconButton>
+            {visitor.customData?.linkedInProfile && (
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: '#0077b5',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 119, 181, 0.1)',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+                onClick={() => window.open(visitor.customData?.linkedInProfile, '_blank')}
+                title="View LinkedIn Profile"
+              >
+                <LinkedIn fontSize="small" />
+              </IconButton>
+            )}
+
+            {visitor.customData?.instagramProfile && (
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: '#E4405F',
+                  '&:hover': {
+                    backgroundColor: 'rgba(228, 64, 95, 0.1)',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+                onClick={() => window.open(visitor.customData?.instagramProfile, '_blank')}
+                title="View Instagram Profile"
+              >
+                <Language fontSize="small" />
+              </IconButton>
+            )}
           </Box>
 
           <Button
@@ -533,6 +563,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               px: 2,
               '&:hover': {
                 bgcolor: theme.palette.primary.dark,
+                transform: 'scale(1.02)'
               }
             }}
           >

@@ -344,10 +344,10 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
         },
       }}
     >
-      <CardContent sx={{ p: 2, pb: 1}}>
+      <CardContent sx={{ p: 2, pb: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header with Company Info and Match Score */}
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
-          <Box display="flex" alignItems="center">
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2} sx={{ minHeight: '90px' }}>
+          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
             <Avatar
               sx={{
                 bgcolor: theme.palette.primary.main,
@@ -355,18 +355,21 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
                 height: 52,
                 mr: 1,
                 fontSize: '1.2rem',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                flexShrink: 0
               }}
             >
               {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
             </Avatar>
-            <Box>
-              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
-                {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5, minHeight: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                <Business sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0, mt: 0.25 }} />
+                <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2, flex: 1 }}>
+                  {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                </Box>
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-               
-                {exhibitor.company && `${exhibitor.company}`}
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+                {exhibitor.jobTitle}
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
                 {exhibitor.customData?.boothNumber && (
@@ -446,107 +449,112 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
           
         </Box>
 
-        {/* Location and Industry - only show if data exists */}
-        {(exhibitor.customData?.location || exhibitor.customData?.industry) && (
-        <Box mb={1}>
-          {exhibitor.customData?.location && (
-            <Box display="flex" alignItems="center" mb={1}>
-              <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                {exhibitor.customData.location}
+        {/* Content Section - Takes up available space */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Location and Industry - only show if data exists */}
+          {(exhibitor.customData?.location || exhibitor.customData?.industry) && (
+            <Box mb={1}>
+              {exhibitor.customData?.location && (
+                <Box display="flex" alignItems="center" mb={1}>
+                  <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {exhibitor.customData.location}
+                  </Typography>
+                </Box>
+              )}
+              
+              {exhibitor.customData?.industry && (
+                <Box display="flex" alignItems="center">
+                  <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {exhibitor.customData.industry}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {/* Products/Services Offered - only show if data exists */}
+          {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
+            <Box mb={1}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                Products & Services:
+              </Typography>
+              <Box display="flex" flexWrap="wrap" gap={0.5}>
+                {exhibitor.customData.products.slice(0, 3).map((service: any, index: number) => (
+                  <Chip
+                    key={index}
+                    label={service}
+                    size="small"
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      bgcolor: '#f1f3f4',
+                      color: '#5f6368',
+                      border: 'none'
+                    }}
+                  />
+                ))}
+                {exhibitor.customData.products.length > 3 && (
+                  <Chip
+                    label={`+${exhibitor.customData.products.length - 3} more`}
+                    size="small"
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      bgcolor: '#f1f3f4',
+                      color: '#5f6368',
+                      border: 'none'
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+          )}
+
+          {/* Company Description - only show if data exists */}
+          {exhibitor.customData?.companyDescription && (
+            <Box mb={1}>
+              <Typography variant="body2" color="text.secondary" sx={{ 
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                lineHeight: 1.4
+              }}>
+                {exhibitor.customData.companyDescription}
               </Typography>
             </Box>
           )}
-          
-          {exhibitor.customData?.industry && (
-            <Box display="flex" alignItems="center">
-              <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                {exhibitor.customData.industry}
+
+          {/* Common Interests - only show if data exists */}
+          {commonInterests.length > 0 && (
+            <Box mb={1}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                Common Interests:
               </Typography>
+              <Box display="flex" flexWrap="wrap" gap={0.5}>
+                {commonInterests.slice(0, 3).map((interest: any, index: number) => (
+                  <Chip
+                    key={index}
+                    label={interest}
+                    size="small"
+                    icon={<InterestPoint sx={{ fontSize: 12 }} />}
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      bgcolor: '#e8f5e8',
+                      color: '#2e7d32',
+                      border: 'none'
+                    }}
+                  />
+                ))}
+              </Box>
             </Box>
           )}
         </Box>
-        )}
 
-        {/* Products/Services Offered - only show if data exists */}
-        {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
-          <Box mb={1}>
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-              Products & Services:
-            </Typography>
-            <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {exhibitor.customData.products.slice(0, 3).map((service: any, index: number) => (
-                <Chip
-                  key={index}
-                  label={service}
-                  size="small"
-                  sx={{ 
-                    fontSize: '0.75rem',
-                    bgcolor: '#f1f3f4',
-                    color: '#5f6368',
-                    border: 'none'
-                  }}
-                />
-              ))}
-              {exhibitor.customData.products.length > 3 && (
-                <Chip
-                  label={`+${exhibitor.customData.products.length - 3} more`}
-                  size="small"
-                  sx={{ 
-                    fontSize: '0.75rem',
-                    bgcolor: '#f1f3f4',
-                    color: '#5f6368',
-                    border: 'none'
-                  }}
-                />
-              )}
-            </Box>
-          </Box>
-        )}
-
-        {/* Company Description - only show if data exists */}
-        {exhibitor.customData?.companyDescription && (
-          <Box mb={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ 
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              lineHeight: 1.4
-            }}>
-              {exhibitor.customData.companyDescription}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Common Interests - only show if data exists */}
-        {commonInterests.length > 0 && (
-          <Box mb={1}>
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-              Common Interests:
-            </Typography>
-            <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {commonInterests.slice(0, 3).map((interest: any, index: number) => (
-                <Chip
-                  key={index}
-                  label={interest}
-                  size="small"
-                  icon={<InterestPoint sx={{ fontSize: 12 }} />}
-                  sx={{ 
-                    fontSize: '0.75rem',
-                    bgcolor: '#e8f5e8',
-                    color: '#2e7d32',
-                    border: 'none'
-                  }}
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
+        <Divider sx={{ mb: 2 }} />  
 
         {/* Action Buttons */}
-        <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 'auto' }}>
           <Box display="flex" gap={1}>
             {exhibitor.customData?.linkedInProfile && (
               <IconButton size="small" sx={{ color: '#0077b5' }} onClick={() => window.open(exhibitor.customData?.linkedInProfile, '_blank')}>
@@ -560,9 +568,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
               </IconButton>
             )}
             
-            <IconButton size="small" sx={{ color: '#757575' }}>
-              <Business fontSize="small" />
-            </IconButton>
+           
             
           </Box>
 

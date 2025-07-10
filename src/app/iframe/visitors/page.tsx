@@ -46,6 +46,7 @@ import { fieldMappingApi, type FavoritesRequest } from '@/services/fieldMappingA
 import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types';
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
 import { getCurrentExhibitorId, decodeJWTToken } from '@/utils/authUtils';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface VisitorCardProps {
   visitor: TransformedVisitor;
@@ -56,6 +57,9 @@ interface VisitorCardProps {
   initialFavoriteState?: boolean;
   onFavoriteChange?: (visitorId: string, isFavorite: boolean) => void;
 }
+
+
+
 
 // Transform API visitor data to UI format - only use actual API data
 const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, index: number): TransformedVisitor => {
@@ -337,8 +341,8 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               {getInitials(visitor.firstName, visitor.lastName)}
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, minHeight: '1.5rem' }}>
-                <Person sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0, mt: 0.25 }} />
+              <Typography variant="body1" component="div" fontWeight="600" sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, minHeight: '1.5rem' }}>
+                
                 <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
                   {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
                 </Box>
@@ -366,6 +370,8 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
             </Box>
           </Box>
 
+              
+
           <Box display="flex" alignItems="center">
             <IconButton 
               onClick={(e) => {
@@ -378,10 +384,12 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 p: 0.5,
                 mr: 0.5,
                 cursor: 'pointer',
+                transition: 'all 0.2s ease',
                 '&:hover': {
-                  color: '#b0bec5',
-                  filter: 'drop-shadow(0 0 2px rgba(255, 0, 0, 0.1))',
-                  backgroundColor: 'rgba(0,0,0,0.04)'
+                  transform: 'scale(1.1)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
                 },
                 '&:disabled': {
                   opacity: 0.6
@@ -393,23 +401,44 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               ) : isFavorite ? (
                 <Favorite
                   sx={{
-                    color: '#f44336',
                     fontSize: 30,
-                    filter: 'drop-shadow(0 0 3px #990000)',
-                    textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)', // adds "highlight"
-                    WebkitTextStroke: '0.3px #cc0000', // subtle stroke
-                    transform: 'scale(1.05)',
+                    color: '#ff4757',
+                    filter: 'drop-shadow(0 0 2px rgba(255, 71, 87, 0.3))',
+                    transform: 'scale(1.1)',
+                    transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                    animation: isFavorite ? 'heartBeat 0.6s ease-in-out' : 'none',
+                    '@keyframes heartBeat': {
+                      '0%': {
+                        transform: 'scale(1)',
+                      },
+                      '25%': {
+                        transform: 'scale(1.3)',
+                      },
+                      '50%': {
+                        transform: 'scale(1.1)',
+                      },
+                      '75%': {
+                        transform: 'scale(1.2)',
+                      },
+                      '100%': {
+                        transform: 'scale(1.1)',
+                      },
+                    },
                   }}
                 />
               ) : (
-                <FavoriteBorder sx={{
-                  fontSize: 25,
-                  color: '#b0bec5',
-                  filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
-                }} />
+                <FavoriteBorder 
+                  sx={{
+                    fontSize: 25,
+                    color: '#b0bec5',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      color: '#ff6b9d',
+                    }
+                  }} 
+                />
               )}
             </IconButton>
-            
           </Box>
         </Box>
 
@@ -537,9 +566,9 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               <IconButton 
                 size="small" 
                 sx={{ 
-                  color: '#E4405F',
+                  color: 'hsla(0, 0.00%, 2.00%, 0.57)',
                   '&:hover': {
-                    backgroundColor: 'rgba(228, 64, 95, 0.1)',
+                    backgroundColor: 'rgba(26, 24, 24, 0.1)',
                     transform: 'scale(1.1)'
                   }
                 }}

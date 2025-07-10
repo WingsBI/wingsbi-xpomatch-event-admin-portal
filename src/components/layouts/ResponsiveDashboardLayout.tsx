@@ -38,6 +38,8 @@ import {
   Chip,
   Alert,
   Snackbar,
+  Autocomplete,
+  TextField,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -63,6 +65,7 @@ import {
   Palette,
   CalendarMonth,
   Favorite,
+  Search,
 } from '@mui/icons-material';
 import { RootState, AppDispatch } from '@/store';
 import {
@@ -134,6 +137,42 @@ export default function ResponsiveDashboardLayout({
     ui
   } = useSelector((state: RootState) => state.app);
   const { user, isAuthenticated, token } = useSelector((state: RootState) => state.auth);
+
+  // Define searchable pages
+  const searchablePages = [
+    {
+      title: 'Dashboard',
+      path: `/${identifier}/event-admin/dashboard`,
+      description: 'Main dashboard overview'
+    },
+    {
+      title: 'Exhibitors',
+      path: `/${identifier}/event-admin/exhibitors`,
+      description: 'Manage exhibitors'
+    },
+    {
+      title: 'Exhibitors Onboarding',
+      path: `/${identifier}/event-admin/exhibitors/matching`,
+      description: 'Map exhibitor fields'
+    },
+    {
+      title: 'Visitors',
+      path: `/${identifier}/event-admin/visitors`,
+      description: 'Manage visitors'
+    },
+    {
+      title: 'Visitors Onboarding',
+      path: `/${identifier}/event-admin/visitors/matching`,
+      description: 'Map visitor fields'
+    }
+  ];
+
+  // Handle page navigation from search
+  const handlePageSelect = (selectedPage: any) => {
+    if (selectedPage && selectedPage.path) {
+      router.push(selectedPage.path);
+    }
+  };
 
   // Local state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -580,6 +619,7 @@ export default function ResponsiveDashboardLayout({
                    
                   <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
+                  
                   </Typography>
                   
                 </Box>
@@ -605,11 +645,12 @@ export default function ResponsiveDashboardLayout({
             </Typography>
           </Box>
 
-          {/* Right Section - Page Title and Actions */}
+          {/* Center Section - Search Bar and Page Title */}
           <Box sx={{
             flexGrow: 1,
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             px: { 
               xs: 1, 
               md: ui.sidebarCollapsed ? 2 : 2 
@@ -621,27 +662,73 @@ export default function ResponsiveDashboardLayout({
             minWidth: 0, // Allow content to shrink
             overflow: 'hidden' // Prevent overflow
           }}>
+            {/* Search Bar */}
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 2,ml:-2 }}>
+              <Autocomplete
+                options={searchablePages}
+                getOptionLabel={(option) => option.title}
+                onChange={(event, value) => handlePageSelect(value)}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {option.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {option.description}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Search Anything..."
+                    variant="outlined"
+                    size="small"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: <Search sx={{ color: 'rgba(255, 255, 255, 0.8)', mr: 1 ,opacity: 0.7 }} />,
+                      sx: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: 2,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.3)',
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.5)',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'primary.main',
+                        },
+                        '& input': {
+                          color: 'text.primary',
+                        },
+                        '& input::placeholder': {
+                          color: 'white',
+                          opacity: 0.7,
+                        },
+                      },
+                    }}
+                  />
+                )}
+                PaperComponent={(props) => (
+                  <Paper 
+                    {...props} 
+                    sx={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                    }} 
+                  />
+                )}
+                sx={{ minWidth: 300, maxWidth: 400 }}
+              />
+            </Box>
+
             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-              <Typography
-                variant="h5"
-                noWrap
-                component="div"
-                sx={{
-                  fontSize: {
-                    xs: '0.8rem',
-                    sm: '1rem',
-                    md: '1.25rem',
-                    lg: '1.5rem',
-                    xl: '1.75rem',
-                  },
-                  color: 'white',
-                  fontWeight: '500',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                {title}
-              </Typography>
+              
 
               {breadcrumbs.length > 0 && !responsive.isMobile && (
                 <Breadcrumbs 

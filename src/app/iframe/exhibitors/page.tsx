@@ -390,7 +390,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5, minHeight: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
-                <Business sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0, mt: 0.25 }} />
+                
                 <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2, flex: 1 }}>
                   {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
                 </Box>
@@ -444,36 +444,59 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
                 p: 0.5,
                 mr: 0.5,
                 cursor: 'pointer',
+                transition: 'all 0.2s ease',
                 '&:hover': {
-                  color: '#b0bec5',
-                  filter: 'drop-shadow(0 0 2px rgba(255, 0, 0, 0.1))',
-                  backgroundColor: 'rgba(0,0,0,0.04)'
+                  transform: 'scale(1.1)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
                 },
                 '&:disabled': {
                   opacity: 0.6
                 }
               }}
+
             >
               {(isLoadingFavorite || isCheckingInitialState) ? (
                 <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
               ) : isFavorite ? (
                 
                 <Favorite
-                sx={{
-                  color: '#f44336',
-                  fontSize: 30,
-                  filter: 'drop-shadow(0 0 3px #990000)',
-                  textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)', // adds "highlight"
-                  WebkitTextStroke: '0.3px #cc0000', // subtle stroke
-                  transform: 'scale(1.05)',
-                }}
+                 sx={{
+                    fontSize: 30,
+                    color: '#ff4757',
+                    filter: 'drop-shadow(0 0 2px rgba(255, 71, 87, 0.3))',
+                    transform: 'scale(1.1)',
+                    transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                    animation: isFavorite ? 'heartBeat 0.6s ease-in-out' : 'none',
+                    '@keyframes heartBeat': {
+                      '0%': {
+                        transform: 'scale(1)',
+                      },
+                      '25%': {
+                        transform: 'scale(1.3)',
+                      },
+                      '50%': {
+                        transform: 'scale(1.1)',
+                      },
+                      '75%': {
+                        transform: 'scale(1.2)',
+                      },
+                      '100%': {
+                        transform: 'scale(1.1)',
+                      },
+                    },
+                  }}
               />
               ) : (
-                <FavoriteBorder sx={{
+                <FavoriteBorder  sx={{
                   fontSize: 25,
                   color: '#b0bec5',
-                  filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
-                }} />
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    color: '#ff6b9d',
+                  }
+                }}  />
               )}
             </IconButton>
             
@@ -598,9 +621,9 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
               <IconButton 
                 size="small" 
                 sx={{ 
-                  color: '#757575',
+                  color:'hsla(0, 0.00%, 2.00%, 0.57)',
                   '&:hover': {
-                    bgcolor: 'rgba(117, 117, 117, 0.1)'
+                    bgcolor: 'rgba(26, 24, 24, 0.1)'
                   }
                 }} 
                 onClick={() => window.open(exhibitor.customData?.website, '_blank')}

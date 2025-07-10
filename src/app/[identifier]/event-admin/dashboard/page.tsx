@@ -288,7 +288,7 @@ export default function EventAdminDashboard() {
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
         fieldMappingApi.suggestMapping(identifier, file),
-        fieldMappingApi.getAllExhibitorStandardFields(identifier)
+        fieldMappingApi.getAllStandardFields(identifier)
       ]);
       
       console.log('Suggest mapping response:', suggestResponse);
@@ -472,7 +472,7 @@ export default function EventAdminDashboard() {
                   </Box>
                 </Box>
               )}
-                                renderInput={(params) => (
+                renderInput={(params) => (
                 <TextField
                   {...params}
                   placeholder="Search Anything..."

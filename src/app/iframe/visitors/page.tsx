@@ -402,11 +402,11 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 <Favorite
                   sx={{
                     fontSize: 30,
-                    color: '#ff4757',
-                    filter: 'drop-shadow(0 0 2px rgba(255, 71, 87, 0.3))',
+                    color: '#ef4444',
+                    filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
                     transform: 'scale(1.1)',
                     transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                    animation: isFavorite ? 'heartBeat 0.6s ease-in-out' : 'none',
+                    animation: isFavorite ? 'heartBeat 0.8s ease-in-out' : 'none',
                     '@keyframes heartBeat': {
                       '0%': {
                         transform: 'scale(1)',
@@ -827,37 +827,27 @@ function VisitorListView() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
+
       {/* Header */}
       <Box mb={2}>
-        <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
-          Visitors Directory
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Discover and connect with visitors interested in your solutions
-        </Typography>
-      </Box>
-
-      {/* Search and Filters */}
-      <Box mb={3}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              placeholder="Search visitors..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ bgcolor: 'background.paper' }}
-            />
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2
+        }}>
+          <Box>
+            <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+              Visitors Directory
+            </Typography>
+           
+          </Box>
+          
+          {/* Filters on the right */}
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            {/* Status Filter */}
+            <FormControl sx={{ minWidth: 200 }}>
               <Select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -870,28 +860,27 @@ function VisitorListView() {
                 <MenuItem value="checked-in">Checked In</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          {experiences.length > 0 && (
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-              <Select
-                value={filterExperience}
-                onChange={(e) => setFilterExperience(e.target.value)}
-                displayEmpty
-                sx={{ bgcolor: 'background.paper' }}
-              >
-                <MenuItem value="all">All Experience</MenuItem>
-                {experiences.map((experience) => (
-                  <MenuItem key={experience} value={experience}>
-                    {experience}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          )}
-         
-        </Grid>
+
+            {/* Experience Filter */}
+            {experiences.length > 0 && (
+              <FormControl sx={{ minWidth: 200 }}>
+                <Select
+                  value={filterExperience}
+                  onChange={(e) => setFilterExperience(e.target.value)}
+                  displayEmpty
+                  sx={{ bgcolor: 'background.paper' }}
+                >
+                  <MenuItem value="all">All Experience</MenuItem>
+                  {experiences.map((experience) => (
+                    <MenuItem key={experience} value={experience}>
+                      {experience}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
+        </Box>
       </Box>
 
       {/* Error Alert */}

@@ -108,7 +108,7 @@ const transformVisitorData = (apiVisitor: ExhibitorFavoriteVisitor): Transformed
     type: 'visitor' as const,
     avatar: `${apiVisitor.firstName?.charAt(0) || ''}${apiVisitor.lastName?.charAt(0) || ''}`,
     phone: apiVisitor.phone || undefined,
-    location: [apiVisitor.cityName, apiVisitor.stateName, apiVisitor.countryName].filter(Boolean).join(', ') || undefined,
+    location: [apiVisitor.countryName].filter(Boolean).join(', ') || undefined,
     interests: apiVisitor.interest ? [apiVisitor.interest] : [],
     status: apiVisitor.userStatusName === 'Active' ? 'registered' : 'invited',
     customData: {
@@ -353,8 +353,9 @@ export default function FavouritesPage() {
           )}
 
           {/* Header with action buttons and stats */}
+{/*           
           <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-            {/* Action buttons */}
+            
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <TextField
                 placeholder="Search favourites..."
@@ -374,39 +375,37 @@ export default function FavouritesPage() {
               </Button>
             </Box>
 
-            {/* Mini stats badges */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Chip 
-                label={`${visitorFavourites.length} Visitors`}
-                variant="outlined"
-                color="primary"
-                size="small"
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-              <Chip 
-                label={`${exhibitorFavourites.length} Exhibitors`}
-                variant="outlined"
-                color="success"
-                size="small"
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-            </Box>
-          </Box>
+          
+          </Box> */}
 
           <Paper sx={{ mb: 3 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab 
                 label={
-                  <Badge>
-                    Visitors
-                  </Badge>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body1">Visitors</Typography>
+                    <Chip 
+                      label={`${visitorFavourites.length}`}
+                      variant="outlined"
+                      color="primary"
+                      size="small"
+                      sx={{ fontSize: '0.75rem', height: 20, minWidth: 20 }}
+                    />
+                  </Box>
                 } 
               />
               <Tab 
                 label={
-                  <Badge>
-                    Exhibitors
-                  </Badge>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body1">Exhibitors</Typography>
+                    <Chip 
+                      label={`${exhibitorFavourites.length}`}
+                      variant="outlined"
+                      color="success"
+                      size="small"
+                      sx={{ fontSize: '0.75rem', height: 20, minWidth: 20 }}
+                    />
+                  </Box>
                 } 
               />
             </Tabs>
@@ -490,32 +489,7 @@ export default function FavouritesPage() {
                               >
                                 {visitor.company}
                               </Typography>
-                              <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                                <Chip
-                                  label={visitor.status === 'registered' ? 'Registered' : 'Invited'}
-                                  size="small"
-                                  sx={{ 
-                                    bgcolor: visitor.status === 'registered' ? '#e8f5e8' : '#e3f2fd',
-                                    color: visitor.status === 'registered' ? '#2e7d32' : '#1565c0',
-                                    fontWeight: 500,
-                                    fontSize: '0.75rem',
-                                    height: 24
-                                  }}
-                                />
-                                {visitor.interests.length > 0 && (
-                                  <Chip
-                                    label={`${visitor.interests.length} Interest${visitor.interests.length > 1 ? 's' : ''}`}
-                                    size="small"
-                                    sx={{ 
-                                      bgcolor: '#fff3e0',
-                                      color: '#e65100',
-                                      fontWeight: 500,
-                                      fontSize: '0.7rem',
-                                      height: 24
-                                    }}
-                                  />
-                                )}
-                              </Box>
+                            
                             </Box>
                           </Box>
                           
@@ -523,23 +497,25 @@ export default function FavouritesPage() {
                             onClick={() => handleRemoveVisitorFavourite(visitor.id)}
                             size="small"
                             sx={{
-                              color: '#f44336',
+                              
                               fontSize: 30,
-                              filter: 'drop-shadow(0 0 3px #990000)',
-                              textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)',
-                              WebkitTextStroke: '0.3px #cc0000',
-                              transform: 'scale(1.05)',
+                              color: '#ef4444',
+                              
                             }}
                           >
                             <Favorite sx={{
-                              fontSize: 25,
-                              filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                              fontSize: 30,
+                              color: '#ef4444',
+                              filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
+                              transform: 'scale(1.1)',
+                              transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                             animation: 'heartBeat 0.8s ease-in-out',
                             }} />
                           </IconButton>
                         </Box>
 
                         {/* Location and Contact */}
-                        {(visitor.location || visitor.customData?.experience) && (
+                        {/* {(visitor.location || visitor.customData?.experience) && (
                           <Box mb={2}>
                             {visitor.location && (
                               <Box display="flex" alignItems="center" mb={1}>
@@ -559,10 +535,10 @@ export default function FavouritesPage() {
                               </Box>
                             )}
                           </Box>
-                        )}
+                        )} */}
 
                         {/* Interests */}
-                        {visitor.interests.length > 0 && (
+                        {/* {visitor.interests.length > 0 && (
                           <Box mb={2}>
                             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                               Interests:
@@ -597,7 +573,7 @@ export default function FavouritesPage() {
                               )}
                             </Box>
                           </Box>
-                        )}
+                        )} */}
 
                         <Divider sx={{ mb: 2, mt: 'auto' }} />
 
@@ -742,7 +718,7 @@ export default function FavouritesPage() {
                                   {exhibitor.jobTitle}
                                 </Typography>
                               )}
-                              <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                              {/* <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                                 {exhibitor.customData?.boothNumber && (
                                   <Chip
                                     label={exhibitor.customData.boothNumber}
@@ -769,7 +745,7 @@ export default function FavouritesPage() {
                                     }}
                                   />
                                 )}
-                              </Box>
+                              </Box> */}
                             </Box>
                           </Box>
                           
@@ -779,15 +755,17 @@ export default function FavouritesPage() {
                             sx={{
                               color: '#f44336',
                               fontSize: 30,
-                              filter: 'drop-shadow(0 0 3px #990000)',
-                              textShadow: '0 -1px 1px rgba(255, 255, 255, 0.5)',
-                              WebkitTextStroke: '0.3px #cc0000',
-                              transform: 'scale(1.05)',
+                             
                             }}
                           >
                             <Favorite sx={{
-                              fontSize: 25,
-                              filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                              fontSize: 30,
+                              color: '#ef4444',
+                              filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
+                              transform: 'scale(1.1)',
+                              transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                              animation: 'heartBeat 0.8s ease-in-out',
+
                             }} />
                           </IconButton>
                         </Box>
@@ -804,19 +782,19 @@ export default function FavouritesPage() {
                               </Box>
                             )}
                             
-                            {exhibitor.customData?.industry && (
+                            {/* {exhibitor.customData?.industry && (
                               <Box display="flex" alignItems="center">
                                 <Business sx={{ fontSize: 18, mr: 1.5, color: 'text.secondary' }} />
                                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
                                   {exhibitor.customData.industry}
                                 </Typography>
                               </Box>
-                            )}
+                            )} */}
                           </Box>
                         )}
 
                         {/* Products/Services Offered */}
-                        {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
+                        {/* {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
                           <Box mb={2}>
                             <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                               Products & Services:
@@ -850,10 +828,10 @@ export default function FavouritesPage() {
                               )}
                             </Box>
                           </Box>
-                        )}
+                        )} */}
 
                         {/* Company Description */}
-                        {exhibitor.customData?.companyProfile && (
+                        {/* {exhibitor.customData?.companyProfile && (
                           <Box mb={2}>
                             <Typography variant="body2" color="text.secondary" sx={{ 
                               display: '-webkit-box',
@@ -865,7 +843,7 @@ export default function FavouritesPage() {
                               {exhibitor.customData.companyProfile}
                             </Typography>
                           </Box>
-                        )}
+                        )} */}
 
                         <Divider sx={{ mb: 2, mt: 'auto' }} />
 

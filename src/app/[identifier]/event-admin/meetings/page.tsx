@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -302,6 +302,36 @@ export default function MeetingsPage() {
   const [eventDetails, setEventDetails] = useState<ApiEventDetails | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
 
+  const [eventLoading, setEventLoading] = useState(true);
+
+
+  const loadEventDetails = useCallback(async () => {
+    try {
+      setEventLoading(true);
+      const response = await eventsApi.getEventDetails(identifier);
+      
+      if (response.success && response.data?.result && response.data.result.length > 0) {
+        const eventData = response.data.result[0];
+        // Clean the event title by removing "exhibitor" text (case insensitive)
+        if (eventData.title) {
+          eventData.title = eventData.title.replace(/exhibitor/gi, '').trim();
+        }
+        setEventDetails(eventData);
+      }
+    } catch (error) {
+      console.error('Error loading event details:', error);
+    } finally {
+      setEventLoading(false);
+    }
+  }, [identifier]);
+
+  // Load event details on mount
+  useEffect(() => {
+    if (identifier) {
+      loadEventDetails();
+    }
+  }, [loadEventDetails]);
+
   // Set identifier in Redux store when component mounts
   useEffect(() => {
     if (identifier) {
@@ -471,7 +501,8 @@ export default function MeetingsPage() {
 
   const getHourSlots = () => {
     const slots = [];
-    for (let hour = 0; hour < 24; hour++) {
+    // Only show hours from 9 AM to 9 PM (9-21)
+    for (let hour = 9; hour <= 21; hour++) {
       slots.push(hour);
     }
     return slots;
@@ -534,50 +565,15 @@ export default function MeetingsPage() {
         
       >
         <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
-          {/* Header with action buttons and stats */}
-          <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-            {/* Action buttons */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => setOpenDialog(true)}
-              >
-                Schedule Meeting
-              </Button>
-            </Box>
-
-            {/* Mini stats badges */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Chip 
-                label={`${meetings.length} Total`}
-                variant="outlined"
-                color="primary"
-                size="small"
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-              <Chip 
-                label={`${getUpcomingCount()} Upcoming`}
-                variant="outlined"
-                color="warning"
-                size="small" 
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-              <Chip 
-                label={`${getCompletedCount()} Done`}
-                variant="outlined"
-                color="success"
-                size="small"
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-              <Chip 
-                label={`${getCancelledCount()} Cancelled`}
-                variant="outlined"
-                color="error"
-                size="small"
-                sx={{ fontSize: '0.9rem', height: 26 }}
-              />
-            </Box>
+          {/* Action buttons */}
+          <Box sx={{ mb: 2,mt:-1, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setOpenDialog(true)}
+            >
+              Schedule Meeting
+            </Button>
           </Box>
 
           {/* Weekly Calendar View */}
@@ -644,15 +640,7 @@ export default function MeetingsPage() {
                       </Box>
                     </Box>
                     
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                      {(() => {
-                        const start = new Date(eventDetails.startDateTime);
-                        const end = new Date(eventDetails.endDateTime);
-                        const diffTime = Math.abs(end.getTime() - start.getTime());
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        return `${diffDays} day${diffDays > 1 ? 's' : ''} duration`;
-                      })()}
-                    </Typography>
+                   
                   </Box>
                 )}
               </Box>

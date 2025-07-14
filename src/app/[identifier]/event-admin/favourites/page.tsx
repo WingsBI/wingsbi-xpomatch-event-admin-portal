@@ -378,7 +378,7 @@ export default function FavouritesPage() {
           
           </Box> */}
 
-          <Paper sx={{ mb: 3 }}>
+          <Paper sx={{ mb: 3, mt:-1 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab 
                 label={
@@ -415,9 +415,9 @@ export default function FavouritesPage() {
           {tabValue === 0 && (
             // Visitors Tab
             <>
-              <Grid container spacing={3}>
+              <Grid container spacing={1.5}>
                 {getFilteredVisitors().map((visitor) => (
-                  <Grid item xs={12} sm={6} lg={4} key={visitor.id}>
+                  <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={visitor.id}>
                     <Card sx={{
                       height: '100%',
                       borderRadius: 3,
@@ -433,22 +433,22 @@ export default function FavouritesPage() {
                       },
                     }}>
                       <CardContent sx={{ 
-                        p: 3, 
-                        pb: 2,
+                        p: 2, 
+                        pb: 1.5,
                         display: 'flex',
                         flexDirection: 'column',
                         height: '100%'
                       }}>
                         {/* Header with Visitor Info */}
-                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={3}>
+                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
                           <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
                             <Avatar
                               sx={{
                                 bgcolor: 'primary.main',
-                                width: 56,
-                                height: 56,
-                                mr: 2,
-                                fontSize: '1.3rem',
+                                width: 36,
+                                height: 36,
+                                mr: 1,
+                                fontSize: '0.9rem',
                                 fontWeight: 'bold',
                                 flexShrink: 0
                               }}
@@ -457,7 +457,7 @@ export default function FavouritesPage() {
                             </Avatar>
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography 
-                                variant="h6" 
+                                variant="body1" 
                                 component="div" 
                                 fontWeight="600" 
                                 sx={{ 
@@ -641,9 +641,9 @@ export default function FavouritesPage() {
           {tabValue === 1 && (
             // Exhibitors Tab
             <>
-              <Grid container spacing={3}>
+              <Grid container spacing={1.5}>
                 {getFilteredExhibitors().map((exhibitor) => (
-                  <Grid item xs={12} sm={6} lg={4} key={exhibitor.id}>
+                  <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={exhibitor.id}>
                     <Card sx={{
                       height: '100%',
                       borderRadius: 3,
@@ -659,22 +659,22 @@ export default function FavouritesPage() {
                       },
                     }}>
                       <CardContent sx={{ 
-                        p: 3, 
-                        pb: 2,
+                        p: 2, 
+                        pb: 1.5,
                         display: 'flex',
                         flexDirection: 'column',
                         height: '100%'
                       }}>
                         {/* Header with Company Info */}
-                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={3}>
+                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
                           <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
                             <Avatar
                               sx={{
                                 bgcolor: 'primary.main',
-                                width: 56,
-                                height: 56,
-                                mr: 2,
-                                fontSize: '1.3rem',
+                                width: 36,
+                                height: 36,
+                                mr: 1,
+                                fontSize: '0.9rem',
                                 fontWeight: 'bold',
                                 flexShrink: 0
                               }}
@@ -683,7 +683,7 @@ export default function FavouritesPage() {
                             </Avatar>
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography 
-                                variant="h6" 
+                                variant="body1" 
                                 component="div" 
                                 fontWeight="600" 
                                 sx={{ 

@@ -371,25 +371,26 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
         },
       }}
     >
-      <CardContent sx={{ p: 2, pb: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header with Company Info and Match Score */}
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2} sx={{ minHeight: '90px' }}>
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
           <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
             <Avatar
               sx={{
                 bgcolor: theme.palette.primary.main,
-                width: 52,
-                height: 52,
-                mr: 1,
-                fontSize: '1.2rem',
+                width: 36,
+                height: 36,
+                mr: 0.75,
+                fontSize: '0.9rem',
                 fontWeight: 'bold',
-                flexShrink: 0
+                flexShrink: 0,
+                color: 'white'
               }}
             >
               {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5, minHeight: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+              <Typography variant="body1" component="div" fontWeight="600" sx={{ mb: 0.5, minHeight: '1.2rem', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
                 
                 <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2, flex: 1 }}>
                   {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
@@ -826,9 +827,9 @@ function ExhibitorListView() {
             Loading exhibitors...
           </Typography>
         </Box>
-        <Grid container spacing={3}>
+        <Grid container spacing={1.5}>
           {[...Array(8)].map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+            <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={index}>
               <ExhibitorCardSkeleton />
             </Grid>
           ))}
@@ -920,9 +921,9 @@ function ExhibitorListView() {
 
       {/* Exhibitors Grid */}
       {!loading && !error && (
-      <Grid container spacing={3}>
+      <Grid container spacing={1.5}>
         {filteredExhibitors.map((exhibitor) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={exhibitor.id}>
+          <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={exhibitor.id}>
             <Suspense fallback={<ExhibitorCardSkeleton />}>
               <ExhibitorCard
                 exhibitor={exhibitor}

@@ -28,7 +28,8 @@ const createAdvancedTheme = (config: any, fontFamily: string) => createTheme({
 
 // Define professional, sober, eye-catching themes
 const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
-  default: {
+  default:
+     {
     name: 'Ocean Blue',
     description: 'Professional blue theme with clean design',
     preview: '#1976d2',
@@ -36,21 +37,21 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
       palette: {
         mode: 'light' as const,
         primary: {
-          main: '#1976d2',
-          light: '#42a5f5',
-          dark: '#1565c0',
+          main: '#1976d2',     // Ocean Blue
+          light: '#42a5f5',    // Sky Blue
+          dark: '#1565c0',     // Deep Blue
         },
         secondary: {
-          main: '#00acc1',
-          light: '#4dd0e1',
-          dark: '#00838f',
+          main: '#00acc1',     // Cyan
+          light: '#4dd0e1',    // Light Teal
+          dark: '#00838f',     // Deep Teal
         },
         background: {
-          default: '#f8fafc',
+          default: '#f0f4f8',   // Light bluish-gray
           paper: '#ffffff',
         },
         text: {
-          primary: '#1a202c',
+          primary: '#1a202c',  // Almost black
           secondary: '#4a5568',
         },
         divider: 'rgba(25, 118, 210, 0.12)',
@@ -74,7 +75,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              background: '#f8fafc',
+              background: 'linear-gradient(to bottom,rgb(241, 244, 247) 0%, #f0f4f8 100%)',
               minHeight: '100vh',
             },
           },
@@ -82,11 +83,14 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCard: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              backgroundImage: 'linear-gradient(135deg,rgba(247, 250, 252, 0.97) 0%, #ffffff 100%)',
+              border: '1px solid #e0e7ef',
+              boxShadow: '0 2px 10px rgba(25, 118, 210, 0.08)',
+              transition: 'all 0.3s ease-in-out',
               '&:hover': {
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                backgroundImage: 'linear-gradient(135deg, #e0e7ef 0%, #e3f2fd 100%)',
+                boxShadow: '0 6px 16px rgba(25, 118, 210, 0.12)',
                 transform: 'translateY(-2px)',
-                transition: 'all 0.2s ease-in-out',
               },
             },
           },
@@ -97,13 +101,19 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
               textTransform: 'none',
               fontWeight: 500,
               borderRadius: 6,
+              backgroundImage: 'linear-gradient(to right, #1976d2, #1565c0)',
+              color: '#fff',
+              '&:hover': {
+                backgroundImage: 'linear-gradient(to right, #42a5f5, #1e88e5)',
+              },
             },
           },
         },
         MuiPaper: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              backgroundImage: 'linear-gradient(to bottom right,rgb(243, 245, 247) 0%, #ffffff 100%)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
             },
           },
         },
@@ -118,28 +128,31 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
       palette: {
         mode: 'light' as const,
         primary: {
-          main: '#374151',
-          light: '#6b7280',
-          dark: '#1f2937',
+          main: '#374151',  // Slate Gray
+          light: '#6b7280', // Cool Gray
+          dark: '#1f2937', 
         },
         secondary: {
-          main: '#d97706',
-          light: '#f59e0b',
-          dark: '#92400e',
+          main: '#d97706',  // Amber
+          light: '#f59e0b', // Warm Gold
+          dark: '#92400e', 
+
+
         },
         background: {
-          default: '#f9fafb',
+          default: '#dcdee3', // Light neutral
           paper: '#ffffff',
+    
         },
         text: {
-          primary: '#111827',
-          secondary: '#4b5563',
+          primary: '#111827',  // Charcoal
+        secondary: '#4b5563',
         },
         divider: 'rgba(55, 65, 81, 0.12)',
-        action: {
-          hover: 'rgba(55, 65, 81, 0.04)',
-          selected: 'rgba(55, 65, 81, 0.08)',
-        },
+    action: {
+      hover: 'rgba(55, 65, 81, 0.04)',
+      selected: 'rgba(55, 65, 81, 0.08)',
+    },
       },
       typography: {
         h1: { fontWeight: 600 },
@@ -148,7 +161,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         h4: { fontWeight: 600 },
         h5: { fontWeight: 600 },
         h6: { fontWeight: 600 },
-      },
+      },  
       shape: {
         borderRadius: 8,
       },
@@ -156,20 +169,24 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              background: '#f9fafb',
+              background: 'linear-gradient(to bottom,rgb(234, 236, 238) 0%,rgb(250, 251, 253) 100%)',
               minHeight: '100vh',
+    
             },
           },
         },
         MuiCard: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-              '&:hover': {
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
-                transform: 'translateY(-2px)',
-                transition: 'all 0.2s ease-in-out',
-              },
+              backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 2px 10px rgba(55, 65, 81, 0.08)',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            backgroundImage: 'linear-gradient(135deg, #e5e7eb 0%, #f9fafb 100%)',
+            boxShadow: '0 6px 16px rgba(55, 65, 81, 0.12)',
+            transform: 'translateY(-2px)',
+          },
             },
           },
         },
@@ -177,16 +194,22 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
           styleOverrides: {
             root: {
               textTransform: 'none',
-              fontWeight: 500,
-              borderRadius: 6,
+          fontWeight: 500,
+          borderRadius: 6,
+          backgroundImage: 'linear-gradient(to right, #4b5563, #1f2937)',
+          color: '#fff',
+          '&:hover': {
+            backgroundImage: 'linear-gradient(to right, #6b7280, #374151)',
+          },
             },
           },
         },
         MuiPaper: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-            },
+              backgroundImage: 'linear-gradient(to bottom right, #f9fafb 0%, #ffffff 100%)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
+               },
           },
         },
       },
@@ -201,27 +224,30 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         mode: 'light' as const,
         primary: {
           main: '#059669',
-          light: '#10b981',
-          dark: '#047857',
+        light: '#10b981',
+        dark: '#047857',
         },
         secondary: {
           main: '#f59e0b',
-          light: '#fbbf24',
-          dark: '#d97706',
+        light: '#fbbf24',
+        dark: '#d97706',
         },
         background: {
-          default: '#f0fdf4',
+          default: '#ecfdf5',  // slightly brighter than before
           paper: '#ffffff',
+  
         },
         text: {
           primary: '#1a202c',
           secondary: '#4a5568',
+  
         },
         divider: 'rgba(5, 150, 105, 0.12)',
         action: {
           hover: 'rgba(5, 150, 105, 0.04)',
           selected: 'rgba(5, 150, 105, 0.08)',
         },
+  
       },
       typography: {
         h1: { fontWeight: 600 },
@@ -238,20 +264,23 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              background: '#f0fdf4',
-              minHeight: '100vh',
+              background: 'linear-gradient(to bottom, #f0fdf4 0%, #ecfdf5 100%)',
+            minHeight: '100vh',
             },
           },
         },
         MuiCard: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-              '&:hover': {
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
-                transform: 'translateY(-2px)',
-                transition: 'all 0.2s ease-in-out',
-              },
+              backgroundImage: 'linear-gradient(135deg,rgb(239, 250, 245), #ffffff)',
+            border: '1px solid #d1fae5',
+            boxShadow: '0 2px 10px rgba(5, 150, 105, 0.08)',
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              backgroundImage: 'linear-gradient(135deg, #d1fae5, #f0fdf4)',
+              boxShadow: '0 6px 16px rgba(5, 150, 105, 0.15)',
+              transform: 'translateY(-2px)',
+            },
             },
           },
         },
@@ -261,14 +290,19 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
               textTransform: 'none',
               fontWeight: 500,
               borderRadius: 6,
+              backgroundImage: 'linear-gradient(to right, #10b981, #059669)',
+              color: '#fff',
+              '&:hover': {
+                backgroundImage: 'linear-gradient(to right, #34d399, #047857)',
+              },
             },
           },
         },
         MuiPaper: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-            },
+              backgroundImage: 'linear-gradient(to bottom right, #ecfdf5, #ffffff)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',  },
           },
         },
       },
@@ -288,8 +322,8 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         },
         secondary: {
           main: '#f59e0b',
-          light: '#fbbf24',
-          dark: '#d97706',
+        light: '#fbbf24',
+        dark: '#d97706',
         },
         background: {
           default: '#f0fdfa',
@@ -297,7 +331,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         },
         text: {
           primary: '#1a202c',
-          secondary: '#4a5568',
+        secondary: '#4a5568',
         },
         divider: 'rgba(8, 145, 178, 0.12)',
         action: {
@@ -320,20 +354,23 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              background: '#f0fdfa',
-              minHeight: '100vh',
+              background: 'linear-gradient(to bottom, #f0fdfa, #e0f7fa)',
+            minHeight: '100vh',
             },
           },
         },
         MuiCard: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-              '&:hover': {
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
-                transform: 'translateY(-2px)',
-                transition: 'all 0.2s ease-in-out',
-              },
+              backgroundImage: 'linear-gradient(135deg,rgb(242, 251, 252), #ffffff)',
+            border: '1px solid #b2ebf2',
+            boxShadow: '0 2px 10px rgba(8, 145, 178, 0.08)',
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              backgroundImage: 'linear-gradient(135deg, #b2ebf2, #f0fdfa)',
+              boxShadow: '0 6px 16px rgba(8, 145, 178, 0.15)',
+              transform: 'translateY(-2px)',
+            },
             },
           },
         },
@@ -341,16 +378,21 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
           styleOverrides: {
             root: {
               textTransform: 'none',
-              fontWeight: 500,
-              borderRadius: 6,
+            fontWeight: 500,
+            borderRadius: 6,
+            backgroundImage: 'linear-gradient(to right, #06b6d4, #0891b2)',
+            color: '#fff',
+            '&:hover': {
+              backgroundImage: 'linear-gradient(to right, #38bdf8, #0e7490)',
+            },
             },
           },
         },
         MuiPaper: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-            },
+              backgroundImage: 'linear-gradient(to bottom right, #f0fdfa, #ffffff)',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)', },
           },
         },
       },
@@ -402,7 +444,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              background: '#fffbeb',
+              background: 'linear-gradient(to bottom, #fffbeb, #fff7e6)',
               minHeight: '100vh',
             },
           },
@@ -410,11 +452,14 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCard: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              backgroundImage: 'linear-gradient(135deg,rgb(253, 249, 240), #ffffff)',
+              border: '1px solid #ffe4c7',
+              boxShadow: '0 2px 10px rgba(234, 88, 12, 0.08)',
+              transition: 'all 0.3s ease-in-out',
               '&:hover': {
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                backgroundImage: 'linear-gradient(135deg, #ffedd5, #fffbeb)',
+                boxShadow: '0 6px 16px rgba(234, 88, 12, 0.15)',
                 transform: 'translateY(-2px)',
-                transition: 'all 0.2s ease-in-out',
               },
             },
           },
@@ -425,19 +470,26 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
               textTransform: 'none',
               fontWeight: 500,
               borderRadius: 6,
+              backgroundImage: 'linear-gradient(to right, #fb923c, #ea580c)',
+              color: '#fff',
+              '&:hover': {
+                backgroundImage: 'linear-gradient(to right, #fdba74, #c2410c)',
+              },
             },
           },
         },
         MuiPaper: {
           styleOverrides: {
             root: {
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              backgroundImage: 'linear-gradient(to bottom right, #fffbeb, #ffffff)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
             },
           },
         },
       },
     }, fontFamily),
-  },
+  }
+  
 });
 
 interface SimpleThemeContextType {

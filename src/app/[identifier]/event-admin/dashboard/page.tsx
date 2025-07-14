@@ -417,7 +417,7 @@ export default function EventAdminDashboard() {
       title: 'Total Visitors',
       value: stats?.registeredVisitors || 0,
       icon: <Person sx={{ fontSize: 40 }} />,
-      color: '#2e7d32',
+      color: 'warning',
       subtitle: `${visitors.filter(v => v.status === 'registered').length} registered`,
       action: {
         label: 'Add Visitors',
@@ -429,7 +429,7 @@ export default function EventAdminDashboard() {
       title: 'Total Exhibitors',
       value: stats?.registeredExhibitors || 0,
       icon: <Business sx={{ fontSize: 40 }} />,
-      color: '#ed6c02',
+      color: 'warning',
       subtitle: `${exhibitors.filter(e => e.status === 'registered').length} registered`,
       action: {
         label: 'Add Exhibitors',
@@ -441,7 +441,7 @@ export default function EventAdminDashboard() {
       title: 'Pending Invitations',
       value: stats?.pendingInvitations || 0,
       icon: <Email sx={{ fontSize: 40 }} />,
-      color: '#dc004e',
+      color: 'warning',
       subtitle: 'Awaiting response',
       action: {
         label: 'Send Invitations',

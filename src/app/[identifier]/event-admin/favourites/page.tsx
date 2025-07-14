@@ -41,7 +41,7 @@ import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardL
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
-import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor } from '@/services/fieldMappingApi';
+import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor, type FavoritesRequest } from '@/services/fieldMappingApi';
 import { getCurrentExhibitorId } from '@/utils/authUtils';
 
 interface TransformedExhibitor {
@@ -229,6 +229,7 @@ export default function FavouritesPage() {
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0); // 0 = Visitors, 1 = Exhibitors
   const [searchTerm, setSearchTerm] = useState('');
+  const [removingFavorite, setRemovingFavorite] = useState<string | null>(null);
 
   useEffect(() => {
     if (identifier) {
@@ -318,13 +319,103 @@ export default function FavouritesPage() {
   };
 
   const handleRemoveFavourite = async (exhibitorId: string) => {
-    // TODO: Implement remove favorite functionality when API is available
-    console.log('Remove favorite exhibitor:', exhibitorId);
+    if (!identifier) return;
+
+    try {
+      setRemovingFavorite(exhibitorId);
+      // Get current user ID (defaulting to 1 for now)
+      let currentUserId = 1; // Using visitor ID 1 for exhibitor favorites
+
+      const payload: FavoritesRequest = {
+        visitorId: currentUserId,
+        exhibitorId: parseInt(exhibitorId),
+        isFavorite: false // Set to false to remove from favorites
+      };
+
+      console.log('🔥 Removing exhibitor from favorites:', payload);
+      const response = await fieldMappingApi.addFavorites(identifier, payload);
+
+      if (response.statusCode === 200 && response.result) {
+        console.log('✅ Successfully removed exhibitor from favorites');
+        
+        // Update the UI by removing the exhibitor from the list
+        setExhibitorFavourites(prev => prev.filter(exhibitor => exhibitor.id !== exhibitorId));
+        
+        // Update localStorage to maintain consistency with iframe pages
+        try {
+          const storageKey = `favorites_${currentUserId}_${identifier}`;
+          const localFavorites = localStorage.getItem(storageKey);
+          if (localFavorites) {
+            const favoritesArray = JSON.parse(localFavorites);
+            const updatedFavorites = favoritesArray.filter((id: number) => id !== parseInt(exhibitorId));
+            localStorage.setItem(storageKey, JSON.stringify(updatedFavorites));
+            console.log('📦 Updated localStorage favorites:', updatedFavorites);
+          }
+        } catch (localError) {
+          console.error('Error updating localStorage:', localError);
+        }
+      } else {
+        console.error('Failed to remove exhibitor from favorites:', response.message);
+        setError(response.message || 'Failed to remove exhibitor from favorites');
+      }
+    } catch (err: any) {
+      console.error('Error removing exhibitor from favorites:', err);
+      setError(err.message || 'Failed to remove exhibitor from favorites');
+    } finally {
+      setRemovingFavorite(null);
+    }
   };
 
   const handleRemoveVisitorFavourite = async (visitorId: string) => {
-    // TODO: Implement remove visitor favorite functionality when API is available
-    console.log('Remove favorite visitor:', visitorId);
+    if (!identifier) return;
+
+    try {
+      setRemovingFavorite(visitorId);
+      // Get current exhibitor ID (defaulting to 10 for now)
+      let currentExhibitorId = getCurrentExhibitorId();
+      if (!currentExhibitorId) {
+        console.log('🔍 No exhibitor ID found, using default ID 10 for favorites');
+        currentExhibitorId = 10;
+      }
+
+      const payload: FavoritesRequest = {
+        visitorId: parseInt(visitorId),
+        exhibitorId: currentExhibitorId,
+        isFavorite: false // Set to false to remove from favorites
+      };
+
+      console.log('🔥 Removing visitor from favorites:', payload);
+      const response = await fieldMappingApi.addFavorites(identifier, payload);
+
+      if (response.statusCode === 200 && response.result) {
+        console.log('✅ Successfully removed visitor from favorites');
+        
+        // Update the UI by removing the visitor from the list
+        setVisitorFavourites(prev => prev.filter(visitor => visitor.id !== visitorId));
+        
+        // Update localStorage to maintain consistency with iframe pages
+        try {
+          const storageKey = `visitor_favorites_${currentExhibitorId}_${identifier}`;
+          const localFavorites = localStorage.getItem(storageKey);
+          if (localFavorites) {
+            const favoritesArray = JSON.parse(localFavorites);
+            const updatedFavorites = favoritesArray.filter((id: number) => id !== parseInt(visitorId));
+            localStorage.setItem(storageKey, JSON.stringify(updatedFavorites));
+            console.log('📦 Updated localStorage visitor favorites:', updatedFavorites);
+          }
+        } catch (localError) {
+          console.error('Error updating localStorage:', localError);
+        }
+      } else {
+        console.error('Failed to remove visitor from favorites:', response.message);
+        setError(response.message || 'Failed to remove visitor from favorites');
+      }
+    } catch (err: any) {
+      console.error('Error removing visitor from favorites:', err);
+      setError(err.message || 'Failed to remove visitor from favorites');
+    } finally {
+      setRemovingFavorite(null);
+    }
   };
 
   if (loading) {
@@ -522,6 +613,7 @@ export default function FavouritesPage() {
                           <IconButton 
                             onClick={() => handleRemoveVisitorFavourite(visitor.id)}
                             size="small"
+                            disabled={removingFavorite === visitor.id}
                             sx={{
                               color: '#f44336',
                               fontSize: 30,
@@ -531,10 +623,14 @@ export default function FavouritesPage() {
                               transform: 'scale(1.05)',
                             }}
                           >
-                            <Favorite sx={{
-                              fontSize: 25,
-                              filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
-                            }} />
+                            {removingFavorite === visitor.id ? (
+                              <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+                            ) : (
+                              <Favorite sx={{
+                                fontSize: 25,
+                                filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                              }} />
+                            )}
                           </IconButton>
                         </Box>
 
@@ -776,6 +872,7 @@ export default function FavouritesPage() {
                           <IconButton 
                             onClick={() => handleRemoveFavourite(exhibitor.id)}
                             size="small"
+                            disabled={removingFavorite === exhibitor.id}
                             sx={{
                               color: '#f44336',
                               fontSize: 30,
@@ -785,10 +882,14 @@ export default function FavouritesPage() {
                               transform: 'scale(1.05)',
                             }}
                           >
-                            <Favorite sx={{
-                              fontSize: 25,
-                              filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
-                            }} />
+                            {removingFavorite === exhibitor.id ? (
+                              <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+                            ) : (
+                              <Favorite sx={{
+                                fontSize: 25,
+                                filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))',
+                              }} />
+                            )}
                           </IconButton>
                         </Box>
 

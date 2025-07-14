@@ -324,24 +324,25 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         },
       }}
     >
-      <CardContent sx={{ p: 2, pb: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header with Visitor Info and Match Score */}
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2} sx={{ minHeight: '90px' }}>
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
           <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
             <Avatar
               sx={{
                 bgcolor: theme.palette.primary.main,
-                width: 52,
-                height: 52,
-                mr: 1,
-                fontSize: '1.2rem',
-                fontWeight: 'bold'
+                width: 36,
+                height: 36,
+                mr: 0.75,
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                color: 'white'
               }}
             >
               {getInitials(visitor.firstName, visitor.lastName)}
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body1" component="div" fontWeight="600" sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, minHeight: '1.5rem' }}>
+              <Typography variant="body2" component="div" fontWeight="600" sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, minHeight: '1.2rem' }}>
                 
                 <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
                   {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
@@ -919,9 +920,9 @@ function VisitorListView() {
 
       {/* Visitors Grid */}
       {!loading && !error && (
-        <Grid container spacing={3}>
+              <Grid container spacing={1.5}>
           {filteredVisitors.map((visitor) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={visitor.id}>
+          <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={visitor.id}>
               <Suspense fallback={<VisitorCardSkeleton />}>
                 <VisitorCard
                   visitor={visitor}

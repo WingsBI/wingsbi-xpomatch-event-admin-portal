@@ -105,24 +105,24 @@ function ParticipantCard({ participant }: ParticipantCardProps) {
         },
       }}
     >
-      <CardContent sx={{ p: 3, pb: 2 }}>
+      <CardContent sx={{ p: 1.5, pb: 1 }}>
         {/* Header with Avatar and Match Score */}
         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center">
             <Avatar
               sx={{
                 bgcolor: getTypeColor(participant.type),
-                width: 52,
-                height: 52,
-                mr: 2,
-                fontSize: '1.2rem',
+                width: 36,
+                height: 36,
+                mr: 1,
+                fontSize: '0.9rem',
                 fontWeight: 'bold'
               }}
             >
               {getInitials(participant.firstName, participant.lastName)}
             </Avatar>
             <Box>
-              <Typography variant="h6" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
+              <Typography variant="body1" component="div" fontWeight="600" sx={{ mb: 0.5 }}>
                 {participant.firstName} {participant.lastName}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
@@ -437,9 +437,9 @@ function ParticipantCards() {
         </Box>
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={1.5}>
         {filteredParticipants.map((participant) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={participant.id}>
+          <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={participant.id}>
             <ParticipantCard participant={participant} />
           </Grid>
         ))}
@@ -472,9 +472,9 @@ export default function ParticipantCardsPage() {
       <Suspense 
         fallback={
           <Container maxWidth="xl" sx={{ py: 3 }}>
-            <Grid container spacing={3}>
+            <Grid container spacing={1.5}>
               {Array.from({ length: 8 }).map((_, index) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+                <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={index}>
                   <ParticipantCardSkeleton />
                 </Grid>
               ))}

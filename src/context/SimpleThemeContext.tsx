@@ -47,7 +47,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
           dark: '#00838f',     // Deep Teal
         },
         background: {
-          default: '#f0f4f8',   // Light bluish-gray
+          default: '#e3f2fd → #f0f4f8',   // Light bluish-gray
           paper: '#ffffff',
         },
         text: {
@@ -83,14 +83,14 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCard: {
           styleOverrides: {
             root: {
-              backgroundImage: 'linear-gradient(135deg,rgba(247, 250, 252, 0.97) 0%, #ffffff 100%)',
-              border: '1px solid #e0e7ef',
-              boxShadow: '0 2px 10px rgba(25, 118, 210, 0.08)',
+              backgroundImage: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
               transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                backgroundImage: 'linear-gradient(135deg, #e0e7ef 0%, #e3f2fd 100%)',
-                boxShadow: '0 6px 16px rgba(25, 118, 210, 0.12)',
-                transform: 'translateY(-2px)',
+            '&:hover': {
+              backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)',
+              boxShadow: '0 6px 16px rgba(245, 246, 250, 0.9)',
+              transform: 'translateY(-2px)',
               },
             },
           },
@@ -140,7 +140,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
 
         },
         background: {
-          default: '#dcdee3', // Light neutral
+          default: '#f9fafb → #f3f4f6', // Light neutral
           paper: '#ffffff',
     
         },
@@ -178,14 +178,14 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCard: {
           styleOverrides: {
             root: {
+              backgroundImage: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.3s ease-in-out',
+            '&:hover': {
               backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)',
-          border: '1px solid #e5e7eb',
-          boxShadow: '0 2px 10px rgba(55, 65, 81, 0.08)',
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': {
-            backgroundImage: 'linear-gradient(135deg, #e5e7eb 0%, #f9fafb 100%)',
-            boxShadow: '0 6px 16px rgba(55, 65, 81, 0.12)',
-            transform: 'translateY(-2px)',
+              boxShadow: '0 6px 16px rgba(245, 246, 250, 0.9)',
+              transform: 'translateY(-2px)',
           },
             },
           },
@@ -233,7 +233,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         dark: '#d97706',
         },
         background: {
-          default: '#ecfdf5',  // slightly brighter than before
+          default: '#f0fdf4 → #dcfce7',  // slightly brighter than before
           paper: '#ffffff',
   
         },
@@ -272,13 +272,13 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCard: {
           styleOverrides: {
             root: {
-              backgroundImage: 'linear-gradient(135deg,rgb(239, 250, 245), #ffffff)',
-            border: '1px solid #d1fae5',
-            boxShadow: '0 2px 10px rgba(5, 150, 105, 0.08)',
-            transition: 'all 0.3s ease-in-out',
+              backgroundImage: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.3s ease-in-out',
             '&:hover': {
-              backgroundImage: 'linear-gradient(135deg, #d1fae5, #f0fdf4)',
-              boxShadow: '0 6px 16px rgba(5, 150, 105, 0.15)',
+              backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)',
+              boxShadow: '0 6px 16px rgba(245, 246, 250, 0.9)',
               transform: 'translateY(-2px)',
             },
             },
@@ -326,7 +326,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         dark: '#d97706',
         },
         background: {
-          default: '#f0fdfa',
+          default: '#f0fdfa → #ccfbf1',
           paper: '#ffffff',
         },
         text: {
@@ -359,17 +359,18 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
             },
           },
         },
-        MuiCard: {
+        MuiCard: {  
           styleOverrides: {
             root: {
-              backgroundImage: 'linear-gradient(135deg,rgb(242, 251, 252), #ffffff)',
-            border: '1px solid #b2ebf2',
-            boxShadow: '0 2px 10px rgba(8, 145, 178, 0.08)',
-            transition: 'all 0.3s ease-in-out',
+              backgroundImage: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.3s ease-in-out',
             '&:hover': {
-              backgroundImage: 'linear-gradient(135deg, #b2ebf2, #f0fdfa)',
-              boxShadow: '0 6px 16px rgba(8, 145, 178, 0.15)',
+              backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)',
+              boxShadow: '0 6px 16px rgba(245, 246, 250, 0.9)',
               transform: 'translateY(-2px)',
+
             },
             },
           },
@@ -416,7 +417,7 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
           dark: '#0e7490',
         },
         background: {
-          default: '#fffbeb',
+          default: '#fff7ed → #fffbeb',
           paper: '#ffffff',
         },
         text: {
@@ -452,14 +453,14 @@ const createThemes = (fontFamily: string = fontFamilies.nunitosans) => ({
         MuiCard: {
           styleOverrides: {
             root: {
-              backgroundImage: 'linear-gradient(135deg,rgb(253, 249, 240), #ffffff)',
-              border: '1px solid #ffe4c7',
-              boxShadow: '0 2px 10px rgba(234, 88, 12, 0.08)',
+              backgroundImage: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
               transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                backgroundImage: 'linear-gradient(135deg, #ffedd5, #fffbeb)',
-                boxShadow: '0 6px 16px rgba(234, 88, 12, 0.15)',
-                transform: 'translateY(-2px)',
+            '&:hover': {
+              backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)',
+              boxShadow: '0 6px 16px rgba(245, 246, 250, 0.9)',
+              transform: 'translateY(-2px)',
               },
             },
           },

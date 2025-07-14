@@ -798,14 +798,7 @@ export default function MeetingsPage() {
                 })}
               </Box>
 
-              {/* Event duration info */}
-              {eventDetails && (
-                <Box sx={{ p: 2, bgcolor: 'grey.50', borderTop: 1, borderColor: 'grey.300' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Event Duration: {new Date(eventDetails.startDateTime).toLocaleDateString()} - {new Date(eventDetails.endDateTime).toLocaleDateString()}
-                  </Typography>
-              </Box>
-              )}
+             
             </Paper>
           ) : (
             <>
@@ -849,8 +842,23 @@ export default function MeetingsPage() {
                             color={getStatusColor(meeting.status)}
                             size="small"
                           />
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1,ml:4,mt:1 }}>
+                          Attendees:
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2,mt:2 }}>
+                          {meeting.attendees.map((attendee) => (
+                            <Chip
+                              key={attendee.id}
+                              avatar={<Avatar sx={{ bgcolor: 'primary.main' }}>{attendee.avatar}</Avatar>}
+                              label={`${attendee.name} (${attendee.company})`}
+                              variant="outlined"
+                              size="small"
+                            />
+                          ))}
                         </Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2,mt:-2 }}>
                           {meeting.description}
                         </Typography>
                         
@@ -883,22 +891,7 @@ export default function MeetingsPage() {
                           )}
                         </Grid>
 
-                        {/* Attendees */}
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Attendees:
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                          {meeting.attendees.map((attendee) => (
-                            <Chip
-                              key={attendee.id}
-                              avatar={<Avatar sx={{ bgcolor: 'primary.main' }}>{attendee.avatar}</Avatar>}
-                              label={`${attendee.name} (${attendee.company})`}
-                              variant="outlined"
-                              size="small"
-                            />
-                          ))}
-                        </Box>
-
+                  
                         {meeting.notes && (
                           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                             Notes: {meeting.notes}
@@ -906,7 +899,7 @@ export default function MeetingsPage() {
                         )}
                       </Box>
 
-                      <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1, }}>
                         <IconButton size="small" onClick={() => {
                           setSelectedMeeting(meeting);
                           setOpenDialog(true);

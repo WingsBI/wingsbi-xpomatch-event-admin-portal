@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import {
   Box,
   Card,
@@ -30,6 +30,8 @@ interface ExhibitorLoginForm {
 
 export default function ExhibitorLoginPage() {
   const router = useRouter();
+  const params = useParams();
+  const identifier = params.identifier as string;
   const [showAccessCode, setShowAccessCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,8 +53,8 @@ export default function ExhibitorLoginPage() {
         sessionStorage.setItem('userRole', 'exhibitor');
         sessionStorage.setItem('userEmail', data.email);
         
-        // Redirect to exhibitor dashboard or iframe view immediately
-        router.push('/iframe/exhibitors');
+        // Redirect to exhibitor dashboard
+        router.push(`/${identifier}/event-admin/dashboard/exhibitor_dashboard`);
       } else {
         setError('Please enter valid credentials');
       }

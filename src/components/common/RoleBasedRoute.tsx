@@ -24,42 +24,51 @@ export default function RoleBasedRoute({
   const { user, isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      // Store the current path so user can be redirected back after authentication
-      const currentPath = window.location.pathname;
-      sessionStorage.setItem('intendedPath', currentPath);
-      console.log(`Storing intended path for redirect: ${currentPath}`);
-      
-      // Not authenticated - redirect to login
-      router.push(`/${identifier}`);
-      return;
-    }
-
-    if (!isLoading && isAuthenticated && user) {
-      const userRole = user.role;
-
-      // If allowedRoles is specified and user role is not allowed
-      if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-        // Determine redirect path based on user role
-        let defaultRedirectPath = redirectPath;
+    // Add a small delay to ensure auth state is fully loaded
+    const timer = setTimeout(() => {
+      if (!isLoading && !isAuthenticated) {
+        // Store the current path so user can be redirected back after authentication
+        const currentPath = window.location.pathname;
+        sessionStorage.setItem('intendedPath', currentPath);
+        console.log(`Storing intended path for redirect: ${currentPath}`);
         
-        if (!defaultRedirectPath) {
-          if (userRole === 'visitor') {
-            defaultRedirectPath = `/${identifier}/event-admin/visitors`;
-          } else if (userRole === 'exhibitor') {
-            defaultRedirectPath = `/${identifier}/event-admin/exhibitors`;
-          } else if (userRole === 'event-admin') {
-            defaultRedirectPath = `/${identifier}/event-admin/dashboard`;
-          } else {
-            defaultRedirectPath = `/${identifier}`;
-          }
-        }
-        
-        console.log(`User role '${userRole}' not allowed for this route. Redirecting to: ${defaultRedirectPath}`);
-        router.push(defaultRedirectPath);
+        // Not authenticated - redirect to login
+        router.push(`/${identifier}`);
         return;
       }
-    }
+
+      if (!isLoading && isAuthenticated && user) {
+        const userRole = user.role;
+        console.log('RoleBasedRoute - User data:', user);
+        console.log('RoleBasedRoute - User role:', userRole);
+        console.log('RoleBasedRoute - Allowed roles:', allowedRoles);
+        console.log('RoleBasedRoute - Current path:', window.location.pathname);
+
+        // If allowedRoles is specified and user role is not allowed
+        if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+          // Determine redirect path based on user role
+          let defaultRedirectPath = redirectPath;
+          
+          if (!defaultRedirectPath) {
+            if (userRole === 'visitor') {
+              defaultRedirectPath = `/${identifier}/event-admin/dashboard/visitor_dashboard`;
+            } else if (userRole === 'exhibitor') {
+              defaultRedirectPath = `/${identifier}/event-admin/dashboard/exhibitor_dashboard`;
+            } else if (userRole === 'event-admin') {
+              defaultRedirectPath = `/${identifier}/event-admin/dashboard`;
+            } else {
+              defaultRedirectPath = `/${identifier}`;
+            }
+          }
+          
+          console.log(`User role '${userRole}' not allowed for this route. Redirecting to: ${defaultRedirectPath}`);
+          router.push(defaultRedirectPath);
+          return;
+        }
+      }
+    }, 100); // Small delay to ensure auth state is loaded
+
+    return () => clearTimeout(timer);
   }, [isLoading, isAuthenticated, user, allowedRoles, redirectPath, identifier, router]);
 
   // Show loading while checking authentication

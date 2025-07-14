@@ -83,12 +83,12 @@ class AuthApiService {
       case '2':
         return 'event-admin';
       case '3':
-        return 'exhibitor';
+        return 'visitor'; // Fixed: roleId 3 is visitor, not exhibitor
       case '4':
-        return 'visitor';
+        return 'exhibitor'; // Fixed: roleId 4 is exhibitor, not visitor
       default:
         // If it's already a string literal, return as is
-      if (['event-admin', 'exhibitor', 'visitor'].includes(role as string)) {
+        if (['event-admin', 'exhibitor', 'visitor'].includes(role as string)) {
           return role as 'event-admin' | 'exhibitor' | 'visitor';
         }
         return 'event-admin'; // Default fallback

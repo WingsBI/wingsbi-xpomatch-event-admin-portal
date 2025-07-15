@@ -499,6 +499,31 @@ export default function MeetingsPage() {
     return days;
   };
 
+  const getEventDays = () => {
+    if (!eventDetails) return [];
+    
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    const days = [];
+    
+    // Set start to beginning of day
+    const startDate = new Date(eventStart);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Set end to end of day
+    const endDate = new Date(eventEnd);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      days.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return days;
+  };
+
   const getHourSlots = () => {
     const slots = [];
     // Only show hours from 9 AM to 9 PM (9-21)
@@ -506,6 +531,24 @@ export default function MeetingsPage() {
       slots.push(hour);
     }
     return slots;
+  };
+
+  const isHourInEventRange = (hour: number, date: Date) => {
+    if (!eventDetails) return false;
+    
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    
+    // Check if this date is within event range
+    const currentDate = new Date(date);
+    currentDate.setHours(hour, 0, 0, 0);
+    
+    // Get the start and end hours for the event
+    const eventStartHour = eventStart.getHours();
+    const eventEndHour = eventEnd.getHours();
+    
+    // Check if this hour falls within the event time range
+    return hour >= eventStartHour && hour <= eventEndHour;
   };
 
   const getMeetingsForDateAndHour = (date: Date, hour: number) => {
@@ -519,27 +562,19 @@ export default function MeetingsPage() {
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
-    const newWeekStart = new Date(currentWeekStart);
-    if (direction === 'prev') {
-      newWeekStart.setDate(newWeekStart.getDate() - 7);
-    } else {
-      newWeekStart.setDate(newWeekStart.getDate() + 7);
+    if (!eventDetails) {
+      const newWeekStart = new Date(currentWeekStart);
+      if (direction === 'prev') {
+        newWeekStart.setDate(newWeekStart.getDate() - 7);
+      } else {
+        newWeekStart.setDate(newWeekStart.getDate() + 7);
+      }
+      setCurrentWeekStart(newWeekStart);
+      return;
     }
     
-    // Check if new week is within event dates
-    if (eventDetails) {
-      const eventStart = new Date(eventDetails.startDateTime);
-      const eventEnd = new Date(eventDetails.endDateTime);
-      const weekEnd = new Date(newWeekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      
-      // Allow navigation if week overlaps with event duration
-      if (weekEnd >= eventStart && newWeekStart <= eventEnd) {
-        setCurrentWeekStart(newWeekStart);
-      }
-    } else {
-      setCurrentWeekStart(newWeekStart);
-    }
+    // For event days, we don't need navigation since we show all event days
+    // This function is kept for compatibility but doesn't do anything for event days
   };
 
   const isDateInEventRange = (date: Date) => {
@@ -587,7 +622,7 @@ export default function MeetingsPage() {
               width: '100%',
               borderRadius: 1
             }}>
-              {/* Weekly Calendar Header */}
+              {/* Event Calendar Header */}
               <Box sx={{ 
                 p: 2, 
                 display: 'flex', 
@@ -599,11 +634,13 @@ export default function MeetingsPage() {
                 <Box>
                   <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                     {eventDetails ? eventDetails.title : 'Weekly Calendar'}
-                </Typography>
+                  </Typography>
                   {eventDetails && (
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      {eventDetails.locationDetails?.venueName && `${eventDetails.locationDetails.venueName} • `}
+                      {eventDetails.locationDetails && eventDetails.locationDetails.length > 0 && 
+                       `${eventDetails.locationDetails[0].venueName} • `}
                       {eventDetails.categoryName}
+                      {eventDetails && ` • ${getEventDays().length} event day${getEventDays().length > 1 ? 's' : ''}`}
                     </Typography>
                   )}
                 </Box>
@@ -622,7 +659,7 @@ export default function MeetingsPage() {
                             year: 'numeric'
                           })}
                         </Typography>
-              </Box>
+                      </Box>
 
                       <Box sx={{ mx: 1, opacity: 0.6 }}>→</Box>
                       
@@ -656,6 +693,9 @@ export default function MeetingsPage() {
                 
                 {/* Time slot headers - Horizontal */}
                 {getHourSlots().map((hour, index) => {
+                  // Check if this hour is within event range for any event day
+                  const isInEventRange = eventDetails && getEventDays().some(day => isHourInEventRange(hour, day));
+                  
                   return (
                     <Box key={index} sx={{ 
                       flex: 1, 
@@ -663,12 +703,13 @@ export default function MeetingsPage() {
                       textAlign: 'center', 
                       borderRight: index < 23 ? 1 : 0, 
                       borderColor: 'transparent',
-                      
+                      bgcolor: isInEventRange ? 'grey.300' : 'transparent',
                     }}>
-                      <Typography variant="body2" sx={{ 
-                        fontSize: '0.75rem',
-                        color: 'text.secondary'
-                      }}>
+                                              <Typography variant="body2" sx={{ 
+                          fontSize: '0.75rem',
+                          color: isInEventRange ? 'text.primary' : 'text.secondary',
+                          fontWeight: isInEventRange ? 'bold' : 'normal'
+                        }}>
                         {formatHour(hour)}
                       </Typography>
                     </Box>
@@ -678,12 +719,11 @@ export default function MeetingsPage() {
 
               {/* Date Grid - Vertical with Day Partitioning */}
               <Box sx={{ 
-                height: 'calc(7 * 50px)', 
+                height: eventDetails ? `calc(${getEventDays().length} * 50px)` : '200px', 
                 overflow: 'auto',
                 position: 'relative'
               }}>
-                {getWeekDays(currentWeekStart).map((day, dayIndex) => {
-                  const isInEventRange = isDateInEventRange(day);
+                {eventDetails ? getEventDays().map((day, dayIndex) => {
                   const isToday = day.toDateString() === new Date().toDateString();
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   
@@ -691,7 +731,7 @@ export default function MeetingsPage() {
                     <Box key={dayIndex} sx={{ 
                       display: 'flex',
                       height: 50,
-                      borderBottom: dayIndex < 6 ? (isWeekend ? 3 : 2) : 0, 
+                      borderBottom: dayIndex < getEventDays().length - 1 ? (isWeekend ? 3 : 2) : 0, 
                       borderColor: isWeekend ? 'grey.500' : 'grey.400',
                       bgcolor: isWeekend ? 'grey.100' : 'transparent',
                       '&:hover': { bgcolor: 'grey.25' }
@@ -705,19 +745,19 @@ export default function MeetingsPage() {
                         display: 'flex', 
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: !isInEventRange ? 'grey.200' : isToday ? 'primary.50' : (isWeekend ? 'grey.150' : 'grey.50')
+                        bgcolor: isToday ? 'primary.50' : (isWeekend ? 'grey.150' : 'grey.50')
                       }}>
                         <Box sx={{ textAlign: 'center' }}>
                           <Typography variant="body2" sx={{ 
                             fontWeight: isToday ? 'bold' : 'normal',
-                            color: !isInEventRange ? 'text.disabled' : isToday ? 'primary.main' : 'text.primary',
+                            color: isToday ? 'primary.main' : 'text.primary',
                             fontSize: '0.85rem'
                           }}>
                             {day.toLocaleDateString('en-US', { weekday: 'short' })}
                           </Typography>
                           <Typography variant="body2" sx={{ 
                             fontWeight: isToday ? 'bold' : 'normal',
-                            color: !isInEventRange ? 'text.disabled' : isToday ? 'primary.main' : 'text.primary',
+                            color: isToday ? 'primary.main' : 'text.primary',
                             fontSize: '0.9rem'
                           }}>
                             {day.getDate()}
@@ -735,9 +775,9 @@ export default function MeetingsPage() {
                             borderRight: hourIndex < 23 ? 1 : 0, 
                             borderColor: 'grey.300',
                             position: 'relative',
-                            bgcolor: !isInEventRange ? 'grey.100' : 'white',
-                            cursor: isInEventRange ? 'pointer' : 'default',
-                            '&:hover': isInEventRange ? { bgcolor: 'primary.25' } : {}
+                            bgcolor: isHourInEventRange(hour, day) ? 'grey.300' : 'white',
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'primary.25' }
                           }}>
                             {/* Meetings for this time slot */}
                             {hourMeetings.map((meeting, meetingIndex) => (
@@ -795,7 +835,35 @@ export default function MeetingsPage() {
                       })}
                     </Box>
                   );
-                })}
+                }) : (
+                  // Show loading or empty state when no event details
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%',
+                    flexDirection: 'column',
+                    gap: 2
+                  }}>
+                    {eventLoading ? (
+                      <>
+                        <Typography variant="h6" color="text.secondary">
+                          Loading event details...
+                        </Typography>
+                      </>
+                    ) : (
+                      <>
+                        <CalendarMonth sx={{ fontSize: 48, color: 'text.secondary' }} />
+                        <Typography variant="h6" color="text.secondary">
+                          No event details available
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Event information is required to display the calendar
+                        </Typography>
+                      </>
+                    )}
+                  </Box>
+                )}
               </Box>
 
              
@@ -842,7 +910,7 @@ export default function MeetingsPage() {
                             color={getStatusColor(meeting.status)}
                             size="small"
                           />
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1,ml:4,mt:1 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1,ml:2,mt:1 }}>
                           Attendees:
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2,mt:2 }}>

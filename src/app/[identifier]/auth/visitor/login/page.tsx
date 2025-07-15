@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import {
   Box,
   Card,
@@ -30,6 +30,8 @@ interface VisitorLoginForm {
 
 export default function VisitorLoginPage() {
   const router = useRouter();
+  const params = useParams();
+  const identifier = params.identifier as string;
   const [showAccessCode, setShowAccessCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,8 +53,8 @@ export default function VisitorLoginPage() {
         sessionStorage.setItem('userRole', 'visitor');
         sessionStorage.setItem('userEmail', data.email);
         
-        // Redirect to visitor dashboard or iframe view immediately
-        router.push('/iframe/visitors');
+        // Redirect to visitor dashboard
+        router.push(`/${identifier}/event-admin/dashboard/visitor_dashboard`);
       } else {
         setError('Please enter valid credentials');
       }

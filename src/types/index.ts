@@ -302,7 +302,7 @@ export interface ApiEventDetails {
   startDateTime: string;
   endDateTime: string;
   marketingAbbreviation: string;
-  locationDetails: ApiLocationDetails;
+  locationDetails: ApiLocationDetails[];
 }
 
 export interface ApiLocationDetails {
@@ -311,12 +311,12 @@ export interface ApiLocationDetails {
   venueName: string;
   addressLine1: string;
   addressLine2: string;
-  cityName: string;
-  stateName: string;
-  countryName: string;
-  postalCode: number;
-  latitude: number;
-  longitude: number;
+  cityName: string | null;
+  stateName: string | null;
+  countryName: string | null;
+  postalCode: string;
+  latitude: string;
+  longitude: string;
   mapLink: string;
 }
 

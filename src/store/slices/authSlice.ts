@@ -193,6 +193,8 @@ export const restoreAuthState = createAsyncThunk(
             }
             
             console.log("Valid authentication data found in localStorage");
+            console.log("Restored user data:", user);
+            console.log("User role:", user.role);
             return {
               user: user,
               token: token,

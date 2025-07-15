@@ -76,16 +76,22 @@ export default function EventAdminLoginPage() {
           
           const roleName = tokenData.roleName;
           const roleId = tokenData.roleid;
+          const userRole = tokenData.role; // Also check the role field
           
-          // Role-based routing
-          if (roleName === 'Exhibitor' && roleId === '4') {
-            // Exhibitor sees visitor list
-            router.push(`/iframe/visitors`);
-          } else if (roleName === 'Visitor' && roleId === '3') {
-            // Visitor sees exhibitor list
-            router.push(`/iframe/exhibitors`);
+          console.log('Role information:', { roleName, roleId, userRole });
+          
+          // Role-based routing - check multiple possible role fields
+          if ((roleName === 'Exhibitor' && roleId === '4') || userRole === 'exhibitor') {
+            // Exhibitor goes to exhibitor dashboard
+            console.log('Redirecting to exhibitor dashboard');
+            router.push(`/${identifier}/event-admin/dashboard/exhibitor_dashboard`);
+          } else if ((roleName === 'Visitor' && roleId === '3') || userRole === 'visitor') {
+            // Visitor goes to visitor dashboard
+            console.log('Redirecting to visitor dashboard');
+            router.push(`/${identifier}/event-admin/dashboard/visitor_dashboard`);
           } else {
-            // Default: Event admin or organizer goes to dashboard
+            // Default: Event admin or organizer goes to main dashboard
+            console.log('Redirecting to main dashboard');
             router.push(`/${identifier}/event-admin/dashboard`);
           }
         } catch (jwtError) {

@@ -95,6 +95,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.setItem('authToken', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
         }
+
+        // Handle role-based redirection
+        const userRole = data.user.role;
+        const eventId = credentials.eventId;
+        
+        if (userRole === 'visitor') {
+          // Redirect visitor to visitor dashboard
+          router.push(`/${eventId}/event-admin/dashboard/visitor_dashboard`);
+        } else if (userRole === 'exhibitor') {
+          // Redirect exhibitor to exhibitor dashboard
+          router.push(`/${eventId}/event-admin/dashboard/exhibitor_dashboard`);
+        } else {
+          // Default: event-admin goes to main dashboard
+          router.push(`/${eventId}/event-admin/dashboard`);
+        }
       }
 
       return data;
@@ -145,15 +160,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
       const userStr = localStorage.getItem('user');
       
+      console.log('AuthContext refreshAuth - Token:', token ? 'Found' : 'Not found');
+      console.log('AuthContext refreshAuth - User data:', userStr);
+      
       if (token && userStr) {
         try {
           const userData = JSON.parse(userStr);
+          console.log('AuthContext refreshAuth - Parsed user data:', userData);
           
           // Validate that user data is complete
           if (userData.id && userData.email) {
             // Basic token validation (check if it's a JWT)
             const tokenParts = token.split('.');
             if (tokenParts.length === 3) {
+              console.log('AuthContext refreshAuth - Setting user with role:', userData.role);
               setUser(userData);
               setToken(token);
               return; // Success

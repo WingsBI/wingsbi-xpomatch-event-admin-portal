@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { store, persistor, extractIdentifierFromURL } from '@/store';
 import { initializeApp, updateResponsiveState } from '@/store/slices/appSlice';
+import AuthRestorer from '@/components/providers/AuthRestorer';
 
 interface ReduxProviderProps {
   children: ReactNode;
@@ -72,7 +73,12 @@ function AppInitializer({ children }: { children: ReactNode }) {
     };
   }, [dispatch]);
 
-  return <>{children}</>;
+  return (
+    <>
+      <AuthRestorer />
+      {children}
+    </>
+  );
 }
 
 // Loading component for PersistGate

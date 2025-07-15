@@ -86,37 +86,57 @@ interface ResponsiveDashboardLayoutProps {
 }
 
 const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier: string) => {
-  const baseItems = userRole === 'visitor' || userRole === 'exhibitor' ? [
-    // Both visitors and exhibitors only see these 2 pages - no dropdown menus
-    { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
-    { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
-  ] : [
+  let baseItems;
+  
+  if (userRole === 'visitor') {
+    // Visitor-specific navigation
+    baseItems = [
+      { text: 'Visitor Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/visitor_dashboard`, children: [] },
+      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Meetings', icon: <CalendarMonth />, children: [
+        { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
+        { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
+      ] },
+      { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      { text: 'Settings', icon: <Settings />, children: [
+        { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
+        ,
+      ] },
+    ];
+  } else if (userRole === 'exhibitor') {
+    // Exhibitor-specific navigation
+    baseItems = [
+      { text: 'Exhibitor Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard`, children: [] },
+      { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
+      { text: 'Meetings', icon: <CalendarMonth />, children: [
+        { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
+        { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
+      ] },
+      { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      { text: 'Settings', icon: <Settings />, children: [
+        { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },,
+       { text: 'Theme Settings', href: '#', children: [] },
+      ] },
+    ];
+  } else {
     // Default for event-admin role - full navigation
-    { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
-    
-    {
-      text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: []
-    },
-    {
-      text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: []
-    },
-
-    { text: 'Meetings', icon: <CalendarMonth />, children: [
-      { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
-      { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
-    ] },
-
-    { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
-
-    { text: 'Settings', icon: <Settings />,  children: [
-      // { text: 'Event Details', href: `/${identifier}/event-admin/event`, children: [] },
-      { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
-      { text: 'Theme Settings', href: '#', children: [] },
-      { text: 'Visitors Onboarding', href: `/${identifier}/event-admin/visitors/matching`, children: [] },
-      { text: 'Exhibitors Onboarding', href: `/${identifier}/event-admin/exhibitors/matching`, children: [] },
-    ] },
-
-  ];
+    baseItems = [
+      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
+      { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
+      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Meetings', icon: <CalendarMonth />, children: [
+        { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
+        { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
+      ] },
+      { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      { text: 'Settings', icon: <Settings />, children: [
+        { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
+        { text: 'Theme Settings', href: '#', children: [] },
+        { text: 'Visitors Onboarding', href: `/${identifier}/event-admin/visitors/matching`, children: [] },
+        { text: 'Exhibitors Onboarding', href: `/${identifier}/event-admin/exhibitors/matching`, children: [] },
+      ] },
+    ];
+  }
 
   return baseItems;
 };
@@ -618,7 +638,9 @@ export default function ResponsiveDashboardLayout({
                 <Box>
                    
                   <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
+                    {user?.role === 'visitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Visitor') : 
+                     user?.role === 'exhibitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Exhibitor') : 
+                     eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
                   
                   </Typography>
                   
@@ -641,7 +663,9 @@ export default function ResponsiveDashboardLayout({
                 fontSize: { xs: '0.9rem', sm: '1rem' }
               }}
             >
-              {eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
+              {user?.role === 'visitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Visitor') : 
+               user?.role === 'exhibitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Exhibitor') : 
+               eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
             </Typography>
           </Box>
 

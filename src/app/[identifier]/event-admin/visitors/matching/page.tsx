@@ -93,6 +93,7 @@ export default function VisitorsMatchingPage() {
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const settingsOpen = Boolean(settingsAnchorEl);
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
+  const [duplicateFields, setDuplicateFields] = useState<Set<string>>(new Set());
   
   // Display all mappings evenly distributed
 
@@ -243,6 +244,30 @@ export default function VisitorsMatchingPage() {
     }
   };
 
+  // Helper to check for duplicate standard field mappings (excluding CUSTOM_FIELD and removed fields)
+  const findDuplicateStandardFields = () => {
+    const fieldToExcelColumns: { [standardField: string]: string[] } = {};
+    Object.entries(selectedMappings).forEach(([excelColumn, standardField]) => {
+      if (
+        standardField &&
+        standardField !== 'CUSTOM_FIELD' &&
+        !removedFields.has(excelColumn)
+      ) {
+        if (!fieldToExcelColumns[standardField]) fieldToExcelColumns[standardField] = [];
+        fieldToExcelColumns[standardField].push(excelColumn);
+      }
+    });
+    // Find all excelColumns that are mapped to a duplicate standard field
+    const duplicates = new Set<string>();
+    Object.values(fieldToExcelColumns).forEach((excelColumns) => {
+      if (excelColumns.length > 1) {
+        excelColumns.forEach((col) => duplicates.add(col));
+      }
+    });
+    return duplicates;
+  };
+
+  // Remove setTimeout from handleMappingChange and use useEffect for instant duplicate check
   const handleMappingChange = (excelColumn: string, selectedField: string) => {
     setSelectedMappings(prev => ({
       ...prev,
@@ -270,6 +295,11 @@ export default function VisitorsMatchingPage() {
       });
     }
   };
+
+  // Add useEffect to instantly update duplicateFields when mappings or removedFields change
+  useEffect(() => {
+    setDuplicateFields(findDuplicateStandardFields());
+  }, [selectedMappings, removedFields]);
 
   const handleCustomFieldChange = (excelColumn: string, customFieldName: string) => {
     let validationMessage = '';
@@ -335,6 +365,13 @@ export default function VisitorsMatchingPage() {
 
       if (invalidCustomFields.length > 0) {
         throw new Error('Please provide names for all custom fields before saving.');
+      }
+
+      // Validate duplicate standard field mappings
+      const duplicates = findDuplicateStandardFields();
+      setDuplicateFields(duplicates);
+      if (duplicates.size > 0) {
+        throw new Error('Duplicate standard field mapping detected. Please ensure each standard field is mapped only once.');
       }
 
       // Create the registration payload with proper structure
@@ -409,6 +446,7 @@ export default function VisitorsMatchingPage() {
     setError('No mapping data found. Please upload an Excel file first.');
     setRegistrationResult(null);
     setRemovedFields(new Set());
+    setDuplicateFields(new Set()); // Clear duplicates on reset
     
     // Clear session storage - using visitors-specific keys
     sessionStorage.removeItem('visitors_fieldMappingData');
@@ -527,6 +565,7 @@ export default function VisitorsMatchingPage() {
     <Box sx={{ height: '100%', overflow: 'hidden' }}>
       {mappings.map((mapping, index) => {
         const isRemoved = removedFields.has(mapping.excelColumn);
+        const isDuplicate = duplicateFields.has(mapping.excelColumn);
         return (
           <Card 
             key={mapping.excelColumn} 
@@ -535,7 +574,12 @@ export default function VisitorsMatchingPage() {
               boxShadow: 2, 
               borderRadius: 2,
               opacity: isRemoved ? 0.5 : 1,
-              border: isRemoved ? '1px dashed #ccc' : 'none'
+              border: isRemoved
+                ? '1px dashed #ccc'
+                : isDuplicate
+                  ? '2px solid #ef4444' // red border for duplicate
+                  : 'none',
+              transition: 'border 0.2s',
             }}
           >
             <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>

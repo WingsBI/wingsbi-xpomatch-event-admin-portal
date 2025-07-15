@@ -601,15 +601,18 @@ export default function MeetingsPage() {
       >
         <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
           {/* Action buttons */}
-          <Box sx={{ mb: 2,mt:-1, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setOpenDialog(true)}
-            >
-              Schedule Meeting
-            </Button>
-          </Box>
+          {/* Only show top-right button in calendar view */}
+          {showCalendar && (
+            <Box sx={{ mb: 2, mt: -1, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setOpenDialog(true)}
+              >
+                Schedule Meeting
+              </Button>
+            </Box>
+          )}
 
           {/* Weekly Calendar View */}
           {showCalendar ? (
@@ -870,20 +873,24 @@ export default function MeetingsPage() {
             </Paper>
           ) : (
             <>
-              {/* Tabs */}
-              <Paper sx={{ mb: 3 }}>
-                <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
-                  <Tab label="Pending" />
-                  <Tab 
-                    label={
-                      <Badge badgeContent={getUpcomingCount()} color="warning">
-                        Upcoming
-                      </Badge>
-                    } 
-                  />
-                  <Tab label="Completed" />
-                  <Tab label="Cancelled" />
-                </Tabs>
+              {/* Tabs with Schedule Meeting button inside */}
+              <Paper sx={{ mb: 3, px: 2, py: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
+                    <Tab label="Pending" />
+                    <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
+                    <Tab label="Completed" />
+                    <Tab label="Cancelled" />
+                  </Tabs>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => setOpenDialog(true)}
+                    sx={{ ml: 2 }}
+                  >
+                    Schedule Meeting
+                  </Button>
+                </Box>
               </Paper>
 
               {/* Meetings list */}

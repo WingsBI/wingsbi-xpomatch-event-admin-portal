@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Roboto, Poppins, Montserrat, Open_Sans, Lato } from 'next/font/google';
 import './globals.css';
-import { SimpleThemeProvider } from '@/context/SimpleThemeContext';
+import { ApiThemeProvider } from '@/context/ApiThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
 import ReduxProvider from '@/providers/ReduxProvider';
+import ThemeWrapper from '@/components/providers/ThemeWrapper';
 
 // Configure all fonts
 const inter = Inter({ 
@@ -78,9 +79,9 @@ export default function RootLayout({
       <body className={`${inter.variable} ${roboto.variable} ${poppins.variable} ${montserrat.variable} ${openSans.variable} ${lato.variable}`}>
         <ReduxProvider>
           <AuthProvider>
-            <SimpleThemeProvider>
+            <ThemeWrapper>
               {children}
-            </SimpleThemeProvider>
+            </ThemeWrapper>
           </AuthProvider>
         </ReduxProvider>
       </body>

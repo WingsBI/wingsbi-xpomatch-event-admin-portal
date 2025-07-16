@@ -65,7 +65,7 @@ export default function ProfileSettingsPage() {
   });
   
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false); 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -188,22 +188,15 @@ export default function ProfileSettingsPage() {
     <RoleBasedRoute allowedRoles={['visitor', 'exhibitor', 'event-admin']}>
       <ResponsiveDashboardLayout 
         title="Profile Settings"
-        breadcrumbs={[
-          { label: 'Settings' },
-          { label: 'Profile Settings' }
-        ]}
+        
       >
         <Container maxWidth="md">
           {/* Header */}
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <Box display="flex" alignItems="center" gap={2}>
-              <Button
-                variant="outlined"
-                startIcon={<ArrowBack />}
-                onClick={() => router.back()}
-              >
-                Back
-              </Button>
+              
+
+              
               <Typography variant="h5" component="h1" fontWeight="600">
                 Profile Settings
               </Typography>

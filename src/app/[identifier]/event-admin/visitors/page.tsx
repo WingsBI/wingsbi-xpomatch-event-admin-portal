@@ -23,36 +23,29 @@ export default function VisitorsPage() {
   return (
     <RoleBasedRoute allowedRoles={['event-admin', 'visitor', 'exhibitor']}>
       <ResponsiveDashboardLayout title="Visitors" >
-        <Container maxWidth="xl" sx={{ height: '100%' }}>
-          <Box 
-            sx={{ 
+        <Container maxWidth={false} disableGutters sx={{ px: 0, height: '100%' }}>
+          <Box sx={{
               height: 'calc(100vh - 120px)',
               width: '100%',
-              overflow: 'auto',
-              '&::-webkit-scrollbar': {
-                width: '8px',
-                height: '8px',
-              },
-              '&::-webkit-scrollbar-track': {
-                background: '#f1f1f1',
-                borderRadius: '4px',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                background: '#888',
-                borderRadius: '4px',
-                '&:hover': {
-                  background: '#555',
-                },
-              },
-            }}
-          >
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            m: 0,
+            p: 0,
+            // Hide scrollbar but allow scroll
+            '&::-webkit-scrollbar': { display: 'none' },
+            '-ms-overflow-style': 'none', // IE and Edge
+            'scrollbarWidth': 'none', // Firefox
+          }}>
             <iframe
               src="/iframe/visitors"
               style={{
                 width: '100%',
                 height: '100%',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: 0,
+                left: 0,
+                position: 'relative',
+                overflow: 'hidden',
               }}
               title="Visitors List"
             />

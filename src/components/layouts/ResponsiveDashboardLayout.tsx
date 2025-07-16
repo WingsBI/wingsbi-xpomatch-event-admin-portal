@@ -639,9 +639,7 @@ export default function ResponsiveDashboardLayout({
                 <Box>
                    
                   <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {user?.role === 'visitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Visitor') : 
-                     user?.role === 'exhibitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Exhibitor') : 
-                     eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
+                     {eventDetails?.title || 'Xpo Match'}
                   
                   </Typography>
                   
@@ -664,9 +662,7 @@ export default function ResponsiveDashboardLayout({
                 fontSize: { xs: '0.9rem', sm: '1rem' }
               }}
             >
-              {user?.role === 'visitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Visitor') : 
-               user?.role === 'exhibitor' ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Exhibitor') : 
-               eventLoading ? 'Loading...' : eventDetails?.title || 'Xpo Match'}
+              {  eventDetails?.title || 'Xpo Match'}
             </Typography>
           </Box>
 
@@ -828,13 +824,7 @@ export default function ResponsiveDashboardLayout({
               sx: { mt: 1, minWidth: 200 },
             }}
           >
-            {/* <MenuItem>
-              <ListItemIcon>
-                <Settings fontSize="small" />
-              </ListItemIcon>
-              Profile Settings
-            </MenuItem>
-            <Divider /> */}
+           
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <Logout fontSize="small" />

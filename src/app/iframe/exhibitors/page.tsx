@@ -40,7 +40,6 @@ import {
   Favorite,
   FavoriteBorder
 } from '@mui/icons-material';
-import Link from 'next/link';
 
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
@@ -372,161 +371,110 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
         },
       }}
     >
-      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
         {/* Header with Company Info and Match Score */}
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
-          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
-            <Avatar
-              sx={{
-                bgcolor: theme.palette.primary.main,
-                width: 36,
-                height: 36,
-                mr: 0.75,
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                flexShrink: 0,
-                color: 'white'
-              }}
-            >
-              {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body1" component="div" fontWeight="600" sx={{ mb: 0.5, minHeight: '1.2rem', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
-                
-                <Link
-                  href={`/${identifier}/event-admin/dashboard/visitor_dashboard?exhibitorId=${exhibitor.id}`}
-                  passHref
-                  style={{ textDecoration: 'none' }}
-                >
-                  <Box
-                    sx={{
-                      wordBreak: 'break-word',
-                      lineHeight: 1.2,
-                      flex: 1,
-                      color: 'inherit',
-                      cursor: 'pointer',
-                      textDecoration: 'none',
-                      transition: 'color 0.2s',
-                      '&:hover': {
-                        color: 'primary.main',
-                        textDecoration: 'underline',
-                      },
-                      display: 'inline',
-                    }}
-                  >
-                    {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                  </Box>
-                </Link>
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+        <Box display="flex" alignItems="center" mb={1} sx={{ minHeight: '60px', width: '100%' }}>
+          <Avatar
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              width: 36,
+              height: 36,
+              mr: 1.5,
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+              color: 'white',
+              alignSelf: 'center',
+              mt: 2,
+            }}
+          >
+            {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
+            <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
+              {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
+            </Typography>
+            {exhibitor.jobTitle && (
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.jobTitle}
               </Typography>
-              {exhibitor.customData?.companyType && (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
-                  {exhibitor.customData.companyType}
-                </Typography>
+            )}
+            {exhibitor.customData?.companyType && (
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>
+                {exhibitor.customData.companyType}
+              </Typography>
+            )}
+            <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+              {exhibitor.customData?.boothNumber && (
+                <Chip
+                  label={exhibitor.customData.boothNumber}
+                  size="small"
+                  sx={{ 
+                    bgcolor: '#e3f2fd',
+                    color: '#1565c0',
+                    fontWeight: 500
+                  }}
+                />
               )}
-              <Box display="flex" alignItems="center" gap={1}>
-                {exhibitor.customData?.boothNumber && (
-                  <Chip
-                    label={exhibitor.customData.boothNumber}
-                    size="small"
-                    sx={{ 
-                      bgcolor: '#e3f2fd',
-                      color: '#1565c0',
-                      fontWeight: 500
-                    }}
-                  />
-                )}
-                {commonInterests.length > 0 && (
-                  <Chip
-                    label={`${commonInterests.length} Match`}
-                    size="small"
-                    sx={{ 
-                      bgcolor: '#e8f5e8',
-                      color: '#2e7d32',
-                      fontWeight: 500,
-                      fontSize: '0.7rem'
-                    }}
-                  />
-                )}
-              </Box>
+              
             </Box>
           </Box>
-          
-          
-          <Box display="flex" alignItems="center">
-            <IconButton 
-              onClick={(e) => {
-                console.log('🎯 IconButton clicked!');
-                handleFavoriteClick(e);
-              }}
-              disabled={isLoadingFavorite || isCheckingInitialState}
-              size="large"
-              sx={{ 
-                p: 0.5,
-                mr: 0.5,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'scale(1.1)',
-                },
-                '&:active': {
-                  transform: 'scale(0.95)',
-                },
-                '&:disabled': {
-                  opacity: 0.6
-                }
-              }}
-
-            >
-              {(isLoadingFavorite || isCheckingInitialState) ? (
-                <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
-              ) : isFavorite ? (
-                
-                <Favorite
-                 sx={{
-                    fontSize: 30,
-                    color: '#ef4444',
-                    filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
-                    transform: 'scale(1.1)',
-                    transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                    animation: isFavorite ? 'heartBeat 0.8s ease-in-out' : 'none',
-                    '@keyframes heartBeat': {
-                      '0%': {
-                        transform: 'scale(1)',
-                      },
-                      '25%': {
-                        transform: 'scale(1.3)',
-                      },
-                      '50%': {
-                        transform: 'scale(1.1)',
-                      },
-                      '75%': {
-                        transform: 'scale(1.2)',
-                      },
-                      '100%': {
-                        transform: 'scale(1.1)',
-                      },
-                    },
-                  }}
-              />
-              ) : (
-                <FavoriteBorder  sx={{
-                  fontSize: 25,
-                  color: '#b0bec5',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    color: '#ff6b9d',
-                  }
-                }}  />
-              )}
-            </IconButton>
-            
-          </Box>
-          
         </Box>
-
+        <IconButton
+          onClick={(e) => {
+            handleFavoriteClick(e);
+          }}
+          disabled={isLoadingFavorite || isCheckingInitialState}
+          size="large"
+          sx={{
+            position: 'absolute',
+            top: 0,
+            right: 8,
+            p: 0.5,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              transform: 'scale(1.1)',
+            },
+            '&:active': {
+              transform: 'scale(0.95)',
+            },
+            '&:disabled': {
+              opacity: 0.6
+            }
+          }}
+        >
+          {(isLoadingFavorite || isCheckingInitialState) ? (
+            <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+          ) : isFavorite ? (
+            <Favorite
+              sx={{
+                fontSize: 20,
+                color: '#ef4444',
+                filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))',
+                transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                animation: isFavorite ? 'heartBeat 0.8s ease-in-out' : 'none',
+                '@keyframes heartBeat': {
+                  '0%': { transform: 'scale(1)' },
+                  '25%': { transform: 'scale(1.3)' },
+                  '50%': { transform: 'scale(1.1)' },
+                  '75%': { transform: 'scale(1.2)' },
+                  '100%': { transform: 'scale(1.1)' },
+                },
+              }}
+            />
+          ) : (
+            <FavoriteBorder  sx={{
+              fontSize: 20,
+              color: '#b0bec5',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                color: '#ff6b9d',
+              }
+            }}  />
+          )}
+        </IconButton>
+            
         {/* Content Section - Takes up available space */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {/* Location and Industry - only show if data exists */}
@@ -535,7 +483,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
               {exhibitor.customData?.location && (
                 <Box display="flex" alignItems="center" mb={1}>
                   <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="subtitle2" color="text.secondary">
                     {exhibitor.customData.location}
                   </Typography>
                 </Box>
@@ -863,7 +811,7 @@ function ExhibitorListView() {
   return (
     <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
       {/* Header */}
-      <Box mb={2}>
+      <Box mb={1}>
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
@@ -872,24 +820,36 @@ function ExhibitorListView() {
           gap: 2
         }}>
           <Box>
-            <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+            <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 0 }}>
               Exhibitors Directory
             </Typography>
 
           </Box>
           
           {/* Status Filter on the right */}
-          <FormControl sx={{ minWidth: 200 }}>
+          <FormControl sx={{ minWidth: 150 }}>
             <Select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               displayEmpty
-              sx={{ bgcolor: 'background.paper' }}
+              sx={{ bgcolor: 'background.paper', height: 32, fontSize: '0.92rem', '.MuiSelect-select': { py: '6px !important', minHeight: 'unset !important' } }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    maxHeight: 200,
+                    '& .MuiMenuItem-root': {
+                      minHeight: '32px',
+                      fontSize: '0.92rem',
+                      py: '4px',
+                    },
+                  },
+                },
+              }}
             >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="registered">Registered</MenuItem>
-              <MenuItem value="invited">Invited</MenuItem>
-              <MenuItem value="checked-in">Checked In</MenuItem>
+              <MenuItem value="all" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>All Status</MenuItem>
+              <MenuItem value="registered" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>Registered</MenuItem>
+              <MenuItem value="invited" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>Invited</MenuItem>
+              <MenuItem value="checked-in" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>Checked In</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -897,7 +857,7 @@ function ExhibitorListView() {
 
       {/* Industry Filter */}
       {industries.length > 0 && (
-        <Box mb={3}>
+        <Box mb={2}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={3}>
               <FormControl fullWidth>

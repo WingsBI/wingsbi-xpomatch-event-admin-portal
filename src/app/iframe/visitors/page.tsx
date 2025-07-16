@@ -1,12 +1,12 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
-import { 
-  Box, 
-  Card, 
-  CardContent, 
-  Typography, 
-  Chip, 
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Chip,
   Avatar,
   Grid,
   Container,
@@ -23,8 +23,8 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { 
-  Business, 
+import {
+  Business,
   LocationOn,
   Work,
   Search,
@@ -69,7 +69,7 @@ const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, in
     firstName: apiVisitor.firstName || '',
     lastName: apiVisitor.lastName || '',
     email: apiVisitor.email || '',
-    
+
     // Only use API data, no fallbacks to generated data
     company: apiVisitor.userProfile?.companyName || '',
     jobTitle: apiVisitor.userProfile?.jobTitle || apiVisitor.userProfile?.designation || '',
@@ -86,7 +86,7 @@ const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, in
     lastActivity: apiVisitor.modifiedDate ? new Date(apiVisitor.modifiedDate) : undefined,
     createdAt: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : new Date(),
     updatedAt: apiVisitor.modifiedDate ? new Date(apiVisitor.modifiedDate) : new Date(),
-    
+
     customData: {
       // Only API-based fields
       salutation: apiVisitor.salutation || '',
@@ -108,7 +108,7 @@ const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, in
       postalCode: apiVisitor.customData?.postalCode || '',
       location: [apiVisitor.customData?.countryName].filter(Boolean).join(', ') || undefined,
       avatar: `${apiVisitor.firstName?.charAt(0) || ''}${apiVisitor.lastName?.charAt(0) || ''}`,
-      
+
       // Only use API data when available
       experience: apiVisitor.userProfile?.experienceYears ? `${apiVisitor.userProfile.experienceYears} years` : undefined,
       matchScore: undefined, // Not provided in current API
@@ -128,30 +128,30 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
   useEffect(() => {
     setIsFavorite(initialFavoriteState);
   }, [initialFavoriteState]);
-  
+
   const handleFavoriteClick = async (event?: React.MouseEvent) => {
     event?.preventDefault();
     event?.stopPropagation();
-    
+
     console.log('🚀 Heart icon clicked! Current state:', isFavorite);
     console.log('🚀 Visitor data:', visitor);
     console.log('🚀 Event identifier:', identifier);
-    
+
     // Check if identifier is available
     if (!identifier || identifier.trim() === '') {
       console.error('❌ No identifier available, cannot call API');
       return;
     }
-    
+
     // Immediately update UI for instant feedback
     const newFavoriteState = !isFavorite;
     setIsFavorite(newFavoriteState);
-    
+
     // Notify parent component about the change
     if (onFavoriteChange) {
       onFavoriteChange(visitor.id, newFavoriteState);
     }
-    
+
     if (isFavorite) {
       console.log('❤️➡️🤍 REMOVING from favorites (red heart clicked)');
       console.log('🚀 New state will be:', newFavoriteState, '(false = removing)');
@@ -159,13 +159,13 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
       console.log('🤍➡️❤️ ADDING to favorites (outline heart clicked)');
       console.log('🚀 New state will be:', newFavoriteState, '(true = adding)');
     }
-    
+
     // Get current exhibitor ID from JWT token
     let currentExhibitorId = getCurrentExhibitorId();
     console.log('🔍 DEBUGGING EXHIBITOR ID:');
     console.log('🔍 getCurrentExhibitorId() returned:', currentExhibitorId);
     console.log('🔍 Type of returned value:', typeof currentExhibitorId);
-    
+
     // For debugging, let's also check the raw token data
     const tokenData = decodeJWTToken();
     console.log('🔍 Raw token data:', tokenData);
@@ -176,17 +176,17 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
       console.log('🔍 Token id:', tokenData.id);
       console.log('🔍 Token sub:', tokenData.sub);
     }
-    
+
     // FORCE to use exhibitor ID 10 for now to avoid DB constraint error
     console.log('🔧 FORCING exhibitor ID to 10 to fix database constraint error');
     currentExhibitorId = 10;
-    
+
     console.log('🔍 Final exhibitor ID being used:', currentExhibitorId);
 
     // Get visitor ID as number
     const visitorId = parseInt(visitor.id, 10);
     console.log('Visitor ID:', visitorId, 'from string:', visitor.id);
-    
+
     if (isNaN(visitorId)) {
       console.error('Invalid visitor ID:', visitor.id);
       // Revert the UI state if invalid ID
@@ -209,9 +209,9 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
 
       console.log('🔥 CALLING API with payload:', payload);
       console.log('🔥 API URL will be:', `api/${identifier}/Event/addFavorites`);
-      
+
       const response = await fieldMappingApi.addFavorites(identifier, payload);
-      
+
       console.log('✅ API RESPONSE RECEIVED:', response);
 
       if (response.statusCode === 200 && response.result) {
@@ -220,15 +220,15 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         } else {
           console.log('✅ Successfully REMOVED visitor from favorites 🤍');
         }
-        
+
         // Update localStorage as backup
         try {
           const storageKey = `visitor_favorites_${currentExhibitorId}_${identifier}`;
           const localFavorites = localStorage.getItem(storageKey);
           let favoritesArray = localFavorites ? JSON.parse(localFavorites) : [];
-          
+
           console.log('📦 Before update - localStorage visitor favorites:', favoritesArray);
-          
+
           if (newFavoriteState) {
             // Add to favorites
             if (!favoritesArray.includes(visitorId)) {
@@ -241,7 +241,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
             favoritesArray = favoritesArray.filter((id: number) => id !== visitorId);
             console.log(`📦 REMOVED ${visitorId} from localStorage visitor favorites (${beforeLength} → ${favoritesArray.length})`);
           }
-          
+
           localStorage.setItem(storageKey, JSON.stringify(favoritesArray));
           console.log('📦 After update - localStorage visitor favorites:', favoritesArray);
         } catch (localError) {
@@ -266,7 +266,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
       setIsLoadingFavorite(false);
     }
   };
-  
+
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -324,10 +324,10 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         },
       }}
     >
-      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
         {/* Header with Visitor Info and Match Score */}
         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
-          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
+          
             <Avatar
               sx={{
                 bgcolor: theme.palette.primary.main,
@@ -336,52 +336,41 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 mr: 0.75,
                 fontSize: '0.9rem',
                 fontWeight: 'bold',
-                color: 'white'
+                color: 'white',
+                mt: 2,
               }}
             >
               {getInitials(visitor.firstName, visitor.lastName)}
             </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" component="div" fontWeight="600" sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, minHeight: '1.2rem' }}>
-                
+            <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
+              <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
+
                 <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
                   {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
                 </Box>
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {visitor.jobTitle}
               </Typography>
-              <Typography variant="body2" color="primary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3, mb: 1 }}>
-                {visitor.company}
-              </Typography>
-              {/* Removed Visitor chip */}
-              <Box>
-              {totalRelevantItems > 0 && (
-                  <Chip
-                    label={`${totalRelevantItems} Relevant Interest${totalRelevantItems > 1 ? 's' : ''}`}
-                    size="small"
-                    sx={{
-                      bgcolor: '#e8f5e8',
-                      color: '#2e7d32',
-                      fontWeight: 500
-                    }}
-                  />
-                )}
-              </Box>
+
+
             </Box>
-          </Box>
+          
 
-              
 
-          <Box display="flex" alignItems="center">
-            <IconButton 
+
+          
+            <IconButton
               onClick={(e) => {
                 console.log('🎯 IconButton clicked!');
                 handleFavoriteClick(e);
               }}
               disabled={isLoadingFavorite || isCheckingInitialState}
               size="large"
-              sx={{ 
+              sx={{
+                position: 'absolute',
+                top: 0,
+                right: 8,
                 p: 0.5,
                 mr: 0.5,
                 cursor: 'pointer',
@@ -402,55 +391,50 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               ) : isFavorite ? (
                 <Favorite
                   sx={{
-                    fontSize: 30,
+                    fontSize: 20,
                     color: '#ef4444',
-                    filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
-                    transform: 'scale(1.1)',
+                    filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))',
                     transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
                     animation: isFavorite ? 'heartBeat 0.8s ease-in-out' : 'none',
                     '@keyframes heartBeat': {
-                      '0%': {
-                        transform: 'scale(1)',
-                      },
-                      '25%': {
-                        transform: 'scale(1.3)',
-                      },
-                      '50%': {
-                        transform: 'scale(1.1)',
-                      },
-                      '75%': {
-                        transform: 'scale(1.2)',
-                      },
-                      '100%': {
-                        transform: 'scale(1.1)',
-                      },
+                      '0%': { transform: 'scale(1)' },
+                      '25%': { transform: 'scale(1.3)' },
+                      '50%': { transform: 'scale(1.1)' },
+                      '75%': { transform: 'scale(1.2)' },
+                      '100%': { transform: 'scale(1.1)' },
                     },
                   }}
                 />
               ) : (
-                <FavoriteBorder 
+                <FavoriteBorder
                   sx={{
-                    fontSize: 25,
+                    fontSize: 20,
                     color: '#b0bec5',
                     transition: 'all 0.2s ease',
                     '&:hover': {
                       color: '#ff6b9d',
                     }
-                  }} 
+                  }}
                 />
               )}
             </IconButton>
-          </Box>
+          
         </Box>
 
         {/* Content Section - Takes up available space */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box display="flex" alignItems="center" mb={1}>
+            <LocationOn sx={{ fontSize: 15, mr: 1, color: 'text.secondary' }} />
+            <Typography variant="body2" color="text.secondary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3}}>
+              {visitor.company}
+            </Typography>
+          </Box>
           {/* Location and Experience */}
-          <Box mb={1}>
+          <Box >
             {visitor.customData?.location && (
               <Box display="flex" alignItems="center" mb={1}>
                 <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="subtitle2" color="text.secondary">
                   {visitor.customData.location}
                 </Typography>
               </Box>
@@ -470,7 +454,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                     key={index}
                     label={interest}
                     size="small"
-                    sx={{ 
+                    sx={{
                       fontSize: '0.75rem',
                       bgcolor: '#e3f2fd',
                       color: '#1565c0',
@@ -483,7 +467,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                   <Chip
                     label={`+${relevantInterests.length - 3}`}
                     size="small"
-                    sx={{ 
+                    sx={{
                       fontSize: '0.75rem',
                       bgcolor: '#e3f2fd',
                       color: '#1565c0'
@@ -506,7 +490,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                     key={index}
                     label={item}
                     size="small"
-                    sx={{ 
+                    sx={{
                       fontSize: '0.75rem',
                       bgcolor: '#e8f5e8',
                       color: '#2e7d32',
@@ -547,9 +531,9 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 'auto' }}>
           <Box display="flex" gap={1}>
             {visitor.customData?.linkedInProfile && (
-              <IconButton 
-                size="small" 
-                sx={{ 
+              <IconButton
+                size="small"
+                sx={{
                   color: '#0077b5',
                   '&:hover': {
                     backgroundColor: 'rgba(0, 119, 181, 0.1)',
@@ -564,9 +548,9 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
             )}
 
             {visitor.customData?.instagramProfile && (
-              <IconButton 
-                size="small" 
-                sx={{ 
+              <IconButton
+                size="small"
+                sx={{
                   color: 'hsla(0, 0.00%, 2.00%, 0.57)',
                   '&:hover': {
                     backgroundColor: 'rgba(26, 24, 24, 0.1)',
@@ -585,7 +569,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
             variant="contained"
             size="small"
             startIcon={<ConnectIcon />}
-            sx={{ 
+            sx={{
               bgcolor: theme.palette.primary.main,
               borderRadius: 2,
               textTransform: 'none',
@@ -681,27 +665,27 @@ function VisitorListView() {
 
   const loadFavorites = async (eventIdentifier: string) => {
     if (!eventIdentifier) return;
-    
+
     try {
       // Get current exhibitor ID from JWT token
       let currentExhibitorId = getCurrentExhibitorId();
       console.log('🔍 loadFavorites - getCurrentExhibitorId() returned:', currentExhibitorId);
-      
+
       // FORCE to use exhibitor ID 10 for now to avoid DB constraint error
       console.log('🔧 loadFavorites - FORCING exhibitor ID to 10 to fix database constraint error');
       currentExhibitorId = 10;
 
       console.log('🔍 Loading visitor favorites for exhibitor:', currentExhibitorId);
-      
+
       // Try to load from API first, fallback to localStorage
       try {
         const response = await fieldMappingApi.getExhibitorFavorites(eventIdentifier, currentExhibitorId);
-        
+
         if (response.statusCode === 200 && response.result) {
           const favoriteVisitorIds = response.result
             .filter(favorite => favorite.isFavorite)
             .map(favorite => favorite.visitorId.toString());
-          
+
           setFavoriteVisitors(new Set(favoriteVisitorIds));
           console.log('✅ Loaded visitor favorites from API:', favoriteVisitorIds);
           return;
@@ -709,11 +693,11 @@ function VisitorListView() {
       } catch (apiError) {
         console.log('⚠️ API call failed, using localStorage backup:', apiError);
       }
-      
+
       // Fallback to localStorage
       const storageKey = `visitor_favorites_${currentExhibitorId}_${eventIdentifier}`;
       const localFavorites = localStorage.getItem(storageKey);
-      
+
       if (localFavorites) {
         const favoritesArray = JSON.parse(localFavorites);
         const favoriteVisitorIds = favoritesArray.map((id: number) => id.toString());
@@ -722,7 +706,7 @@ function VisitorListView() {
       } else {
         console.log('📦 No visitor favorites found in localStorage');
       }
-      
+
     } catch (error) {
       console.error('Error loading visitor favorites:', error);
     }
@@ -732,54 +716,54 @@ function VisitorListView() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Extract identifier from URL path only - no static fallbacks
       let eventIdentifier: string | null = null;
-      
+
       // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/visitors)
       const pathParts = window.location.pathname.split('/').filter(Boolean);
       console.log('URL path parts:', pathParts);
-      
-              // Look for identifier in URL path - it should be the first segment
-        if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
-          eventIdentifier = pathParts[0];
-          console.log('Found identifier in URL path:', eventIdentifier);
-        } else {
-          // Method 2: Try to get from parent window if iframe is embedded
-          try {
-            if (window.parent && window.parent !== window) {
-              const parentUrl = window.parent.location.pathname;
-              const parentParts = parentUrl.split('/').filter(Boolean);
-              if (parentParts.length > 0) {
-                eventIdentifier = parentParts[0];
-                console.log('Found identifier from parent window:', eventIdentifier);
-              }
+
+      // Look for identifier in URL path - it should be the first segment
+      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+        eventIdentifier = pathParts[0];
+        console.log('Found identifier in URL path:', eventIdentifier);
+      } else {
+        // Method 2: Try to get from parent window if iframe is embedded
+        try {
+          if (window.parent && window.parent !== window) {
+            const parentUrl = window.parent.location.pathname;
+            const parentParts = parentUrl.split('/').filter(Boolean);
+            if (parentParts.length > 0) {
+              eventIdentifier = parentParts[0];
+              console.log('Found identifier from parent window:', eventIdentifier);
             }
-          } catch (e) {
-            console.log('Cannot access parent window URL (cross-origin)');
           }
+        } catch (e) {
+          console.log('Cannot access parent window URL (cross-origin)');
         }
-        
-        // If no identifier found, throw error
-        if (!eventIdentifier) {
-          throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/visitors)');
-        }
-        
-        // Set the identifier state
-        setIdentifier(eventIdentifier);
-        
-        console.log('Using identifier for API call:', eventIdentifier);
-        const response = await apiService.getAllVisitors(eventIdentifier, true);
-        
-        if (response.success && response.data?.result) {
-          const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, eventIdentifier, index));
-          setVisitors(transformedVisitors);
-          
-          // Load favorites after visitors are loaded
-          await loadFavorites(eventIdentifier);
-        } else {
-          setError('Failed to fetch visitors data');
-        }
+      }
+
+      // If no identifier found, throw error
+      if (!eventIdentifier) {
+        throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/visitors)');
+      }
+
+      // Set the identifier state
+      setIdentifier(eventIdentifier);
+
+      console.log('Using identifier for API call:', eventIdentifier);
+      const response = await apiService.getAllVisitors(eventIdentifier, true);
+
+      if (response.success && response.data?.result) {
+        const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, eventIdentifier, index));
+        setVisitors(transformedVisitors);
+
+        // Load favorites after visitors are loaded
+        await loadFavorites(eventIdentifier);
+      } else {
+        setError('Failed to fetch visitors data');
+      }
     } catch (err: any) {
       console.error('Error fetching visitors:', err);
       setError(err.message || 'Failed to fetch visitors data');
@@ -797,7 +781,7 @@ function VisitorListView() {
 
   // Filter visitors based on search and filters
   const filteredVisitors = visitors.filter(visitor => {
-    const matchesSearch = 
+    const matchesSearch =
       visitor.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       visitor.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       visitor.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -830,50 +814,74 @@ function VisitorListView() {
     <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
 
       {/* Header */}
-      <Box mb={2}>
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+      <Box mb={1}>
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 2
         }}>
           <Box>
-            <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+            <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 0 }}>
               Visitors Directory
             </Typography>
-           
+
           </Box>
-          
+
           {/* Filters on the right */}
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             {/* Status Filter */}
-            <FormControl sx={{ minWidth: 200 }}>
+            <FormControl sx={{ minWidth: 150 }}>
               <Select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 displayEmpty
-                sx={{ bgcolor: 'background.paper' }}
+                sx={{ bgcolor: 'background.paper', height: 32, fontSize: '0.92rem', '.MuiSelect-select': { py: '6px !important', minHeight: 'unset !important' } }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      maxHeight: 200,
+                      '& .MuiMenuItem-root': {
+                        minHeight: '32px',
+                        fontSize: '0.92rem',
+                        py: '4px',
+                      },
+                    },
+                  },
+                }}
               >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="registered">Registered</MenuItem>
-                <MenuItem value="invited">Invited</MenuItem>
-                <MenuItem value="checked-in">Checked In</MenuItem>
+                <MenuItem value="all" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>All Status</MenuItem>
+                <MenuItem value="registered" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>Registered</MenuItem>
+                <MenuItem value="invited" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>Invited</MenuItem>
+                <MenuItem value="checked-in" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>Checked In</MenuItem>
               </Select>
             </FormControl>
 
             {/* Experience Filter */}
             {experiences.length > 0 && (
-              <FormControl sx={{ minWidth: 200 }}>
+              <FormControl sx={{ minWidth: 150 }}>
                 <Select
                   value={filterExperience}
                   onChange={(e) => setFilterExperience(e.target.value)}
                   displayEmpty
-                  sx={{ bgcolor: 'background.paper' }}
+                  sx={{ bgcolor: 'background.paper', height: 32, fontSize: '0.92rem', '.MuiSelect-select': { py: '6px !important', minHeight: 'unset !important' } }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        maxHeight: 200,
+                        '& .MuiMenuItem-root': {
+                          minHeight: '32px',
+                          fontSize: '0.92rem',
+                          py: '4px',
+                        },
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value="all">All Experience</MenuItem>
+                  <MenuItem value="all" sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>All Experience</MenuItem>
                   {experiences.map((experience) => (
-                    <MenuItem key={experience} value={experience}>
+                    <MenuItem key={experience} value={experience} sx={{ minHeight: '32px', fontSize: '0.92rem', py: '4px' }}>
                       {experience}
                     </MenuItem>
                   ))}
@@ -886,8 +894,8 @@ function VisitorListView() {
 
       {/* Error Alert */}
       {error && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ mb: 3 }}
           action={
             <Button color="inherit" size="small" onClick={fetchVisitors}>
@@ -920,9 +928,9 @@ function VisitorListView() {
 
       {/* Visitors Grid */}
       {!loading && !error && (
-              <Grid container spacing={1.5}>
+        <Grid container spacing={1.5}>
           {filteredVisitors.map((visitor) => (
-          <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={visitor.id}>
+            <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={visitor.id}>
               <Suspense fallback={<VisitorCardSkeleton />}>
                 <VisitorCard
                   visitor={visitor}

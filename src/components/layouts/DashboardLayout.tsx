@@ -199,13 +199,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
               },
             }}
           >
-            <MenuItem>
-              <ListItemIcon>
-                <Settings fontSize="small" />
-              </ListItemIcon>
-              Profile Settings
-            </MenuItem>
-            <Divider />
+            
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <Logout fontSize="small" />

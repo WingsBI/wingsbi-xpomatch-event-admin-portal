@@ -21,12 +21,14 @@ import {
   Divider,
   Avatar,
   Chip,
+  IconButton,
 } from '@mui/material';
 import {
   Person,
   Save,
   Edit,
   ArrowBack,
+  CameraAlt,
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -81,6 +83,7 @@ interface ProfileData {
   stateName?: string | null;
   countryName?: string | null;
   postalCode?: string | null;
+  profilePhoto?: string | null;
 }
 
 export default function ProfileSettingsPage() {
@@ -313,22 +316,17 @@ export default function ProfileSettingsPage() {
         title="Profile Settings"
         
       >
-        <Container maxWidth="md">
+        <Container maxWidth="lg">
           {/* Header */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Box display="flex" alignItems="center" gap={2}>
               
 
               
-              <Typography variant="h5" component="h1" fontWeight="600">
+              <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 0 }}>
                 Profile Settings
               </Typography>
             </Box>
-            <Chip 
-              label={userRole.charAt(0).toUpperCase() + userRole.slice(1)} 
-              color="primary" 
-              variant="outlined"
-            />
           </Box>
 
           {/* Error/Success Messages */}
@@ -348,17 +346,50 @@ export default function ProfileSettingsPage() {
             <CardContent sx={{ p: 4 }}>
               {/* Profile Header */}
               <Box display="flex" alignItems="center" gap={3} mb={4}>
-                <Avatar
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    fontSize: '2rem',
-                    fontWeight: 'bold',
-                    bgcolor: 'primary.main',
-                  }}
-                >
-                  {getInitials()}
-                </Avatar>
+                <Box sx={{ position: 'relative', width: 80, height: 80 }}>
+                  <Avatar
+                    src={profileData.profilePhoto || undefined}
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      fontSize: '2rem',
+                      fontWeight: 'bold',
+                      bgcolor: 'primary.main',
+                    }}
+                  >
+                    {!profileData.profilePhoto && getInitials()}
+                  </Avatar>
+                  <IconButton
+                    component="label"
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      bgcolor: 'white',
+                      boxShadow: 1,
+                      p: 0.5,
+                      zIndex: 2,
+                      '&:hover': { bgcolor: 'grey.100' },
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => {
+                            handleInputChange('profilePhoto', ev.target?.result);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    <CameraAlt fontSize="small" />
+                  </IconButton>
+                </Box>
                 <Box>
                   <Typography variant="h6" fontWeight="600">
                     {profileData.salutation} {profileData.firstName} {profileData.middleName} {profileData.lastName}
@@ -366,12 +397,6 @@ export default function ProfileSettingsPage() {
                   <Typography variant="body2" color="text.secondary">
                     {profileData.email}
                   </Typography>
-                  <Chip 
-                    size="small" 
-                    label={profileData.isActive ? 'Active' : 'Inactive'} 
-                    color={profileData.isActive ? 'success' : 'error'}
-                    sx={{ mt: 1 }}
-                  />
                 </Box>
               </Box>
 

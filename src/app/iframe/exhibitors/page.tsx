@@ -40,7 +40,6 @@ import {
   Favorite,
   FavoriteBorder
 } from '@mui/icons-material';
-import Link from 'next/link';
 
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
@@ -374,30 +373,29 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
     >
       <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
         {/* Header with Company Info and Match Score */}
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
-          
-            <Avatar
-              sx={{
-                bgcolor: theme.palette.primary.main,
-                width: 36,
-                height: 36,
-                mr: 1.5,
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                flexShrink: 0,
-                color: 'white'
-              }}
-            >
-              {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body1" component="div" fontWeight="600" sx={{ mb: 0.5, minHeight: '1.2rem', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
-                
-                <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2, flex: 1 }}>
-                  {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                </Box>
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+        <Box display="flex" alignItems="center" mb={1} sx={{ minHeight: '60px', width: '100%' }}>
+          <Avatar
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              width: 36,
+              height: 36,
+              mr: 1.5,
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+              color: 'white',
+              alignSelf: 'center',
+              mt: 2,
+            }}
+          >
+            {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
+            <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
+              {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
+            </Typography>
+            {exhibitor.jobTitle && (
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.jobTitle}
               </Typography>
             )}

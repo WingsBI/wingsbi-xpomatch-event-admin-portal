@@ -101,8 +101,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const eventId = credentials.eventId;
         
         if (userRole === 'visitor') {
-          // Redirect visitor to visitor dashboard
-          router.push(`/${eventId}/event-admin/dashboard/visitor_dashboard`);
+          // Redirect visitor to exhibitors matching page
+          router.push(`/${eventId}/event-admin/exhibitors/matching`);
         } else if (userRole === 'exhibitor') {
           // Redirect exhibitor to exhibitor dashboard
           router.push(`/${eventId}/event-admin/dashboard/exhibitor_dashboard`);

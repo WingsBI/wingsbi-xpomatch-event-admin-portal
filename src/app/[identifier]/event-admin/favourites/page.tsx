@@ -420,7 +420,7 @@ export default function FavouritesPage() {
 
   if (loading) {
     return (
-      <RoleBasedRoute allowedRoles={['event-admin']}>
+      <RoleBasedRoute allowedRoles={['event-admin' , 'visitor' , 'exhibitor']}>
         <ResponsiveDashboardLayout title="My Favourites">
           <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -433,7 +433,7 @@ export default function FavouritesPage() {
   }
 
   return (
-    <RoleBasedRoute allowedRoles={['event-admin']}>
+    <RoleBasedRoute allowedRoles={['event-admin' , 'visitor' , 'exhibitor']}>
       <ResponsiveDashboardLayout title="My Favourites">
         <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
           {/* Error Alert */}

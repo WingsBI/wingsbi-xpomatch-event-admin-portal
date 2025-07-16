@@ -40,6 +40,7 @@ import {
   Favorite,
   FavoriteBorder
 } from '@mui/icons-material';
+import Link from 'next/link';
 
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
@@ -392,9 +393,30 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body1" component="div" fontWeight="600" sx={{ mb: 0.5, minHeight: '1.2rem', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
                 
-                <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2, flex: 1 }}>
-                  {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                </Box>
+                <Link
+                  href={`/${identifier}/event-admin/dashboard/visitor_dashboard?exhibitorId=${exhibitor.id}`}
+                  passHref
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Box
+                    sx={{
+                      wordBreak: 'break-word',
+                      lineHeight: 1.2,
+                      flex: 1,
+                      color: 'inherit',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      transition: 'color 0.2s',
+                      '&:hover': {
+                        color: 'primary.main',
+                        textDecoration: 'underline',
+                      },
+                      display: 'inline',
+                    }}
+                  >
+                    {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                  </Box>
+                </Link>
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.jobTitle}

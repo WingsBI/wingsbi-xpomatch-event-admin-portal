@@ -91,8 +91,9 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
   if (userRole === 'visitor') {
     // Visitor-specific navigation
     baseItems = [
-      { text: 'Visitor Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/visitor_dashboard`, children: [] },
-      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Exhibitor Deatils', icon: <Business />, href: `/${identifier}/event-admin/dashboard/visitor_dashboard`, children: [] },
+     
       { text: 'Meetings', icon: <CalendarMonth />, children: [
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },

@@ -155,9 +155,9 @@ export default function EventLoginPage() {
               let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
               
               if (userData.role === "visitor") {
-                redirectPath = `/${identifier}/event-admin/visitors`;
-              } else if (userData.role === "exhibitor") {
                 redirectPath = `/${identifier}/event-admin/exhibitors`;
+              } else if (userData.role === "exhibitor") {
+                redirectPath = `/${identifier}/event-admin/visitors`;
               }
               
               console.log("User directly visited main page, redirecting to dashboard:", redirectPath);
@@ -209,9 +209,9 @@ export default function EventLoginPage() {
       let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
       
       if (userRole === "visitor") {
-        redirectPath = `/${identifier}/event-admin/visitors`;
-      } else if (userRole === "exhibitor") {
         redirectPath = `/${identifier}/event-admin/exhibitors`;
+      } else if (userRole === "exhibitor") {
+        redirectPath = `/${identifier}/event-admin/visitors`;
       }
       
       console.log("User just logged in successfully, redirecting to:", redirectPath);
@@ -315,10 +315,10 @@ export default function EventLoginPage() {
         // Role-based routing
         if (userRole === "visitor") {
           // Visitors should see the list of exhibitors
-          redirectPath = `/${identifier}/event-admin/visitors`;
+          redirectPath = `/${identifier}/event-admin/exhibitors`;
         } else if (userRole === "exhibitor") {
           // Exhibitors should see the list of visitors
-          redirectPath = `/${identifier}/event-admin/exhibitors`;
+          redirectPath = `/${identifier}/event-admin/visitors`;
         }
         // Event admins and IT admins go to dashboard by default
       }

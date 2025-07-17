@@ -5,6 +5,7 @@ import { ApiThemeProvider } from '@/context/ApiThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
 import ReduxProvider from '@/providers/ReduxProvider';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
+import FavoritesCleanupProvider from '@/components/providers/FavoritesCleanupProvider';
 
 // Configure all fonts
 const inter = Inter({ 
@@ -80,7 +81,9 @@ export default function RootLayout({
         <ReduxProvider>
           <AuthProvider>
             <ThemeWrapper>
-              {children}
+              <FavoritesCleanupProvider>
+                {children}
+              </FavoritesCleanupProvider>
             </ThemeWrapper>
           </AuthProvider>
         </ReduxProvider>

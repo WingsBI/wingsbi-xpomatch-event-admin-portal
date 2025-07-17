@@ -48,6 +48,7 @@ import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types
 import { getCurrentExhibitorId, decodeJWTToken } from '@/utils/authUtils';
 import { AnimatePresence, motion } from 'framer-motion';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
+import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface VisitorCardProps {
   visitor: TransformedVisitor;
@@ -202,59 +203,19 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
     setIsLoadingFavorite(true);
 
     try {
-      const payload: FavoritesRequest = {
-        visitorId: visitorId,
-        exhibitorId: currentExhibitorId,
-        isFavorite: newFavoriteState
-      };
-
-      console.log('🔥 CALLING API with payload:', payload);
-      console.log('🔥 API URL will be:', `api/${identifier}/Event/addFavorites`);
-
-      const response = await fieldMappingApi.addFavorites(identifier, payload);
-
-      console.log('✅ API RESPONSE RECEIVED:', response);
-
-      if (response.statusCode === 200 && response.result) {
-        if (newFavoriteState) {
-          console.log('✅ Successfully ADDED visitor to favorites ❤️');
-        } else {
-          console.log('✅ Successfully REMOVED visitor from favorites 🤍');
-        }
-
-        // Update localStorage as backup
-        try {
-          const storageKey = `visitor_favorites_${currentExhibitorId}_${identifier}`;
-          const localFavorites = localStorage.getItem(storageKey);
-          let favoritesArray = localFavorites ? JSON.parse(localFavorites) : [];
-
-          console.log('📦 Before update - localStorage visitor favorites:', favoritesArray);
-
-          if (newFavoriteState) {
-            // Add to favorites
-            if (!favoritesArray.includes(visitorId)) {
-              favoritesArray.push(visitorId);
-              console.log(`📦 ADDED ${visitorId} to localStorage visitor favorites`);
-            }
-          } else {
-            // Remove from favorites
-            const beforeLength = favoritesArray.length;
-            favoritesArray = favoritesArray.filter((id: number) => id !== visitorId);
-            console.log(`📦 REMOVED ${visitorId} from localStorage visitor favorites (${beforeLength} → ${favoritesArray.length})`);
-          }
-
-          localStorage.setItem(storageKey, JSON.stringify(favoritesArray));
-          console.log('📦 After update - localStorage visitor favorites:', favoritesArray);
-        } catch (localError) {
-          console.error('Error updating localStorage backup:', localError);
-        }
-      } else {
-        console.error('Failed to update visitor favorites:', response.message);
-        // Revert the UI state if API failed
-        setIsFavorite(!newFavoriteState);
-        if (onFavoriteChange) {
-          onFavoriteChange(visitor.id, !newFavoriteState);
-        }
+      // Use FavoritesManager to toggle favorite status
+      const finalStatus = await FavoritesManager.toggleVisitorFavorite(identifier, visitor.id, isFavorite);
+      
+      // Update UI with the final status from API
+      setIsFavorite(finalStatus);
+      
+      // Notify parent component about the change
+      if (onFavoriteChange) {
+        onFavoriteChange(visitor.id, finalStatus);
+      }
+      
+      if (finalStatus !== newFavoriteState) {
+        console.log('⚠️ API returned different status than expected, UI updated to match API');
       }
     } catch (error) {
       console.error('Error updating visitor favorites:', error);
@@ -666,48 +627,18 @@ function VisitorListView({ identifier }: { identifier: string }) {
     if (!eventIdentifier) return;
 
     try {
-      // Get current exhibitor ID from JWT token
-      let currentExhibitorId = getCurrentExhibitorId();
-      console.log('🔍 loadFavorites - getCurrentExhibitorId() returned:', currentExhibitorId);
-
-      // FORCE to use exhibitor ID 10 for now to avoid DB constraint error
-      console.log('🔧 loadFavorites - FORCING exhibitor ID to 10 to fix database constraint error');
-      currentExhibitorId = 10;
-
-      console.log('🔍 Loading visitor favorites for exhibitor:', currentExhibitorId);
-
-      // Try to load from API first, fallback to localStorage
-      try {
-        const response = await fieldMappingApi.getExhibitorFavorites(eventIdentifier, currentExhibitorId);
-
-        if (response.statusCode === 200 && response.result) {
-          const favoriteVisitorIds = response.result
-            .filter(favorite => favorite.isFavorite)
-            .map(favorite => favorite.visitorId.toString());
-
-          setFavoriteVisitors(new Set(favoriteVisitorIds));
-          console.log('✅ Loaded visitor favorites from API:', favoriteVisitorIds);
-          return;
-        }
-      } catch (apiError) {
-        console.log('⚠️ API call failed, using localStorage backup:', apiError);
-      }
-
-      // Fallback to localStorage
-      const storageKey = `visitor_favorites_${currentExhibitorId}_${eventIdentifier}`;
-      const localFavorites = localStorage.getItem(storageKey);
-
-      if (localFavorites) {
-        const favoritesArray = JSON.parse(localFavorites);
-        const favoriteVisitorIds = favoritesArray.map((id: number) => id.toString());
-        setFavoriteVisitors(new Set(favoriteVisitorIds));
-        console.log('📦 Loaded visitor favorites from localStorage:', favoriteVisitorIds);
-      } else {
-        console.log('📦 No visitor favorites found in localStorage');
-      }
+      console.log('🔍 Loading visitor favorites for exhibitor');
+      
+      // Use FavoritesManager to load favorites
+      const favoriteVisitors = await FavoritesManager.getExhibitorFavoriteVisitors(eventIdentifier);
+      
+      const favoriteVisitorIds = favoriteVisitors.map((favorite: any) => favorite.visitorId.toString());
+      setFavoriteVisitors(new Set(favoriteVisitorIds));
+      console.log('✅ Loaded visitor favorites from API:', favoriteVisitorIds);
 
     } catch (error) {
       console.error('Error loading visitor favorites:', error);
+      setFavoriteVisitors(new Set());
     }
   };
 

@@ -255,8 +255,8 @@ export function getCurrentExhibitorId(): number | null {
       return null;
     }
 
-    // Look for exhibitor ID in token - it might be stored as exhibitorId, userId, or id
-    const exhibitorId = tokenData.exhibitorId || tokenData.userId || tokenData.id || tokenData.sub;
+    // Look for exhibitor ID in token - check both camelCase and lowercase versions
+    const exhibitorId = tokenData.exhibitorId || tokenData.exhibitorid || tokenData.userId || tokenData.id || tokenData.sub;
     
     if (!exhibitorId) {
       console.log('No exhibitor ID found in token data:', tokenData);
@@ -264,7 +264,7 @@ export function getCurrentExhibitorId(): number | null {
     }
 
     const parsedId = parseInt(exhibitorId, 10);
-    console.log('Extracted exhibitor ID from token:', parsedId);
+    console.log('Extracted exhibitor ID from token:', parsedId, 'from field:', exhibitorId);
     
     return isNaN(parsedId) ? null : parsedId;
   } catch (error) {
@@ -290,8 +290,8 @@ export function getCurrentVisitorId(): number | null {
       return null;
     }
 
-    // Look for visitor ID in token - it might be stored as visitorId, userId, or id
-    const visitorId = tokenData.visitorId || tokenData.userId || tokenData.id || tokenData.sub;
+    // Look for visitor ID in token - check both camelCase and lowercase versions
+    const visitorId = tokenData.visitorId || tokenData.visitorid || tokenData.userId || tokenData.id || tokenData.sub;
     
     if (!visitorId) {
       console.log('No visitor ID found in token data:', tokenData);
@@ -299,7 +299,7 @@ export function getCurrentVisitorId(): number | null {
     }
 
     const parsedId = parseInt(visitorId, 10);
-    console.log('Extracted visitor ID from token:', parsedId);
+    console.log('Extracted visitor ID from token:', parsedId, 'from field:', visitorId);
     
     return isNaN(parsedId) ? null : parsedId;
   } catch (error) {

@@ -209,7 +209,7 @@ export default function EventLoginPage() {
       let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
       
       if (userRole === "visitor") {
-        redirectPath = `/${identifier}/event-admin/exhibitors`;
+        redirectPath = `/${identifier}/event-admin/dashboard/visitor_dashboard`;
       } else if (userRole === "exhibitor") {
         redirectPath = `/${identifier}/event-admin/visitors`;
       }
@@ -315,7 +315,7 @@ export default function EventLoginPage() {
         // Role-based routing
         if (userRole === "visitor") {
           // Visitors should see the list of exhibitors
-          redirectPath = `/${identifier}/event-admin/exhibitors`;
+          redirectPath = `/${identifier}/event-admin/dashboard/visitor_dashboard`;
         } else if (userRole === "exhibitor") {
           // Exhibitors should see the list of visitors
           redirectPath = `/${identifier}/event-admin/visitors`;

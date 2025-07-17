@@ -440,17 +440,64 @@ export const eventsApi = {
       headers.Authorization = `Bearer ${token}`;
     }
     
+    console.log('🔍 Event Details API Call:', {
+      url,
+      identifier,
+      hasToken: !!token,
+      tokenLength: token?.length || 0,
+      headers
+    });
+    
     try {
       const response = await axios.get(url, { headers, timeout: 30000 });
+      console.log('✅ Event Details API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        dataKeys: Object.keys(response.data || {}),
+        hasResult: !!(response.data?.result),
+        resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
+        resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
+      });
+      
       return {
         data: response.data,
         status: response.status,
         success: true,
         message: response.data?.message,
       };
-    } catch (error) {
-      console.error('Error fetching event details:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('❌ Error fetching event details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        responseData: error.response?.data,
+        responseHeaders: error.response?.headers
+      });
+      
+      // Provide more specific error messages
+      if (error.response?.status === 400) {
+        const errorMessage = error.response.data?.message || 'Bad Request - Invalid identifier or missing required parameters';
+        console.error('🔍 400 Error Details:', {
+          identifier,
+          apiUrl: azureApiUrl,
+          fullUrl: url,
+          responseData: error.response.data
+        });
+        throw new Error(`Event Details API Error (400): ${errorMessage}`);
+      } else if (error.response?.status === 401) {
+        throw new Error('Event Details API Error (401): Unauthorized - Please check your authentication token');
+      } else if (error.response?.status === 404) {
+        throw new Error(`Event Details API Error (404): Event not found for identifier '${identifier}'`);
+      } else if (error.response?.status === 500) {
+        throw new Error('Event Details API Error (500): Internal server error - Please try again later');
+      } else if (!error.response) {
+        throw new Error('Event Details API Error: Network error - Please check your internet connection');
+      } else {
+        throw new Error(`Event Details API Error (${error.response.status}): ${error.response.data?.message || error.message}`);
+      }
     }
   },
 
@@ -485,7 +532,18 @@ export const eventsApi = {
     const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Event/getEventThemeDetails`;
     
-    const token = localStorage.getItem('jwtToken');
+    // Try multiple token sources
+    const token = localStorage.getItem('jwtToken') || 
+                  localStorage.getItem('authToken') || 
+                  (typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1] : null);
+    
+    console.log('🔍 Theme API - Token sources:', {
+      jwtToken: !!localStorage.getItem('jwtToken'),
+      authToken: !!localStorage.getItem('authToken'),
+      cookieToken: !!(typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1] : null),
+      finalToken: !!token
+    });
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -495,15 +553,42 @@ export const eventsApi = {
     }
     
     try {
+      console.log('🔍 Making theme API call to:', url);
+      console.log('🔍 Theme API - Headers:', headers);
       const response = await axios.get(url, { headers, timeout: 30000 });
+      console.log('🔍 Theme API response received:', response.status);
       return {
         data: response.data,
         status: response.status,
         success: true,
         message: response.data?.message,
       };
-    } catch (error) {
-      console.error('Error fetching event theme details:', error);
+    } catch (error: any) {
+      console.error('❌ Error fetching event theme details:', error);
+      
+      // Enhanced error logging for debugging
+      if (error.response) {
+        console.error('🔍 Theme API Error Details:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers,
+          url: error.config?.url,
+          method: error.config?.method,
+          requestHeaders: error.config?.headers
+        });
+      } else if (error.request) {
+        console.error('🔍 Theme API Network Error:', {
+          request: error.request,
+          message: error.message
+        });
+      } else {
+        console.error('🔍 Theme API Other Error:', {
+          message: error.message,
+          config: error.config
+        });
+      }
+      
       throw error;
     }
   },
@@ -563,4 +648,49 @@ export const fontsApi = {
 };
 
 // Export the main service
-export default apiService; 
+export default apiService;
+
+// Debug function for testing API endpoints (available in browser console)
+if (typeof window !== 'undefined') {
+  (window as any).debugEventApi = {
+    testEventDetails: async (identifier: string) => {
+      console.log('🔍 Testing Event Details API for identifier:', identifier);
+      try {
+        const result = await eventsApi.getEventDetails(identifier);
+        console.log('✅ Test successful:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ Test failed:', error);
+        throw error;
+      }
+    },
+    
+    testThemeDetails: async (identifier: string) => {
+      console.log('🔍 Testing Theme Details API for identifier:', identifier);
+      try {
+        const result = await eventsApi.getEventThemeDetails(identifier);
+        console.log('✅ Test successful:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ Test failed:', error);
+        throw error;
+      }
+    },
+    
+    getCurrentIdentifier: () => {
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      return pathParts.length > 0 ? pathParts[0] : null;
+    },
+    
+    getAuthInfo: () => {
+      return {
+        jwtToken: !!localStorage.getItem('jwtToken'),
+        authToken: !!localStorage.getItem('authToken'),
+        user: localStorage.getItem('user'),
+        tokenLength: localStorage.getItem('jwtToken')?.length || 0
+      };
+    }
+  };
+  
+  console.log('🔧 Debug functions available: window.debugEventApi');
+} 

@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Card,
@@ -42,7 +43,7 @@ import {
 } from '@mui/icons-material';
 
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
-import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
+import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
 import { getCurrentUserId } from '@/utils/authUtils';
 
@@ -141,6 +142,7 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
 
 function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: ExhibitorCardProps) {
   const theme = useTheme();
+  const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const [isCheckingInitialState, setIsCheckingInitialState] = useState(true);
@@ -208,6 +210,26 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
     checkFavoriteStatus();
   }, [exhibitor.id, identifier, isClient]);
   
+  const handleExhibitorNameClick = () => {
+    console.log('🔍 Exhibitor name clicked:', {
+      exhibitorId: exhibitor.id,
+      exhibitorIdType: typeof exhibitor.id,
+      identifier,
+      identifierType: typeof identifier,
+      fullUrl: `/${identifier}/event-admin/exhibitors/details?exhibitorId=${exhibitor.id}`,
+      exhibitorData: {
+        id: exhibitor.id,
+        firstName: exhibitor.firstName,
+        lastName: exhibitor.lastName,
+        company: exhibitor.company
+      },
+      // Debug: Check if this exhibitor exists in the current list
+      availableExhibitorIds: window.location.pathname.includes('iframe') ? 'Check console for loaded exhibitors' : 'Not in iframe context'
+    });
+    
+    router.push(`/${identifier}/event-admin/exhibitors/details?exhibitorId=${exhibitor.id}`);
+  };
+
   const handleFavoriteClick = async (event?: React.MouseEvent) => {
     event?.preventDefault();
     event?.stopPropagation();
@@ -391,7 +413,31 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
             {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
-            <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
+            <Typography 
+              variant="body2" 
+              component="div" 
+              fontWeight="600" 
+              onClick={handleExhibitorNameClick}
+              sx={{ 
+                ml: 0, 
+                minHeight: '1.2rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5, 
+                lineHeight: 1.2, 
+                wordBreak: 'break-word',
+                cursor: 'pointer',
+                color: 'primary.main',
+                textDecoration: 'underline',
+                textDecorationColor: 'transparent',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: 'primary.dark',
+                  textDecorationColor: 'currentColor',
+                  transform: 'translateY(-1px)'
+                }
+              }}
+            >
               {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
             </Typography>
             {exhibitor.jobTitle && (
@@ -658,9 +704,8 @@ function ExhibitorCardSkeleton() {
   );
 }
 
-function ExhibitorListView() {
+function ExhibitorListView({ identifier }: { identifier: string }) {
   const theme = useTheme();
-  const { currentThemeName, setTheme: setSimpleTheme, setFontFamily: setSimpleFontFamily } = useSimpleTheme();
   const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -669,74 +714,110 @@ function ExhibitorListView() {
   const [realExhibitors, setRealExhibitors] = useState<Exhibitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentIdentifier, setCurrentIdentifier] = useState<string>('');
+  // const [currentIdentifier, setCurrentIdentifier] = useState<string>(''); // Removed as identifier is passed as prop
 
   useEffect(() => {
     setIsClient(true);
-    loadExhibitors();
+    loadExhibitors(identifier);
 
     // Listen for theme changes from localStorage
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'theme' && e.newValue) {
-        setSimpleTheme(e.newValue);
-      }
-      if (e.key === 'fontFamily' && e.newValue) {
-        setSimpleFontFamily(e.newValue);
-      }
-    };
+    // REMOVE: Listen for theme changes from localStorage
+    // (No longer needed since we use only ThemeWrapper)
 
     // Listen for theme changes from parent window (if iframe is embedded)
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'THEME_CHANGE' && event.data.theme) {
-        setSimpleTheme(event.data.theme);
-      }
-      if (event.data.type === 'FONT_CHANGE' && event.data.fontFamily) {
-        setSimpleFontFamily(event.data.fontFamily);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('message', handleMessage);
+    // REMOVE: Listen for theme changes from parent window (if iframe is embedded)
+    // (No longer needed since we use only ThemeWrapper)
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('message', handleMessage);
+      // REMOVE: window.removeEventListener('storage', handleStorageChange);
+      // REMOVE: window.removeEventListener('message', handleMessage);
     };
-  }, [setSimpleTheme, setSimpleFontFamily]);
+  }, [identifier]);
 
-  const loadExhibitors = useCallback(async () => {
+  const loadExhibitors = useCallback(async (identifier: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Extract identifier from URL with fallback logic
-      let identifier: string | null = null;
+      // Extract identifier from URL with comprehensive fallback logic
+      // let identifier: string | null = null; // This line is removed as identifier is passed as prop
       
-      // Method 1: Check URL search params first (e.g., ?identifier=DEMO2024)
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('identifier')) {
-        identifier = urlParams.get('identifier');
-      } else {
-        // Method 2: Extract from URL path (e.g., /DEMO2024/iframe/exhibitors)
-        const pathParts = window.location.pathname.split('/').filter(Boolean);
-        if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
-          identifier = pathParts[0];
-        }
-      }
-      
-      // Method 3: Use common identifiers as fallback
-      if (!identifier) {
-        // Try common identifiers in order of likelihood
-        const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
-        identifier = commonIdentifiers[0]; // Default to DEMO2024
-      }
+      // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/exhibitors)
+      // const pathParts = window.location.pathname.split('/').filter(Boolean);
+      // console.log('URL path parts:', pathParts);
+
+      // Look for identifier in URL path - it should be the first segment
+      // if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+      //   identifier = pathParts[0];
+      //   console.log('Found identifier in URL path:', identifier);
+      // } else {
+      //   // Method 2: Try to get from parent window if iframe is embedded
+      //   try {
+      //     if (window.parent && window.parent !== window) {
+      //       const parentUrl = window.parent.location.pathname;
+      //       const parentParts = parentUrl.split('/').filter(Boolean);
+      //       if (parentParts.length > 0) {
+      //         identifier = parentParts[0];
+      //         console.log('Found identifier from parent window:', identifier);
+      //       }
+      //     }
+      //   } catch (e) {
+      //     console.log('Cannot access parent window URL (cross-origin)');
+      //   }
+        
+      //   // Method 3: Try to get from URL search parameters
+      //   if (!identifier) {
+      //     const urlParams = new URLSearchParams(window.location.search);
+      //     identifier = urlParams.get('eventId') || urlParams.get('identifier');
+      //     if (identifier) {
+      //       console.log('Found identifier in URL parameters:', identifier);
+      //     }
+      //   }
+        
+      //   // Method 4: Try to get from localStorage (if set by parent)
+      //   if (!identifier) {
+      //     identifier = localStorage.getItem('currentEventIdentifier');
+      //     if (identifier) {
+      //       console.log('Found identifier in localStorage:', identifier);
+      //     }
+      //   }
+        
+      //   // Method 5: Try to get from sessionStorage (if set by parent)
+      //   if (!identifier) {
+      //     identifier = sessionStorage.getItem('currentEventIdentifier');
+      //     if (identifier) {
+      //       console.log('Found identifier in sessionStorage:', identifier);
+      //     }
+      //   }
+        
+      //   // Method 6: Use common identifiers as fallback
+      //   if (!identifier) {
+      //     // Try common identifiers in order of likelihood
+      //     const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
+      //     identifier = commonIdentifiers[0]; // Default to DEMO2024
+      //     console.log('Using fallback identifier:', identifier);
+      //   }
+      // }
+
+      // If no identifier found, throw error
+      // if (!identifier) { // This line is removed as identifier is passed as prop
+      //   console.error('❌ No event identifier found. Available sources:', {
+      //     pathParts,
+      //     parentUrl: window.parent !== window ? window.parent.location.pathname : 'N/A',
+      //     urlParams: window.location.search,
+      //     localStorage: localStorage.getItem('currentEventIdentifier'),
+      //     sessionStorage: sessionStorage.getItem('currentEventIdentifier')
+      //   });
+      //   throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/exhibitors) or ensure the parent page sets the event identifier.');
+      // }
 
       console.log('Loading exhibitors with identifier:', identifier);
-      setCurrentIdentifier(identifier); // Store identifier in state
+      // setCurrentIdentifier(identifier); // Store identifier in state // Removed as identifier is passed as prop
       const response = await fieldMappingApi.getAllExhibitors(identifier);
       
       if (response.statusCode === 200) {
         if (response.result && response.result.length > 0) {
+          console.log('🔍 Loaded exhibitors from API:', response.result.map(ex => ({ id: ex.id, firstName: ex.firstName, lastName: ex.lastName, companyName: ex.companyName })));
           const convertedExhibitors = response.result.map((exhibitor, index) => transformExhibitorData(exhibitor, identifier!, index));
           setExhibitors(convertedExhibitors);
           setRealExhibitors(response.result);
@@ -755,7 +836,7 @@ function ExhibitorListView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [identifier]); // Added identifier to dependency array
 
   // Memoize filtered exhibitors for better performance
   const filteredExhibitors = useMemo(() => {
@@ -880,13 +961,25 @@ function ExhibitorListView() {
         </Box>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <Box display="flex" justifyContent="center" alignItems="center" py={8}>
+          <CircularProgress size={48} />
+          <Typography variant="body1" sx={{ ml: 2 }}>
+            Loading Exhibitors...
+          </Typography>
+        </Box>
+      )}
+
       {/* Results Count */}
+      {!loading && !error && (
       <Box mb={2}>
         <Typography variant="body2" color="text.secondary">
-          {loading ? 'Loading exhibitors...' : `Showing ${filteredExhibitors.length} of ${exhibitors.length} exhibitors`}
+         Showing {filteredExhibitors.length} of {exhibitors.length} exhibitors
           {realExhibitors.length > 0 }
         </Typography>
       </Box>
+      )}
 
       {/* Error Alert */}
       {error && !loading && (
@@ -911,7 +1004,7 @@ function ExhibitorListView() {
                 exhibitor={exhibitor}
                 visitorInterests={sampleVisitorInterests}
                 isClient={isClient}
-                identifier={currentIdentifier}
+                identifier={identifier}
               />
             </Suspense>
           </Grid>
@@ -949,11 +1042,48 @@ function ExhibitorListView() {
 }
 
 export default function ExhibitorListPage() {
+  // We need to extract the identifier using the same logic as ExhibitorListView
+  // But since ExhibitorListView already computes currentIdentifier, we can lift this logic up
+  // Instead, let's move the identifier extraction to the top-level page and pass it to ThemeWrapper
+
+  // Extract identifier from URL with comprehensive fallback logic
+  let identifier: string | null = null;
+  if (typeof window !== 'undefined') {
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+      identifier = pathParts[0];
+    } else {
+      try {
+        if (window.parent && window.parent !== window) {
+          const parentUrl = window.parent.location.pathname;
+          const parentParts = parentUrl.split('/').filter(Boolean);
+          if (parentParts.length > 0) {
+            identifier = parentParts[0];
+          }
+        }
+      } catch (e) {}
+      if (!identifier) {
+        const urlParams = new URLSearchParams(window.location.search);
+        identifier = urlParams.get('eventId') || urlParams.get('identifier');
+      }
+      if (!identifier) {
+        identifier = localStorage.getItem('currentEventIdentifier');
+      }
+      if (!identifier) {
+        identifier = sessionStorage.getItem('currentEventIdentifier');
+      }
+      if (!identifier) {
+        const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
+        identifier = commonIdentifiers[0];
+      }
+    }
+  }
+
   return (
-    <SimpleThemeProvider>
+    <ThemeWrapper identifier={identifier || undefined}>
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <ExhibitorListView />
-    </Box>
-    </SimpleThemeProvider>
+        <ExhibitorListView identifier={identifier || ''} />
+      </Box>
+    </ThemeWrapper>
   );
 } 

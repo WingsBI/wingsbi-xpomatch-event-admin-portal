@@ -59,19 +59,55 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
       setLoading(true);
       setError(null);
       
-      console.log('Loading event details for identifier:', identifier);
+      console.log('🔍 Loading event details for identifier:', identifier);
+      
+      if (!identifier) {
+        setError('No event identifier found. Please access through a valid event URL.');
+        return;
+      }
+      
       const response = await eventsApi.getEventDetails(identifier);
+      
+      console.log('🔍 Event details response:', {
+        success: response.success,
+        status: response.status,
+        hasData: !!response.data,
+        hasResult: !!(response.data?.result),
+        resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
+        resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
+      });
       
       if (response.success && response.data?.result && response.data.result.length > 0) {
         // Take the first event from the array
         setEventDetails(response.data.result[0]);
-        console.log('Event details loaded:', response.data.result[0]);
+        console.log('✅ Event details loaded successfully:', response.data.result[0]);
       } else {
-        setError('Failed to load event details');
+        console.warn('⚠️ Event details response structure:', response);
+        setError('No event details found. The API returned an empty result.');
       }
     } catch (err: any) {
-      console.error('Error loading event details:', err);
-      setError(err.message || 'Failed to load event details');
+      console.error('❌ Error loading event details:', err);
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to load event details';
+      
+      if (err.message) {
+        if (err.message.includes('400')) {
+          errorMessage = 'Invalid event identifier. Please check the URL and try again.';
+        } else if (err.message.includes('401')) {
+          errorMessage = 'Authentication required. Please log in again.';
+        } else if (err.message.includes('404')) {
+          errorMessage = 'Event not found. Please check the event identifier.';
+        } else if (err.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (err.message.includes('Network error')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -226,6 +262,24 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
           }>
             {error}
           </Alert>
+          
+          {/* Debug information in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <Box mt={2} p={2} bgcolor="grey.100" borderRadius={1}>
+              <Typography variant="subtitle2" gutterBottom>
+                Debug Information:
+              </Typography>
+              <Typography variant="body2" component="pre" sx={{ fontSize: '0.75rem', overflow: 'auto' }}>
+                {JSON.stringify({
+                  identifier,
+                  url: `https://xpomatch-dev-event-admin-api.azurewebsites.net/api/${identifier}/Event/GetEventDetails`,
+                  hasToken: !!localStorage.getItem('jwtToken'),
+                  tokenLength: localStorage.getItem('jwtToken')?.length || 0,
+                  timestamp: new Date().toISOString()
+                }, null, 2)}
+              </Typography>
+            </Box>
+          )}
         </CardContent>
       </Card>
     );

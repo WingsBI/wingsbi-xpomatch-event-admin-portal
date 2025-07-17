@@ -91,8 +91,9 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
   if (userRole === 'visitor') {
     // Visitor-specific navigation
     baseItems = [
-      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
-      { text: 'Exhibitor Deatils', icon: <Business />, href: `/${identifier}/event-admin/dashboard/visitor_dashboard`, children: [] },
+      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/visitor_dashboard`, children: [] },
+      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Exhibitor Details', icon: <Business />, href: `/${identifier}/event-admin/exhibitors/details`, children: [] },
      
       { text: 'Meetings', icon: <CalendarMonth />, children: [
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
@@ -101,7 +102,6 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
         { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
-        ,
       ] },
     ];
   } else if (userRole === 'exhibitor') {
@@ -167,9 +167,24 @@ export default function ResponsiveDashboardLayout({
       description: 'Main dashboard overview'
     },
     {
+      title: 'Visitor Dashboard',
+      path: `/${identifier}/event-admin/dashboard/visitor_dashboard`,
+      description: 'Visitor dashboard and exhibitor details'
+    },
+    {
+      title: 'Exhibitor Dashboard',
+      path: `/${identifier}/event-admin/dashboard/exhibitor_dashboard`,
+      description: 'Exhibitor dashboard'
+    },
+    {
       title: 'Exhibitors',
       path: `/${identifier}/event-admin/exhibitors`,
       description: 'Manage exhibitors'
+    },
+    {
+      title: 'Exhibitor Details',
+      path: `/${identifier}/event-admin/exhibitors/details`,
+      description: 'View detailed exhibitor information'
     },
     {
       title: 'Exhibitors Onboarding',
@@ -275,7 +290,23 @@ export default function ResponsiveDashboardLayout({
   const loadEventDetails = useCallback(async () => {
     try {
       setEventLoading(true);
+      
+      if (!identifier) {
+        console.warn('⚠️ No identifier available for event details load');
+        return;
+      }
+      
+      console.log('🔍 Loading event details in layout for identifier:', identifier);
       const response = await eventsApi.getEventDetails(identifier);
+      
+      console.log('🔍 Layout event details response:', {
+        success: response.success,
+        status: response.status,
+        hasData: !!response.data,
+        hasResult: !!(response.data?.result),
+        resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
+        resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
+      });
       
       if (response.success && response.data?.result && response.data.result.length > 0) {
         const eventData = response.data.result[0];
@@ -284,9 +315,19 @@ export default function ResponsiveDashboardLayout({
           eventData.title = eventData.title.replace(/exhibitor/gi, '').trim();
         }
         setEventDetails(eventData);
+        console.log('✅ Event details loaded in layout:', eventData.title);
+      } else {
+        console.warn('⚠️ No event details found in layout response:', response);
       }
-    } catch (error) {
-      console.error('Error loading event details:', error);
+    } catch (error: any) {
+      console.error('❌ Error loading event details in layout:', {
+        message: error.message,
+        status: error.response?.status,
+        identifier
+      });
+      
+      // Don't set error state in layout to avoid breaking the UI
+      // Just log the error for debugging
     } finally {
       setEventLoading(false);
     }

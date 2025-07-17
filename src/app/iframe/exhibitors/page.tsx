@@ -45,6 +45,7 @@ import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavorit
 import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
 import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
 import { getCurrentUserId } from '@/utils/authUtils';
+import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface ExhibitorCardProps {
   exhibitor: {
@@ -76,6 +77,8 @@ interface ExhibitorCardProps {
   visitorInterests: string[];
   isClient: boolean;
   identifier: string;
+  isFavorite: boolean;
+  onFavoriteToggle: (exhibitorId: string, newStatus: boolean) => void;
 }
 
 // Transform API exhibitor data to UI format - only use actual API data
@@ -139,11 +142,9 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
   };
 };
 
-function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: ExhibitorCardProps) {
+function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFavorite, onFavoriteToggle }: ExhibitorCardProps) {
   const theme = useTheme();
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
-  const [isCheckingInitialState, setIsCheckingInitialState] = useState(true);
 
   // Debug website data
   useEffect(() => {
@@ -155,58 +156,6 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
       companyName: exhibitor.company
     });
   }, [exhibitor.customData?.website, exhibitor.id, exhibitor.company]);
-
-  // Check if this exhibitor is already favorited when component loads
-  useEffect(() => {
-    const checkFavoriteStatus = async () => {
-      if (!identifier || !isClient) {
-        setIsCheckingInitialState(false);
-        return;
-      }
-
-      let currentUserId = getCurrentUserId();
-      if (!currentUserId) {
-        console.log('🔍 No user ID found, using default ID 1 for favorites check');
-        currentUserId = 1; // Use same default as in handleFavoriteClick
-      }
-
-      try {
-        // For now, skip API call and use localStorage only since API returns 404
-        const storageKey = `favorites_${currentUserId}_${identifier}`;
-        console.log('🔍 Checking localStorage for favorites (API not ready)');
-        console.log('🔍 Storage key:', storageKey);
-        console.log('🔍 Exhibitor ID:', exhibitor.id);
-        console.log('🔍 All localStorage keys:', Object.keys(localStorage));
-        
-        const localFavorites = localStorage.getItem(storageKey);
-        console.log('🔍 Raw localStorage value:', localFavorites);
-        
-        if (localFavorites) {
-          const favoritesArray = JSON.parse(localFavorites);
-          console.log('🔍 Parsed favorites array:', favoritesArray);
-          
-          const exhibitorId = parseInt(exhibitor.id, 10);
-          console.log('🔍 Looking for exhibitor ID:', exhibitorId);
-          
-          const isFavorited = favoritesArray.includes(exhibitorId);
-          console.log('🔍 Is favorited:', isFavorited);
-          
-          setIsFavorite(isFavorited);
-          console.log(`📦 Found in localStorage: ${isFavorited ? 'favorited ❤️' : 'not favorited 🤍'}`);
-        } else {
-          console.log('📦 No favorites found in localStorage');
-          setIsFavorite(false);
-        }
-      } catch (error) {
-        console.error('Error checking localStorage favorites:', error);
-        setIsFavorite(false);
-      } finally {
-        setIsCheckingInitialState(false);
-      }
-    };
-
-    checkFavoriteStatus();
-  }, [exhibitor.id, identifier, isClient]);
   
   const handleFavoriteClick = async (event?: React.MouseEvent) => {
     event?.preventDefault();
@@ -224,7 +173,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
     
     // Immediately update UI for instant feedback
     const newFavoriteState = !isFavorite;
-    setIsFavorite(newFavoriteState);
+    onFavoriteToggle(exhibitor.id, newFavoriteState);
     
     if (isFavorite) {
       console.log('❤️➡️🤍 REMOVING from favorites (red heart clicked)');
@@ -233,87 +182,24 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
       console.log('🤍➡️❤️ ADDING to favorites (outline heart clicked)');
       console.log('🚀 New state will be:', newFavoriteState, '(true = adding)');
     }
-    
-    // Get current user ID
-    let currentUserId = getCurrentUserId();
-    console.log('Current user ID from auth:', currentUserId);
-    
-    // For testing purposes, use a default user ID if none found
-    if (!currentUserId) {
-      console.log('No user ID found, using default ID 1 for testing');
-      currentUserId = 1; // Use default for testing
-    }
-
-    // Get exhibitor ID as number
-    const exhibitorId = parseInt(exhibitor.id, 10);
-    console.log('Exhibitor ID:', exhibitorId, 'from string:', exhibitor.id);
-    
-    if (isNaN(exhibitorId)) {
-      console.error('Invalid exhibitor ID:', exhibitor.id);
-      // Revert the UI state if invalid ID
-      setIsFavorite(!newFavoriteState);
-      return;
-    }
 
     console.log('Using identifier:', identifier);
     setIsLoadingFavorite(true);
 
     try {
-      const payload: FavoritesRequest = {
-        visitorId: currentUserId,
-        exhibitorId: exhibitorId,
-        isFavorite: newFavoriteState
-      };
-
-      console.log('🔥 CALLING API with payload:', payload);
-      console.log('🔥 API URL will be:', `api/${identifier}/Event/addFavorites`);
+      // Use FavoritesManager to toggle favorite status
+      const finalStatus = await FavoritesManager.toggleExhibitorFavorite(identifier, exhibitor.id, isFavorite);
       
-      const response = await fieldMappingApi.addFavorites(identifier, payload);
+      // Update UI with the final status from API
+      onFavoriteToggle(exhibitor.id, finalStatus);
       
-      console.log('✅ API RESPONSE RECEIVED:', response);
-
-      if (response.statusCode === 200 && response.result) {
-        if (newFavoriteState) {
-          console.log('✅ Successfully ADDED to favorites ❤️');
-        } else {
-          console.log('✅ Successfully REMOVED from favorites 🤍');
-        }
-        
-        // Update localStorage as backup
-        try {
-          const storageKey = `favorites_${currentUserId}_${identifier}`;
-          const localFavorites = localStorage.getItem(storageKey);
-          let favoritesArray = localFavorites ? JSON.parse(localFavorites) : [];
-          
-          console.log('📦 Before update - localStorage favorites:', favoritesArray);
-          
-          if (newFavoriteState) {
-            // Add to favorites
-            if (!favoritesArray.includes(exhibitorId)) {
-              favoritesArray.push(exhibitorId);
-              console.log(`📦 ADDED ${exhibitorId} to localStorage favorites`);
-            }
-          } else {
-            // Remove from favorites
-            const beforeLength = favoritesArray.length;
-            favoritesArray = favoritesArray.filter((id: number) => id !== exhibitorId);
-            console.log(`📦 REMOVED ${exhibitorId} from localStorage favorites (${beforeLength} → ${favoritesArray.length})`);
-          }
-          
-          localStorage.setItem(storageKey, JSON.stringify(favoritesArray));
-          console.log('📦 After update - localStorage favorites:', favoritesArray);
-        } catch (localError) {
-          console.error('Error updating localStorage backup:', localError);
-        }
-      } else {
-        console.error('Failed to update favorites:', response.message);
-        // Revert the UI state if API failed
-        setIsFavorite(!newFavoriteState);
+      if (finalStatus !== newFavoriteState) {
+        console.log('⚠️ API returned different status than expected, UI updated to match API');
       }
     } catch (error) {
       console.error('Error updating favorites:', error);
       // Revert the UI state if error occurred
-      setIsFavorite(!newFavoriteState);
+      onFavoriteToggle(exhibitor.id, !newFavoriteState);
     } finally {
       setIsLoadingFavorite(false);
     }
@@ -424,7 +310,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
           onClick={(e) => {
             handleFavoriteClick(e);
           }}
-          disabled={isLoadingFavorite || isCheckingInitialState}
+          disabled={isLoadingFavorite}
           size="large"
           sx={{
             position: 'absolute',
@@ -444,7 +330,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier }: Ex
             }
           }}
         >
-          {(isLoadingFavorite || isCheckingInitialState) ? (
+          {(isLoadingFavorite) ? (
             <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
           ) : isFavorite ? (
             <Favorite
@@ -661,21 +547,26 @@ function ExhibitorCardSkeleton() {
 function ExhibitorListView() {
   const theme = useTheme();
   const { currentThemeName, setTheme: setSimpleTheme, setFontFamily: setSimpleFontFamily } = useSimpleTheme();
-  const [isClient, setIsClient] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterIndustry, setFilterIndustry] = useState('all');
   const [exhibitors, setExhibitors] = useState<any[]>([]);
-  const [realExhibitors, setRealExhibitors] = useState<Exhibitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentIdentifier, setCurrentIdentifier] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterExperience, setFilterExperience] = useState('all');
+  const [identifier, setIdentifier] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [visitorInterests, setVisitorInterests] = useState<string[]>([]);
+  const [favoriteExhibitors, setFavoriteExhibitors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setIsClient(true);
-    loadExhibitors();
+  }, []);
 
-    // Listen for theme changes from localStorage
+  useEffect(() => {
+    fetchExhibitors();
+  }, []);
+
+  useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'theme' && e.newValue) {
         setSimpleTheme(e.newValue);
@@ -704,58 +595,97 @@ function ExhibitorListView() {
     };
   }, [setSimpleTheme, setSimpleFontFamily]);
 
-  const loadExhibitors = useCallback(async () => {
+  // Load all favorite statuses in one API call
+  const loadFavoriteStatuses = async (eventIdentifier: string) => {
+    if (!eventIdentifier) return;
+
+    try {
+      console.log('🔍 Loading all exhibitor favorite statuses');
+      
+      // Get current visitor ID
+      let currentUserId = getCurrentUserId();
+      if (!currentUserId) {
+        console.log('🔍 No user ID found, using default ID 1 for favorites check');
+        currentUserId = 1;
+      }
+
+      const response = await fieldMappingApi.getVisitorFavorites(eventIdentifier, currentUserId);
+      
+      if (response.statusCode === 200 && response.result?.exhibitors) {
+        const favoriteIds = new Set(
+          response.result.exhibitors.map((exhibitor: any) => exhibitor.id.toString())
+        );
+        setFavoriteExhibitors(favoriteIds);
+        console.log('✅ Loaded favorite statuses for', favoriteIds.size, 'exhibitors');
+      } else {
+        console.log('📦 No favorites found in API or API error');
+        setFavoriteExhibitors(new Set());
+      }
+    } catch (error) {
+      console.error('Error loading favorite statuses:', error);
+      setFavoriteExhibitors(new Set());
+    }
+  };
+
+  const fetchExhibitors = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Extract identifier from URL with fallback logic
-      let identifier: string | null = null;
-      
-      // Method 1: Check URL search params first (e.g., ?identifier=DEMO2024)
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('identifier')) {
-        identifier = urlParams.get('identifier');
+      // Extract identifier from URL path only - no static fallbacks
+      let eventIdentifier: string | null = null;
+
+      // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/exhibitors)
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      console.log('URL path parts:', pathParts);
+
+      // Look for identifier in URL path - it should be the first segment
+      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+        eventIdentifier = pathParts[0];
+        console.log('Found identifier in URL path:', eventIdentifier);
       } else {
-        // Method 2: Extract from URL path (e.g., /DEMO2024/iframe/exhibitors)
-        const pathParts = window.location.pathname.split('/').filter(Boolean);
-        if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
-          identifier = pathParts[0];
+        // Method 2: Try to get from parent window if iframe is embedded
+        try {
+          if (window.parent && window.parent !== window) {
+            const parentUrl = window.parent.location.pathname;
+            const parentParts = parentUrl.split('/').filter(Boolean);
+            if (parentParts.length > 0) {
+              eventIdentifier = parentParts[0];
+              console.log('Found identifier from parent window:', eventIdentifier);
+            }
+          }
+        } catch (e) {
+          console.log('Cannot access parent window URL (cross-origin)');
         }
-      }
-      
-      // Method 3: Use common identifiers as fallback
-      if (!identifier) {
-        // Try common identifiers in order of likelihood
-        const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
-        identifier = commonIdentifiers[0]; // Default to DEMO2024
       }
 
-      console.log('Loading exhibitors with identifier:', identifier);
-      setCurrentIdentifier(identifier); // Store identifier in state
-      const response = await fieldMappingApi.getAllExhibitors(identifier);
-      
-      if (response.statusCode === 200) {
-        if (response.result && response.result.length > 0) {
-          const convertedExhibitors = response.result.map((exhibitor, index) => transformExhibitorData(exhibitor, identifier!, index));
-          setExhibitors(convertedExhibitors);
-          setRealExhibitors(response.result);
-        } else {
-          setExhibitors([]);
-          setError('No exhibitors found for this event');
-        }
+      // If no identifier found, throw error
+      if (!eventIdentifier) {
+        throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/exhibitors)');
+      }
+
+      // Set the identifier state
+      setIdentifier(eventIdentifier);
+
+      console.log('Using identifier for API call:', eventIdentifier);
+      const response = await fieldMappingApi.getAllExhibitors(eventIdentifier);
+
+      if (response.statusCode === 200 && response.result) {
+        const transformedExhibitors = response.result.map((exhibitor: Exhibitor, index: number) => transformExhibitorData(exhibitor, eventIdentifier, index));
+        setExhibitors(transformedExhibitors);
+
+        // Load favorite statuses after exhibitors are loaded
+        await loadFavoriteStatuses(eventIdentifier);
       } else {
-        setExhibitors([]);
-        setError(response.message || 'Failed to load exhibitors');
+        setError('Failed to fetch exhibitors data');
       }
     } catch (err: any) {
-      console.error('Error loading exhibitors:', err);
-      setError(err.message || 'Failed to load exhibitors');
-      setExhibitors([]);
+      console.error('Error fetching exhibitors:', err);
+      setError(err.message || 'Failed to fetch exhibitors data');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   // Memoize filtered exhibitors for better performance
   const filteredExhibitors = useMemo(() => {
@@ -767,17 +697,17 @@ function ExhibitorListView() {
       exhibitor.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = filterStatus === 'all' || exhibitor.status === filterStatus;
-    const matchesIndustry = filterIndustry === 'all' || exhibitor.customData?.industry === filterIndustry;
+    const matchesExperience = filterExperience === 'all' || exhibitor.customData?.experience === filterExperience;
 
-    return matchesSearch && matchesStatus && matchesIndustry;
+    return matchesSearch && matchesStatus && matchesExperience;
   });
-  }, [exhibitors, searchTerm, filterStatus, filterIndustry]);
+  }, [exhibitors, searchTerm, filterStatus, filterExperience]);
 
-  // Memoize unique industries for filter
-  const industries = useMemo(() => {
+  // Memoize unique experiences for filter
+  const experiences = useMemo(() => {
     return Array.from(new Set(
       exhibitors
-        .map(exhibitor => exhibitor.customData?.industry)
+        .map(exhibitor => exhibitor.customData?.experience)
         .filter(Boolean)
     ));
   }, [exhibitors]);
@@ -856,21 +786,21 @@ function ExhibitorListView() {
       </Box>
 
       {/* Industry Filter */}
-      {industries.length > 0 && (
+      {experiences.length > 0 && (
         <Box mb={2}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={3}>
               <FormControl fullWidth>
                 <Select
-                  value={filterIndustry}
-                  onChange={(e) => setFilterIndustry(e.target.value)}
+                  value={filterExperience}
+                  onChange={(e) => setFilterExperience(e.target.value)}
                   displayEmpty
                   sx={{ bgcolor: 'background.paper' }}
                 >
-                  <MenuItem value="all">All Industries</MenuItem>
-                  {industries.map((industry) => (
-                    <MenuItem key={industry} value={industry}>
-                      {industry}
+                  <MenuItem value="all">All Experiences</MenuItem>
+                  {experiences.map((experience) => (
+                    <MenuItem key={experience} value={experience}>
+                      {experience}
                     </MenuItem>
                   ))}
                 </Select>
@@ -884,7 +814,7 @@ function ExhibitorListView() {
       <Box mb={2}>
         <Typography variant="body2" color="text.secondary">
           {loading ? 'Loading exhibitors...' : `Showing ${filteredExhibitors.length} of ${exhibitors.length} exhibitors`}
-          {realExhibitors.length > 0 }
+          {exhibitors.length > 0 }
         </Typography>
       </Box>
 
@@ -911,7 +841,19 @@ function ExhibitorListView() {
                 exhibitor={exhibitor}
                 visitorInterests={sampleVisitorInterests}
                 isClient={isClient}
-                identifier={currentIdentifier}
+                identifier={identifier || ''}
+                isFavorite={favoriteExhibitors.has(exhibitor.id)}
+                onFavoriteToggle={(id, newStatus) => {
+                  setFavoriteExhibitors(prev => {
+                    const newSet = new Set(prev);
+                    if (newStatus) {
+                      newSet.add(id);
+                    } else {
+                      newSet.delete(id);
+                    }
+                    return newSet;
+                  });
+                }}
               />
             </Suspense>
           </Grid>

@@ -42,7 +42,8 @@ import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
 import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor, type FavoritesRequest } from '@/services/fieldMappingApi';
-import { getCurrentExhibitorId } from '@/utils/authUtils';
+import { getCurrentExhibitorId, getCurrentVisitorId, decodeJWTToken } from '@/utils/authUtils';
+import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface TransformedExhibitor {
   id: string;
@@ -230,59 +231,118 @@ export default function FavouritesPage() {
   const [tabValue, setTabValue] = useState(0); // 0 = Visitors, 1 = Exhibitors
   const [searchTerm, setSearchTerm] = useState('');
   const [removingFavorite, setRemovingFavorite] = useState<string | null>(null);
+  const [isVisitor, setIsVisitor] = useState(false);
+  // Add this state to track favorite exhibitor IDs for visitors
+  const [favoriteExhibitorIds, setFavoriteExhibitorIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Check if user is a visitor
+    const tokenData = decodeJWTToken();
+    if (tokenData && (tokenData.roleName === 'Visitor' || tokenData.role === 'visitor' || tokenData.roleId === 4 || tokenData.roleid === 4)) {
+      setIsVisitor(true);
+    } else {
+      setIsVisitor(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (identifier) {
-      dispatch(setIdentifier(identifier));
+      loadFavorites();
     }
-  }, [identifier, dispatch]);
+  }, [identifier, isVisitor]);
 
+  // Update favoriteExhibitorIds when exhibitorFavourites changes (for visitors)
   useEffect(() => {
-    loadFavorites();
-  }, [identifier]);
+    if (isVisitor) {
+      setFavoriteExhibitorIds(new Set(exhibitorFavourites.map(e => e.id)));
+    }
+  }, [exhibitorFavourites, isVisitor]);
+
+  // Handler to toggle favorite for an exhibitor (for visitors)
+  const handleToggleExhibitorFavorite = async (exhibitorId: string) => {
+    if (!identifier || !isVisitor) return;
+    
+    setRemovingFavorite(exhibitorId);
+    const isCurrentlyFavorite = favoriteExhibitorIds.has(exhibitorId);
+    
+    try {
+      const finalStatus = await FavoritesManager.toggleExhibitorFavorite(identifier, exhibitorId, isCurrentlyFavorite);
+      
+      // Update UI
+      setFavoriteExhibitorIds(prev => {
+        const newSet = new Set(prev);
+        if (finalStatus) {
+          newSet.add(exhibitorId);
+        } else {
+          newSet.delete(exhibitorId);
+        }
+        return newSet;
+      });
+      
+      // Reload favorites from API to ensure UI is in sync
+      await loadFavorites();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update favorite');
+    } finally {
+      setRemovingFavorite(null);
+    }
+  };
 
   const loadFavorites = async () => {
     if (!identifier) return;
-    
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
-      // Get current exhibitor ID (defaulting to 10 for now)
-      let currentExhibitorId = getCurrentExhibitorId();
-      if (!currentExhibitorId) {
-        console.log('🔍 No exhibitor ID found, using default ID 10 for favorites');
-        currentExhibitorId = 10;
-      }
-
-      console.log('🔍 Loading favorites for exhibitor:', currentExhibitorId);
-      
-      // Load both visitor favorites and exhibitor favorites in parallel
-      const [visitorResponse, exhibitorResponse] = await Promise.all([
-        fieldMappingApi.getAllExhibitorFavorites(identifier, currentExhibitorId),
-        fieldMappingApi.getVisitorFavorites(identifier, 1) // Using visitor ID 1 for exhibitor favorites
-      ]);
-      
-      // Process visitor favorites
-      if (visitorResponse.statusCode === 200 && visitorResponse.result) {
-        const transformedVisitors = visitorResponse.result.map(transformVisitorData);
-        setVisitorFavourites(transformedVisitors);
-        console.log('✅ Loaded', transformedVisitors.length, 'favorite visitors');
+      if (isVisitor) {
+        // Only Exhibitor tab, only call getVisitorFavorites
+        const visitorId = getCurrentVisitorId();
+        if (!visitorId) throw new Error('No visitor ID found in token');
+        
+        console.log('🔍 Loading visitor favorites for visitor ID:', visitorId);
+        const exhibitorResponse = await fieldMappingApi.getVisitorFavorites(identifier, visitorId);
+        
+        if (exhibitorResponse.statusCode === 200 && exhibitorResponse.result?.exhibitors) {
+          console.log('✅ Loaded exhibitor favorites:', exhibitorResponse.result.exhibitors.length, 'exhibitors');
+          const transformedExhibitors = exhibitorResponse.result.exhibitors.map(transformExhibitorData);
+          setExhibitorFavourites(transformedExhibitors);
+          
+          // Update favoriteExhibitorIds for UI state
+          const favoriteIds = new Set(transformedExhibitors.map(e => e.id));
+          setFavoriteExhibitorIds(favoriteIds);
+        } else {
+          console.log('📦 No exhibitor favorites found or API error');
+          setExhibitorFavourites([]);
+          setFavoriteExhibitorIds(new Set());
+          if (exhibitorResponse.message) {
+            setError(exhibitorResponse.message || 'Failed to load favorite exhibitors');
+          }
+        }
+        setVisitorFavourites([]); // No visitors tab for visitor
       } else {
-        console.error('Failed to load visitor favorites:', visitorResponse.message);
-        setVisitorFavourites([]);
+        // For exhibitors: load only visitor favorites
+        const currentExhibitorId = getCurrentExhibitorId();
+        if (!currentExhibitorId) {
+          throw new Error('No exhibitor ID found in token');
+        }
+        
+        console.log('🔍 Loading exhibitor favorites for exhibitor ID:', currentExhibitorId);
+        console.log('🔍 Token data:', decodeJWTToken());
+        
+        const visitorResponse = await fieldMappingApi.getAllExhibitorFavorites(identifier, currentExhibitorId);
+        
+        if (visitorResponse.statusCode === 200 && visitorResponse.result) {
+          console.log('✅ Loaded visitor favorites:', visitorResponse.result.length, 'visitors');
+          const transformedVisitors = visitorResponse.result.map(transformVisitorData);
+          setVisitorFavourites(transformedVisitors);
+        } else {
+          console.log('📦 No visitor favorites found or API error');
+          setVisitorFavourites([]);
+          if (visitorResponse.message) {
+            setError(visitorResponse.message || 'Failed to load favorite visitors');
+          }
+        }
+        setExhibitorFavourites([]); // No exhibitor favorites for exhibitors
       }
-      
-      // Process exhibitor favorites  
-      if (exhibitorResponse.statusCode === 200 && exhibitorResponse.result?.exhibitors) {
-        const transformedExhibitors = exhibitorResponse.result.exhibitors.map(transformExhibitorData);
-        setExhibitorFavourites(transformedExhibitors);
-        console.log('✅ Loaded', transformedExhibitors.length, 'favorite exhibitors');
-      } else {
-        console.error('Failed to load exhibitor favorites:', exhibitorResponse.message);
-        setExhibitorFavourites([]);
-      }
-      
     } catch (err: any) {
       console.error('Error loading favorites:', err);
       setError(err.message || 'Failed to load favorites');
@@ -341,19 +401,8 @@ export default function FavouritesPage() {
         // Update the UI by removing the exhibitor from the list
         setExhibitorFavourites(prev => prev.filter(exhibitor => exhibitor.id !== exhibitorId));
         
-        // Update localStorage to maintain consistency with iframe pages
-        try {
-          const storageKey = `favorites_${currentUserId}_${identifier}`;
-          const localFavorites = localStorage.getItem(storageKey);
-          if (localFavorites) {
-            const favoritesArray = JSON.parse(localFavorites);
-            const updatedFavorites = favoritesArray.filter((id: number) => id !== parseInt(exhibitorId));
-            localStorage.setItem(storageKey, JSON.stringify(updatedFavorites));
-            console.log('📦 Updated localStorage favorites:', updatedFavorites);
-          }
-        } catch (localError) {
-          console.error('Error updating localStorage:', localError);
-        }
+        // No need to update localStorage - API is the source of truth
+        console.log('✅ Exhibitor removed from favorites via API');
       } else {
         console.error('Failed to remove exhibitor from favorites:', response.message);
         setError(response.message || 'Failed to remove exhibitor from favorites');
@@ -371,11 +420,10 @@ export default function FavouritesPage() {
 
     try {
       setRemovingFavorite(visitorId);
-      // Get current exhibitor ID (defaulting to 10 for now)
-      let currentExhibitorId = getCurrentExhibitorId();
+      // Get current exhibitor ID from token
+      const currentExhibitorId = getCurrentExhibitorId();
       if (!currentExhibitorId) {
-        console.log('🔍 No exhibitor ID found, using default ID 10 for favorites');
-        currentExhibitorId = 10;
+        throw new Error('No exhibitor ID found in token');
       }
 
       const payload: FavoritesRequest = {
@@ -393,19 +441,8 @@ export default function FavouritesPage() {
         // Update the UI by removing the visitor from the list
         setVisitorFavourites(prev => prev.filter(visitor => visitor.id !== visitorId));
         
-        // Update localStorage to maintain consistency with iframe pages
-        try {
-          const storageKey = `visitor_favorites_${currentExhibitorId}_${identifier}`;
-          const localFavorites = localStorage.getItem(storageKey);
-          if (localFavorites) {
-            const favoritesArray = JSON.parse(localFavorites);
-            const updatedFavorites = favoritesArray.filter((id: number) => id !== parseInt(visitorId));
-            localStorage.setItem(storageKey, JSON.stringify(updatedFavorites));
-            console.log('📦 Updated localStorage visitor favorites:', updatedFavorites);
-          }
-        } catch (localError) {
-          console.error('Error updating localStorage:', localError);
-        }
+        // No need to update localStorage - API is the source of truth
+        console.log('✅ Visitor removed from favorites via API');
       } else {
         console.error('Failed to remove visitor from favorites:', response.message);
         setError(response.message || 'Failed to remove visitor from favorites');
@@ -470,7 +507,8 @@ export default function FavouritesPage() {
           </Box> */}
 
           <Paper sx={{ mb: 3, mt:-1 }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
+            <Tabs value={isVisitor ? 1 : tabValue} onChange={isVisitor ? undefined : handleTabChange}>
+              {!isVisitor && (
               <Tab 
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -485,6 +523,8 @@ export default function FavouritesPage() {
                   </Box>
                 } 
               />
+              )}
+              {isVisitor && (
               <Tab 
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -499,12 +539,13 @@ export default function FavouritesPage() {
                   </Box>
                 } 
               />
+              )}
             </Tabs>
           </Paper>
 
           {/* Content based on selected tab */}
-          {tabValue === 0 && (
-            // Visitors Tab
+          {(!isVisitor && tabValue === 0) && (
+            // Visitors Tab (for exhibitors)
             <>
               <Grid container spacing={1.5}>
                 {getFilteredVisitors().map((visitor) => (
@@ -733,8 +774,8 @@ export default function FavouritesPage() {
             </>
           )}
 
-          {tabValue === 1 && (
-            // Exhibitors Tab
+          {(isVisitor || tabValue === 1) && (
+            // Exhibitors Tab (for visitors)
             <>
               <Grid container spacing={1.5}>
                 {getFilteredExhibitors().map((exhibitor) => (
@@ -813,37 +854,40 @@ export default function FavouritesPage() {
                                   {exhibitor.jobTitle}
                                 </Typography>
                               )}
-                              {/* <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                                {exhibitor.customData?.boothNumber && (
-                                  <Chip
-                                    label={exhibitor.customData.boothNumber}
-                                    size="small"
-                                    sx={{ 
-                                      bgcolor: '#e3f2fd',
-                                      color: '#1565c0',
-                                      fontWeight: 500,
-                                      fontSize: '0.75rem',
-                                      height: 24
-                                    }}
-                                  />
-                                )}
-                                {exhibitor.interests.length > 0 && (
-                                  <Chip
-                                    label={`${exhibitor.interests.length} Interest${exhibitor.interests.length > 1 ? 's' : ''}`}
-                                    size="small"
-                                    sx={{ 
-                                      bgcolor: '#e8f5e8',
-                                      color: '#2e7d32',
-                                      fontWeight: 500,
-                                      fontSize: '0.7rem',
-                                      height: 24
-                                    }}
-                                  />
-                                )}
-                              </Box> */}
                             </Box>
                           </Box>
-                          
+                          {/* Heart icon for visitors only */}
+                          {isVisitor && (
+                            <IconButton 
+                              onClick={() => handleToggleExhibitorFavorite(exhibitor.id)}
+                                    size="small"
+                              disabled={removingFavorite === exhibitor.id}
+                                    sx={{ 
+                                color: favoriteExhibitorIds.has(exhibitor.id) ? '#ef4444' : '#b0bec5',
+                                fontSize: 30,
+                              }}
+                            >
+                              {removingFavorite === exhibitor.id ? (
+                                <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+                              ) : favoriteExhibitorIds.has(exhibitor.id) ? (
+                                <Favorite sx={{
+                                  fontSize: 30,
+                                  color: '#ef4444',
+                                  filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
+                                  transform: 'scale(1.1)',
+                                  transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                                  animation: 'heartBeat 0.8s ease-in-out',
+                                }} />
+                              ) : (
+                                <FavoriteBorder sx={{
+                                  fontSize: 30,
+                                  color: '#b0bec5',
+                                }} />
+                              )}
+                            </IconButton>
+                          )}
+                          {/* For non-visitors, keep the remove logic if needed */}
+                          {!isVisitor && (
                           <IconButton 
                             onClick={() => handleRemoveFavourite(exhibitor.id)}
                             size="small"
@@ -851,7 +895,6 @@ export default function FavouritesPage() {
                             sx={{
                               color: '#f44336',
                               fontSize: 30,
-                             
                             }}
                           >
                             {removingFavorite === exhibitor.id ? (
@@ -867,6 +910,7 @@ export default function FavouritesPage() {
                               }} />
                             )}
                           </IconButton>
+                          )}
                         </Box>
 
                         {/* Location and Industry */}

@@ -129,7 +129,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
       ] },
-      { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      // { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
         { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
         { text: 'Theme Settings', href: '#', children: [] },

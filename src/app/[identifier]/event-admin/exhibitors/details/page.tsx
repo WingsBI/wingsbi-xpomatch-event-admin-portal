@@ -48,9 +48,8 @@ export default function ExhibitorDetails() {
       setError(null);
 
       try {
-        // Extract identifier from URL path
         const pathParts = window.location.pathname.split('/');
-        const identifier = pathParts[1]; // Assuming URL pattern: /[identifier]/event-admin/exhibitors/details
+        const identifier = pathParts[1];
 
         console.log('🔍 Fetching exhibitor details:', {
           identifier,
@@ -69,7 +68,6 @@ export default function ExhibitorDetails() {
         });
         
         if (response.isError) {
-          // Provide user-friendly error messages
           let errorMessage = response.message || 'Failed to fetch exhibitor details';
           
           if (response.statusCode === 404) {
@@ -104,27 +102,23 @@ export default function ExhibitorDetails() {
   if (loading) {
     return (
       <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
-        <Container maxWidth="lg" sx={{ mt: 2, mb: 2 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <Skeleton variant="circular" width={80} height={80} />
-                    <Box flex={1}>
-                      <Skeleton variant="text" width="60%" height={32} />
-                      <Skeleton variant="text" width="40%" height={24} />
-                    </Box>
-                  </Box>
-                  <Box mt={3}>
-                    <Skeleton variant="text" width="100%" height={20} />
-                    <Skeleton variant="text" width="80%" height={20} />
-                    <Skeleton variant="text" width="90%" height={20} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+        <Container maxWidth="lg" sx={{ mt: 1, mb: 1 }}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Skeleton variant="circular" width={80} height={80} />
+                <Box flex={1}>
+                  <Skeleton variant="text" width="60%" height={32} />
+                  <Skeleton variant="text" width="40%" height={24} />
+                </Box>
+              </Box>
+              <Box mt={2}>
+                <Skeleton variant="text" width="100%" height={20} />
+                <Skeleton variant="text" width="80%" height={20} />
+                <Skeleton variant="text" width="90%" height={20} />
+              </Box>
+            </CardContent>
+          </Card>
         </Container>
       </RoleBasedRoute>
     );
@@ -133,8 +127,8 @@ export default function ExhibitorDetails() {
   if (error) {
     return (
       <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
-        <Container maxWidth="md" sx={{ mt: 2, mb: 2 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+        <Container maxWidth="md" sx={{ mt: 1, mb: 1 }}>
+          <Alert severity="error">
             {error}
           </Alert>
         </Container>
@@ -145,7 +139,7 @@ export default function ExhibitorDetails() {
   if (!exhibitor) {
     return (
       <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
-        <Container maxWidth="md" sx={{ mt: 2, mb: 2 }}>
+        <Container maxWidth="md" sx={{ mt: 1, mb: 1 }}>
           <Alert severity="info">
             No exhibitor details found
           </Alert>
@@ -156,214 +150,206 @@ export default function ExhibitorDetails() {
 
   return (
     <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
-      <Container maxWidth="lg" sx={{ mt: 2, mb: 2 }}>
-        <Grid container spacing={3}>
-          {/* Main Exhibitor Card */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="flex-start" gap={3}>
-                  <Avatar
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      fontSize: '1.5rem',
-                      fontWeight: 'bold',
-                      bgcolor: 'primary.main',
-                      color: 'white'
-                    }}
-                  >
-                    {exhibitor.companyName ? 
-                      exhibitor.companyName.charAt(0).toUpperCase() : 
-                      getInitials(exhibitor.firstName, exhibitor.lastName)
-                    }
-                  </Avatar>
-                  
-                  <Box flex={1}>
-                    <Typography variant="h4" component="h1" gutterBottom>
-                      {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                    </Typography>
-                    
-                    {exhibitor.jobTitle && (
-                      <Typography variant="h6" color="text.secondary" gutterBottom>
-                        {exhibitor.jobTitle}
-                      </Typography>
-                    )}
-
-                    <Box display="flex" flexWrap="wrap" gap={1} mt={2}>
-                      {exhibitor.boothNumber && (
-                        <Chip
-                          icon={<Business />}
-                          label={`Booth: ${exhibitor.boothNumber}`}
-                          color="primary"
-                          variant="outlined"
-                        />
-                      )}
-                      {exhibitor.industry && (
-                        <Chip
-                          icon={<Work />}
-                          label={exhibitor.industry}
-                          variant="outlined"
-                        />
-                      )}
-                      {exhibitor.location && (
-                        <Chip
-                          icon={<LocationOn />}
-                          label={exhibitor.location}
-                          variant="outlined"
-                        />
-                      )}
-                    </Box>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Contact Information */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Contact Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                
-                <Box display="flex" flexDirection="column" gap={2}>
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <Email color="action" />
-                    <Typography>{exhibitor.email}</Typography>
-                  </Box>
-                  
-                  {exhibitor.phoneNumber && (
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Phone color="action" />
-                      <Typography>{exhibitor.phoneNumber}</Typography>
-                    </Box>
+      <Container maxWidth="lg" sx={{ mt: 1, mb: 1 }}>
+        <Card>
+          <CardContent sx={{ p: 2 }}>
+            {/* Header Section */}
+            <Box display="flex" alignItems="flex-start" gap={2} mb={2}>
+              <Avatar
+                sx={{
+                  width: 60,
+                  height: 60,
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  bgcolor: 'primary.main',
+                  color: 'white'
+                }}
+              >
+                {exhibitor.companyName ? 
+                  exhibitor.companyName.charAt(0).toUpperCase() : 
+                  getInitials(exhibitor.firstName, exhibitor.lastName)
+                }
+              </Avatar>
+              <Box flex={1}>
+                <Box display="flex" alignItems="center" gap={8}>
+                  <Typography variant="h5" component="h1" sx={{ whiteSpace: 'nowrap' }}>
+                    {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                  </Typography>
+                  {exhibitor.boothNumber && (
+                    <Chip
+                      icon={<Business />}
+                      label={`Booth: ${exhibitor.boothNumber}`}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                      sx={{ ml: -4 }}
+                    />
                   )}
-                  
-                  {exhibitor.website && (
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Language color="action" />
-                      <Typography 
-                        component="a" 
-                        href={exhibitor.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                      >
-                        {exhibitor.website}
-                      </Typography>
-                    </Box>
+                  {exhibitor.industry && (
+                    <Chip
+                      icon={<Work />}
+                      label={exhibitor.industry}
+                      variant="outlined"
+                      size="small"
+                      sx={{ ml: -4 }}
+                    />
                   )}
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                {exhibitor.jobTitle && (
+                  <Typography variant="subtitle1" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {exhibitor.jobTitle}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
 
-          {/* Company Details */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Company Details
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                
-                <Box display="flex" flexDirection="column" gap={2}>
-                  {exhibitor.companyDescription && (
-                    <Typography variant="body2" color="text.secondary">
-                      {exhibitor.companyDescription}
-                    </Typography>
-                  )}
-                  
-                  {exhibitor.products && exhibitor.products.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Products & Services:
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={0.5}>
-                        {exhibitor.products.slice(0, 5).map((product: string, index: number) => (
-                          <Chip
-                            key={index}
-                            label={product}
-                            size="small"
-                            variant="outlined"
-                          />
-                        ))}
-                        {exhibitor.products.length > 5 && (
-                          <Chip
-                            label={`+${exhibitor.products.length - 5} more`}
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+            <Divider sx={{ mb: 2 }} />
+            
+            {/* Info Section: single two-column Grid, no vertical gaps, only show fields with data */}
+            {(() => {
+              // Build the info array
+              const infoItems = [
+                exhibitor.email && { label: 'Email', value: exhibitor.email },
+                exhibitor.phoneNumber && { label: 'Phone', value: exhibitor.phoneNumber },
+                exhibitor.mobileNumber && { label: 'Mobile', value: exhibitor.mobileNumber },
+                exhibitor.companyName && { label: 'Company Name', value: exhibitor.companyName },
+                exhibitor.companyType && { label: 'Type', value: exhibitor.companyType },
+                exhibitor.companyDescription && { label: 'Description', value: exhibitor.companyDescription },
+                exhibitor.industry && { label: 'Industry', value: exhibitor.industry },
+                exhibitor.website && { label: 'Website', value: exhibitor.website },
+                exhibitor.webSite && { label: 'Web Site', value: exhibitor.webSite },
+                exhibitor.companyLogoPath && { label: 'Logo', value: <img src={exhibitor.companyLogoPath} alt="logo" width={40} /> },
+                exhibitor.city && { label: 'City', value: exhibitor.city },
+                exhibitor.boothNumber && { label: 'Booth Number', value: exhibitor.boothNumber },
+                exhibitor.stand && { label: 'Stand', value: exhibitor.stand },
+                exhibitor.boothSize && { label: 'Booth Size', value: exhibitor.boothSize },
+                exhibitor.hall && { label: 'Hall', value: exhibitor.hall },
+                exhibitor.location && { label: 'Location', value: exhibitor.location },
+                exhibitor.address && { label: 'Address', value: exhibitor.address },
+                exhibitor.country && { label: 'Country', value: exhibitor.country },
+                exhibitor.status && { label: 'Status', value: exhibitor.status },
+                exhibitor.registrationDate && { label: 'Registration Date', value: exhibitor.registrationDate },
+                exhibitor.lastLoginDate && { label: 'Last Login', value: exhibitor.lastLoginDate },
+                exhibitor.createdAt && { label: 'Created At', value: exhibitor.createdAt },
+                exhibitor.updatedAt && { label: 'Updated At', value: exhibitor.updatedAt },
+                exhibitor.isActive !== undefined && { label: 'Active', value: exhibitor.isActive ? 'Yes' : 'No' },
+                exhibitor.interests && exhibitor.interests.length > 0 && { label: 'Interests', value: exhibitor.interests.join(', ') },
+                exhibitor.lookingFor && exhibitor.lookingFor.length > 0 && { label: 'Looking For', value: exhibitor.lookingFor.join(', ') },
+                exhibitor.products && exhibitor.products.length > 0 && { label: 'Products', value: exhibitor.products.join(', ') },
+                exhibitor.experience && { label: 'Experience', value: exhibitor.experience },
+                exhibitor.matchScore !== undefined && { label: 'Match Score', value: exhibitor.matchScore },
+              ].filter(Boolean) as { label: string; value: React.ReactNode }[];
 
-          {/* Additional Information */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Additional Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                
+              // Swap Address and Booth Size if both exist
+             
+              const boothSizeIdx = infoItems.findIndex(i => i.label === 'Booth Size');
+             
+  
+              return (
                 <Grid container spacing={2}>
-                  {exhibitor.status && (
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Status
-                      </Typography>
-                      <Typography variant="body1">
-                        {exhibitor.status.charAt(0).toUpperCase() + exhibitor.status.slice(1)}
-                      </Typography>
+                  {infoItems.map((item, idx) => (
+                    <Grid item xs={12} sm={6} key={idx}>
+                      <Box>
+                        <b>{item.label}:</b> {item.value}
+                      </Box>
                     </Grid>
-                  )}
-                  
-                  {exhibitor.registrationDate && (
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Registration Date
-                      </Typography>
-                      <Typography variant="body1">
-                        {new Date(exhibitor.registrationDate).toLocaleDateString()}
-                      </Typography>
-                    </Grid>
-                  )}
-                  
-                  {exhibitor.boothSize && (
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Booth Size
-                      </Typography>
-                      <Typography variant="body1">
-                        {exhibitor.boothSize}
-                      </Typography>
-                    </Grid>
-                  )}
-                  
-                  {exhibitor.companyType && (
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Company Type
-                      </Typography>
-                      <Typography variant="body1">
-                        {exhibitor.companyType}
-                      </Typography>
-                    </Grid>
-                  )}
+                  ))}
                 </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+              );
+            })()}
+            {/* Nested: exhibitorProfile */}
+            {exhibitor.exhibitorProfile && exhibitor.exhibitorProfile.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Exhibitor Profile</Typography>
+                <Box>
+                  {exhibitor.exhibitorProfile.map((profile, idx) => (
+                    <Box key={profile.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                      <div><b>Company Profile:</b> {profile.companyProfile}</div>
+                      <div><b>Listing As:</b> {profile.listingAs}</div>
+                      <div><b>Receive Email Enquiries:</b> {profile.receiveEmailEnquiries}</div>
+                      <div><b>Social:</b> {[
+                        profile.twitterLink && `twitterLink: ${profile.twitterLink}`,
+                        profile.linkedInLink && `linkedInLink: ${profile.linkedInLink}`,
+                        profile.instagramLink && `instagramLink: ${profile.instagramLink}`,
+                        profile.youTubeLink && `youTubeLink: ${profile.youTubeLink}`,
+                        profile.faceBoolLink && `faceBoolLink: ${profile.faceBoolLink}`
+                      ].filter(Boolean).join(', ')}</div>
+                      <div><b>ISO Certificates:</b> {profile.isoCertificates}</div>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+            )}
+            {/* Nested: exhibitorAddress */}
+            {exhibitor.exhibitorAddress && exhibitor.exhibitorAddress.length > 0 && (
+              <Grid item xs={12}>
+                 
+                <Box>
+                  {exhibitor.exhibitorAddress.map((addr, idx) => (
+                    <Box key={addr.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                       
+                      <div><b>City:</b> {addr.city}</div>
+                      <div><b>State/Province:</b> {addr.stateProvince}</div>
+                      <div><b>Zip/Postal Code:</b> {addr.zipPostalCode}</div>
+                      <div><b>PO Box:</b> {addr.poBox}</div>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+            )}
+            {/* Nested: exhibitorToUserMaps */}
+            {exhibitor.exhibitorToUserMaps && exhibitor.exhibitorToUserMaps.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Exhibitor Contacts</Typography>
+                <Box>
+                  {exhibitor.exhibitorToUserMaps.map((user, idx) => (
+                    <Box key={user.exhibitorUserMapId || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                      <div><b>Name:</b> {user.salutation} {user.firstName} {user.middleName} {user.lastName}</div>
+                      <div><b>Email:</b> {user.email}</div>
+                      <div><b>Role:</b> {user.roleName}</div>
+                      <div><b>Phone:</b> {user.phone}</div>
+                      <div><b>Designation:</b> {user.designation}</div>
+                      <div><b>LinkedIn:</b> {user.linkedInProfile}</div>
+                      <div><b>Instagram:</b> {user.instagramProfile}</div>
+                      <div><b>GitHub:</b> {user.gitHubProfile}</div>
+                      <div><b>Twitter:</b> {user.twitterProfile}</div>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+            )}
+            {/* Nested: product */}
+            {exhibitor.product && exhibitor.product.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Products</Typography>
+                <Box>
+                  {exhibitor.product.map((prod, idx) => (
+                    <Box key={prod.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                      <div><b>Title:</b> {prod.title}</div>
+                      <div><b>Category:</b> {prod.category}</div>
+                      <div><b>Description:</b> {prod.description}</div>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+            )}
+            {/* Nested: brand */}
+            {exhibitor.brand && exhibitor.brand.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Brands</Typography>
+                <Box>
+                  {exhibitor.brand.map((brand, idx) => (
+                    <Box key={brand.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                      <div><b>Name:</b> {brand.brandName}</div>
+                      <div><b>Category:</b> {brand.category}</div>
+                      <div><b>Description:</b> {brand.description}</div>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+            )}
+          </CardContent>
+        </Card>
       </Container>
     </RoleBasedRoute>
   );

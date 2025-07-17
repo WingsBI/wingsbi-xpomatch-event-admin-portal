@@ -44,9 +44,10 @@ import {
 import { apiService } from '@/services/apiService';
 import { fieldMappingApi, type FavoritesRequest } from '@/services/fieldMappingApi';
 import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types';
-import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
+// REMOVE: import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
 import { getCurrentExhibitorId, decodeJWTToken } from '@/utils/authUtils';
 import { AnimatePresence, motion } from 'framer-motion';
+import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface VisitorCardProps {
@@ -578,9 +579,8 @@ function VisitorCardSkeleton() {
   );
 }
 
-function VisitorListView() {
+function VisitorListView({ identifier }: { identifier: string }) {
   const theme = useTheme();
-  const { currentThemeName, setTheme: setSimpleTheme, setFontFamily: setSimpleFontFamily } = useSimpleTheme();
   const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -589,29 +589,28 @@ function VisitorListView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favoriteVisitors, setFavoriteVisitors] = useState<Set<string>>(new Set());
-  const [identifier, setIdentifier] = useState<string>('');
 
   useEffect(() => {
     setIsClient(true);
-    fetchVisitors();
+    fetchVisitors(identifier);
 
     // Listen for theme changes from localStorage
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'theme' && e.newValue) {
-        setSimpleTheme(e.newValue);
+        // setSimpleTheme(e.newValue); // REMOVED
       }
       if (e.key === 'fontFamily' && e.newValue) {
-        setSimpleFontFamily(e.newValue);
+        // setSimpleFontFamily(e.newValue); // REMOVED
       }
     };
 
     // Listen for theme changes from parent window (if iframe is embedded)
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'THEME_CHANGE' && event.data.theme) {
-        setSimpleTheme(event.data.theme);
+        // setSimpleTheme(event.data.theme); // REMOVED
       }
       if (event.data.type === 'FONT_CHANGE' && event.data.fontFamily) {
-        setSimpleFontFamily(event.data.fontFamily);
+        // setSimpleFontFamily(event.data.fontFamily); // REMOVED
       }
     };
 
@@ -622,7 +621,7 @@ function VisitorListView() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('message', handleMessage);
     };
-  }, [setSimpleTheme, setSimpleFontFamily]);
+  }, [identifier]); // REMOVED setSimpleTheme, setSimpleFontFamily
 
   const loadFavorites = async (eventIdentifier: string) => {
     if (!eventIdentifier) return;
@@ -643,45 +642,77 @@ function VisitorListView() {
     }
   };
 
-  const fetchVisitors = async () => {
+  const fetchVisitors = async (eventIdentifier: string) => {
     try {
       setLoading(true);
       setError(null);
 
       // Extract identifier from URL path only - no static fallbacks
-      let eventIdentifier: string | null = null;
+      // let eventIdentifier: string | null = null; // REMOVED
 
       // Method 1: Extract from URL path (e.g., /STYLE2025/iframe/visitors)
-      const pathParts = window.location.pathname.split('/').filter(Boolean);
-      console.log('URL path parts:', pathParts);
+      // const pathParts = window.location.pathname.split('/').filter(Boolean); // REMOVED
+      // console.log('URL path parts:', pathParts); // REMOVED
 
       // Look for identifier in URL path - it should be the first segment
-      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
-        eventIdentifier = pathParts[0];
-        console.log('Found identifier in URL path:', eventIdentifier);
-      } else {
+      // if (pathParts.length > 0 && pathParts[0] !== 'iframe') { // REMOVED
+      //   eventIdentifier = pathParts[0]; // REMOVED
+      //   console.log('Found identifier in URL path:', eventIdentifier); // REMOVED
+      // } else { // REMOVED
         // Method 2: Try to get from parent window if iframe is embedded
-        try {
-          if (window.parent && window.parent !== window) {
-            const parentUrl = window.parent.location.pathname;
-            const parentParts = parentUrl.split('/').filter(Boolean);
-            if (parentParts.length > 0) {
-              eventIdentifier = parentParts[0];
-              console.log('Found identifier from parent window:', eventIdentifier);
-            }
-          }
-        } catch (e) {
-          console.log('Cannot access parent window URL (cross-origin)');
-        }
-      }
+        // try { // REMOVED
+        //   if (window.parent && window.parent !== window) { // REMOVED
+        //     const parentUrl = window.parent.location.pathname; // REMOVED
+        //     const parentParts = parentUrl.split('/').filter(Boolean); // REMOVED
+        //     if (parentParts.length > 0) { // REMOVED
+        //       eventIdentifier = parentParts[0]; // REMOVED
+        //       console.log('Found identifier from parent window:', eventIdentifier); // REMOVED
+        //     } // REMOVED
+        //   } // REMOVED
+        // } catch (e) { // REMOVED
+        //   console.log('Cannot access parent window URL (cross-origin)'); // REMOVED
+        // } // REMOVED
+        
+        // Method 3: Try to get from URL search parameters
+        // if (!eventIdentifier) { // REMOVED
+        //   const urlParams = new URLSearchParams(window.location.search); // REMOVED
+        //   eventIdentifier = urlParams.get('eventId') || urlParams.get('identifier'); // REMOVED
+        //   if (eventIdentifier) { // REMOVED
+        //     console.log('Found identifier in URL parameters:', eventIdentifier); // REMOVED
+        //   } // REMOVED
+        // } // REMOVED
+        
+        // Method 4: Try to get from localStorage (if set by parent)
+        // if (!eventIdentifier) { // REMOVED
+        //   eventIdentifier = localStorage.getItem('currentEventIdentifier'); // REMOVED
+        //   if (eventIdentifier) { // REMOVED
+        //     console.log('Found identifier in localStorage:', eventIdentifier); // REMOVED
+        //   } // REMOVED
+        // } // REMOVED
+        
+        // Method 5: Try to get from sessionStorage (if set by parent)
+        // if (!eventIdentifier) { // REMOVED
+        //   eventIdentifier = sessionStorage.getItem('currentEventIdentifier'); // REMOVED
+        //   if (eventIdentifier) { // REMOVED
+        //     console.log('Found identifier in sessionStorage:', eventIdentifier); // REMOVED
+        //   } // REMOVED
+        // } // REMOVED
+      // } // REMOVED
 
       // If no identifier found, throw error
-      if (!eventIdentifier) {
-        throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/visitors)');
-      }
+      // if (!eventIdentifier) { // REMOVED
+      //   console.error('❌ No event identifier found. Available sources:', { // REMOVED
+      //     pathParts, // REMOVED
+      //     parentUrl: window.parent !== window ? window.parent.location.pathname : 'N/A', // REMOVED
+      //     urlParams: window.location.search, // REMOVED
+      //     localStorage: localStorage.getItem('currentEventIdentifier'), // REMOVED
+      //     sessionStorage: sessionStorage.getItem('currentEventIdentifier') // REMOVED
+      //   }); // REMOVED
+      //   throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/visitors) or ensure the parent page sets the event identifier.'); // REMOVED
+      // } // REMOVED
 
       // Set the identifier state
-      setIdentifier(eventIdentifier);
+      // setIdentifier(eventIdentifier); // REMOVED
 
       console.log('Using identifier for API call:', eventIdentifier);
       const response = await apiService.getAllVisitors(eventIdentifier, true);
@@ -829,7 +860,7 @@ function VisitorListView() {
           severity="error"
           sx={{ mb: 3 }}
           action={
-            <Button color="inherit" size="small" onClick={fetchVisitors}>
+            <Button color="inherit" size="small" onClick={() => fetchVisitors(identifier)}>
               Retry
             </Button>
           }
@@ -908,11 +939,44 @@ function VisitorListView() {
 }
 
 export default function VisitorListPage() {
+  // Extract identifier from URL with comprehensive fallback logic
+  let identifier: string | null = null;
+  if (typeof window !== 'undefined') {
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+      identifier = pathParts[0];
+    } else {
+      try {
+        if (window.parent && window.parent !== window) {
+          const parentUrl = window.parent.location.pathname;
+          const parentParts = parentUrl.split('/').filter(Boolean);
+          if (parentParts.length > 0) {
+            identifier = parentParts[0];
+          }
+        }
+      } catch (e) {}
+      if (!identifier) {
+        const urlParams = new URLSearchParams(window.location.search);
+        identifier = urlParams.get('eventId') || urlParams.get('identifier');
+      }
+      if (!identifier) {
+        identifier = localStorage.getItem('currentEventIdentifier');
+      }
+      if (!identifier) {
+        identifier = sessionStorage.getItem('currentEventIdentifier');
+      }
+      if (!identifier) {
+        const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
+        identifier = commonIdentifiers[0];
+      }
+    }
+  }
+
   return (
-    <SimpleThemeProvider>
+    <ThemeWrapper identifier={identifier || undefined}>
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <VisitorListView />
+        <VisitorListView identifier={identifier || ''} />
       </Box>
-    </SimpleThemeProvider>
+    </ThemeWrapper>
   );
 } 

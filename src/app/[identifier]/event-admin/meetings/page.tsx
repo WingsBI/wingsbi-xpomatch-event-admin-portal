@@ -308,7 +308,23 @@ export default function MeetingsPage() {
   const loadEventDetails = useCallback(async () => {
     try {
       setEventLoading(true);
+      
+      if (!identifier) {
+        console.warn('⚠️ No identifier available for meetings page event details load');
+        return;
+      }
+      
+      console.log('🔍 Loading event details in meetings page for identifier:', identifier);
       const response = await eventsApi.getEventDetails(identifier);
+      
+      console.log('🔍 Meetings page event details response:', {
+        success: response.success,
+        status: response.status,
+        hasData: !!response.data,
+        hasResult: !!(response.data?.result),
+        resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
+        resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
+      });
       
       if (response.success && response.data?.result && response.data.result.length > 0) {
         const eventData = response.data.result[0];
@@ -317,9 +333,19 @@ export default function MeetingsPage() {
           eventData.title = eventData.title.replace(/exhibitor/gi, '').trim();
         }
         setEventDetails(eventData);
+        console.log('✅ Event details loaded in meetings page:', eventData.title);
+      } else {
+        console.warn('⚠️ No event details found in meetings page response:', response);
       }
-    } catch (error) {
-      console.error('Error loading event details:', error);
+    } catch (error: any) {
+      console.error('❌ Error loading event details in meetings page:', {
+        message: error.message,
+        status: error.response?.status,
+        identifier
+      });
+      
+      // Don't set error state to avoid breaking the UI
+      // Just log the error for debugging
     } finally {
       setEventLoading(false);
     }
@@ -330,7 +356,24 @@ export default function MeetingsPage() {
     const loadEventDetails = async () => {
       try {
         setEventLoading(true);
+        
+        if (!identifier) {
+          console.warn('⚠️ No identifier available for meetings page useEffect event details load');
+          return;
+        }
+        
+        console.log('🔍 Loading event details in meetings page useEffect for identifier:', identifier);
         const response = await eventsApi.getEventDetails(identifier);
+        
+        console.log('🔍 Meetings page useEffect event details response:', {
+          success: response.success,
+          status: response.status,
+          hasData: !!response.data,
+          hasResult: !!(response.data?.result),
+          resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
+          resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
+        });
+        
         if (response.success && response.data?.result && response.data.result.length > 0) {
           const eventData = response.data.result[0];
           // Clean the event title by removing "exhibitor" text (case insensitive)
@@ -338,15 +381,26 @@ export default function MeetingsPage() {
             eventData.title = eventData.title.replace(/exhibitor/gi, '').trim();
           }
           setEventDetails(eventData);
+          console.log('✅ Event details loaded in meetings page useEffect:', eventData.title);
+          
           // Set initial week to event start date if available
           if (eventData.startDateTime) {
             const eventStartDate = new Date(eventData.startDateTime);
             const weekStart = getWeekStart(eventStartDate);
             setCurrentWeekStart(weekStart);
           }
+        } else {
+          console.warn('⚠️ No event details found in meetings page useEffect response:', response);
         }
-      } catch (error) {
-        console.error('Error loading event details:', error);
+      } catch (error: any) {
+        console.error('❌ Error loading event details in meetings page useEffect:', {
+          message: error.message,
+          status: error.response?.status,
+          identifier
+        });
+        
+        // Don't set error state to avoid breaking the UI
+        // Just log the error for debugging
       } finally {
         setEventLoading(false);
       }

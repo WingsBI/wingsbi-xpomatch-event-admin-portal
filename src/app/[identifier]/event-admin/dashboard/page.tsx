@@ -288,7 +288,7 @@ export default function EventAdminDashboard() {
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
         fieldMappingApi.suggestMapping(identifier, file),
-        fieldMappingApi.getAllStandardFields(identifier)
+        fieldMappingApi.getAllExhibitorStandardFields(identifier)
       ]);
       
       console.log('Suggest mapping response:', suggestResponse);
@@ -417,7 +417,7 @@ export default function EventAdminDashboard() {
       title: 'Total Visitors',
       value: stats?.registeredVisitors || 0,
       icon: <Person sx={{ fontSize: 40 }} />,
-      color: 'warning',
+      color: '#2e7d32',
       subtitle: `${visitors.filter(v => v.status === 'registered').length} registered`,
       action: {
         label: 'Add Visitors',
@@ -429,7 +429,7 @@ export default function EventAdminDashboard() {
       title: 'Total Exhibitors',
       value: stats?.registeredExhibitors || 0,
       icon: <Business sx={{ fontSize: 40 }} />,
-      color: 'warning',
+      color: '#ed6c02',
       subtitle: `${exhibitors.filter(e => e.status === 'registered').length} registered`,
       action: {
         label: 'Add Exhibitors',
@@ -441,7 +441,7 @@ export default function EventAdminDashboard() {
       title: 'Pending Invitations',
       value: stats?.pendingInvitations || 0,
       icon: <Email sx={{ fontSize: 40 }} />,
-      color: 'warning',
+      color: '#dc004e',
       subtitle: 'Awaiting response',
       action: {
         label: 'Send Invitations',
@@ -452,6 +452,7 @@ export default function EventAdminDashboard() {
   ];
 
   return (
+    
     <RoleBasedRoute allowedRoles={['event-admin']}  >
       <ResponsiveDashboardLayout 
         title={
@@ -472,7 +473,7 @@ export default function EventAdminDashboard() {
                   </Box>
                 </Box>
               )}
-                renderInput={(params) => (
+               renderInput={(params) => (
                 <TextField
                   {...params}
                   placeholder="Search Anything..."

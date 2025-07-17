@@ -102,7 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         if (userRole === 'visitor') {
           // Redirect visitor to exhibitors matching page
-          router.push(`/${eventId}/event-admin/exhibitors/matching`);
+          router.push(`/${eventId}/event-admin/dashboard/visitor_dashboard`);
         } else if (userRole === 'exhibitor') {
           // Redirect exhibitor to exhibitor dashboard
           router.push(`/${eventId}/event-admin/dashboard/exhibitor_dashboard`);

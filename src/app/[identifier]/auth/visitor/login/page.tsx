@@ -54,7 +54,7 @@ export default function VisitorLoginPage() {
         sessionStorage.setItem('userEmail', data.email);
         
         // Redirect to visitor dashboard
-        router.push(`/${identifier}/event-admin/exhibitors`);
+        router.push(`/${identifier}/event-admin/exhibitors/details`);
       } else {
         setError('Please enter valid credentials');
       }

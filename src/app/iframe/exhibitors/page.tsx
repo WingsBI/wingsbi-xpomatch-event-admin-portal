@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Card,
@@ -42,7 +43,7 @@ import {
 } from '@mui/icons-material';
 
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
-import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
+import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
 import { getCurrentUserId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
@@ -144,6 +145,7 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
 
 function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFavorite, onFavoriteToggle }: ExhibitorCardProps) {
   const theme = useTheme();
+  const router = useRouter();
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
   // Debug website data
@@ -157,6 +159,26 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
     });
   }, [exhibitor.customData?.website, exhibitor.id, exhibitor.company]);
   
+  const handleExhibitorNameClick = () => {
+    console.log('🔍 Exhibitor name clicked:', {
+      exhibitorId: exhibitor.id,
+      exhibitorIdType: typeof exhibitor.id,
+      identifier,
+      identifierType: typeof identifier,
+      fullUrl: `/${identifier}/event-admin/exhibitors/details?exhibitorId=${exhibitor.id}`,
+      exhibitorData: {
+        id: exhibitor.id,
+        firstName: exhibitor.firstName,
+        lastName: exhibitor.lastName,
+        company: exhibitor.company
+      },
+      // Debug: Check if this exhibitor exists in the current list
+      availableExhibitorIds: window.location.pathname.includes('iframe') ? 'Check console for loaded exhibitors' : 'Not in iframe context'
+    });
+    
+    router.push(`/${identifier}/event-admin/exhibitors/details?exhibitorId=${exhibitor.id}`);
+  };
+
   const handleFavoriteClick = async (event?: React.MouseEvent) => {
     event?.preventDefault();
     event?.stopPropagation();
@@ -277,7 +299,31 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
             {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
-            <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
+            <Typography 
+              variant="body2" 
+              component="div" 
+              fontWeight="600" 
+              onClick={handleExhibitorNameClick}
+              sx={{ 
+                ml: 0, 
+                minHeight: '1.2rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5, 
+                lineHeight: 1.2, 
+                wordBreak: 'break-word',
+                cursor: 'pointer',
+                color: 'primary.main',
+                textDecoration: 'underline',
+                textDecorationColor: 'transparent',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: 'primary.dark',
+                  textDecorationColor: 'currentColor',
+                  transform: 'translateY(-1px)'
+                }
+              }}
+            >
               {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
             </Typography>
             {exhibitor.jobTitle && (
@@ -544,17 +590,15 @@ function ExhibitorCardSkeleton() {
   );
 }
 
-function ExhibitorListView() {
+function ExhibitorListView({ identifier }: { identifier: string }) {
   const theme = useTheme();
-  const { currentThemeName, setTheme: setSimpleTheme, setFontFamily: setSimpleFontFamily } = useSimpleTheme();
-  const [exhibitors, setExhibitors] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterExperience, setFilterExperience] = useState('all');
-  const [identifier, setIdentifier] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
+  const [exhibitors, setExhibitors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [visitorInterests, setVisitorInterests] = useState<string[]>([]);
   const [favoriteExhibitors, setFavoriteExhibitors] = useState<Set<string>>(new Set());
 
@@ -565,35 +609,6 @@ function ExhibitorListView() {
   useEffect(() => {
     fetchExhibitors();
   }, []);
-
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'theme' && e.newValue) {
-        setSimpleTheme(e.newValue);
-      }
-      if (e.key === 'fontFamily' && e.newValue) {
-        setSimpleFontFamily(e.newValue);
-      }
-    };
-
-    // Listen for theme changes from parent window (if iframe is embedded)
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'THEME_CHANGE' && event.data.theme) {
-        setSimpleTheme(event.data.theme);
-      }
-      if (event.data.type === 'FONT_CHANGE' && event.data.fontFamily) {
-        setSimpleFontFamily(event.data.fontFamily);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('message', handleMessage);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [setSimpleTheme, setSimpleFontFamily]);
 
   // Load all favorite statuses in one API call
   const loadFavoriteStatuses = async (eventIdentifier: string) => {
@@ -663,9 +678,6 @@ function ExhibitorListView() {
       if (!eventIdentifier) {
         throw new Error('No event identifier found in URL. Please access this page through a valid event URL (e.g., /STYLE2025/iframe/exhibitors)');
       }
-
-      // Set the identifier state
-      setIdentifier(eventIdentifier);
 
       console.log('Using identifier for API call:', eventIdentifier);
       const response = await fieldMappingApi.getAllExhibitors(eventIdentifier);
@@ -810,13 +822,25 @@ function ExhibitorListView() {
         </Box>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <Box display="flex" justifyContent="center" alignItems="center" py={8}>
+          <CircularProgress size={48} />
+          <Typography variant="body1" sx={{ ml: 2 }}>
+            Loading Exhibitors...
+          </Typography>
+        </Box>
+      )}
+
       {/* Results Count */}
+      {!loading && !error && (
       <Box mb={2}>
         <Typography variant="body2" color="text.secondary">
           {loading ? 'Loading exhibitors...' : `Showing ${filteredExhibitors.length} of ${exhibitors.length} exhibitors`}
           {exhibitors.length > 0 }
         </Typography>
       </Box>
+      )}
 
       {/* Error Alert */}
       {error && !loading && (
@@ -891,11 +915,48 @@ function ExhibitorListView() {
 }
 
 export default function ExhibitorListPage() {
+  // We need to extract the identifier using the same logic as ExhibitorListView
+  // But since ExhibitorListView already computes currentIdentifier, we can lift this logic up
+  // Instead, let's move the identifier extraction to the top-level page and pass it to ThemeWrapper
+
+  // Extract identifier from URL with comprehensive fallback logic
+  let identifier: string | null = null;
+  if (typeof window !== 'undefined') {
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+      identifier = pathParts[0];
+    } else {
+      try {
+        if (window.parent && window.parent !== window) {
+          const parentUrl = window.parent.location.pathname;
+          const parentParts = parentUrl.split('/').filter(Boolean);
+          if (parentParts.length > 0) {
+            identifier = parentParts[0];
+          }
+        }
+      } catch (e) {}
+      if (!identifier) {
+        const urlParams = new URLSearchParams(window.location.search);
+        identifier = urlParams.get('eventId') || urlParams.get('identifier');
+      }
+      if (!identifier) {
+        identifier = localStorage.getItem('currentEventIdentifier');
+      }
+      if (!identifier) {
+        identifier = sessionStorage.getItem('currentEventIdentifier');
+      }
+      if (!identifier) {
+        const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
+        identifier = commonIdentifiers[0];
+      }
+    }
+  }
+
   return (
-    <SimpleThemeProvider>
+    <ThemeWrapper identifier={identifier || undefined}>
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <ExhibitorListView />
-    </Box>
-    </SimpleThemeProvider>
+        <ExhibitorListView identifier={identifier || ''} />
+      </Box>
+    </ThemeWrapper>
   );
 } 

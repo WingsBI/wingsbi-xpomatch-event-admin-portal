@@ -165,15 +165,7 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
         </DialogTitle>
 
         <DialogContent sx={{ pt: 3 }}>
-          {/* Loading State */}
-          {loading && (
-            <Box display="flex" justifyContent="center" alignItems="center" py={4}>
-              <CircularProgress />
-              <Typography variant="body2" sx={{ ml: 2 }}>
-                Loading theme settings...
-              </Typography>
-            </Box>
-          )}
+        
 
           {/* Error Messages */}
           {error && (

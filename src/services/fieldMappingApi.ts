@@ -73,6 +73,57 @@ export interface ExhibitorRegistrationResponse {
   };
 }
 
+export interface Visitor {
+  VisitorId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  companyName?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  status?: 'active' | 'inactive' | 'pending' | 'registered' | 'checked-in' | 'invited';
+  registrationDate: string;
+  lastLoginDate?: string;
+  jobTitle?: string;
+  salutation?: string;
+  middleName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  interests?: string[];
+  avatar?: string;
+  invitationSent?: boolean;
+  invitationDate?: string;
+  checkedIn?: boolean;
+  lastActivity?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  industry?: string;
+  experience?: string;
+  matchScore?: number;
+  lookingFor?: string[];
+  companyDescription?: string;
+  products?: string[];
+  boothNumber?: string;
+  boothSize?: string;
+  website?: string;
+  location?: string;
+  companyType?: string;
+  hall?: string;
+  stand?: string;
+  telephone?: string;
+  mobileNumber?: string;
+  webSite?: string;
+  companyLogoPath?: string;
+  profileId?: number;
+  addressId?: number;
+  isActive?: boolean;
+  createdBy?: number;
+  createdDate?: string;
+  modifiedBy?: number;
+  
+}
 export interface Exhibitor {
   // Current API fields
   id: number;
@@ -1400,6 +1451,67 @@ class FieldMappingApiService {
       return data;
     } catch (error) {
       console.error('Error getting exhibitor favorite visitors:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Get visitor by ID
+   */
+  async getVisitorById(identifier: string, visitorId: number): Promise<any> {
+    try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/getVisitorById?visitorId=${visitorId}`;
+      const headers = this.getAuthHeaders();
+
+      console.log('🔍 GET VISITOR BY ID API CALL STARTING');
+      console.log('🔍 URL:', apiUrl);
+      console.log('🔍 Visitor ID:', visitorId);
+      console.log('🔍 Headers:', headers);
+      console.log('🔍 Auth Token:', this.getAuthToken() ? 'Present' : 'Missing');
+      console.log('🔍 Base URL:', this.baseURL);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Get visitor by ID response status:', response.status);
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: Failed to get visitor details`;
+        let responseData = null;
+        try {
+          const responseText = await response.text();
+          if (responseText.trim()) {
+            responseData = JSON.parse(responseText);
+            errorMessage = responseData.message || errorMessage;
+          }
+        } catch (parseError) {
+          console.log('⚠️ Could not parse error response body:', parseError);
+        }
+        return {
+          version: null,
+          statusCode: response.status,
+          message: errorMessage,
+          isError: true,
+          responseException: responseData?.responseException || null,
+          result: []
+        };
+      }
+      const data = await response.json();
+      console.log('✅ Get visitor by ID response data:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error getting visitor by ID:', error);
       return {
         version: null,
         statusCode: 500,

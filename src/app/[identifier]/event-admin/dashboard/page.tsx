@@ -418,9 +418,10 @@ export default function EventAdminDashboard() {
       value: stats?.registeredVisitors || 0,
       icon: <Person sx={{ fontSize: 40 }} />,
       color: '#2e7d32',
+    
       subtitle: `${visitors.filter(v => v.status === 'registered').length} registered`,
       action: {
-        label: 'Add Visitors',
+        label: 'Add Visitors' ,
         icon: <Add />,
         onClick: handleUploadVisitors,
       }

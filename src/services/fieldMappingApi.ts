@@ -73,6 +73,57 @@ export interface ExhibitorRegistrationResponse {
   };
 }
 
+export interface Visitor {
+  VisitorId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  companyName?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  status?: 'active' | 'inactive' | 'pending' | 'registered' | 'checked-in' | 'invited';
+  registrationDate: string;
+  lastLoginDate?: string;
+  jobTitle?: string;
+  salutation?: string;
+  middleName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  interests?: string[];
+  avatar?: string;
+  invitationSent?: boolean;
+  invitationDate?: string;
+  checkedIn?: boolean;
+  lastActivity?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  industry?: string;
+  experience?: string;
+  matchScore?: number;
+  lookingFor?: string[];
+  companyDescription?: string;
+  products?: string[];
+  boothNumber?: string;
+  boothSize?: string;
+  website?: string;
+  location?: string;
+  companyType?: string;
+  hall?: string;
+  stand?: string;
+  telephone?: string;
+  mobileNumber?: string;
+  webSite?: string;
+  companyLogoPath?: string;
+  profileId?: number;
+  addressId?: number;
+  isActive?: boolean;
+  createdBy?: number;
+  createdDate?: string;
+  modifiedBy?: number;
+  
+}
 export interface Exhibitor {
   // Current API fields
   id: number;

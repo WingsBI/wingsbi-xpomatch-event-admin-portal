@@ -428,8 +428,8 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
       palette: {
         primary: {
           main: theme.themeColor,
-          light: '#a78bfa',
-          dark: '#5b21b6',
+          light:  '#f9fafb',
+          dark: '#14748f',
         },
         secondary: {
           main: '#ec4899',

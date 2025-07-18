@@ -681,6 +681,7 @@ if (typeof window !== 'undefined') {
       const pathParts = window.location.pathname.split('/').filter(Boolean);
       return pathParts.length > 0 ? pathParts[0] : null;
     },
+
     
     getAuthInfo: () => {
       return {
@@ -694,3 +695,53 @@ if (typeof window !== 'undefined') {
   
   console.log('🔧 Debug functions available: window.debugEventApi');
 } 
+
+
+export const ExhibitormatchmakingApi = {
+  getExhibitorMatch: async (identifier: string, exhibitorid: number, fields: string | null = null) => {
+    // Use the Azure API base URL for external API calls
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getExhibitorMatch`;
+ 
+    // Get token from cookies or localStorage
+    let token = null;
+    if (typeof document !== 'undefined') {
+      token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth-token='))?.split('=')[1];
+    }
+    if (!token && typeof localStorage !== 'undefined') {
+      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+    }
+ 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+ 
+    const body = JSON.stringify({ exhibitorid, fields });
+ 
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching exhibitor match:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+};
+ 

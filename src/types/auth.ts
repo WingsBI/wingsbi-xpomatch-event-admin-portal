@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   role: UserRole;
   eventId?: string; // For event-specific users
+  exhibitorid?: string;
   avatar?: string;
   permissions?: string[];
   createdAt: string;

@@ -354,6 +354,7 @@ export default function ProfileSettingsPage() {
                       height: 80,
                       fontSize: '2rem',
                       fontWeight: 'bold',
+                      color: 'white',
                       bgcolor: 'primary.main',
                     }}
                   >

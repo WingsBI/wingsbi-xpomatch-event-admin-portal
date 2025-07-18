@@ -109,6 +109,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     baseItems = [
       { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard`, children: [] },
       { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
+      { text: 'Visitor Details', icon: <Person />, href: `/${identifier}/event-admin/visitors/details`, children: [] },
       { text: 'Meetings', icon: <CalendarMonth />, children: [
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },

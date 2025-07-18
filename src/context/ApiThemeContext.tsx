@@ -522,7 +522,7 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
       palette: {
         primary: {
           main: theme.themeColor,
-          light: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%',
+          light: '#f9fafb',
           dark: '#14748f',
         },
         secondary: {

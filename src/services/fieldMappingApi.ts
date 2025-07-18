@@ -1410,6 +1410,67 @@ class FieldMappingApiService {
       };
     }
   }
+
+  /**
+   * Get visitor by ID
+   */
+  async getVisitorById(identifier: string, visitorId: number): Promise<any> {
+    try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/getVisitorById?visitorId=${visitorId}`;
+      const headers = this.getAuthHeaders();
+
+      console.log('🔍 GET VISITOR BY ID API CALL STARTING');
+      console.log('🔍 URL:', apiUrl);
+      console.log('🔍 Visitor ID:', visitorId);
+      console.log('🔍 Headers:', headers);
+      console.log('🔍 Auth Token:', this.getAuthToken() ? 'Present' : 'Missing');
+      console.log('🔍 Base URL:', this.baseURL);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Get visitor by ID response status:', response.status);
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: Failed to get visitor details`;
+        let responseData = null;
+        try {
+          const responseText = await response.text();
+          if (responseText.trim()) {
+            responseData = JSON.parse(responseText);
+            errorMessage = responseData.message || errorMessage;
+          }
+        } catch (parseError) {
+          console.log('⚠️ Could not parse error response body:', parseError);
+        }
+        return {
+          version: null,
+          statusCode: response.status,
+          message: errorMessage,
+          isError: true,
+          responseException: responseData?.responseException || null,
+          result: []
+        };
+      }
+      const data = await response.json();
+      console.log('✅ Get visitor by ID response data:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error getting visitor by ID:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
 }
 
 export const fieldMappingApi = new FieldMappingApiService();

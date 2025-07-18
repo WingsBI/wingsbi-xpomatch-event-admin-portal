@@ -40,6 +40,7 @@ import {
   GetApp,
   Person
 } from '@mui/icons-material';
+import Link from 'next/link';
 
 import { apiService } from '@/services/apiService';
 import { fieldMappingApi, type FavoritesRequest } from '@/services/fieldMappingApi';
@@ -308,7 +309,25 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
 
                 <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
-                  {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
+                  <Link
+                    href={`/${identifier}/event-admin/visitors/details?visitorId=${visitor.id}`}
+                    style={{
+                      color: 'inherit',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.textDecoration = 'underline';
+                      e.currentTarget.style.color = '#1976d2';
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.textDecoration = 'none';
+                      e.currentTarget.style.color = 'inherit';
+                    }}
+                  >
+                    {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
+                  </Link>
                 </Box>
               </Typography>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>

@@ -45,7 +45,7 @@ import { apiService } from '@/services/apiService';
 import { fieldMappingApi, type FavoritesRequest } from '@/services/fieldMappingApi';
 import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types';
 // REMOVE: import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
-import { getCurrentExhibitorId, decodeJWTToken } from '@/utils/authUtils';
+import { getCurrentExhibitorId, decodeJWTToken, isEventAdmin } from '@/utils/authUtils';
 import { AnimatePresence, motion } from 'framer-motion';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import { FavoritesManager } from '@/utils/favoritesManager';
@@ -319,9 +319,8 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
             </Box>
           
 
-
-
-          
+          {/* Only show heart icon if user is NOT an event-admin */}
+          {!isEventAdmin() && (
             <IconButton
               onClick={(e) => {
                 console.log('🎯 IconButton clicked!');
@@ -380,6 +379,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 />
               )}
             </IconButton>
+          )}
           
         </Box>
 

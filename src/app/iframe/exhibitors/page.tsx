@@ -45,7 +45,7 @@ import {
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
-import { getCurrentUserId } from '@/utils/authUtils';
+import { getCurrentUserId, isEventAdmin } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface ExhibitorCardProps {
@@ -352,60 +352,63 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
             </Box>
           </Box>
         </Box>
-        <IconButton
-          onClick={(e) => {
-            handleFavoriteClick(e);
-          }}
-          disabled={isLoadingFavorite}
-          size="large"
-          sx={{
-            position: 'absolute',
-            top: 0,
-            right: 8,
-            p: 0.5,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              transform: 'scale(1.1)',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-            '&:disabled': {
-              opacity: 0.6
-            }
-          }}
-        >
-          {(isLoadingFavorite) ? (
-            <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
-          ) : isFavorite ? (
-            <Favorite
-              sx={{
-                fontSize: 20,
-                color: '#ef4444',
-                filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))',
-                transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                animation: isFavorite ? 'heartBeat 0.8s ease-in-out' : 'none',
-                '@keyframes heartBeat': {
-                  '0%': { transform: 'scale(1)' },
-                  '25%': { transform: 'scale(1.3)' },
-                  '50%': { transform: 'scale(1.1)' },
-                  '75%': { transform: 'scale(1.2)' },
-                  '100%': { transform: 'scale(1.1)' },
-                },
-              }}
-            />
-          ) : (
-            <FavoriteBorder  sx={{
-              fontSize: 20,
-              color: '#b0bec5',
+        {/* Only show heart icon if user is NOT an event-admin */}
+        {!isEventAdmin() && (
+          <IconButton
+            onClick={(e) => {
+              handleFavoriteClick(e);
+            }}
+            disabled={isLoadingFavorite}
+            size="large"
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 8,
+              p: 0.5,
+              cursor: 'pointer',
               transition: 'all 0.2s ease',
               '&:hover': {
-                color: '#ff6b9d',
+                transform: 'scale(1.1)',
+              },
+              '&:active': {
+                transform: 'scale(0.95)',
+              },
+              '&:disabled': {
+                opacity: 0.6
               }
-            }}  />
-          )}
-        </IconButton>
+            }}
+          >
+            {(isLoadingFavorite) ? (
+              <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+            ) : isFavorite ? (
+              <Favorite
+                sx={{
+                  fontSize: 20,
+                  color: '#ef4444',
+                  filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))',
+                  transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                  animation: isFavorite ? 'heartBeat 0.8s ease-in-out' : 'none',
+                  '@keyframes heartBeat': {
+                    '0%': { transform: 'scale(1)' },
+                    '25%': { transform: 'scale(1.3)' },
+                    '50%': { transform: 'scale(1.1)' },
+                    '75%': { transform: 'scale(1.2)' },
+                    '100%': { transform: 'scale(1.1)' },
+                  },
+                }}
+              />
+            ) : (
+              <FavoriteBorder  sx={{
+                fontSize: 20,
+                color: '#b0bec5',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: '#ff6b9d',
+                }
+              }}  />
+            )}
+          </IconButton>
+        )}
             
         {/* Content Section - Takes up available space */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

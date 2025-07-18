@@ -42,7 +42,7 @@ import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
 import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor, type FavoritesRequest } from '@/services/fieldMappingApi';
-import { getCurrentExhibitorId, getCurrentVisitorId, decodeJWTToken } from '@/utils/authUtils';
+import { getCurrentExhibitorId, getCurrentVisitorId, decodeJWTToken, isEventAdmin } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface TransformedExhibitor {
@@ -625,29 +625,32 @@ export default function FavouritesPage() {
                             </Box>
                           </Box>
                           
-                          <IconButton 
-                            onClick={() => handleRemoveVisitorFavourite(visitor.id)}
-                            size="small"
-                            disabled={removingFavorite === visitor.id}
-                            sx={{
-                              
-                              fontSize: 30,
-                              color: '#ef4444',
-                              
-                            }}
-                          >
-                            {removingFavorite === visitor.id ? (
-                              <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
-                            ) : (
-                              <Favorite sx={{
+                          {/* Only show heart icon if user is NOT an event-admin */}
+                          {!isEventAdmin() && (
+                            <IconButton 
+                              onClick={() => handleRemoveVisitorFavourite(visitor.id)}
+                              size="small"
+                              disabled={removingFavorite === visitor.id}
+                              sx={{
+                                
                                 fontSize: 30,
-                              color: '#ef4444',
-                              filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
-                              transform: 'scale(1.1)',
-                              transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                             animation: 'heartBeat 0.8s ease-in-out',                            }} />
-                            )}
-                          </IconButton>
+                                color: '#ef4444',
+                                
+                              }}
+                            >
+                              {removingFavorite === visitor.id ? (
+                                <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+                              ) : (
+                                <Favorite sx={{
+                                  fontSize: 30,
+                                color: '#ef4444',
+                                filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
+                                transform: 'scale(1.1)',
+                                transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                               animation: 'heartBeat 0.8s ease-in-out',                            }} />
+                              )}
+                            </IconButton>
+                          )}
                         </Box>
 
                         {/* Location and Contact */}
@@ -856,8 +859,8 @@ export default function FavouritesPage() {
                               )}
                             </Box>
                           </Box>
-                          {/* Heart icon for visitors only */}
-                          {isVisitor && (
+                          {/* Heart icon for visitors only - hide for event-admin */}
+                          {isVisitor && !isEventAdmin() && (
                             <IconButton 
                               onClick={() => handleToggleExhibitorFavorite(exhibitor.id)}
                                     size="small"
@@ -886,8 +889,8 @@ export default function FavouritesPage() {
                               )}
                             </IconButton>
                           )}
-                          {/* For non-visitors, keep the remove logic if needed */}
-                          {!isVisitor && (
+                          {/* For non-visitors, keep the remove logic if needed - hide for event-admin */}
+                          {!isVisitor && !isEventAdmin() && (
                           <IconButton 
                             onClick={() => handleRemoveFavourite(exhibitor.id)}
                             size="small"

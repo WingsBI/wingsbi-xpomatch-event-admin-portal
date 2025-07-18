@@ -318,41 +318,41 @@ export default function ProfileSettingsPage() {
       >
         <Container maxWidth="lg">
           {/* Header */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box display="flex" alignItems="center" gap={2}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Box display="flex" alignItems="center" gap={1}>
               
 
               
               <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 0 }}>
-                Profile Settings
+                Profile Details
               </Typography>
             </Box>
           </Box>
 
           {/* Error/Success Messages */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 1 }}>
               {error}
             </Alert>
           )}
           
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }}>
+            <Alert severity="success" sx={{ mb: 1}}>
               {success}
             </Alert>
           )}
 
           <Card>
-            <CardContent sx={{ p: 4 }}>
+            <CardContent sx={{ p: 2 }}>
               {/* Profile Header */}
-              <Box display="flex" alignItems="center" gap={3} mb={4}>
-                <Box sx={{ position: 'relative', width: 80, height: 80 }}>
+              <Box display="flex" alignItems="center" gap={2} mb={1.5}>
+                <Box sx={{ position: 'relative', width: 70, height: 70 }}>
                   <Avatar
                     src={profileData.profilePhoto || undefined}
                     sx={{
-                      width: 80,
-                      height: 80,
-                      fontSize: '2rem',
+                      width: 60,
+                      height: 60,
+                      fontSize: '1.5rem',
                       fontWeight: 'bold',
                       bgcolor: 'primary.main',
                     }}
@@ -363,8 +363,8 @@ export default function ProfileSettingsPage() {
                     component="label"
                     sx={{
                       position: 'absolute',
-                      bottom: 0,
-                      right: 0,
+                      bottom: 5,
+                      right: 5,
                       bgcolor: 'white',
                       boxShadow: 1,
                       p: 0.5,
@@ -400,12 +400,18 @@ export default function ProfileSettingsPage() {
                 </Box>
               </Box>
 
-              <Divider sx={{ mb: 4 }} />
+              <Divider sx={{ mb: 2.5 }} />
 
               {/* Profile Form */}
-              <Grid container spacing={3}>
-                {/* Basic fields */}
-                <Grid item xs={12} sm={3}>
+              <Grid container spacing={2}>
+                {/* Personal Information Section */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: 'primary.main' }}>
+                    Personal Information
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Salutation</InputLabel>
                     <Select
@@ -422,7 +428,7 @@ export default function ProfileSettingsPage() {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={4.5}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="First Name"
@@ -431,7 +437,7 @@ export default function ProfileSettingsPage() {
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={4.5}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="Middle Name"
@@ -439,7 +445,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('middleName', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="Last Name"
@@ -448,7 +454,8 @@ export default function ProfileSettingsPage() {
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                
+                <Grid item xs={12} sm={6} md={4}>
                   <TextField
                     fullWidth
                     label="Email"
@@ -457,7 +464,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('email', e.target.value || null)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={4}>
                   <FormControl fullWidth>
                     <InputLabel>Gender</InputLabel>
                     <Select
@@ -472,7 +479,7 @@ export default function ProfileSettingsPage() {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={4}>
                   <TextField
                     fullWidth
                     label="Date of Birth"
@@ -482,7 +489,15 @@ export default function ProfileSettingsPage() {
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+
+                {/* Contact & Status Section */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                    Contact & Status
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Status</InputLabel>
                     <Select
@@ -495,8 +510,7 @@ export default function ProfileSettingsPage() {
                     </Select>
                   </FormControl>
                 </Grid>
-                {/* Visitor Profile fields */}
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="Phone"
@@ -504,79 +518,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="LinkedIn Profile"
-                    value={profileData.linkedInProfile || ''}
-                    onChange={(e) => handleInputChange('linkedInProfile', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Instagram Profile"
-                    value={profileData.instagramProfile || ''}
-                    onChange={(e) => handleInputChange('instagramProfile', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="GitHub Profile"
-                    value={profileData.gitHubProfile || ''}
-                    onChange={(e) => handleInputChange('gitHubProfile', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Twitter Profile"
-                    value={profileData.twitterProfile || ''}
-                    onChange={(e) => handleInputChange('twitterProfile', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Designation"
-                    value={profileData.designation || ''}
-                    onChange={(e) => handleInputChange('designation', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Job Title"
-                    value={profileData.jobTitle || ''}
-                    onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Company Name"
-                    value={profileData.companyName || ''}
-                    onChange={(e) => handleInputChange('companyName', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Company Website"
-                    value={profileData.companyWebsite || ''}
-                    onChange={(e) => handleInputChange('companyWebsite', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Business Email"
-                    value={profileData.businessEmail || ''}
-                    onChange={(e) => handleInputChange('businessEmail', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="Experience Years"
@@ -585,7 +527,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('experienceYears', Number(e.target.value))}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Decision Maker</InputLabel>
                     <Select
@@ -598,8 +540,104 @@ export default function ProfileSettingsPage() {
                     </Select>
                   </FormControl>
                 </Grid>
-                {/* Address fields */}
-                <Grid item xs={12} sm={6}>
+
+                {/* Social Media Section */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                    Social Media Profiles
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    label="LinkedIn Profile"
+                    value={profileData.linkedInProfile || ''}
+                    onChange={(e) => handleInputChange('linkedInProfile', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    label="Instagram Profile"
+                    value={profileData.instagramProfile || ''}
+                    onChange={(e) => handleInputChange('instagramProfile', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    label="GitHub Profile"
+                    value={profileData.gitHubProfile || ''}
+                    onChange={(e) => handleInputChange('gitHubProfile', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    label="Twitter Profile"
+                    value={profileData.twitterProfile || ''}
+                    onChange={(e) => handleInputChange('twitterProfile', e.target.value)}
+                  />
+                </Grid>
+
+                {/* Professional Information Section */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                    Professional Information
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Designation"
+                    value={profileData.designation || ''}
+                    onChange={(e) => handleInputChange('designation', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Job Title"
+                    value={profileData.jobTitle || ''}
+                    onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Company Name"
+                    value={profileData.companyName || ''}
+                    onChange={(e) => handleInputChange('companyName', e.target.value)}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Company Website"
+                    value={profileData.companyWebsite || ''}
+                    onChange={(e) => handleInputChange('companyWebsite', e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Business Email"
+                    value={profileData.businessEmail || ''}
+                    onChange={(e) => handleInputChange('businessEmail', e.target.value)}
+                  />
+                </Grid>
+
+                {/* Address Section */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                    Address Information
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={6}>
                   <TextField
                     fullWidth
                     label="Address Line 1"
@@ -607,7 +645,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('addressLine1', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={6}>
                   <TextField
                     fullWidth
                     label="Address Line 2"
@@ -615,7 +653,8 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('addressLine2', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="City"
@@ -623,7 +662,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('cityName', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="State"
@@ -631,7 +670,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('stateName', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="Country"
@@ -639,7 +678,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('countryName', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="Postal Code"
@@ -650,7 +689,7 @@ export default function ProfileSettingsPage() {
               </Grid>
 
               {/* Save Button */}
-              <Box display="flex" justifyContent="flex-end" mt={4}>
+              <Box display="flex" justifyContent="flex-end" mt={3}>
                 <Button
                   variant="contained"
                   size="large"

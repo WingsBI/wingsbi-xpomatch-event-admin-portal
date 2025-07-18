@@ -647,6 +647,55 @@ export const fontsApi = {
   getAvailable: () => apiService.get('/fonts/available'),
 };
 
+// Add matchmaking API
+export const matchmakingApi = {
+  getVisitorMatch: async (identifier: string, visitorId: number, fields: string | null = null) => {
+    // Use the Azure API base URL for external API calls
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getVisitorMatch`;
+
+    // Get token from cookies or localStorage
+    let token = null;
+    if (typeof document !== 'undefined') {
+      token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth-token='))?.split('=')[1];
+    }
+    if (!token && typeof localStorage !== 'undefined') {
+      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const body = JSON.stringify({ visitorId, fields });
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching visitor match:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+};
+
 // Export the main service
 export default apiService;
 

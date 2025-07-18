@@ -307,3 +307,26 @@ export function getCurrentVisitorId(): number | null {
     return null;
   }
 } 
+
+/**
+ * Check if current user is an event-admin
+ */
+export function isEventAdmin(): boolean {
+  try {
+    const tokenData = decodeJWTToken();
+    if (!tokenData) {
+      console.log('No token data available for role check');
+      return false;
+    }
+
+    // Check if user is an event-admin based on roleName and roleid
+    const isEventAdmin = tokenData.roleName === 'event-admin' && tokenData.roleid === '1';
+    
+    console.log('Role check - roleName:', tokenData.roleName, 'roleid:', tokenData.roleid, 'isEventAdmin:', isEventAdmin);
+    
+    return isEventAdmin;
+  } catch (error) {
+    console.error('Error checking if user is event-admin:', error);
+    return false;
+  }
+} 

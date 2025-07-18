@@ -324,7 +324,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 }
               }}
             >
-              {exhibitor.company || `${exhibitor.firstName} ${exhibitor.lastName}`}
+              {exhibitor.company}
             </Typography>
             {exhibitor.jobTitle && (
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>

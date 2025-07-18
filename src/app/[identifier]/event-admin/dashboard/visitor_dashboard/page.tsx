@@ -30,19 +30,46 @@ import {
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
+import { useAuth } from '@/context/AuthContext';
+import { matchmakingApi } from '@/services/apiService';
 
 export default function VisitorDashboard() {
   const searchParams = useSearchParams();
   const exhibitorId = searchParams.get('exhibitorId');
+  const { user } = useAuth();
   const [exhibitor, setExhibitor] = useState<Exhibitor | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchExhibitorDetails = async () => {
       if (!exhibitorId) {
-        // If no exhibitor ID, show visitor dashboard without specific exhibitor details
-        setLoading(false);
+        setLoading(true);
+        setError(null);
+        // Fetch recommendations for the logged-in visitor
+        try {
+          // Extract identifier from URL path
+          const pathParts = window.location.pathname.split('/');
+          const identifier = pathParts[1];
+          if (!user?.id) throw new Error('User not found');
+          const visitorId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+          const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
+          console.log("responseee",response);
+          if (response.isError) {
+            setError(response.message || 'Failed to fetch recommendations');
+            setRecommendations([]);
+          } else {
+            // Sort by matchPercentage descending
+            const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+            setRecommendations(sorted);
+          }
+        } catch (err: any) {
+          setError(err.message || 'An error occurred while fetching recommendations');
+          setRecommendations([]);
+        } finally {
+          setLoading(false);
+        }
         return;
       }
 
@@ -70,7 +97,7 @@ export default function VisitorDashboard() {
     };
 
     fetchExhibitorDetails();
-  }, [exhibitorId]);
+  }, [exhibitorId, user]);
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
@@ -152,8 +179,14 @@ export default function VisitorDashboard() {
                     </Avatar>
                     
                     <Box flex={1}>
-                      <Typography variant="h4" component="h1" gutterBottom>
-                        {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                      <Typography variant="h4" component="h1" gutterBottom
+                      sx={{
+                        fontWeight: 600,
+                        color: 'primary.main',
+                        mb: 1,
+                        mt: 0
+                      }}>
+                        {exhibitor.companyName}
                       </Typography>
                       
                       {exhibitor.jobTitle && (
@@ -343,23 +376,120 @@ export default function VisitorDashboard() {
   }
 
   // Default visitor dashboard view (when no exhibitor ID is provided)
-  return (
-    <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
-      <ResponsiveDashboardLayout title="Visitor Dashboard">
-        <Container maxWidth="md" sx={{ mt: 2, mb: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            height: '400px',
-            textAlign: 'center'
-          }}>
-            <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-              Visitor Dashboard
+  if (!exhibitorId) {
+    if (loading) {
+      return (
+        <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
+          <ResponsiveDashboardLayout title="Visitor Dashboard">
+            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+                <Skeleton variant="rectangular" width="100%" height={120} />
+              </Box>
+            </Container>
+          </ResponsiveDashboardLayout>
+        </RoleBasedRoute>
+      );
+    }
+    if (error) {
+      return (
+        <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
+          <ResponsiveDashboardLayout title="Visitor Dashboard">
+            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+              <Alert severity="error">{error}</Alert>
+            </Container>
+          </ResponsiveDashboardLayout>
+        </RoleBasedRoute>
+      );
+    }
+    return (
+      <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
+        <ResponsiveDashboardLayout title="Visitor Dashboard">
+          <Container maxWidth="lg" sx={{ mt: 0, mb: 0 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0 }}>
+              Recommended Exhibitors for You
             </Typography>
-          </Box>
-        </Container>
-      </ResponsiveDashboardLayout>
-    </RoleBasedRoute>
-  );
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+              Handpicked for you based on your interests and event activity.
+            </Typography>
+            <Grid container spacing={2}>
+              {recommendations.map((rec) => (
+                <Grid item xs={12} sm={6} md={3} key={rec.id}>
+                  <Card
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: 4,
+                      boxShadow: 1,
+                      position: 'relative',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-4px) scale(1.02)',
+                        boxShadow: 4,
+                      },
+                      p: 1,
+                      width: '100%',
+                    }}
+                    elevation={1}
+                  >
+                    {/* Match Percentage Top Right */}
+                    <Box sx={{ position: 'absolute', top: 0, right: 14, zIndex: 2 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontStyle: 'italic',
+                          color: '#222',
+                          fontWeight: 600,
+                          fontSize: 18,
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {rec.matchPercentage?.toFixed(0)}%
+                      </Typography>
+                    </Box>
+                    <CardContent sx={{ flexGrow: 1, p: 1, pb: '8px!important' }}>
+                      <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                        <Avatar src={rec.companyLogoPath || undefined} sx={{ bgcolor: 'success.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: 16 }}>
+                          {!rec.companyLogoPath && rec.companyName?.charAt(0)}
+                        </Avatar>
+                        <Box flex={1} minWidth={0}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', fontSize: 15, wordBreak: 'break-word' ,mt: 1}}>
+                            {rec.companyName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 13 }}>
+                            {rec.companyType}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box display="flex" alignItems="center" gap={0.5} mb={1}>
+                        <LocationOn sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13 }}>
+                          {rec.country}
+                        </Typography>
+                      </Box>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {/* {rec.exhibitorProfile?.[0]?.companyProfile} */}
+                      </Typography>
+                    </CardContent>
+                    <Box sx={{ px: 1, pb: 1, pt: 0, mt: 1, mb: 1 }}>
+                      <Box display="flex" justifyContent="flex-end">
+                        <Chip
+                          label="View Details"
+                          color="primary"
+                          clickable
+                          size="small"
+                          sx={{ fontWeight: 500, height: 24 }}
+                          // onClick handler can be added to navigate to exhibitor details
+                        />
+                      </Box>
+                    </Box>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </ResponsiveDashboardLayout>
+      </RoleBasedRoute>
+    );
+  }
 }

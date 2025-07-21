@@ -101,7 +101,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       ] },
       { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
-        { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
+        { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },
       ] },
     ];
   } else if (userRole === 'exhibitor') {
@@ -109,15 +109,15 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     baseItems = [
       { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard`, children: [] },
       { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
-      { text: 'Visitor Details', icon: <Person />, href: `/${identifier}/event-admin/visitors/details`, children: [] },
+      // { text: 'Visitor Details', icon: <Person />, href: `/${identifier}/event-admin/visitors/details`, children: [] },
       { text: 'Meetings', icon: <CalendarMonth />, children: [
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
       ] },
       { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
-        { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },,
-       { text: 'Theme Settings', href: '#', children: [] },
+        { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },,
+        { text: 'Exhibitor Profile', href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },,
       ] },
     ];
   } else {
@@ -132,7 +132,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       ] },
       // { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
-        { text: 'Profile Settings', href: `/${identifier}/event-admin/profile`, children: [] },
+        { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },
         { text: 'Theme Settings', href: '#', children: [] },
         { text: 'Visitors Onboarding', href: `/${identifier}/event-admin/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/event-admin/exhibitors/matching`, children: [] },

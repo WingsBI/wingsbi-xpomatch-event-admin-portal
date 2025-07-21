@@ -846,7 +846,7 @@ export default function ResponsiveDashboardLayout({
                 </IconButton>
               </Tooltip>
 
-              <Tooltip title="Profile">
+              <Tooltip title={`${user?.firstName} ${user?.lastName}`}>
                 <IconButton onClick={handleProfileMenuOpen} sx={{ p: 0.5 }}>
                   <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}>
                     {user?.firstName?.[0] || user?.email?.[0] || 'U'}

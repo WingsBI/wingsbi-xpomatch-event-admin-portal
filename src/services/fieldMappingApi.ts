@@ -1156,7 +1156,7 @@ class FieldMappingApiService {
           companyDescription: exhibitorData.exhibitorProfile?.[0]?.companyProfile,
           
           // Products and other data
-          products: exhibitorData.product?.map((p: any) => p.title) || [],
+          product: exhibitorData.product || [],
           brand: exhibitorData.brand || [],
           brochure: exhibitorData.brochure || [],
         };

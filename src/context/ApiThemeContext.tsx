@@ -145,7 +145,7 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
         primary: {
           main: theme.themeColor,
           light: '#6b7280',
-          dark: '#1f2937',
+          dark: '#516685',
         },
         secondary: {
           main: '#d97706',
@@ -176,8 +176,9 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
               textTransform: 'none',
               fontWeight: 500,
               borderRadius: 6,
-              backgroundImage: 'linear-gradient(to right, #4b5563, #1f2937)',
-              color: '#fff',
+              backgroundImage: 'linear-gradient(to right,rgb(123, 134, 150),rgb(116, 130, 151))',
+             //backgroundImage: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+             color: '#ffff',
               '&:hover': {
                 backgroundImage: 'linear-gradient(to right, #6b7280, #374151)',
               },

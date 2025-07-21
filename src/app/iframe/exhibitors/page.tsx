@@ -20,7 +20,10 @@ import {
   Button,
   IconButton,
   Divider,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -143,7 +146,7 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
   };
 };
 
-function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFavorite, onFavoriteToggle }: ExhibitorCardProps) {
+function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFavorite, onFavoriteToggle, onNameClick }: ExhibitorCardProps & { onNameClick?: (exhibitor: any) => void }) {
   const theme = useTheme();
   const router = useRouter();
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
@@ -303,7 +306,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
               variant="body2" 
               component="div" 
               fontWeight="600" 
-              onClick={handleExhibitorNameClick}
+              onClick={() => onNameClick && onNameClick(exhibitor)}
               sx={{ 
                 ml: 0, 
                 minHeight: '1.2rem', 
@@ -593,6 +596,111 @@ function ExhibitorCardSkeleton() {
   );
 }
 
+// Add ExhibitorDetailsDialog component
+function ExhibitorDetailsDialog({ open, onClose, exhibitor }: { open: boolean; onClose: () => void; exhibitor: any }) {
+  if (!exhibitor) return null;
+  const getInitials = (firstName: string, lastName: string, company: string) => company?.charAt(0).toUpperCase() || `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
+      PaperProps={{ sx: { borderRadius: 3 } }}
+    >
+      <DialogTitle>Exhibitor Details</DialogTitle>
+      <DialogContent>
+        <Box display="flex" alignItems="center" gap={2} mb={2}>
+          <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
+            {getInitials(exhibitor.firstName, exhibitor.lastName, exhibitor.company)}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" fontWeight={700}>{exhibitor.company}</Typography>
+            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">{exhibitor.jobTitle}</Typography>
+            <Typography variant="body2" color="text.secondary">{exhibitor.firstName} {exhibitor.lastName}</Typography>
+          </Box>
+        </Box>
+        <Divider sx={{ mb: 2 }} />
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="subtitle2" fontWeight={700}>Email:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.email || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Phone:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.phone || exhibitor.phoneNumber || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Country:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.country || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Status:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.status}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Registration Date:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.registrationDate?.toLocaleString?.() || '-'}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="subtitle2" fontWeight={700}>Industry:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.customData?.industry || exhibitor.industry || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Experience:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.customData?.experience || exhibitor.experience || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Company Type:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.customData?.companyType || exhibitor.companyType || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Booth Number:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.customData?.boothNumber || exhibitor.boothNumber || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Booth Size:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.customData?.boothSize || exhibitor.boothSize || '-'}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" fontWeight={700}>Website:</Typography>
+            <Typography variant="body2" gutterBottom>
+              {exhibitor.customData?.website || exhibitor.website ? (
+                <a href={(exhibitor.customData?.website || exhibitor.website).startsWith('http') ? (exhibitor.customData?.website || exhibitor.website) : `https://${exhibitor.customData?.website || exhibitor.website}`} target="_blank" rel="noopener noreferrer">{exhibitor.customData?.website || exhibitor.website}</a>
+              ) : '-'}
+            </Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Company Description:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.customData?.companyDescription || exhibitor.companyDescription || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Products:</Typography>
+            {Array.isArray(exhibitor.product) && exhibitor.product.length > 0 ? (
+              <Box mb={1}>
+                {exhibitor.product.map((prod: any, idx: number) => (
+                  <Box key={prod.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                    <Typography variant="body2"><b>Title:</b> {prod.title}</Typography>
+                    <Typography variant="body2"><b>Category:</b> {prod.category}</Typography>
+                    <Typography variant="body2"><b>Description:</b> {prod.description}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" gutterBottom>
+                {(exhibitor.customData?.products && exhibitor.customData.products.length > 0)
+                  ? exhibitor.customData.products.join(', ')
+                  : (exhibitor.products && exhibitor.products.length > 0)
+                    ? exhibitor.products.join(', ')
+                    : '-'}
+              </Typography>
+            )}
+            <Typography variant="subtitle2" fontWeight={700}>Brands:</Typography>
+            {Array.isArray(exhibitor.brand) && exhibitor.brand.length > 0 ? (
+              <Box mb={1}>
+                {exhibitor.brand.map((brand: any, idx: number) => (
+                  <Box key={brand.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                    <Typography variant="body2"><b>Name:</b> {brand.brandName}</Typography>
+                    <Typography variant="body2"><b>Category:</b> {brand.category}</Typography>
+                    <Typography variant="body2"><b>Description:</b> {brand.description}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" gutterBottom>
+                {(exhibitor.customData?.brand && exhibitor.customData.brand.length > 0)
+                  ? exhibitor.customData.brand.map((b: any) => b.brandName).join(', ')
+                  : '-'}
+              </Typography>
+            )}
+            <Typography variant="subtitle2" fontWeight={700}>Looking For:</Typography>
+            <Typography variant="body2" gutterBottom>{(exhibitor.customData?.lookingFor && exhibitor.customData.lookingFor.length > 0) ? exhibitor.customData.lookingFor.join(', ') : '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Location:</Typography>
+            <Typography variant="body2" gutterBottom>{exhibitor.customData?.location || exhibitor.location || '-'}</Typography>
+          </Grid>
+        </Grid>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ExhibitorListView({ identifier }: { identifier: string }) {
   const theme = useTheme();
   const [isClient, setIsClient] = useState(false);
@@ -604,6 +712,8 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
   const [error, setError] = useState<string | null>(null);
   const [visitorInterests, setVisitorInterests] = useState<string[]>([]);
   const [favoriteExhibitors, setFavoriteExhibitors] = useState<Set<string>>(new Set());
+  const [selectedExhibitor, setSelectedExhibitor] = useState<any | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -881,6 +991,7 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
                     return newSet;
                   });
                 }}
+                onNameClick={(ex) => { setSelectedExhibitor(ex); setDialogOpen(true); }}
               />
             </Suspense>
           </Grid>
@@ -913,6 +1024,9 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
           </Typography>
         </Box>
       )}
+
+      {/* Exhibitor Details Dialog */}
+      <ExhibitorDetailsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} exhibitor={selectedExhibitor} />
     </Container>
   );
 }

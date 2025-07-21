@@ -20,7 +20,10 @@ import {
   IconButton,
   Divider,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -121,7 +124,7 @@ const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, in
   };
 };
 
-function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, identifier, initialFavoriteState = false, onFavoriteChange }: VisitorCardProps) {
+function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, identifier, initialFavoriteState = false, onFavoriteChange, onNameClick }: VisitorCardProps & { onNameClick?: (visitor: TransformedVisitor) => void }) {
   const theme = useTheme();
   const [isFavorite, setIsFavorite] = useState(initialFavoriteState);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
@@ -293,14 +296,16 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           
             <Avatar
               sx={{
-                bgcolor: theme.palette.primary.main,
-                width: 36,
-                height: 36,
-                mr: 0.75,
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                color: 'white',
-                mt: 2,
+              bgcolor: theme.palette.primary.main,
+              width: 36,
+              height: 36,
+              mr: 1.5,
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+              color: 'white',
+              alignSelf: 'center',
+              mt: 2,
               }}
             >
               {getInitials(visitor.firstName, visitor.lastName)}
@@ -309,25 +314,25 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
 
                 <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
-                  <Link
-                    href={`/${identifier}/event-admin/visitors/details?visitorId=${visitor.id}`}
+                  <span
                     style={{
                       color: 'inherit',
                       textDecoration: 'none',
                       cursor: 'pointer',
                       fontWeight: 600,
                     }}
+                    onClick={() => onNameClick && onNameClick(visitor)}
                     onMouseOver={e => {
-                      e.currentTarget.style.textDecoration = 'underline';
-                      e.currentTarget.style.color = '#1976d2';
+                      (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
+                      (e.currentTarget as HTMLElement).style.color = '#1976d2';
                     }}
                     onMouseOut={e => {
-                      e.currentTarget.style.textDecoration = 'none';
-                      e.currentTarget.style.color = 'inherit';
+                      (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+                      (e.currentTarget as HTMLElement).style.color = 'inherit';
                     }}
                   >
                     {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
-                  </Link>
+                  </span>
                 </Box>
               </Typography>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
@@ -598,6 +603,108 @@ function VisitorCardSkeleton() {
   );
 }
 
+// Add VisitorDetailsDialog component
+function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClose: () => void; visitor: TransformedVisitor | null }) {
+  if (!visitor) return null;
+  const getInitials = (firstName: string, lastName: string) => `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
+    PaperProps={{ sx: { borderRadius: 3 } }} >
+      <DialogTitle>Visitor Details</DialogTitle>
+      <DialogContent>
+        <Box display="flex" alignItems="center" gap={2} mb={2}>
+          <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
+            {getInitials(visitor.firstName, visitor.lastName)}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" fontWeight={700}>{visitor.firstName} {visitor.lastName}</Typography>
+            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">{visitor.jobTitle}</Typography>
+            <Typography variant="body2" color="text.secondary">{visitor.company}</Typography>
+          </Box>
+        </Box>
+        <Divider sx={{ mb: 2 }} />
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="subtitle2" fontWeight={700}>Email:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.email}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Phone:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.phone || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Country:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.country || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Status:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.status}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Registration Date:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.registrationDate?.toLocaleString?.() || '-'}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="subtitle2" fontWeight={700}>Salutation:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.salutation || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Middle Name:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.middleName || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Gender:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.gender || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Date of Birth:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.dateOfBirth || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Nationality:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.nationality || '-'}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" fontWeight={700}>LinkedIn:</Typography>
+            <Typography variant="body2" gutterBottom>
+              {visitor.customData?.linkedInProfile ? (
+                <a href={visitor.customData.linkedInProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.linkedInProfile}</a>
+              ) : '-'}
+            </Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Instagram:</Typography>
+            <Typography variant="body2" gutterBottom>
+              {visitor.customData?.instagramProfile ? (
+                <a href={visitor.customData.instagramProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.instagramProfile}</a>
+              ) : '-'}
+            </Typography>
+            <Typography variant="subtitle2" fontWeight={700}>GitHub:</Typography>
+            <Typography variant="body2" gutterBottom>
+              {visitor.customData?.gitHubProfile ? (
+                <a href={visitor.customData.gitHubProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.gitHubProfile}</a>
+              ) : '-'}
+            </Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Twitter:</Typography>
+            <Typography variant="body2" gutterBottom>
+              {visitor.customData?.twitterProfile ? (
+                <a href={visitor.customData.twitterProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.twitterProfile}</a>
+              ) : '-'}
+            </Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" fontWeight={700}>Address:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.addressLine1 || '-'} {visitor.customData?.addressLine2 || ''}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>City:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.cityName || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>State:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.stateName || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Postal Code:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.postalCode || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Location:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.location || '-'}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" fontWeight={700}>Experience:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.experience || '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Decision Maker:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.decisionmaker ? 'Yes' : 'No'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Interests:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.interests && visitor.interests.length > 0 ? visitor.interests.join(', ') : '-'}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>Looking For:</Typography>
+            <Typography variant="body2" gutterBottom>{visitor.customData?.lookingFor && visitor.customData.lookingFor.length > 0 ? visitor.customData.lookingFor.join(', ') : '-'}</Typography>
+          </Grid>
+        </Grid>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function VisitorListView({ identifier }: { identifier: string }) {
   const theme = useTheme();
   const [isClient, setIsClient] = useState(false);
@@ -608,6 +715,8 @@ function VisitorListView({ identifier }: { identifier: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favoriteVisitors, setFavoriteVisitors] = useState<Set<string>>(new Set());
+  const [selectedVisitor, setSelectedVisitor] = useState<TransformedVisitor | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -921,6 +1030,7 @@ function VisitorListView({ identifier }: { identifier: string }) {
                   identifier={identifier}
                   initialFavoriteState={favoriteVisitors.has(visitor.id)}
                   onFavoriteChange={handleFavoriteChange}
+                  onNameClick={(v) => { setSelectedVisitor(v); setDialogOpen(true); }}
                 />
               </Suspense>
             </Grid>
@@ -953,6 +1063,9 @@ function VisitorListView({ identifier }: { identifier: string }) {
           </Typography>
         </Box>
       )}
+
+      {/* Visitor Details Dialog */}
+      <VisitorDetailsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} visitor={selectedVisitor} />
     </Container>
   );
 }

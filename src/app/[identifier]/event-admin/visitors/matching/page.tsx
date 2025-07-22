@@ -93,6 +93,8 @@ export default function VisitorsMatchingPage() {
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const settingsOpen = Boolean(settingsAnchorEl);
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
+  // Add duplicateFields state
+  const [duplicateFields, setDuplicateFields] = useState<Set<string>>(new Set());
   
   // Display all mappings evenly distributed
 
@@ -438,6 +440,34 @@ export default function VisitorsMatchingPage() {
   const column2 = currentMappings.slice(itemsPerColumn, itemsPerColumn * 2);
   const column3 = currentMappings.slice(itemsPerColumn * 2);
 
+  // Helper to check for duplicate standard field mappings (excluding CUSTOM_FIELD and removed fields)
+  const findDuplicateStandardFields = () => {
+    const fieldToExcelColumns: { [standardField: string]: string[] } = {};
+    Object.entries(selectedMappings).forEach(([excelColumn, standardField]) => {
+      if (
+        standardField &&
+        standardField !== 'CUSTOM_FIELD' &&
+        !removedFields.has(excelColumn)
+      ) {
+        if (!fieldToExcelColumns[standardField]) fieldToExcelColumns[standardField] = [];
+        fieldToExcelColumns[standardField].push(excelColumn);
+      }
+    });
+    // Find all excelColumns that are mapped to a duplicate standard field
+    const duplicates = new Set<string>();
+    Object.values(fieldToExcelColumns).forEach((excelColumns) => {
+      if (excelColumns.length > 1) {
+        excelColumns.forEach((col) => duplicates.add(col));
+      }
+    });
+    return duplicates;
+  };
+
+  // Add useEffect to update duplicateFields when mappings or removedFields change
+  useEffect(() => {
+    setDuplicateFields(findDuplicateStandardFields());
+  }, [selectedMappings, removedFields]);
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -527,6 +557,7 @@ export default function VisitorsMatchingPage() {
     <Box sx={{ height: '100%', overflow: 'hidden' }}>
       {mappings.map((mapping, index) => {
         const isRemoved = removedFields.has(mapping.excelColumn);
+        const isDuplicate = duplicateFields.has(mapping.excelColumn); // NEW
         return (
           <Card 
             key={mapping.excelColumn} 
@@ -535,7 +566,12 @@ export default function VisitorsMatchingPage() {
               boxShadow: 2, 
               borderRadius: 2,
               opacity: isRemoved ? 0.5 : 1,
-              border: isRemoved ? '1px dashed #ccc' : 'none'
+              border: isRemoved
+                ? '1px dashed #ccc'
+                : isDuplicate
+                  ? '2px solid #ef4444' // red border for duplicate
+                  : 'none',
+              transition: 'border 0.2s',
             }}
           >
             <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>

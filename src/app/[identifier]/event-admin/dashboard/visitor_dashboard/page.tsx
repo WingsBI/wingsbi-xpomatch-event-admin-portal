@@ -36,26 +36,49 @@ import { matchmakingApi } from '@/services/apiService';
 export default function VisitorDashboard() {
   const searchParams = useSearchParams();
   const exhibitorId = searchParams.get('exhibitorId');
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [exhibitor, setExhibitor] = useState<Exhibitor | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [hasFetched, setHasFetched] = useState(false);
 
   useEffect(() => {
+    // Reset hasFetched when user or exhibitorId changes
+    setHasFetched(false);
+  }, [user?.id, exhibitorId]);
+
+  useEffect(() => {
+    if (authLoading || hasFetched) return;
+
+    // Try to get visitorId from user context, then from localStorage/sessionStorage
+    let visitorId: number | null = null;
+    if (user?.id) {
+      visitorId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    } else {
+      // Fallback: try to get from localStorage/sessionStorage
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          if (parsed && parsed.id) {
+            visitorId = typeof parsed.id === 'string' ? parseInt(parsed.id, 10) : parsed.id;
+          }
+        } catch {}
+      }
+    }
+    if (!visitorId) return;
+
     const fetchExhibitorDetails = async () => {
+      setHasFetched(true);
       if (!exhibitorId) {
         setLoading(true);
         setError(null);
-        // Fetch recommendations for the logged-in visitor
         try {
           // Extract identifier from URL path
           const pathParts = window.location.pathname.split('/');
           const identifier = pathParts[1];
-          if (!user?.id) throw new Error('User not found');
-          const visitorId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
           const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
-          console.log("responseee",response);
           if (response.isError) {
             setError(response.message || 'Failed to fetch recommendations');
             setRecommendations([]);
@@ -97,7 +120,7 @@ export default function VisitorDashboard() {
     };
 
     fetchExhibitorDetails();
-  }, [exhibitorId, user]);
+  }, [exhibitorId, user, authLoading, hasFetched]);
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();

@@ -23,7 +23,10 @@ import {
   CircularProgress,
   Dialog,
   DialogTitle,
-  DialogContent
+  DialogContent,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -42,8 +45,10 @@ import {
   FiberManualRecord as InterestPoint,
   GetApp,
   Favorite,
-  FavoriteBorder
+  FavoriteBorder,
 } from '@mui/icons-material';
+import CloseIcon from '@mui/icons-material/Close';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
@@ -88,63 +93,57 @@ interface ExhibitorCardProps {
 
 // Transform API exhibitor data to UI format - only use actual API data
 const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, index: number) => {
-  // Debug logging for website field
-  console.log('🔍 Transform exhibitor data:', {
-    id: apiExhibitor.id,
-    companyName: apiExhibitor.companyName,
-    webSite: (apiExhibitor as any).webSite,
-    webSiteType: typeof (apiExhibitor as any).webSite,
-    webSiteLength: (apiExhibitor as any).webSite?.length,
-    // Check for alternative website field names
-    website: apiExhibitor.website,
-    companyWebsite: (apiExhibitor as any).companyWebsite,
-    // Log all available fields for debugging
-    allFields: Object.keys(apiExhibitor)
-  });
+  // Map from API response, excluding exhibitorToUserMaps except for email
+  const profile = (Array.isArray(apiExhibitor.exhibitorProfile) ? apiExhibitor.exhibitorProfile[0] : {}) as { companyProfile?: string };
+  const address = (Array.isArray(apiExhibitor.exhibitorAddress) ? apiExhibitor.exhibitorAddress[0] : {}) as { city?: string, countryName?: string, stateProvince?: string };
+  const email = Array.isArray(apiExhibitor.exhibitorToUserMaps) && apiExhibitor.exhibitorToUserMaps.length > 0
+    ? apiExhibitor.exhibitorToUserMaps[0].email || ''
+    : '';
+  const businessEmail = Array.isArray(apiExhibitor.exhibitorToUserMaps) && apiExhibitor.exhibitorToUserMaps.length > 0
+    ? apiExhibitor.exhibitorToUserMaps[0].businessEmail || ''
+    : '';
 
   return {
-    // API fields - only use actual data from API
-    id: apiExhibitor.id.toString(),
-    firstName: apiExhibitor.firstName || '',
-    lastName: apiExhibitor.lastName || '',
-    email: apiExhibitor.email || '',
+    id: apiExhibitor.id?.toString() || '',
+    firstName: '', // Not available outside exhibitorToUserMaps
+    lastName: '', // Not available outside exhibitorToUserMaps
+    email, // Use only email from exhibitorToUserMaps[0]
+    businessEmail, // Add business email as a separate field
     company: apiExhibitor.companyName || '',
-    jobTitle: apiExhibitor.jobTitle || '',
-    phone: apiExhibitor.phoneNumber || null,
-    country: apiExhibitor.country || null,
-    
-    
-    // Only use API data, no fallbacks to generated data
-    interests: apiExhibitor.interests || [],
-    status: apiExhibitor.status || 'registered',
-    type: 'exhibitor' as const,
+    jobTitle: '', // Not available outside exhibitorToUserMaps
+    phone: apiExhibitor.telephone || apiExhibitor.mobileNumber || '',
+    phoneNumber: apiExhibitor.mobileNumber || '',
+    country: apiExhibitor.country || address.countryName || address.stateProvince || '',
+    status: apiExhibitor.isActive ? 'Active' : 'Inactive',
+    interests: [], // Not available outside exhibitorToUserMaps
+    type: 'exhibitor',
     eventId: identifier,
-    registrationDate: apiExhibitor.registrationDate ? new Date(apiExhibitor.registrationDate) : new Date(),
-    invitationSent: apiExhibitor.invitationSent ?? false,
-    invitationDate: apiExhibitor.invitationDate ? new Date(apiExhibitor.invitationDate) : null,
-    checkedIn: apiExhibitor.checkedIn ?? false,
-    lastActivity: apiExhibitor.lastActivity ? new Date(apiExhibitor.lastActivity) : null,
-    createdAt: apiExhibitor.createdAt ? new Date(apiExhibitor.createdAt) : new Date(apiExhibitor.registrationDate || new Date()),
-    updatedAt: apiExhibitor.updatedAt ? new Date(apiExhibitor.updatedAt) : new Date(),
-    
+    registrationDate: apiExhibitor.createdDate ? new Date(apiExhibitor.createdDate) : null,
+    invitationSent: false,
+    invitationDate: null,
+    checkedIn: false,
+    lastActivity: null,
+    createdAt: apiExhibitor.createdDate ? new Date(apiExhibitor.createdDate) : null,
+    updatedAt: apiExhibitor.modifiedDate ? new Date(apiExhibitor.modifiedDate) : null,
     customData: {
-      // Only API-based fields
-      location: [apiExhibitor.city, apiExhibitor.country].filter(Boolean).join(', ') || null,
-      avatar: apiExhibitor.avatar || (apiExhibitor.companyName?.charAt(0).toUpperCase()) || `${apiExhibitor.firstName?.charAt(0) || ''}${apiExhibitor.lastName?.charAt(0) || ''}`,
-      
-      // Only use API data when available
-      matchScore: apiExhibitor.matchScore || null,
-      industry: apiExhibitor.industry || null,
-      experience: apiExhibitor.experience || null,
-      lookingFor: apiExhibitor.lookingFor || [],
-      companyDescription: apiExhibitor.companyDescription || null,
-      products: apiExhibitor.products || [],
-      boothNumber: apiExhibitor.boothNumber || null,
-      boothSize: apiExhibitor.boothSize || null,
-      website: (apiExhibitor as any).webSite || null,
-      companyType: apiExhibitor.companyType || null,
+      location: address.city || '',
+      avatar: apiExhibitor.companyName?.charAt(0).toUpperCase() || '',
+      matchScore: null,
+      industry: apiExhibitor.industry || '',
+      experience: '', // Not available outside exhibitorToUserMaps
+      lookingFor: [], // Not available outside exhibitorToUserMaps
+      companyDescription: profile.companyProfile || '',
+      products: Array.isArray(apiExhibitor.product) ? apiExhibitor.product.map(p => p.title) : [],
+      boothNumber: apiExhibitor.stand || '',
+      boothSize: '', // Not present in API
+      website: apiExhibitor.webSite || '',
+      companyType: apiExhibitor.companyType || '',
+      brand: Array.isArray(apiExhibitor.brand) ? apiExhibitor.brand : [],
       companyLogoPath: apiExhibitor.companyLogoPath || null,
-    }
+    },
+    product: Array.isArray(apiExhibitor.product) ? apiExhibitor.product : [],
+    brand: Array.isArray(apiExhibitor.brand) ? apiExhibitor.brand : [],
+    // Add other fields as needed, but do not use exhibitorToUserMaps except for email
   };
 };
 
@@ -601,106 +600,151 @@ function ExhibitorCardSkeleton() {
   );
 }
 
+// Helper: SectionTitle
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 2, mb: 1, color: 'primary.main', letterSpacing: 0.5 }}>
+    {children}
+  </Typography>
+);
+
+// Helper: Field
+const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <Box display="flex" alignItems="center" mb={0.5}>
+    <Typography variant="subtitle2" fontWeight={700} sx={{ minWidth: 120 }}>{label}:</Typography>
+    <Typography variant="body2" gutterBottom sx={{ ml: 1 }}>{value ?? <span style={{ color: '#aaa' }}>Not Provided</span>}</Typography>
+  </Box>
+);
+
+// Helper: urlWithProtocol
+const urlWithProtocol = (url: string) => {
+  if (!url) return '';
+  return url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+};
+
 // Add ExhibitorDetailsDialog component
 function ExhibitorDetailsDialog({ open, onClose, exhibitor }: { open: boolean; onClose: () => void; exhibitor: any }) {
   if (!exhibitor) return null;
   const getInitials = (firstName: string, lastName: string, company: string) => company?.charAt(0).toUpperCase() || `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  const isMobile = useMediaQuery('(max-width:600px)');
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
+    <Dialog open={open} onClose={(event, reason) => { if (reason === 'backdropClick') return; onClose(); }} maxWidth="lg" fullWidth
+      PaperProps={{ sx: { borderRadius: isMobile ? 0 : 3 , width: '100%' , height: isMobile ? '100%' : '100%' } }}
+      fullScreen={isMobile}
     >
-      <DialogTitle>Exhibitor Details</DialogTitle>
-      <DialogContent>
-        <Box display="flex" alignItems="center" gap={2} mb={2}>
-          <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2, pl: isMobile ? 1 : 2, py: isMobile ? 1 : 2, fontSize: isMobile ? '1.1rem' : undefined }}>
+        Exhibitor Details
+        <IconButton aria-label="close" onClick={onClose} sx={{ ml: 2, transition: 'transform 0.3s', '&:hover': { transform: 'scale(1.15)' } }}>
+          <CloseIcon sx={{ transition: 'transform 0.4s', '&:hover': { transform: 'rotate(180deg)' } }} />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
+        {/* Header */}
+        <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} alignItems={isMobile ? 'flex-start' : 'center'} gap={2} mb={2}>
+          <Avatar sx={{ width: isMobile ? 40 : 50, height: isMobile ? 40 : 50, fontSize: isMobile ? '1.1rem' : '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white', mb: isMobile ? 1 : 0 }}>
             {getInitials(exhibitor.firstName, exhibitor.lastName, exhibitor.company)}
           </Avatar>
           <Box>
-            <Typography variant="h6" fontWeight={700}>{exhibitor.company}</Typography>
-            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">{exhibitor.jobTitle}</Typography>
-            <Typography variant="body2" color="text.secondary">{exhibitor.firstName} {exhibitor.lastName}</Typography>
+            <Typography variant="h6" fontWeight={700} fontSize={isMobile ? '1rem' : undefined}>{exhibitor.company}</Typography>
+            <Typography variant="subtitle2" fontWeight={700} color="text.secondary" fontSize={isMobile ? '0.95rem' : undefined}>{exhibitor.jobTitle}</Typography>
+            <Typography variant="body2" color="text.secondary" fontSize={isMobile ? '0.95rem' : undefined}>{exhibitor.firstName} {exhibitor.lastName}</Typography>
           </Box>
         </Box>
         <Divider sx={{ mb: 2 }} />
+
+        {/* Contact Information */}
+        <SectionTitle>Contact Information</SectionTitle>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" fontWeight={700}>Email:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.email || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Phone:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.phone || exhibitor.phoneNumber || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Country:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.country || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Status:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.status}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Registration Date:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.registrationDate?.toLocaleString?.() || '-'}</Typography>
+            <Field label="Name" value={`${exhibitor.firstName} ${exhibitor.lastName}`} />
+            <Field label="Email" value={exhibitor.email ? <a href={`mailto:${exhibitor.email}`}>{exhibitor.email}</a> : '-'} />
+            <Field label="Business Email" value={exhibitor.businessEmail ? <a href={`mailto:${exhibitor.businessEmail}`}>{exhibitor.businessEmail}</a> : '-'} />
+            <Field label="Phone" value={exhibitor.phone || exhibitor.phoneNumber || '-'} />
+            <Field label="Country" value={exhibitor.country || '-'} />
+            <Field label="Status" value={exhibitor.status || '-'} />
+            <Field label="Registration Date" value={exhibitor.registrationDate?.toLocaleString?.() || '-'} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" fontWeight={700}>Industry:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.customData?.industry || exhibitor.industry || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Experience:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.customData?.experience || exhibitor.experience || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Company Type:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.customData?.companyType || exhibitor.companyType || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Booth Number:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.customData?.boothNumber || exhibitor.boothNumber || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Booth Size:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.customData?.boothSize || exhibitor.boothSize || '-'}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" fontWeight={700}>Website:</Typography>
-            <Typography variant="body2" gutterBottom>
-              {exhibitor.customData?.website || exhibitor.website ? (
-                <a href={(exhibitor.customData?.website || exhibitor.website).startsWith('http') ? (exhibitor.customData?.website || exhibitor.website) : `https://${exhibitor.customData?.website || exhibitor.website}`} target="_blank" rel="noopener noreferrer">{exhibitor.customData?.website || exhibitor.website}</a>
-              ) : '-'}
-            </Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Company Description:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.customData?.companyDescription || exhibitor.companyDescription || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Products:</Typography>
-            {Array.isArray(exhibitor.product) && exhibitor.product.length > 0 ? (
-              <Box mb={1}>
-                {exhibitor.product.map((prod: any, idx: number) => (
-                  <Box key={prod.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
-                    <Typography variant="body2"><b>Title:</b> {prod.title}</Typography>
-                    <Typography variant="body2"><b>Category:</b> {prod.category}</Typography>
-                    <Typography variant="body2"><b>Description:</b> {prod.description}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" gutterBottom>
-                {(exhibitor.customData?.products && exhibitor.customData.products.length > 0)
-                  ? exhibitor.customData.products.join(', ')
-                  : (exhibitor.products && exhibitor.products.length > 0)
-                    ? exhibitor.products.join(', ')
-                    : '-'}
-              </Typography>
-            )}
-            <Typography variant="subtitle2" fontWeight={700}>Brands:</Typography>
-            {Array.isArray(exhibitor.brand) && exhibitor.brand.length > 0 ? (
-              <Box mb={1}>
-                {exhibitor.brand.map((brand: any, idx: number) => (
-                  <Box key={brand.id || idx} sx={{ mb: 1, pl: 1, borderLeft: '2px solid #eee' }}>
-                    <Typography variant="body2"><b>Name:</b> {brand.brandName}</Typography>
-                    <Typography variant="body2"><b>Category:</b> {brand.category}</Typography>
-                    <Typography variant="body2"><b>Description:</b> {brand.description}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" gutterBottom>
-                {(exhibitor.customData?.brand && exhibitor.customData.brand.length > 0)
-                  ? exhibitor.customData.brand.map((b: any) => b.brandName).join(', ')
-                  : '-'}
-              </Typography>
-            )}
-            <Typography variant="subtitle2" fontWeight={700}>Looking For:</Typography>
-            <Typography variant="body2" gutterBottom>{(exhibitor.customData?.lookingFor && exhibitor.customData.lookingFor.length > 0) ? exhibitor.customData.lookingFor.join(', ') : '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Location:</Typography>
-            <Typography variant="body2" gutterBottom>{exhibitor.customData?.location || exhibitor.location || '-'}</Typography>
+            <Field label="Job Title" value={exhibitor.jobTitle || '-'} />
+            <Field label="Industry" value={exhibitor.customData?.industry || exhibitor.industry || '-'} />
+            <Field label="Experience" value={exhibitor.customData?.experience || exhibitor.experience || '-'} />
+            <Field label="Company Type" value={exhibitor.customData?.companyType || exhibitor.companyType || '-'} />
+            <Field label="Location" value={exhibitor.customData?.location || exhibitor.location || '-'} />
+            <Field label="Website" value={
+              exhibitor.customData?.website || exhibitor.website
+                ? <a href={urlWithProtocol(exhibitor.customData?.website || exhibitor.website)} target="_blank" rel="noopener noreferrer">{exhibitor.customData?.website || exhibitor.website}</a>
+                : '-'
+            } />
           </Grid>
         </Grid>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Booth Information */}
+        <SectionTitle>Booth Information</SectionTitle>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <Field label="Booth Number" value={exhibitor.customData?.boothNumber || exhibitor.boothNumber || '-'} />
+            <Field label="Booth Size" value={exhibitor.customData?.boothSize || exhibitor.boothSize || '-'} />
+            <Field label="Looking For" value={exhibitor.customData?.lookingFor?.length > 0 ? exhibitor.customData.lookingFor.join(', ') : '-'} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Field label="Company Description" value={exhibitor.customData?.companyDescription || exhibitor.companyDescription || '-'} />
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Products */}
+        <SectionTitle>Products</SectionTitle>
+        {Array.isArray(exhibitor.product) && exhibitor.product.length > 0 ? (
+          <List dense>
+            {exhibitor.product.map((prod: any, idx: number) => (
+              <ListItem key={prod.id || idx} alignItems="flex-start" sx={{ pl: 0 }}>
+                <ListItemText
+                  primary={<b>{prod.title}</b>}
+                  secondary={
+                    <>
+                      <div><b>Category:</b> {prod.category}</div>
+                      <div><b>Description:</b> {prod.description}</div>
+                    </>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <Typography variant="body2" color="text.secondary">{(exhibitor.customData?.products && exhibitor.customData.products.length > 0)
+            ? exhibitor.customData.products.join(', ')
+            : (exhibitor.products && exhibitor.products.length > 0)
+              ? exhibitor.products.join(', ')
+              : 'No products listed.'}</Typography>
+        )}
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Brands */}
+        <SectionTitle>Brands</SectionTitle>
+        {Array.isArray(exhibitor.brand) && exhibitor.brand.length > 0 ? (
+          <List dense>
+            {exhibitor.brand.map((brand: any, idx: number) => (
+              <ListItem key={brand.id || idx} alignItems="flex-start" sx={{ pl: 0 }}>
+                <ListItemText
+                  primary={<b>{brand.brandName}</b>}
+                  secondary={
+                    <>
+                      <div><b>Category:</b> {brand.category}</div>
+                      <div><b>Description:</b> {brand.description}</div>
+                    </>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <Typography variant="body2" color="text.secondary">{(exhibitor.customData?.brand && exhibitor.customData.brand.length > 0)
+            ? exhibitor.customData.brand.map((b: any) => b.brandName).join(', ')
+            : 'No brands listed.'}</Typography>
+        )}
       </DialogContent>
     </Dialog>
   );

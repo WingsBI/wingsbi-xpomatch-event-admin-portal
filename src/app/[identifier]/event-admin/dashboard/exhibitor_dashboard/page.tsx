@@ -14,7 +14,9 @@ import {
   Skeleton, 
   Alert,
   Divider,
-  IconButton
+  IconButton,
+  Button,
+  Pagination
 } from '@mui/material';
 import {
   Business,
@@ -25,13 +27,18 @@ import {
   Work,
   Star,
   Favorite,
-  FavoriteBorder
+  FavoriteBorder,
+  LinkedIn,
+  Language as LanguageIcon
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi, type Visitor } from '@/services/fieldMappingApi';
 import { useAuth } from '@/context/AuthContext';
 import { ExhibitormatchmakingApi } from '@/services/apiService';
+import { getCurrentExhibitorId } from '@/utils/authUtils';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import ConnectIcon from '@mui/icons-material/ConnectWithoutContact';
 
 export default function ExhibitorDashboard() {
   const searchParams = useSearchParams();
@@ -41,6 +48,15 @@ export default function ExhibitorDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+
+  // Pagination hooks must be at the top level
+  const [page, setPage] = useState(1);
+  const cardsPerPage = 5;
+  const handleChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+  };
+  const paginatedRecs = recommendations.slice((page - 1) * cardsPerPage, page * cardsPerPage);
+  const totalPages = Math.ceil(recommendations.length / cardsPerPage);
 
   useEffect(() => {
     const fetchVisitorDetails = async () => {
@@ -52,8 +68,8 @@ export default function ExhibitorDashboard() {
           // Extract identifier from URL path
           const pathParts = window.location.pathname.split('/');
           const identifier = pathParts[1];
-          if (!user?.id) throw new Error('User not found');
-          const exhibitorId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+          const exhibitorId = getCurrentExhibitorId();
+          if (!exhibitorId) throw new Error('Exhibitor ID not found');
           const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
           console.log("responseee",response);
           if (response.isError) {
@@ -150,14 +166,14 @@ export default function ExhibitorDashboard() {
     );
   }
 
-  // If exhibitor ID is provided and exhibitor data is available, show exhibitor details
+  // If visitor ID is provided and visitor data is available, show visitor details
   if (visitorId && visitor) {
     return (
       <RoleBasedRoute allowedRoles={['event-admin', 'exhibitor']}>
         <ResponsiveDashboardLayout title={`Exhibitor Details - ${visitor.companyName || `${visitor.firstName} ${visitor.lastName}`}`}>
           <Container maxWidth="lg" sx={{ mt: 2, mb: 2 }}>
           <Grid container spacing={3}>
-            {/* Main Exhibitor Card */}
+            {/* Main Visitor Card */}
             <Grid item xs={12}>
               <Card>
                 <CardContent>
@@ -397,75 +413,104 @@ export default function ExhibitorDashboard() {
             </Typography>
         
             <Grid container spacing={2}>
-              {recommendations.map((rec) => (
-                <Grid item xs={12} sm={6} md={3} key={rec.id}>
+              {paginatedRecs.map((rec) => (
+                <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
                   <Card
                     sx={{
+                      borderRadius: 2,
+                      boxShadow: 1,
+                      bgcolor: 'white',
+                      p: 2,
+                      minHeight: 185,
+                      maxHeight: 185,
+                      height: 185,
                       display: 'flex',
                       flexDirection: 'column',
-                      borderRadius: 4,
-                      boxShadow: 1,
+                      justifyContent: 'flex-start',
                       position: 'relative',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                      '&:hover': {
-                        transform: 'translateY(-4px) scale(1.02)',
-                        boxShadow: 4,
-                      },
-                      p: 1,
-                      width: '100%',
+                      overflow: 'hidden',
+                      wordWrap: 'break-word',
                     }}
-                    elevation={1}
                   >
                     {/* Match Percentage Top Right */}
-                    <Box sx={{ position: 'absolute', top: 0, right: 14, zIndex: 2 }}>
+                    <Box sx={{ position: 'absolute', top: 10, right: 18, zIndex: 2 }}>
                       <Typography
                         variant="subtitle1"
                         sx={{
                           fontStyle: 'italic',
                           color: '#222',
                           fontWeight: 600,
-                          fontSize: 18,
+                          fontSize: 16  ,
                           letterSpacing: 0.5,
+                          mt: -1,
                         }}
                       >
                         {rec.matchPercentage?.toFixed(0)}%
                       </Typography>
                     </Box>
-                    <CardContent sx={{ flexGrow: 1, p: 1, pb: '8px!important' }}>
-                      <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                        <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: 16 }}>
-                          {getInitials(rec.firstName, rec.lastName)}
-                        </Avatar>
-                        <Box flex={1} minWidth={0}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#222', fontSize: 15, wordBreak: 'break-word' ,mt: 1}}>
-                            {rec.salutation} {rec.firstName} {rec.middleName} {rec.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 13 }}>
-                            {rec.userProfile?.jobTitle || 'No job title'}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, display: 'block' }}>
-                            {rec.userProfile?.companyName || 'No company'}
-                          </Typography>
-                        </Box>
+                    {/* Avatar and Name */}
+                    <Box display="flex" alignItems="flex-start" gap={0.5} mb={0} mt={1} sx={{ position: 'relative', zIndex: 1 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: 16 }}>
+                        {getInitials(rec.firstName, rec.lastName)}
+                      </Avatar>
+                      <Box display="flex" flexDirection="column" gap={0.5}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, wordBreak: 'break-word', color: '#222', fontSize: 15, lineHeight: 1.2, m: 0, p: 0 }}>
+                          {rec.salutation} {rec.firstName} {rec.lastName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, m: 0, p: 0, lineHeight: 1.2, wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                          {rec.userProfile?.jobTitle || 'No job title'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, whiteSpace: 'normal', m: 0, p: 0 , lineHeight: 1.2, wordBreak: 'break-word'}}>
+                          {rec.userProfile?.companyName || 'No company'}
+                        </Typography>
                       </Box>
-                      <Divider sx={{ my: 1 }} />
-                    </CardContent>
-                    <Box sx={{ px: 1, pb: 1, pt: 0, mt: 1, mb: 1 }}>
-                      <Box display="flex" justifyContent="flex-end">
-                        <Chip
-                          label="View Details"
-                          color="primary"
-                          clickable
-                          size="small"
-                          sx={{ fontWeight: 'bold', height: 24 }}
-                          // onClick handler can be added to navigate to visitor details
-                        />
-                      </Box>
+                    </Box>
+                    {/* Divider above button row */}
+                    <Divider sx={{ position: 'absolute', left: 16, right: 16, bottom: 60 }} />
+                    {/* Button Row */}
+                    <Box display="flex" alignItems="center" gap={1} sx={{ position: 'absolute', left: 16, right: 16, bottom: 12 }}>
+                      {/* {rec.userProfile?.linkedInProfile && (
+                        <IconButton size="small" sx={{ color: '#0077b5' }} onClick={() => window.open(rec.userProfile.linkedInProfile, '_blank')}>
+                          <LinkedIn fontSize="small" />
+                        </IconButton>
+                      )}
+                      {rec.userProfile?.companyWebsite && (
+                        <IconButton size="small" sx={{ color: '#555' }} onClick={() => window.open(rec.userProfile.companyWebsite, '_blank')}>
+                          <LanguageIcon fontSize="small" />
+                        </IconButton>
+                      )} */}
+                      <Box flex={1} />
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        startIcon={<ConnectIcon />}
+                        sx={{
+                          fontWeight: 'bold',
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          px: 2,
+                          minWidth: 100,
+                          boxShadow: 'none',
+                        }}
+                      >
+                        Connect
+                      </Button>
                     </Box>
                   </Card>
                 </Grid>
               ))}
             </Grid>
+            {/* Pagination controls below cards */}
+            <Box display="flex" justifyContent="center" mt={2}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={handleChange}
+                color="primary"
+              />
+            </Box>
+            {/* Leave the rest of the area blank */}
           </Container>
         </ResponsiveDashboardLayout>
       </RoleBasedRoute>

@@ -32,6 +32,7 @@ import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi, type Visitor } from '@/services/fieldMappingApi';
 import { useAuth } from '@/context/AuthContext';
 import { ExhibitormatchmakingApi } from '@/services/apiService';
+import { getCurrentExhibitorId } from '@/utils/authUtils';
 
 export default function ExhibitorDashboard() {
   const searchParams = useSearchParams();
@@ -52,8 +53,8 @@ export default function ExhibitorDashboard() {
           // Extract identifier from URL path
           const pathParts = window.location.pathname.split('/');
           const identifier = pathParts[1];
-          if (!user?.id) throw new Error('User not found');
-          const exhibitorId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+          const exhibitorId = getCurrentExhibitorId();
+          if (!exhibitorId) throw new Error('Exhibitor ID not found');
           const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
           console.log("responseee",response);
           if (response.isError) {

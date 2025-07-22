@@ -635,25 +635,7 @@ export default function EventLoginPage() {
                       {isSubmitting ? "Signing In..." : "Sign In to Event Portal"}
                     </Button>
 
-                    {/* Quick demo buttons for mobile */}
-                    {isMobile && (
-                      <Box sx={{ mt: 3, display: 'flex', gap: 1, justifyContent: 'center' }}>
-                        <Button
-                          size="small"
-                          onClick={() => handleDemoLogin("ritesh.ramilkanthwar@gmail.com", "kOZoO@O!")}
-                          disabled={isSubmitting}
-                        >
-                          Test API
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => handleDemoLogin("eventadmin@example.com", "event123")}
-                          disabled={isSubmitting}
-                        >
-                          Demo
-                        </Button>
-                      </Box>
-                    )}
+                   
                   </form>
                 </CardContent>
               </Card>

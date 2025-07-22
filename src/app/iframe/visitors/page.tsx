@@ -23,7 +23,8 @@ import {
   CircularProgress,
   Dialog,
   DialogTitle,
-  DialogContent
+  DialogContent,
+  useMediaQuery
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -41,7 +42,8 @@ import {
   FiberManualRecord as InterestPoint,
   TrendingUp,
   GetApp,
-  Person
+  Person,
+  Close
 } from '@mui/icons-material';
 import Link from 'next/link';
 
@@ -53,6 +55,7 @@ import { getCurrentExhibitorId, decodeJWTToken, isEventAdmin } from '@/utils/aut
 import { AnimatePresence, motion } from 'framer-motion';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import { FavoritesManager } from '@/utils/favoritesManager';
+import { styled } from '@mui/material/styles';
 
 interface VisitorCardProps {
   visitor: TransformedVisitor;
@@ -603,15 +606,36 @@ function VisitorCardSkeleton() {
   );
 }
 
+// Add a styled IconButton for rotation animation
+const RotatingIconButton = styled(IconButton)(({ theme }) => ({
+  transition: 'transform 0.3s',
+  '&:hover': {
+    transform: 'rotate(180deg)',
+  },
+}));
+
 // Add VisitorDetailsDialog component
 function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClose: () => void; visitor: TransformedVisitor | null }) {
   if (!visitor) return null;
   const getInitials = (firstName: string, lastName: string) => `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  const isMobile = useMediaQuery('(max-width:600px)');
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-    PaperProps={{ sx: { borderRadius: 3 } }} >
-      <DialogTitle>Visitor Details</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} maxWidth="lg" fullWidth
+      fullScreen={isMobile}
+      PaperProps={{ sx: { borderRadius: 3, width: '100%' , height: isMobile ? '100vh' : '100%' } }}
+      onClose={(event, reason) => {
+        if (reason !== 'backdropClick') {
+          onClose();
+        }
+      }}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2 }}>
+        Visitor Details
+        <RotatingIconButton aria-label="close" onClick={onClose} size={isMobile ? 'medium' : 'small'}>
+          <Close />
+        </RotatingIconButton>
+      </DialogTitle>
+      <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
         <Box display="flex" alignItems="center" gap={2} mb={2}>
           <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
             {getInitials(visitor.firstName, visitor.lastName)}
@@ -624,80 +648,122 @@ function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClo
         </Box>
         <Divider sx={{ mb: 2 }} />
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" fontWeight={700}>Email:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.email}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Phone:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.phone || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Country:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.country || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Status:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.status}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Registration Date:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.registrationDate?.toLocaleString?.() || '-'}</Typography>
+          {/* Column 1: Personal Info */}
+          <Grid item xs={12} sm={4}>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Email:</Typography>
+              <Typography variant="body2">{visitor.email}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Phone:</Typography>
+              <Typography variant="body2">{visitor.phone || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Country:</Typography>
+              <Typography variant="body2">{visitor.country || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Status:</Typography>
+              <Typography variant="body2">{visitor.status}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Registration Date:</Typography>
+              <Typography variant="body2">{visitor.registrationDate?.toLocaleString?.() || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Salutation:</Typography>
+              <Typography variant="body2">{visitor.customData?.salutation || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Middle Name:</Typography>
+              <Typography variant="body2">{visitor.customData?.middleName || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Gender:</Typography>
+              <Typography variant="body2">{visitor.customData?.gender || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Date of Birth:</Typography>
+              <Typography variant="body2">{visitor.customData?.dateOfBirth || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Nationality:</Typography>
+              <Typography variant="body2">{visitor.customData?.nationality || '-'}</Typography>
+            </Box>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" fontWeight={700}>Salutation:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.salutation || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Middle Name:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.middleName || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Gender:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.gender || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Date of Birth:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.dateOfBirth || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Nationality:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.nationality || '-'}</Typography>
+          {/* Column 2: Social/Contact */}
+          <Grid item xs={12} sm={4}>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>LinkedIn:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.linkedInProfile ? (
+                  <a href={visitor.customData.linkedInProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.linkedInProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Instagram:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.instagramProfile ? (
+                  <a href={visitor.customData.instagramProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.instagramProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>GitHub:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.gitHubProfile ? (
+                  <a href={visitor.customData.gitHubProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.gitHubProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Twitter:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.twitterProfile ? (
+                  <a href={visitor.customData.twitterProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.twitterProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Decision Maker:</Typography>
+              <Typography variant="body2">{visitor.customData?.decisionmaker ? 'Yes' : 'No'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Experience:</Typography>
+              <Typography variant="body2">{visitor.customData?.experience || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Interests:</Typography>
+              <Typography variant="body2">{visitor.interests && visitor.interests.length > 0 ? visitor.interests.join(', ') : '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Looking For:</Typography>
+              <Typography variant="body2">{visitor.customData?.lookingFor && visitor.customData.lookingFor.length > 0 ? visitor.customData.lookingFor.join(', ') : '-'}</Typography>
+            </Box>
           </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" fontWeight={700}>LinkedIn:</Typography>
-            <Typography variant="body2" gutterBottom>
-              {visitor.customData?.linkedInProfile ? (
-                <a href={visitor.customData.linkedInProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.linkedInProfile}</a>
-              ) : '-'}
-            </Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Instagram:</Typography>
-            <Typography variant="body2" gutterBottom>
-              {visitor.customData?.instagramProfile ? (
-                <a href={visitor.customData.instagramProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.instagramProfile}</a>
-              ) : '-'}
-            </Typography>
-            <Typography variant="subtitle2" fontWeight={700}>GitHub:</Typography>
-            <Typography variant="body2" gutterBottom>
-              {visitor.customData?.gitHubProfile ? (
-                <a href={visitor.customData.gitHubProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.gitHubProfile}</a>
-              ) : '-'}
-            </Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Twitter:</Typography>
-            <Typography variant="body2" gutterBottom>
-              {visitor.customData?.twitterProfile ? (
-                <a href={visitor.customData.twitterProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.twitterProfile}</a>
-              ) : '-'}
-            </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" fontWeight={700}>Address:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.addressLine1 || '-'} {visitor.customData?.addressLine2 || ''}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>City:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.cityName || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>State:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.stateName || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Postal Code:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.postalCode || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Location:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.location || '-'}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" fontWeight={700}>Experience:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.experience || '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Decision Maker:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.decisionmaker ? 'Yes' : 'No'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Interests:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.interests && visitor.interests.length > 0 ? visitor.interests.join(', ') : '-'}</Typography>
-            <Typography variant="subtitle2" fontWeight={700}>Looking For:</Typography>
-            <Typography variant="body2" gutterBottom>{visitor.customData?.lookingFor && visitor.customData.lookingFor.length > 0 ? visitor.customData.lookingFor.join(', ') : '-'}</Typography>
+          {/* Column 3: Address/Other */}
+          <Grid item xs={12} sm={4}>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Address:</Typography>
+              <Typography variant="body2">{visitor.customData?.addressLine1 || '-'} {visitor.customData?.addressLine2 || ''}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>City:</Typography>
+              <Typography variant="body2">{visitor.customData?.cityName || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>State:</Typography>
+              <Typography variant="body2">{visitor.customData?.stateName || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Postal Code:</Typography>
+              <Typography variant="body2">{visitor.customData?.postalCode || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Location:</Typography>
+              <Typography variant="body2">{visitor.customData?.location || '-'}</Typography>
+            </Box>
           </Grid>
         </Grid>
       </DialogContent>

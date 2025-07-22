@@ -38,6 +38,7 @@ import { useAuth } from '@/context/AuthContext';
 import { ExhibitormatchmakingApi } from '@/services/apiService';
 import { getCurrentExhibitorId } from '@/utils/authUtils';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import ConnectIcon from '@mui/icons-material/ConnectWithoutContact';
 
 export default function ExhibitorDashboard() {
   const searchParams = useSearchParams();
@@ -483,7 +484,7 @@ export default function ExhibitorDashboard() {
                         variant="contained"
                         color="primary"
                         size="small"
-                        startIcon={<PersonAddIcon />}
+                        startIcon={<ConnectIcon />}
                         sx={{
                           fontWeight: 'bold',
                           borderRadius: 2,

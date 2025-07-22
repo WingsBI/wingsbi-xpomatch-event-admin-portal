@@ -81,6 +81,7 @@ interface ExhibitorCardProps {
       website?: string;
       linkedInProfile?: string;
       companyType?: string;
+      companyLogoPath?: string;
     };
   };
   visitorInterests: string[];
@@ -138,6 +139,7 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
       website: apiExhibitor.webSite || '',
       companyType: apiExhibitor.companyType || '',
       brand: Array.isArray(apiExhibitor.brand) ? apiExhibitor.brand : [],
+      companyLogoPath: apiExhibitor.companyLogoPath || null,
     },
     product: Array.isArray(apiExhibitor.product) ? apiExhibitor.product : [],
     brand: Array.isArray(apiExhibitor.brand) ? apiExhibitor.brand : [],
@@ -285,8 +287,9 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
         {/* Header with Company Info and Match Score */}
         <Box display="flex" alignItems="center" mb={1} sx={{ minHeight: '60px', width: '100%' }}>
           <Avatar
+            src={exhibitor.customData?.companyLogoPath || undefined}
             sx={{
-              bgcolor: theme.palette.primary.main,
+              bgcolor: 'success.main',
               width: 36,
               height: 36,
               mr: 1.5,
@@ -298,7 +301,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
               mt: 2,
             }}
           >
-            {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
+            {!exhibitor.customData?.companyLogoPath && (exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName))}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
             <Typography 
@@ -328,11 +331,11 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
             >
               {exhibitor.company}
             </Typography>
-            {exhibitor.jobTitle && (
+            {/* {exhibitor.jobTitle && (
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.jobTitle}
               </Typography>
-            )}
+            )} */}
             {exhibitor.customData?.companyType && (
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.customData.companyType}
@@ -426,14 +429,14 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 </Box>
               )}
               
-              {exhibitor.customData?.industry && (
+              {/* {exhibitor.customData?.industry && (
                 <Box display="flex" alignItems="center">
                   <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
                   <Typography variant="body2" color="text.secondary">
                     {exhibitor.customData.industry}
                   </Typography>
                 </Box>
-              )}
+              )} */}
             </Box>
           )}
 
@@ -524,6 +527,8 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 <LinkedIn fontSize="small" />
               </IconButton>
             )}
+           
+
            
             {exhibitor.customData?.website && exhibitor.customData.website.trim() !== '' && (
               <IconButton 

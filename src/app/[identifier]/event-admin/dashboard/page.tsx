@@ -56,6 +56,7 @@ import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { apiService } from '@/services/apiService';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
+import { color } from 'framer-motion';
 
 export default function EventAdminDashboard() {
   const params = useParams();
@@ -353,7 +354,7 @@ export default function EventAdminDashboard() {
       
       // Call both APIs simultaneously
       const [suggestResponse, standardFieldsResponse] = await Promise.all([
-        fieldMappingApi.suggestMapping(identifier, file),
+        fieldMappingApi.suggestExhibitorMapping(identifier, file),
         fieldMappingApi.getAllExhibitorStandardFields(identifier)
       ]);
       
@@ -442,7 +443,7 @@ export default function EventAdminDashboard() {
       title: 'Pending Invitations',
       value: stats?.pendingInvitations || 0,
       icon: <Email sx={{ fontSize: 40 }} />,
-      color: '#dc004e',
+      color: '#dc004e', 
       subtitle: 'Awaiting response',
       action: {
         label: 'Send Invitations',
@@ -569,16 +570,16 @@ export default function EventAdminDashboard() {
                       </Box>
                       <Box mt={2}>
                         <Button
-                          variant="outlined"
+                          variant="contained"
                           size="small"
                           startIcon={stat.action.icon}
                           onClick={stat.action.onClick}
                           sx={{
-                            borderColor: stat.color,
-                            color: stat.color,
+                            backgroundColor: stat.color,
+                            color: '#fff',
                             '&:hover': {
-                              borderColor: stat.color,
-                              bgcolor: `${stat.color}10`,
+                              backgroundColor: stat.color,
+                              opacity: 0.85,
                             },
                           }}
                         >

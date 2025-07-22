@@ -280,6 +280,17 @@ export interface Exhibitor {
     modifiedDate: string | null;
     isActive: boolean;
   }>;
+  brochure?: Array<{
+    id: number;
+    exhibitorId: number;
+    title: string;
+    filePath: string | null;
+    isActive: boolean;
+    createdDate: string;
+    createdBy: number;
+    modifiedDate: string | null;
+    modifiedBy: number | null;
+  }>;
 }
 
 export interface ExhibitorsListResponse {
@@ -1145,7 +1156,9 @@ class FieldMappingApiService {
           companyDescription: exhibitorData.exhibitorProfile?.[0]?.companyProfile,
           
           // Products and other data
-          products: exhibitorData.product?.map((p: any) => p.title) || [],
+          product: exhibitorData.product || [],
+          brand: exhibitorData.brand || [],
+          brochure: exhibitorData.brochure || [],
         };
 
         return {

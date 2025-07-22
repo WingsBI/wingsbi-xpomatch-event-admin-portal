@@ -350,8 +350,8 @@ export default function ProfileSettingsPage() {
                   <Avatar
                     src={profileData.profilePhoto || undefined}
                     sx={{
-                      width: 60,
-                      height: 60,
+                      width: 50,
+                      height: 50,
                       fontSize: '1.5rem',
                       fontWeight: 'bold',
                       color: 'white',
@@ -413,12 +413,13 @@ export default function ProfileSettingsPage() {
                 </Grid>
                 
                 <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth size="small">
                     <InputLabel>Salutation</InputLabel>
                     <Select
                       value={profileData.salutation}
                       label="Salutation"
                       onChange={(e) => handleInputChange('salutation', e.target.value)}
+                      size="small"
                     >
                       <MenuItem value="">None</MenuItem>
                       <MenuItem value="Mr">Mr</MenuItem>
@@ -436,6 +437,7 @@ export default function ProfileSettingsPage() {
                     value={profileData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     required
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -444,6 +446,7 @@ export default function ProfileSettingsPage() {
                     label="Middle Name"
                     value={profileData.middleName}
                     onChange={(e) => handleInputChange('middleName', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -453,6 +456,7 @@ export default function ProfileSettingsPage() {
                     value={profileData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     required
+                    size="small"
                   />
                 </Grid>
                 
@@ -463,15 +467,17 @@ export default function ProfileSettingsPage() {
                     type="email"
                     value={profileData.email || ''}
                     onChange={(e) => handleInputChange('email', e.target.value || null)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth size="small">
                     <InputLabel>Gender</InputLabel>
                     <Select
                       value={profileData.gender || ''}
                       label="Gender"
                       onChange={(e) => handleInputChange('gender', e.target.value || null)}
+                      size="small"
                     >
                       <MenuItem value="">Prefer not to say</MenuItem>
                       <MenuItem value="Male">Male</MenuItem>
@@ -488,6 +494,7 @@ export default function ProfileSettingsPage() {
                     value={profileData.dateOfBirth || ''}
                     onChange={(e) => handleInputChange('dateOfBirth', e.target.value || null)}
                     InputLabelProps={{ shrink: true }}
+                    size="small"
                   />
                 </Grid>
 
@@ -499,12 +506,13 @@ export default function ProfileSettingsPage() {
                 </Grid>
                 
                 <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth size="small">
                     <InputLabel>Status</InputLabel>
                     <Select
                       value={profileData.userStatusId}
                       label="Status"
                       onChange={(e) => handleInputChange('userStatusId', e.target.value)}
+                      size="small"
                     >
                       <MenuItem value={1}>Active</MenuItem>
                       <MenuItem value={2}>Inactive</MenuItem>
@@ -517,6 +525,7 @@ export default function ProfileSettingsPage() {
                     label="Phone"
                     value={profileData.phone || ''}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -526,15 +535,17 @@ export default function ProfileSettingsPage() {
                     type="number"
                     value={profileData.experienceYears || 0}
                     onChange={(e) => handleInputChange('experienceYears', Number(e.target.value))}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth size="small">
                     <InputLabel>Decision Maker</InputLabel>
                     <Select
                       value={profileData.decisionmaker ? 'Yes' : 'No'}
                       label="Decision Maker"
                       onChange={(e) => handleInputChange('decisionmaker', e.target.value === 'Yes')}
+                      size="small"
                     >
                       <MenuItem value="Yes">Yes</MenuItem>
                       <MenuItem value="No">No</MenuItem>
@@ -555,6 +566,7 @@ export default function ProfileSettingsPage() {
                     label="LinkedIn Profile"
                     value={profileData.linkedInProfile || ''}
                     onChange={(e) => handleInputChange('linkedInProfile', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -563,6 +575,7 @@ export default function ProfileSettingsPage() {
                     label="Instagram Profile"
                     value={profileData.instagramProfile || ''}
                     onChange={(e) => handleInputChange('instagramProfile', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -571,6 +584,7 @@ export default function ProfileSettingsPage() {
                     label="GitHub Profile"
                     value={profileData.gitHubProfile || ''}
                     onChange={(e) => handleInputChange('gitHubProfile', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -579,6 +593,7 @@ export default function ProfileSettingsPage() {
                     label="Twitter Profile"
                     value={profileData.twitterProfile || ''}
                     onChange={(e) => handleInputChange('twitterProfile', e.target.value)}
+                    size="small"
                   />
                 </Grid>
 
@@ -595,6 +610,7 @@ export default function ProfileSettingsPage() {
                     label="Designation"
                     value={profileData.designation || ''}
                     onChange={(e) => handleInputChange('designation', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
@@ -603,6 +619,7 @@ export default function ProfileSettingsPage() {
                     label="Job Title"
                     value={profileData.jobTitle || ''}
                     onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
@@ -611,6 +628,7 @@ export default function ProfileSettingsPage() {
                     label="Company Name"
                     value={profileData.companyName || ''}
                     onChange={(e) => handleInputChange('companyName', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 
@@ -620,6 +638,7 @@ export default function ProfileSettingsPage() {
                     label="Company Website"
                     value={profileData.companyWebsite || ''}
                     onChange={(e) => handleInputChange('companyWebsite', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={6}>
@@ -628,6 +647,7 @@ export default function ProfileSettingsPage() {
                     label="Business Email"
                     value={profileData.businessEmail || ''}
                     onChange={(e) => handleInputChange('businessEmail', e.target.value)}
+                    size="small"
                   />
                 </Grid>
 
@@ -644,6 +664,7 @@ export default function ProfileSettingsPage() {
                     label="Address Line 1"
                     value={profileData.addressLine1 || ''}
                     onChange={(e) => handleInputChange('addressLine1', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={6}>
@@ -652,6 +673,7 @@ export default function ProfileSettingsPage() {
                     label="Address Line 2"
                     value={profileData.addressLine2 || ''}
                     onChange={(e) => handleInputChange('addressLine2', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 
@@ -661,6 +683,7 @@ export default function ProfileSettingsPage() {
                     label="City"
                     value={profileData.cityName || ''}
                     onChange={(e) => handleInputChange('cityName', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -669,6 +692,7 @@ export default function ProfileSettingsPage() {
                     label="State"
                     value={profileData.stateName || ''}
                     onChange={(e) => handleInputChange('stateName', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -677,6 +701,7 @@ export default function ProfileSettingsPage() {
                     label="Country"
                     value={profileData.countryName || ''}
                     onChange={(e) => handleInputChange('countryName', e.target.value)}
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -685,6 +710,7 @@ export default function ProfileSettingsPage() {
                     label="Postal Code"
                     value={profileData.postalCode || ''}
                     onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                    size="small"
                   />
                 </Grid>
               </Grid>

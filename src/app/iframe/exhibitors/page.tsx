@@ -76,6 +76,7 @@ interface ExhibitorCardProps {
       website?: string;
       linkedInProfile?: string;
       companyType?: string;
+      companyLogoPath?: string;
     };
   };
   visitorInterests: string[];
@@ -142,6 +143,7 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
       boothSize: apiExhibitor.boothSize || null,
       website: (apiExhibitor as any).webSite || null,
       companyType: apiExhibitor.companyType || null,
+      companyLogoPath: apiExhibitor.companyLogoPath || null,
     }
   };
 };
@@ -286,8 +288,9 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
         {/* Header with Company Info and Match Score */}
         <Box display="flex" alignItems="center" mb={1} sx={{ minHeight: '60px', width: '100%' }}>
           <Avatar
+            src={exhibitor.customData?.companyLogoPath || undefined}
             sx={{
-              bgcolor: theme.palette.primary.main,
+              bgcolor: 'success.main',
               width: 36,
               height: 36,
               mr: 1.5,
@@ -299,7 +302,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
               mt: 2,
             }}
           >
-            {exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName)}
+            {!exhibitor.customData?.companyLogoPath && (exhibitor.company ? exhibitor.company.charAt(0).toUpperCase() : getInitials(exhibitor.firstName, exhibitor.lastName))}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
             <Typography 
@@ -329,11 +332,11 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
             >
               {exhibitor.company}
             </Typography>
-            {exhibitor.jobTitle && (
+            {/* {exhibitor.jobTitle && (
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.jobTitle}
               </Typography>
-            )}
+            )} */}
             {exhibitor.customData?.companyType && (
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {exhibitor.customData.companyType}
@@ -427,19 +430,19 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 </Box>
               )}
               
-              {exhibitor.customData?.industry && (
+              {/* {exhibitor.customData?.industry && (
                 <Box display="flex" alignItems="center">
                   <Business sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
                   <Typography variant="body2" color="text.secondary">
                     {exhibitor.customData.industry}
                   </Typography>
                 </Box>
-              )}
+              )} */}
             </Box>
           )}
 
           {/* Products/Services Offered - only show if data exists */}
-          {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
+          {/* {exhibitor.customData?.products && exhibitor.customData.products.length > 0 && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                 Products & Services:
@@ -472,10 +475,10 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 )}
               </Box>
             </Box>
-          )}
+          )} */}
 
           {/* Company Description - only show if data exists */}
-          {exhibitor.customData?.companyDescription && (
+          {/* {exhibitor.customData?.companyDescription && (
             <Box mb={1}>
               <Typography variant="body2" color="text.secondary" sx={{ 
                 display: '-webkit-box',
@@ -487,10 +490,10 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 {exhibitor.customData.companyDescription}
               </Typography>
             </Box>
-          )}
+          )} */}
 
           {/* Common Interests - only show if data exists */}
-          {commonInterests.length > 0 && (
+          {/* {commonInterests.length > 0 && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                 Common Interests:
@@ -512,7 +515,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 ))}
               </Box>
             </Box>
-          )}
+          )} */}
         </Box>
 
         <Divider sx={{ mb: 2 }} />  
@@ -525,6 +528,8 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 <LinkedIn fontSize="small" />
               </IconButton>
             )}
+           
+
            
             {exhibitor.customData?.website && exhibitor.customData.website.trim() !== '' && (
               <IconButton 

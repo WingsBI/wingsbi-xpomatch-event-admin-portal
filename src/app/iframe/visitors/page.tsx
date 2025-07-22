@@ -514,7 +514,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         <Divider sx={{ mb: 2 }} />
 
         {/* Action Buttons */}
-        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 'auto' }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: -1, mb: -1 }}>
           <Box display="flex" gap={1}>
             {visitor.customData?.linkedInProfile && (
               <IconButton

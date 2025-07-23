@@ -548,7 +548,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
            
             
           </Box>
-
+``
           <Button
             variant="contained"
             size="small"

@@ -16,7 +16,12 @@ import {
   Divider,
   IconButton,
   Button,
-  Pagination
+  Pagination,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  useMediaQuery,
+  IconButton as MuiIconButton
 } from '@mui/material';
 import {
   Business,
@@ -29,7 +34,8 @@ import {
   Favorite,
   FavoriteBorder,
   LinkedIn,
-  Language as LanguageIcon
+  Language as LanguageIcon,
+  Close
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -40,6 +46,7 @@ import { getCurrentExhibitorId } from '@/utils/authUtils';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ConnectIcon from '@mui/icons-material/ConnectWithoutContact';
 import { FavoritesManager } from '@/utils/favoritesManager';
+import { TransformedVisitor } from '@/types';
 
 
 export default function ExhibitorDashboard() {
@@ -63,6 +70,16 @@ export default function ExhibitorDashboard() {
 
   const [favoriteVisitorIds, setFavoriteVisitorIds] = useState(new Set());
   const [loadingFavoriteId, setLoadingFavoriteId] = useState<string | null>(null);
+
+  // Dialog state for visitor details
+  const [selectedVisitor, setSelectedVisitor] = useState<TransformedVisitor | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleNameClick = (visitor: TransformedVisitor) => {
+    console.log('Clicked visitor:', visitor);
+    setSelectedVisitor(visitor);
+    setDialogOpen(true);
+  };
 
   // Load favorites on mount
   useEffect(() => {
@@ -420,11 +437,33 @@ export default function ExhibitorDashboard() {
       return (
         <RoleBasedRoute allowedRoles={['event-admin', 'exhibitor']}>
           <ResponsiveDashboardLayout title="Exhibitor Dashboard">
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-                <Skeleton variant="rectangular" width="100%" height={120} />
-              </Box>
-            </Container>
+          <Container maxWidth="lg" sx={{ mt: 2, mb: 2 }}>
+             <Grid container spacing={3}>
+               <Grid item xs={12}>
+                 <Card>
+                   <CardContent>
+                     <Box display="flex" alignItems="center" gap={2}>
+                       <Skeleton variant="circular" width={80} height={80} />
+                       <Box flex={1}>
+                         <Skeleton variant="text" width="60%" height={32} />
+                         <Skeleton variant="text" width="40%" height={24} />
+                       </Box>
+                     </Box>
+                     <Box mt={3}>
+                       <Skeleton variant="text" width="100%" height={20} />
+                       <Skeleton variant="text" width="80%" height={20} />
+                       <Skeleton variant="text" width="90%" height={20} />
+                     </Box>
+                   </CardContent>
+                 </Card>
+               </Grid>
+             </Grid>
+           </Container>
+           <VisitorDetailsDialog
+             open={dialogOpen}
+             onClose={() => setDialogOpen(false)}
+             visitor={selectedVisitor}
+           />
           </ResponsiveDashboardLayout>
         </RoleBasedRoute>
       );
@@ -436,6 +475,11 @@ export default function ExhibitorDashboard() {
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
               <Alert severity="error">{error}</Alert>
             </Container>
+            <VisitorDetailsDialog
+              open={dialogOpen}
+              onClose={() => setDialogOpen(false)}
+              visitor={selectedVisitor}
+            />
           </ResponsiveDashboardLayout>
         </RoleBasedRoute>
       );
@@ -469,27 +513,40 @@ export default function ExhibitorDashboard() {
                     }}
                   >
                     {/* Match Percentage Top Right with Favorite Button */}
-                    <Box sx={{ position: 'absolute', top: 10, right: 18, zIndex: 2, display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ position: 'absolute', top: 10, right: 22, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontStyle: 'italic',
+                          color: '#222',
+                          fontWeight: 600,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                          mt: -1,
+                        }}
+                      >
+                        {rec.matchPercentage?.toFixed(0)}%
+                      </Typography>
                       <IconButton
                         size="small"
-                        sx={{ mr: 0, p: 0.5 ,mt:-1  ,ml:-3,
-                          position: 'absolute',
+                        sx={{
+                          p: 0.5,
+                          mt: -1,
+                          mr: -2,
                           cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              transform: 'scale(1.1)',
-                            },
-                            '&:active': {
-                              transform: 'scale(0.95)',
-                            },
-                            '&:disabled': {
-                              opacity: 0.6
-                            }
-
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                          },
+                          '&:active': {
+                            transform: 'scale(0.95)',
+                          },
+                          '&:disabled': {
+                            opacity: 0.6
+                          }
                         }}
                         onClick={() => handleFavoriteToggle(rec.id)}
                         disabled={loadingFavoriteId === rec.id}
-                        
                       >
                         {favoriteVisitorIds.has(rec.id) ? (
                           <Favorite 
@@ -521,19 +578,6 @@ export default function ExhibitorDashboard() {
                            />
                         )}
                       </IconButton>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontStyle: 'italic',
-                          color: '#222',
-                          fontWeight: 600,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                          mt: -1,
-                        }}
-                      >
-                        {rec.matchPercentage?.toFixed(0)}%
-                      </Typography>
                     </Box>
                     {/* Avatar and Name */}
                     <Box display="flex" alignItems="flex-start" gap={0.5} mb={0} mt={1} sx={{ position: 'relative', zIndex: 1 }}>
@@ -541,9 +585,28 @@ export default function ExhibitorDashboard() {
                         {getInitials(rec.firstName, rec.lastName)}
                       </Avatar>
                       <Box display="flex" flexDirection="column" gap={0.5}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, wordBreak: 'break-word', color: '#222', fontSize: 15, lineHeight: 1.2, m: 0, p: 0 }}>
+                      <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
+                  <span
+                    style={{
+                      color: 'inherit',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                    onClick={() => handleNameClick(rec)}
+                    onMouseOver={e => {
+                      (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
+                      (e.currentTarget as HTMLElement).style.color = '#1976d2';
+                    }}
+                    onMouseOut={e => {
+                      (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+                      (e.currentTarget as HTMLElement).style.color = 'inherit';
+                    }}
+                  >
+                       
                           {rec.salutation} {rec.firstName} {rec.lastName}
-                        </Typography>
+                        </span>
+                        </Box>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, m: 0, p: 0, lineHeight: 1.2, wordBreak: 'break-word', whiteSpace: 'normal' }}>
                           {rec.userProfile?.jobTitle || 'No job title'}
                         </Typography>
@@ -640,8 +703,172 @@ export default function ExhibitorDashboard() {
               </Grid>
               </Grid>
            </Container>
-        </ResponsiveDashboardLayout>
+           <VisitorDetailsDialog
+             open={dialogOpen}
+             onClose={() => setDialogOpen(false)}
+             visitor={selectedVisitor}
+           />
+           </ResponsiveDashboardLayout>
       </RoleBasedRoute>
     );
   }
 }
+
+            {/* Add VisitorDetailsDialog component */}
+function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClose: () => void; visitor: TransformedVisitor | null }) {
+  if (!visitor) return null;
+  const getInitials = (firstName: string, lastName: string) => `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  const isMobile = useMediaQuery('(max-width:600px)');
+  return (
+    <Dialog open={open} maxWidth="lg" fullWidth
+      fullScreen={isMobile}
+      PaperProps={{ sx: { borderRadius: 3, width: '100%' , height: isMobile ? '100vh' : '100%' } }}
+      onClose={(_event: object, reason: string) => {
+        if (reason !== 'backdropClick') {
+          onClose();
+        }
+      }}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2 }}>
+        Visitor Details
+        <MuiIconButton aria-label="close" onClick={onClose} size={isMobile ? 'medium' : 'small'}>
+          <Close />
+        </MuiIconButton>
+      </DialogTitle>
+      <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
+        <Box display="flex" alignItems="center" gap={2} mb={2}>
+          <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
+            {getInitials(visitor.firstName, visitor.lastName)}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" fontWeight={700}>{visitor.firstName} {visitor.lastName}</Typography>
+            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">{visitor.jobTitle}</Typography>
+            <Typography variant="body2" color="text.secondary">{visitor.company}</Typography>
+          </Box>
+        </Box>
+        <Divider sx={{ mb: 2 }} />
+        <Grid container spacing={2}>
+          {/* Column 1: Personal Info */}
+          <Grid item xs={12} sm={4}>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Email:</Typography>
+              <Typography variant="body2">{visitor.email}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Phone:</Typography>
+              <Typography variant="body2">{visitor.phone || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Country:</Typography>
+              <Typography variant="body2">{visitor.country || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Status:</Typography>
+              <Typography variant="body2">{visitor.status}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Registration Date:</Typography>
+              <Typography variant="body2">{visitor.registrationDate?.toLocaleString?.() || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Salutation:</Typography>
+              <Typography variant="body2">{visitor.customData?.salutation || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Middle Name:</Typography>
+              <Typography variant="body2">{visitor.customData?.middleName || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Gender:</Typography>
+              <Typography variant="body2">{visitor.customData?.gender || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Date of Birth:</Typography>
+              <Typography variant="body2">{visitor.customData?.dateOfBirth || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Nationality:</Typography>
+              <Typography variant="body2">{visitor.customData?.nationality || '-'}</Typography>
+            </Box>
+          </Grid>
+          {/* Column 2: Social/Contact */}
+          <Grid item xs={12} sm={4}>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>LinkedIn:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.linkedInProfile ? (
+                  <a href={visitor.customData.linkedInProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.linkedInProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Instagram:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.instagramProfile ? (
+                  <a href={visitor.customData.instagramProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.instagramProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>GitHub:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.gitHubProfile ? (
+                  <a href={visitor.customData.gitHubProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.gitHubProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Twitter:</Typography>
+              <Typography variant="body2">
+                {visitor.customData?.twitterProfile ? (
+                  <a href={visitor.customData.twitterProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.twitterProfile}</a>
+                ) : '-'}
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Decision Maker:</Typography>
+              <Typography variant="body2">{visitor.customData?.decisionmaker ? 'Yes' : 'No'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Experience:</Typography>
+              <Typography variant="body2">{visitor.customData?.experience || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Interests:</Typography>
+              <Typography variant="body2">{visitor.interests && visitor.interests.length > 0 ? visitor.interests.join(', ') : '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Looking For:</Typography>
+              <Typography variant="body2">{visitor.customData?.lookingFor && visitor.customData.lookingFor.length > 0 ? visitor.customData.lookingFor.join(', ') : '-'}</Typography>
+            </Box>
+          </Grid>
+          {/* Column 3: Address/Other */}
+          <Grid item xs={12} sm={4}>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Address:</Typography>
+              <Typography variant="body2">{visitor.customData?.addressLine1 || '-'} {visitor.customData?.addressLine2 || ''}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>City:</Typography>
+              <Typography variant="body2">{visitor.customData?.cityName || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>State:</Typography>
+              <Typography variant="body2">{visitor.customData?.stateName || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Postal Code:</Typography>
+              <Typography variant="body2">{visitor.customData?.postalCode || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Location:</Typography>
+              <Typography variant="body2">{visitor.customData?.location || '-'}</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+      

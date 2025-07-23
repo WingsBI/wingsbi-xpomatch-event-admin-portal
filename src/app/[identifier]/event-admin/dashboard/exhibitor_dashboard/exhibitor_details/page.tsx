@@ -160,14 +160,14 @@ export default function ExhibitorSelfDetails() {
           <Card>
             <CardContent sx={{ p: 2 }}>
               {/* Profile Header */}
-              <Box display="flex" alignItems="center" gap={2} mb={1.5}>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <Box sx={{ position: 'relative', width: 70, height: 70 }}>
                   <Avatar
                     src={formData?.companyLogoPath || undefined}
                     sx={{
-                      width: 50,
-                      height: 50,
-                      fontSize: '1.5rem',
+                      width: 40, // reduced from 50
+                      height: 40, // reduced from 50
+                      fontSize: '1rem', // reduced
                       fontWeight: 'bold',
                       color: 'white',
                       bgcolor: 'primary.main',
@@ -177,22 +177,22 @@ export default function ExhibitorSelfDetails() {
                   </Avatar>
                 </Box>
                 <Box>
-                  <Typography variant="h6" fontWeight="600">
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ fontSize: '0.95rem' }}>
                     {formData?.companyName}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                     {formData?.email}
                   </Typography>
                 </Box>
               </Box>
 
-              <Divider sx={{ mb: 2.5 }} />
+              <Divider sx={{ mb: 1 }} />
 
               {/* Details Form (editable) */}
               <Grid container spacing={2}>
                 {/* Company Information */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, color: 'primary.main', fontSize: '0.95rem' }}>
                     Company Information
                   </Typography>
                 </Grid>
@@ -203,6 +203,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.companyName || ''}
                     size="small"
                     onChange={e => handleInputChange('companyName', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -212,6 +214,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.companyType || ''}
                     size="small"
                     onChange={e => handleInputChange('companyType', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -221,6 +225,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.industry || ''}
                     size="small"
                     onChange={e => handleInputChange('industry', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -230,6 +236,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.website || ''}
                     size="small"
                     onChange={e => handleInputChange('website', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={6}>
@@ -239,11 +247,13 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.companyDescription || ''}
                     size="small"
                     onChange={e => handleInputChange('companyDescription', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 {/* Contact Information */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
                     Contact Information
                   </Typography>
                 </Grid>
@@ -253,7 +263,9 @@ export default function ExhibitorSelfDetails() {
                     label="Email"
                     value={formData?.email || ''}
                     size="small"
-                    onChange={e => handleInputChange('email', e.target.value)}
+                    disabled
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -263,20 +275,13 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.phoneNumber || ''}
                     size="small"
                     onChange={e => handleInputChange('phoneNumber', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Mobile"
-                    value={formData?.mobileNumber || ''}
-                    size="small"
-                    onChange={e => handleInputChange('mobileNumber', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 {/* Address Information */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
                     Address Information
                   </Typography>
                 </Grid>
@@ -287,6 +292,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.city || ''}
                     size="small"
                     onChange={e => handleInputChange('city', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -296,6 +303,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.country || ''}
                     size="small"
                     onChange={e => handleInputChange('country', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -305,11 +314,13 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.address || ''}
                     size="small"
                     onChange={e => handleInputChange('address', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 {/* Booth & Status */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
                     Booth & Status
                   </Typography>
                 </Grid>
@@ -320,24 +331,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.boothNumber || ''}
                     size="small"
                     onChange={e => handleInputChange('boothNumber', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Stand"
-                    value={formData?.stand || ''}
-                    size="small"
-                    onChange={e => handleInputChange('stand', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Booth Size"
-                    value={formData?.boothSize || ''}
-                    size="small"
-                    onChange={e => handleInputChange('boothSize', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -347,6 +342,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.hall || ''}
                     size="small"
                     onChange={e => handleInputChange('hall', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -356,48 +353,8 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.location || ''}
                     size="small"
                     onChange={e => handleInputChange('location', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Status"
-                    value={formData?.status || ''}
-                    size="small"
-                    onChange={e => handleInputChange('status', e.target.value)}
-                  />
-                </Grid>
-                {/* Other Info */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
-                    Other Information
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Registration Date"
-                    value={formData?.registrationDate || ''}
-                    size="small"
-                    onChange={e => handleInputChange('registrationDate', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Last Login"
-                    value={formData?.lastLoginDate || ''}
-                    size="small"
-                    onChange={e => handleInputChange('lastLoginDate', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Active"
-                    value={formData?.isActive !== undefined ? (formData.isActive ? 'Yes' : 'No') : ''}
-                    size="small"
-                    onChange={e => handleInputChange('isActive', e.target.value === 'Yes')}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
                 {/* Add more fields as needed, following the same pattern */}
@@ -405,7 +362,7 @@ export default function ExhibitorSelfDetails() {
 
               {/* Products Section */}
               <Box mt={4}>
-                <Typography variant="h6" fontWeight="600" sx={{ mb: 2, color: 'primary.main' }}>
+                <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 2, color: 'primary.main', fontSize: '0.95rem' }}>
                   Products
                 </Typography>
                 <Grid container spacing={2}>
@@ -423,6 +380,8 @@ export default function ExhibitorSelfDetails() {
                             }}
                             size="small"
                             sx={{ mr: 1, flex: 1 }}
+                            InputProps={{ sx: { fontSize: '0.9rem' } }}
+                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                           />
                           <TextField
                             label="Category"
@@ -434,6 +393,8 @@ export default function ExhibitorSelfDetails() {
                             }}
                             size="small"
                             sx={{ mr: 1, flex: 1 }}
+                            InputProps={{ sx: { fontSize: '0.9rem' } }}
+                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                           />
                           <TextField
                             label="Description"
@@ -445,6 +406,8 @@ export default function ExhibitorSelfDetails() {
                             }}
                             size="small"
                             sx={{ mr: 1, flex: 2 }}
+                            InputProps={{ sx: { fontSize: '0.9rem' } }}
+                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                           />
                           <TextField
                             label="Image URL"
@@ -456,15 +419,15 @@ export default function ExhibitorSelfDetails() {
                             }}
                             size="small"
                             sx={{ mr: 1, flex: 2 }}
+                            InputProps={{ sx: { fontSize: '0.9rem' } }}
+                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                           />
-
                         </Box>
                       </Grid>
                     ))
                   ) : (
-                    <Grid item xs={12}><Typography color="text.secondary">No products added.</Typography></Grid>
+                    <Grid item xs={12}><Typography color="text.secondary" variant="caption" sx={{ fontSize: '0.8rem' }}>No products added.</Typography></Grid>
                   )}
-                 
                 </Grid>
               </Box>
 
@@ -472,11 +435,11 @@ export default function ExhibitorSelfDetails() {
               <Box display="flex" justifyContent="flex-end" mt={3}>
                 <Button
                   variant="contained"
-                  size="large"
-                  startIcon={saving ? <CircularProgress size={20} color="inherit" /> : null}
+                  size="small"
+                  startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
                   onClick={handleSave}
                   disabled={saving}
-                  sx={{ minWidth: 150 }}
+                  sx={{ minWidth: 100, fontSize: '0.9rem', py: 0.5 }}
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>

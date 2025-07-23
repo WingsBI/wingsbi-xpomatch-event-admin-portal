@@ -15,7 +15,8 @@ import {
   Alert,
   Divider,
   IconButton,
-  Button
+  Button,
+  Pagination
 } from '@mui/material';
 import {
   Business,
@@ -27,7 +28,9 @@ import {
   Work,
   Star,
   Favorite,
-  FavoriteBorder
+  FavoriteBorder,
+  ChevronLeft,
+  ChevronRight
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -35,11 +38,12 @@ import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
 import { useAuth } from '@/context/AuthContext';
 import { matchmakingApi } from '@/services/apiService';
 import { theme } from '@/lib/theme';
+import { getCurrentVisitorId } from '@/utils/authUtils';
 
 export default function VisitorDashboard() {
   const searchParams = useSearchParams();
   const exhibitorId = searchParams.get('exhibitorId');
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, token, isLoading: authLoading } = useAuth();
   const [exhibitor, setExhibitor] = useState<Exhibitor | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,30 +58,20 @@ export default function VisitorDashboard() {
   );
 
   useEffect(() => {
-    // Reset hasFetched when user or exhibitorId changes
+    // Reset hasFetched when user, exhibitorId, or token changes
     setHasFetched(false);
-  }, [user?.id, exhibitorId]);
+  }, [user?.id, exhibitorId, token]);
 
   useEffect(() => {
     if (authLoading || hasFetched) return;
 
-    // Try to get visitorId from user context, then from localStorage/sessionStorage
-    let visitorId: number | null = null;
-    if (user?.id) {
-      visitorId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    } else {
-      // Fallback: try to get from localStorage/sessionStorage
-      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const parsed = JSON.parse(storedUser);
-          if (parsed && parsed.id) {
-            visitorId = typeof parsed.id === 'string' ? parseInt(parsed.id, 10) : parsed.id;
-          }
-        } catch { }
-      }
+    // Always get visitorId from current JWT token to avoid cached/stale data
+    const visitorId = getCurrentVisitorId();
+    console.log('Visitor Dashboard - Current visitor ID from token:', visitorId);
+    if (!visitorId) {
+      console.log('No visitor ID found in current token');
+      return;
     }
-    if (!visitorId) return;
 
     const fetchExhibitorDetails = async () => {
       setHasFetched(true);
@@ -88,6 +82,7 @@ export default function VisitorDashboard() {
           // Extract identifier from URL path
           const pathParts = window.location.pathname.split('/');
           const identifier = pathParts[1];
+          console.log('Visitor Dashboard - Calling API with visitorId:', visitorId, 'for identifier:', identifier);
           const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
           if (response.isError) {
             setError(response.message || 'Failed to fetch recommendations');
@@ -555,67 +550,13 @@ export default function VisitorDashboard() {
             </Grid>
             {/* Simple Pagination Below Cards */}
             {totalPages > 1 && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt:  1 , mb: 1}}>
-                <Button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  sx={{
-                    minWidth: 24,
-                    height: 28,
-                    px: 0,
-                    mx: 0.5,
-                    color: 'black',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    '&:hover': { backgroundColor: 'transparent' },
-                    '&:active': { backgroundColor: 'transparent' },
-                    '&:focus': { backgroundColor: 'transparent' },
-                  }}
-                >
-                  {'<'}
-                </Button>
-                {[...Array(totalPages)].map((_, idx) => (
-                  <Button
-                    key={idx + 1}
-                    onClick={() => setCurrentPage(idx + 1)}
-                    sx={{
-                      minWidth: 25,
-                      height: 25,
-                      px: 0,
-                      mx: 0.5,
-                      borderRadius: '50%',
-                      bgcolor: currentPage === idx + 1 ? '#1a1a1a' : 'transparent',
-                      color: currentPage === idx + 1 ? '#222' : '#fff',
-                      fontWeight: 700,
-                      fontSize: 15,
-                      boxShadow: currentPage === idx + 1 ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                      border: 'none',
-                      '&:hover': {
-                        bgcolor: currentPage === idx + 1 ? '#111' : '#f0f0f0',
-                      },
-                    }}
-                  >
-                    {idx + 1}
-                  </Button>
-                ))}
-                <Button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  sx={{
-                    minWidth: 24,
-                    height: 28,
-                    px: 0,
-                    mx: 0.5,
-                    color: 'black',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    '&:hover': { backgroundColor: 'transparent' },
-                    '&:active': { backgroundColor: 'transparent' },
-                    '&:focus': { backgroundColor: 'transparent' },
-                  }}
-                >
-                  {'>'}
-                </Button>
+              <Box display="flex" justifyContent="center" mt={2}>
+                <Pagination
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={(_, value) => setCurrentPage(value)}
+                  color="primary"
+                />
               </Box>
             )}
           </Container>

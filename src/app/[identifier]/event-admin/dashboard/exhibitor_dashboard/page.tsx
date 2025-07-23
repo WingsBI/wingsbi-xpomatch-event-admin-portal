@@ -21,7 +21,10 @@ import {
   DialogTitle,
   DialogContent,
   useMediaQuery,
-  IconButton as MuiIconButton
+  IconButton as MuiIconButton,
+  PaginationItem,
+  Fade,
+  Slide
 } from '@mui/material';
 import {
   Business,
@@ -62,7 +65,9 @@ export default function ExhibitorDashboard() {
   // Pagination hooks must be at the top level
   const [page, setPage] = useState(1);
   const cardsPerPage = 5;
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const handleChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setSlideDirection(value > page ? 'left' : 'right');
     setPage(value);
   };
   const paginatedRecs = recommendations.slice((page - 1) * cardsPerPage, page * cardsPerPage);
@@ -487,170 +492,173 @@ export default function ExhibitorDashboard() {
     return (
       <RoleBasedRoute allowedRoles={['event-admin', 'exhibitor']}>
         <ResponsiveDashboardLayout title="exhibitor Dashboard">
-          <Container maxWidth="lg" sx={{ mt: 0, mb: 0 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0 }}>
+          <Container maxWidth="lg" sx={{ mt: 0, mb: 1 }}>
+            <Typography variant="h5" sx={{  fontStyle: 'italic',fontWeight: 600, color: 'text.secondary', mb: 1, mt: -2 }}>
               Recommended Visitors for You
             </Typography>
         
-            <Grid container spacing={2}>
-              {paginatedRecs.map((rec) => (
-                <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
-                  <Card
-                    sx={{
-                      borderRadius: 2,
-                      boxShadow: 1,
-                      bgcolor: 'white',
-                      p: 2,
-                      minHeight: 185,
-                      maxHeight: 185,
-                      height: 185,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'flex-start',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      wordWrap: 'break-word',
-                    }}
-                  >
-                    {/* Match Percentage Top Right with Favorite Button */}
-                    <Box sx={{ position: 'absolute', top: 10, right: 22, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontStyle: 'italic',
-                          color: '#222',
-                          fontWeight: 600,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                          mt: -1,
-                        }}
-                      >
-                        {rec.matchPercentage?.toFixed(0)}%
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        sx={{
-                          p: 0.5,
-                          mt: -1,
-                          mr: -2,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            transform: 'scale(1.1)',
-                          },
-                          '&:active': {
-                            transform: 'scale(0.95)',
-                          },
-                          '&:disabled': {
-                            opacity: 0.6
-                          }
-                        }}
-                        onClick={() => handleFavoriteToggle(rec.id)}
-                        disabled={loadingFavoriteId === rec.id}
-                      >
-                        {favoriteVisitorIds.has(rec.id) ? (
-                          <Favorite 
-                          sx={{
-                            fontSize: 20,
-                            color: '#ef4444',
-                            filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))',
-                            transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                            animation: favoriteVisitorIds.has(rec.id) ? 'heartBeat 0.8s ease-in-out' : 'none',
-                            '@keyframes heartBeat': {
-                              '0%': { transform: 'scale(1)' },
-                              '25%': { transform: 'scale(1.3)' },
-                              '50%': { transform: 'scale(1.1)' },
-                              '75%': { transform: 'scale(1.2)' },
-                              '100%': { transform: 'scale(1.1)' },
-                            },
-                          }}
-                          />
-                        ) : (
-                          <FavoriteBorder 
-                          sx={{
-                            fontSize: 20,
-                            color: '#b0bec5',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              color: '#ff6b9d',
-                            }
-                          }}
-                           />
-                        )}
-                      </IconButton>
-                    </Box>
-                    {/* Avatar and Name */}
-                    <Box display="flex" alignItems="flex-start" gap={0.5} mb={0} mt={1} sx={{ position: 'relative', zIndex: 1 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: 16 }}>
-                        {getInitials(rec.firstName, rec.lastName)}
-                      </Avatar>
-                      <Box display="flex" flexDirection="column" gap={0.5}>
-                      <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
-                  <span
-                    style={{
-                      color: 'inherit',
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                    }}
-                    onClick={() => handleNameClick(rec)}
-                    onMouseOver={e => {
-                      (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
-                      (e.currentTarget as HTMLElement).style.color = '#1976d2';
-                    }}
-                    onMouseOut={e => {
-                      (e.currentTarget as HTMLElement).style.textDecoration = 'none';
-                      (e.currentTarget as HTMLElement).style.color = 'inherit';
-                    }}
-                  >
-                       
-                          {rec.salutation} {rec.firstName} {rec.lastName}
-                        </span>
+            {/* Remove the Fade wrapper and use only Slide */}
+            <Slide in={true} direction={slideDirection} key={page} timeout={600}>
+              <Grid container spacing={2} sx={{ mb: -1 }}>
+                {paginatedRecs.map((rec) => (
+                  <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
+                    <Card
+                      sx={{
+                        borderRadius: 2,
+                        boxShadow: 1,
+                        bgcolor: 'white',
+                        p: 2,
+                        minHeight: 185,
+                        maxHeight: 185,
+                        height: 185,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-start',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        wordWrap: 'break-word',
+                      }}
+                    >
+                      {/* Match Percentage Top Right with Favorite Button */}
+                      <Box sx={{ position: 'absolute', top: 10, right: 22, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontStyle: 'italic',
+                              color: '#222',
+                              fontWeight: 600,
+                              fontSize: 16,
+                              letterSpacing: 0.5,
+                              mt: -1,
+                            }}
+                          >
+                            {rec.matchPercentage?.toFixed(0)}%
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            sx={{
+                              p: 0.5,
+                              mt: -1,
+                              mr: -2,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                transform: 'scale(1.1)',
+                              },
+                              '&:active': {
+                                transform: 'scale(0.95)',
+                              },
+                              '&:disabled': {
+                                opacity: 0.6
+                              }
+                            }}
+                            onClick={() => handleFavoriteToggle(rec.id)}
+                            disabled={loadingFavoriteId === rec.id}
+                          >
+                            {favoriteVisitorIds.has(rec.id) ? (
+                              <Favorite 
+                              sx={{
+                                fontSize: 20,
+                                color: '#ef4444',
+                                filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))',
+                                transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                                animation: favoriteVisitorIds.has(rec.id) ? 'heartBeat 0.8s ease-in-out' : 'none',
+                                '@keyframes heartBeat': {
+                                  '0%': { transform: 'scale(1)' },
+                                  '25%': { transform: 'scale(1.3)' },
+                                  '50%': { transform: 'scale(1.1)' },
+                                  '75%': { transform: 'scale(1.2)' },
+                                  '100%': { transform: 'scale(1.1)' },
+                                },
+                              }}
+                              />
+                            ) : (
+                              <FavoriteBorder 
+                              sx={{
+                                fontSize: 20,
+                                color: '#b0bec5',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  color: '#ff6b9d',
+                                }
+                              }}
+                               />
+                            )}
+                          </IconButton>
                         </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, m: 0, p: 0, lineHeight: 1.2, wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                          {rec.userProfile?.jobTitle || 'No job title'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, whiteSpace: 'normal', m: 0, p: 0 , lineHeight: 1.2, wordBreak: 'break-word'}}>
-                          {rec.userProfile?.companyName || 'No company'}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    {/* Divider above button row */}
-                    <Divider sx={{ position: 'absolute', left: 16, right: 16, bottom: 60 }} />
-                    {/* Button Row */}
-                    <Box display="flex" alignItems="center" gap={1} sx={{ position: 'absolute', left: 16, right: 16, bottom: 12 }}>
-                      {/* {rec.userProfile?.linkedInProfile && (
-                        <IconButton size="small" sx={{ color: '#0077b5' }} onClick={() => window.open(rec.userProfile.linkedInProfile, '_blank')}>
-                          <LinkedIn fontSize="small" />
-                        </IconButton>
-                      )}
-                      {rec.userProfile?.companyWebsite && (
-                        <IconButton size="small" sx={{ color: '#555' }} onClick={() => window.open(rec.userProfile.companyWebsite, '_blank')}>
-                          <LanguageIcon fontSize="small" />
-                        </IconButton>
-                      )} */}
-                      <Box flex={1} />
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        startIcon={<ConnectIcon />}
-                        sx={{
-                          fontWeight: 'bold',
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          px: 2,
-                          minWidth: 100,
-                          boxShadow: 'none',
+                        {/* Avatar and Name */}
+                        <Box display="flex" alignItems="flex-start" gap={0.5} mb={0} mt={1} sx={{ position: 'relative', zIndex: 1 }}>
+                          <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: 16 }}>
+                            {getInitials(rec.firstName, rec.lastName)}
+                          </Avatar>
+                          <Box display="flex" flexDirection="column" gap={0.5}>
+                          <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
+                      <span
+                        style={{
+                          color: 'inherit',
+                          textDecoration: 'none',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                        onClick={() => handleNameClick(rec)}
+                        onMouseOver={e => {
+                          (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
+                          (e.currentTarget as HTMLElement).style.color = '#1976d2';
+                        }}
+                        onMouseOut={e => {
+                          (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+                          (e.currentTarget as HTMLElement).style.color = 'inherit';
                         }}
                       >
-                        Connect
-                      </Button>
-                    </Box>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+                           
+                            {rec.salutation} {rec.firstName} {rec.lastName}
+                          </span>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, m: 0, p: 0, lineHeight: 1.2, wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                            {rec.userProfile?.jobTitle || 'No job title'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, whiteSpace: 'normal', m: 0, p: 0 , lineHeight: 1.2, wordBreak: 'break-word'}}>
+                            {rec.userProfile?.companyName || 'No company'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      {/* Divider above button row */}
+                      <Divider sx={{ position: 'absolute', left: 16, right: 16, bottom: 60 }} />
+                      {/* Button Row */}
+                      <Box display="flex" alignItems="center" gap={1} sx={{ position: 'absolute', left: 16, right: 16, bottom: 12 }}>
+                        {/* {rec.userProfile?.linkedInProfile && (
+                          <IconButton size="small" sx={{ color: '#0077b5' }} onClick={() => window.open(rec.userProfile.linkedInProfile, '_blank')}>
+                            <LinkedIn fontSize="small" />
+                          </IconButton>
+                        )}
+                        {rec.userProfile?.companyWebsite && (
+                          <IconButton size="small" sx={{ color: '#555' }} onClick={() => window.open(rec.userProfile.companyWebsite, '_blank')}>
+                            <LanguageIcon fontSize="small" />
+                          </IconButton>
+                        )} */}
+                        <Box flex={1} />
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          startIcon={<ConnectIcon />}
+                          sx={{
+                            fontWeight: 'bold',
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            px: 2,
+                            minWidth: 100,
+                            boxShadow: 'none',
+                          }}
+                        >
+                          Connect
+                        </Button>
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Slide>
             {/* Pagination controls below cards */}
             <Box display="flex" justifyContent="center" mt={2}>
               <Pagination
@@ -658,51 +666,60 @@ export default function ExhibitorDashboard() {
                 page={page}
                 onChange={handleChange}
                 color="primary"
+                renderItem={(item) => (
+                  <PaginationItem
+                    {...item}
+                    slots={{ previous: undefined, next: undefined }}
+                    sx={{
+                      minWidth: 15,
+                      height: 15,
+                      borderRadius: '50%',
+                      mx: 0.5,
+                      bgcolor: item.selected ? 'primary.main' : 'grey.200',
+                      color: item.selected ? 'white' : 'black',
+
+                      
+                      fontSize: 0,
+                      '& .MuiTouchRipple-root': { display: 'none' },
+                    }}
+                    children={item.type === 'page' ? '•' : null}
+                  />
+                )}
+                siblingCount={1}
+                boundaryCount={0}
+                hidePrevButton={false}
+                hideNextButton={false}
               />
             </Box>
             {/* Leave the rest of the area blank */}
           </Container>
-           <Container maxWidth="lg" sx={{ mt: 0, mb: 0 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0 }}>
+          
+            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: -2 }}>
               Based On Category
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="flex-start" gap={3}>
-                   
-           
-              <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0,paddingBottom:3,paddingTop:3 }}>
+             <Divider sx={{ mb: 1,mt:1 }} />
+              <Box display="flex" alignItems="flex-start" gap={3}>
+            <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0,paddingBottom:3,paddingTop:3,paddingLeft:50 }}>
+                
                 Comming Soon...
-                </Typography>
-              </Box>
-              </CardContent>
-              </Card>
-              </Grid>
-              </Grid>
-           </Container>
-
-            <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
-              <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0 }}>
-              Based on Category
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-              <Card>
-                <CardContent>
+            </Box>
+              
+            
+            <Divider sx={{ mb: 1,mt:1 }} />
+
+           <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: -1, mt: 1 }}>
+              Because you clicked
+            </Typography>
+          <Divider sx={{ mt:2 }} />
                   <Box display="flex" alignItems="flex-start" gap={3}>
                    
            
-              <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0,paddingBottom:3,paddingTop:3 }}>
+              <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0,paddingBottom:3,paddingTop:4,paddingLeft:50 }}>
                 Comming Soon...
                 </Typography>
               </Box>
-              </CardContent>
-              </Card>
-              </Grid>
-              </Grid>
-           </Container>
+              <Divider sx={{ mt:2 }} />
            <VisitorDetailsDialog
              open={dialogOpen}
              onClose={() => setDialogOpen(false)}

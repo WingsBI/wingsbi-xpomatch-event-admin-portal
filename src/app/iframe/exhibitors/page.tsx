@@ -297,7 +297,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
               fontWeight: 'bold',
               flexShrink: 0,
               color: 'white',
-              alignSelf: 'center',
+              alignSelf: 'start',
               mt: 2,
             }}
           >
@@ -419,7 +419,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {/* Location and Industry - only show if data exists */}
           {(exhibitor.customData?.location || exhibitor.customData?.industry) && (
-            <Box mb={1}>
+            <Box mb={0.5}>
               {exhibitor.customData?.location && (
                 <Box display="flex" alignItems="center" mb={1}>
                   <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
@@ -517,10 +517,10 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
           )} */}
         </Box>
 
-        <Divider sx={{ mb: 2 }} />  
+        <Divider sx={{ mb: 1 }} />  
 
         {/* Action Buttons */}
-        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 'auto' }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 'auto' , mb:-2}}>
           <Box display="flex" gap={1}>
             {exhibitor.customData?.linkedInProfile && (
               <IconButton size="small" sx={{ color: '#0077b5' }} onClick={() => window.open(exhibitor.customData?.linkedInProfile, '_blank')}>
@@ -894,10 +894,10 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
     return (
       <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
         <Box mb={2}>
-          <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+          <Typography fontStyle="italic" variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
             Exhibitors Directory
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography fontStyle="italic" variant="body1" color="text.secondary">
             Loading exhibitors...
           </Typography>
         </Box>
@@ -924,14 +924,14 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
           gap: 2
         }}>
           <Box>
-            <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 0 }}>
+            <Typography fontStyle="italic" variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
               Exhibitors Directory
             </Typography>
 
           </Box>
           
           {/* Status Filter on the right */}
-          <FormControl sx={{ minWidth: 150 }}>
+          <FormControl sx={{ minWidth: 150,mb:0.5 }}>
             <Select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -995,14 +995,14 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
       )}
 
       {/* Results Count */}
-      {!loading && !error && (
+      {/* {!loading && !error && (
       <Box mb={2}>
         <Typography variant="body2" color="text.secondary">
           {loading ? 'Loading exhibitors...' : `Showing ${filteredExhibitors.length} of ${exhibitors.length} exhibitors`}
           {exhibitors.length > 0 }
         </Typography>
       </Box>
-      )}
+      )} */}
 
       {/* Error Alert */}
       {error && !loading && (

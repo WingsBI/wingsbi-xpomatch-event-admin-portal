@@ -16,7 +16,9 @@ import {
   Divider,
   IconButton,
   Button,
-  Pagination
+  Pagination,
+  useTheme,
+  alpha
 } from '@mui/material';
 import {
   Business,
@@ -30,7 +32,9 @@ import {
   Favorite,
   FavoriteBorder,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowBackIos,
+  ArrowForwardIos
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -39,6 +43,8 @@ import { useAuth } from '@/context/AuthContext';
 import { matchmakingApi } from '@/services/apiService';
 import { theme } from '@/lib/theme';
 import { getCurrentVisitorId } from '@/utils/authUtils';
+import { FavoritesManager } from '@/utils/favoritesManager';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function VisitorDashboard() {
   const searchParams = useSearchParams();
@@ -56,6 +62,55 @@ export default function VisitorDashboard() {
     (currentPage - 1) * exhibitorsPerPage,
     currentPage * exhibitorsPerPage
   );
+  const [favoriteExhibitorIds, setFavoriteExhibitorIds] = useState<Set<string>>(new Set());
+  const [removingFavorite, setRemovingFavorite] = useState<string | null>(null);
+  const [pageDirection, setPageDirection] = useState<'left' | 'right'>('left');
+  const theme = useTheme();
+
+  // Load favorites for the visitor on mount
+  useEffect(() => {
+    async function loadFavorites() {
+      const visitorId = getCurrentVisitorId();
+      if (!visitorId) return;
+      // identifier from URL
+      const pathParts = window.location.pathname.split('/');
+      const identifier = pathParts[1];
+      try {
+        const response = await fieldMappingApi.getVisitorFavorites(identifier, visitorId);
+        if (response && response.result && response.result.exhibitors) {
+          setFavoriteExhibitorIds(new Set(response.result.exhibitors.map((e: any) => e.id.toString())));
+        } else {
+          setFavoriteExhibitorIds(new Set());
+        }
+      } catch {
+        setFavoriteExhibitorIds(new Set());
+      }
+    }
+    loadFavorites();
+  }, []);
+
+  // Handler to toggle favorite for an exhibitor
+  const handleToggleExhibitorFavorite = async (exhibitorId: string) => {
+    const pathParts = window.location.pathname.split('/');
+    const identifier = pathParts[1];
+    const visitorId = getCurrentVisitorId();
+    if (!identifier || !visitorId) return;
+    setRemovingFavorite(exhibitorId);
+    const isCurrentlyFavorite = favoriteExhibitorIds.has(exhibitorId);
+    try {
+      const finalStatus = await FavoritesManager.toggleExhibitorFavorite(identifier, exhibitorId, isCurrentlyFavorite);
+      setFavoriteExhibitorIds(prev => {
+        const newSet = new Set(prev);
+        if (finalStatus) {
+          newSet.add(exhibitorId);
+        } else {
+          newSet.delete(exhibitorId);
+        }
+        return newSet;
+      });
+    } catch {}
+    setRemovingFavorite(null);
+  };
 
   useEffect(() => {
     // Reset hasFetched when user, exhibitorId, or token changes
@@ -129,6 +184,11 @@ export default function VisitorDashboard() {
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  };
+
+  const handlePageChange = (_: any, value: number) => {
+    setPageDirection(value > currentPage ? 'left' : 'right');
+    setCurrentPage(value);
   };
 
   // Show loading skeleton when fetching exhibitor details
@@ -432,16 +492,28 @@ export default function VisitorDashboard() {
     return (
       <RoleBasedRoute allowedRoles={['event-admin', 'visitor']}>
         <ResponsiveDashboardLayout title="Visitor Dashboard">
-          <Container maxWidth="lg" sx={{ mt: 0, mb: 0 }}>
+          <Container maxWidth="lg" sx={{ mt: -1, mb: 0 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
-              <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+              <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
                 Recommended Exhibitors for You
               </Typography>
-              <Typography sx={{ fontStyle: 'italic', fontSize: 15, color: 'text.secondary' }}>
-                AI based on your interests and event activity
-              </Typography>
+              
             </Box>
-            <Grid container spacing={1.5}>
+            <AnimatePresence mode="wait" custom={pageDirection}>
+              <motion.div
+                key={currentPage}
+                custom={pageDirection}
+                variants={{
+                  enter: (direction) => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                  center: { opacity: 1, x: 0 },
+                  exit: (direction) => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: 'easeInOut' }}
+              >
+                <Grid container spacing={2}>
               {paginatedRecommendations.map((rec) => (
                 <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={rec.id}>
                   <Card
@@ -465,7 +537,7 @@ export default function VisitorDashboard() {
                     elevation={1}
                   >
                     {/* Match Percentage Top Right */}
-                    <Box sx={{ position: 'absolute', top: 0, right: 14, zIndex: 2 }}>
+                        <Box sx={{ position: 'absolute', top: 0, right: 14, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
                       <Typography
                         variant="subtitle1"
                         sx={{
@@ -478,6 +550,26 @@ export default function VisitorDashboard() {
                       >
                         {rec.matchPercentage?.toFixed(0)}%
                       </Typography>
+                          <IconButton
+                            onClick={() => handleToggleExhibitorFavorite(rec.id.toString())}
+                            size="small"
+                            disabled={removingFavorite === rec.id.toString()}
+                            sx={{
+                              p: 0.5,
+                              ml: 0.5,
+                              color: favoriteExhibitorIds.has(rec.id.toString()) ? '#ef4444' : '#b0bec5',
+                              transition: 'all 0.2s ease',
+                              '&:hover': { color: '#ff6b9d' },
+                            }}
+                          >
+                            {removingFavorite === rec.id.toString() ? (
+                              <Skeleton variant="circular" width={20} height={20} />
+                            ) : favoriteExhibitorIds.has(rec.id.toString()) ? (
+                              <Favorite sx={{ fontSize: 20, color: '#ef4444', filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))', transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)', animation: 'heartBeat 0.8s ease-in-out' }} />
+                            ) : (
+                              <FavoriteBorder sx={{ fontSize: 20, color: '#b0bec5' }} />
+                            )}
+                          </IconButton>
                     </Box>
                     <CardContent sx={{ flexGrow: 1, p: 0.5, pb: '8px!important' }}>
                       <Box display="flex" alignItems="Start" gap={1} mb={1} mt={0.5}>
@@ -548,15 +640,45 @@ export default function VisitorDashboard() {
                 </Grid>
               ))}
             </Grid>
-            {/* Simple Pagination Below Cards */}
+              </motion.div>
+            </AnimatePresence>
+            {/* Replace the Pagination component with custom dots and arrows: */}
             {totalPages > 1 && (
-              <Box display="flex" justifyContent="center" mt={2}>
-                <Pagination
-                  count={totalPages}
-                  page={currentPage}
-                  onChange={(_, value) => setCurrentPage(value)}
-                  color="primary"
-                />
+              <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={2}>
+                <IconButton
+                  onClick={() => handlePageChange(null, Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  <ArrowBackIos fontSize="small" />
+                </IconButton>
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      mx: 0.5,
+                      backgroundColor:
+                        currentPage === idx + 1
+                          ? theme.palette.primary.main
+                          : alpha(theme.palette.primary.main, 0.25),
+                      opacity: 1,
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      border: currentPage === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
+                    }}
+                    onClick={() => handlePageChange(null, idx + 1)}
+                  />
+                ))}
+                <IconButton
+                  onClick={() => handlePageChange(null, Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  <ArrowForwardIos fontSize="small" />
+                </IconButton>
               </Box>
             )}
           </Container>
@@ -564,7 +686,7 @@ export default function VisitorDashboard() {
           {/* Section 2: Based On Category */}
           <Divider sx={{ my: 1 }} />
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1 }}>
+            <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
               Based On Category
             </Typography>
             {/* Placeholder for category-based recommendations */}
@@ -576,7 +698,7 @@ export default function VisitorDashboard() {
           {/* Section 3: Because you click */}
           <Divider sx={{ my: 1 }} />
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1 }}>
+            <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
               Because you click
             </Typography>
             <Box sx={{ minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.disabled', fontStyle: 'italic' }}>

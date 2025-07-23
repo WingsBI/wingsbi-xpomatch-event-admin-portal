@@ -517,7 +517,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         <Divider sx={{ mb: 2 }} />
 
         {/* Action Buttons */}
-        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: -1, mb: -1 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: -1, mb: -2 }}>
           <Box display="flex" gap={1}>
             {visitor.customData?.linkedInProfile && (
               <IconButton
@@ -979,7 +979,7 @@ function VisitorListView({ identifier }: { identifier: string }) {
           gap: 2
         }}>
           <Box>
-            <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 0 }}>
+            <Typography fontStyle="italic" variant="h5" component="h1" fontWeight="600" sx={{ mb: 0 }}>
               Visitors Directory
             </Typography>
 
@@ -1074,13 +1074,13 @@ function VisitorListView({ identifier }: { identifier: string }) {
       )}
 
       {/* Results Count */}
-      {!loading && !error && (
+      {/* {!loading && !error && (
         <Box mb={2}>
           <Typography variant="body2" color="text.secondary">
             Showing {filteredVisitors.length} of {visitors.length} visitors
           </Typography>
         </Box>
-      )}
+      )} */}
 
       {/* Visitors Grid */}
       {!loading && !error && (

@@ -53,6 +53,7 @@ interface TransformedExhibitor {
   jobTitle: string;
   type: 'exhibitor';
   avatar: string;
+  companyLogoPath?: string; // <-- add this
   phone?: string;
   location?: string;
   interests: string[];
@@ -203,8 +204,9 @@ const transformExhibitorData = (apiExhibitor: VisitorFavoriteExhibitor): Transfo
     jobTitle: userMap?.jobTitle || userMap?.designation || '',
     type: 'exhibitor' as const,
     avatar: apiExhibitor.companyName?.charAt(0).toUpperCase() || 'E',
+    companyLogoPath: apiExhibitor.companyLogoPath, // <-- add this
     phone: apiExhibitor.telephone || apiExhibitor.mobileNumber,
-    location: [address?.city, address?.stateProvince, apiExhibitor.country].filter(Boolean).join(', '),
+    location: [address?.city,  apiExhibitor.country].filter(Boolean).join(', '),
     interests: userMap?.interest ? userMap.interest.split(', ') : [],
     customData: {
       industry: profile?.listingAs,
@@ -506,7 +508,7 @@ export default function FavouritesPage() {
           
           </Box> */}
 
-          <Paper sx={{ mb: 3, mt:-1 }}>
+          <Paper sx={{ mb: 2, mt:-2 }}>
             <Tabs value={isVisitor ? 1 : tabValue} onChange={isVisitor ? undefined : handleTabChange}>
               {!isVisitor && (
               <Tab 
@@ -565,92 +567,98 @@ export default function FavouritesPage() {
                       },
                     }}>
                       <CardContent sx={{ 
-                        p: 2, 
-                        pb: 1.5,
+                        p: 1, 
+                        pb: 0.5,
                         display: 'flex',
                         flexDirection: 'column',
-                        height: '100%'
+                        height: '100%',
+                        position: 'relative' // <-- for absolute heart
                       }}>
-                        {/* Header with Visitor Info */}
-                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
-                          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
-                            <Avatar
-                              sx={{
-                                bgcolor: 'primary.main',
-                                width: 36,
-                                height: 36,
-                                mr: 1,
-                                fontSize: '0.9rem',
-                                fontWeight: 'bold',
-                                flexShrink: 0
-                              }}
-                            >
-                              {visitor.avatar}
-                            </Avatar>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography 
-                                variant="body1" 
-                                component="div" 
-                                fontWeight="600" 
-                                sx={{ 
-                                  mb: 0.5,
-                                  lineHeight: 1.3,
-                                  wordBreak: 'break-word'
-                                }}
-                              >
-                                {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
-                              </Typography>
-                              <Typography 
-                                variant="body2" 
-                                color="text.secondary" 
-                                sx={{ 
-                                  mb: 0.5,
-                                  lineHeight: 1.4
-                                }}
-                              >
-                                {visitor.jobTitle}
-                              </Typography>
-                              <Typography 
-                                variant="body2" 
-                                color="primary" 
-                                fontWeight="500"
-                                sx={{ 
-                                  mb: 1,
-                                  lineHeight: 1.4
-                                }}
-                              >
-                                {visitor.company}
-                              </Typography>
-                            
-                            </Box>
-                          </Box>
-                          
-                          {/* Only show heart icon if user is NOT an event-admin */}
-                          {!isEventAdmin() && (
-                            <IconButton 
-                              onClick={() => handleRemoveVisitorFavourite(visitor.id)}
-                              size="small"
-                              disabled={removingFavorite === visitor.id}
-                              sx={{
-                                
-                                fontSize: 30,
-                                color: '#ef4444',
-                                
-                              }}
-                            >
-                              {removingFavorite === visitor.id ? (
-                                <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
-                              ) : (
-                                <Favorite sx={{
-                                  fontSize: 30,
+                        {/* Heart icon absolute top-right */}
+                        {!isEventAdmin() && (
+                          <IconButton 
+                            onClick={() => handleRemoveVisitorFavourite(visitor.id)}
+                            size="large"
+                            disabled={removingFavorite === visitor.id}
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 8,
+                              p: 0.5,
+                              cursor: 'pointer',
+                              fontSize: 20,
+                              transition: 'all 0.2s ease',
+                              '&:hover': { transform: 'scale(1.1)' },
+                              '&:active': { transform: 'scale(0.95)' },
+                              '&:disabled': { opacity: 0.6 }
+                            }}
+                          >
+                            {removingFavorite === visitor.id ? (
+                              <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+                            ) : (
+                              <Favorite sx={{
+                                fontSize: 20,
                                 color: '#ef4444',
                                 filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
-                                transform: 'scale(1.1)',
                                 transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                               animation: 'heartBeat 0.8s ease-in-out',                            }} />
-                              )}
-                            </IconButton>
-                          )}
+                                animation: 'heartBeat 0.8s ease-in-out',
+                              }} />
+                            )}
+                          </IconButton>
+                        )}
+                        {/* Header with Visitor Info */}
+                        <Box display="flex" alignItems="flex-start" mb={1.5}>
+                          <Avatar
+                            sx={{
+                              bgcolor: 'primary.main',
+                              width: 36,
+                              height: 36,
+                              mr: 1.5,
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              flexShrink: 0,
+                              color: 'white',
+                              alignSelf: 'top',
+                              mt: 2,
+                            }}
+                          >
+                            {visitor.avatar}
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
+                            <Typography 
+                              variant="body2" 
+                              component="div" 
+                              fontWeight="600" 
+                              sx={{ 
+                                ml: 0,
+                                minHeight: '1.2rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                lineHeight: 1.2,
+                                wordBreak: 'break-word'
+                              }}
+                            >
+                              <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
+                                {visitor.customData?.salutation} {visitor.firstName} {visitor.lastName}
+                              </Box>
+                            </Typography>
+                            <Typography 
+                              variant="subtitle2" 
+                              color="text.secondary" 
+                              sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}
+                            >
+                              {visitor.jobTitle}
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              color="primary" 
+                              fontWeight="500"
+                              sx={{ mb: 1, lineHeight: 1.4 }}
+                            >
+                              {visitor.company}
+                            </Typography>
+                          </Box>
                         </Box>
 
                         {/* Location and Contact */}
@@ -714,10 +722,10 @@ export default function FavouritesPage() {
                           </Box>
                         )} */}
 
-                        <Divider sx={{ mb: 2, mt: 'auto' }} />
+                        <Divider sx={{ mb: 1, mt: 'auto' }} />
 
                         {/* Action Buttons */}
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={-2}>
                           <Box display="flex" gap={1}>
                             {visitor.customData?.linkedInProfile && visitor.customData.linkedInProfile.trim() !== '' && (
                               <IconButton 
@@ -798,130 +806,151 @@ export default function FavouritesPage() {
                       },
                     }}>
                       <CardContent sx={{ 
-                        p: 2, 
-                        pb: 1.5,
+                        p: 1, 
+                        pb: 0.5,
                         display: 'flex',
                         flexDirection: 'column',
-                        height: '100%'
+                        height: '100%',
+                        position: 'relative' // <-- for absolute heart
                       }}>
-                        {/* Header with Company Info */}
-                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
-                          <Box display="flex" alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
-                            <Avatar
-                              sx={{
-                                bgcolor: 'primary.main',
-                                width: 36,
-                                height: 36,
-                                mr: 1,
-                                fontSize: '0.9rem',
-                                fontWeight: 'bold',
-                                flexShrink: 0
-                              }}
-                            >
-                              {exhibitor.avatar}
-                            </Avatar>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography 
-                                variant="body1" 
-                                component="div" 
-                                fontWeight="600" 
-                                sx={{ 
-                                  mb: 0.5,
-                                  lineHeight: 1.3,
-                                  wordBreak: 'break-word'
-                                }}
-                              >
-                                {exhibitor.company}
-                              </Typography>
-                              {exhibitor.name && exhibitor.name !== exhibitor.company && (
-                                <Typography 
-                                  variant="body2" 
-                                  color="text.secondary" 
-                                  sx={{ 
-                                    mb: 0.5,
-                                    lineHeight: 1.4
-                                  }}
-                                >
-                                  {exhibitor.name}
-                                </Typography>
-                              )}
-                              {exhibitor.jobTitle && (
-                                <Typography 
-                                  variant="body2" 
-                                  color="text.secondary" 
-                                  sx={{ 
-                                    mb: 1,
-                                    lineHeight: 1.4
-                                  }}
-                                >
-                                  {exhibitor.jobTitle}
-                                </Typography>
-                              )}
-                            </Box>
-                          </Box>
-                          {/* Heart icon for visitors only - hide for event-admin */}
-                          {isVisitor && !isEventAdmin() && (
-                            <IconButton 
-                              onClick={() => handleToggleExhibitorFavorite(exhibitor.id)}
-                                    size="small"
-                              disabled={removingFavorite === exhibitor.id}
-                                    sx={{ 
-                                color: favoriteExhibitorIds.has(exhibitor.id) ? '#ef4444' : '#b0bec5',
-                                fontSize: 30,
-                              }}
-                            >
-                              {removingFavorite === exhibitor.id ? (
-                                <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
-                              ) : favoriteExhibitorIds.has(exhibitor.id) ? (
-                                <Favorite sx={{
-                                  fontSize: 30,
-                                  color: '#ef4444',
-                                  filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
-                                  transform: 'scale(1.1)',
-                                  transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                                  animation: 'heartBeat 0.8s ease-in-out',
-                                }} />
-                              ) : (
-                                <FavoriteBorder sx={{
-                                  fontSize: 30,
-                                  color: '#b0bec5',
-                                }} />
-                              )}
-                            </IconButton>
-                          )}
-                          {/* For non-visitors, keep the remove logic if needed - hide for event-admin */}
-                          {!isVisitor && !isEventAdmin() && (
+                        {/* Heart icon absolute top-right (for visitors only) */}
+                        {isVisitor && !isEventAdmin() && (
                           <IconButton 
-                            onClick={() => handleRemoveFavourite(exhibitor.id)}
-                            size="small"
+                            onClick={() => handleToggleExhibitorFavorite(exhibitor.id)}
+                            size="large"
                             disabled={removingFavorite === exhibitor.id}
                             sx={{
-                              color: '#f44336',
-                              fontSize: 30,
+                              position: 'absolute',
+                              top: 0,
+                              right: 8,
+                              p: 0.5,
+                              cursor: 'pointer',
+                              fontSize: 20,
+                              transition: 'all 0.2s ease',
+                              '&:hover': { transform: 'scale(1.1)' },
+                              '&:active': { transform: 'scale(0.95)' },
+                              '&:disabled': { opacity: 0.6 }
+                            }}
+                          >
+                            {removingFavorite === exhibitor.id ? (
+                              <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
+                            ) : favoriteExhibitorIds.has(exhibitor.id) ? (
+                              <Favorite sx={{
+                                fontSize: 20,
+                                color: '#ef4444',
+                                filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
+                                transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                                animation: 'heartBeat 0.8s ease-in-out',
+                              }} />
+                            ) : (
+                              <FavoriteBorder sx={{
+                                fontSize: 20,
+                                color: '#b0bec5',
+                                transition: 'all 0.2s ease',
+                                '&:hover': { color: '#ff6b9d' }
+                              }} />
+                            )}
+                          </IconButton>
+                        )}
+                        {/* Heart icon for non-visitors (remove logic) */}
+                        {!isVisitor && !isEventAdmin() && (
+                          <IconButton 
+                            onClick={() => handleRemoveFavourite(exhibitor.id)}
+                            size="large"
+                            disabled={removingFavorite === exhibitor.id}
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 8,
+                              p: 0.5,
+                              cursor: 'pointer',
+                              fontSize: 20,
+                              transition: 'all 0.2s ease',
+                              '&:hover': { transform: 'scale(1.1)' },
+                              '&:active': { transform: 'scale(0.95)' },
+                              '&:disabled': { opacity: 0.6 }
                             }}
                           >
                             {removingFavorite === exhibitor.id ? (
                               <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
                             ) : (
                               <Favorite sx={{
-                                fontSize: 30,
-                              color: '#ef4444',
-                              filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
-                              transform: 'scale(1.1)',
-                              transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                              animation: 'heartBeat 0.8s ease-in-out',
+                                fontSize: 20,
+                                color: '#ef4444',
+                                filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.3))',
+                                transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                                animation: 'heartBeat 0.8s ease-in-out',
                               }} />
                             )}
                           </IconButton>
-                          )}
+                        )}
+                        {/* Header with Company Info */}
+                        <Box display="flex" alignItems="flex-start" mb={1}>
+                          <Avatar
+                            src={exhibitor.companyLogoPath || undefined}
+                            sx={{
+                              bgcolor: 'success.main',
+                              width: 36,
+                              height: 36,
+                              mr: 1.5,
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              flexShrink: 0,
+                              color: 'white',
+                              alignSelf: 'top',
+                              mt: 2,
+                            }}
+                          >
+                            {!exhibitor.companyLogoPath && exhibitor.avatar}
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
+                            <Typography 
+                              variant="body2" 
+                              component="div" 
+                              fontWeight="600" 
+                              sx={{ 
+                                ml: 0,
+                                minHeight: '1.2rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                lineHeight: 1.2,
+                                wordBreak: 'break-word'
+                              }}
+                            >
+                              <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
+                                {exhibitor.company}
+                              </Box>
+                            </Typography>
+                            {exhibitor.name && exhibitor.name !== exhibitor.company && (
+                              <Typography 
+                                variant="subtitle2" 
+                                color="text.secondary" 
+                                sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}
+                              >
+                                {exhibitor.name}
+                              </Typography>
+                            )}
+                            
+                          </Box>
                         </Box>
 
                         {/* Location and Industry */}
                         {(exhibitor.location || exhibitor.customData?.industry) && (
-                          <Box mb={2}>
+                          <Box sx={{ flex: 1, minWidth: 0, mt: 0.5 , mb:1 , ml:1, textAlign: 'left'}}>
+                            {exhibitor.jobTitle && (
+                              <Typography 
+                                variant="body2" 
+                                color="text.secondary" 
+                                sx={{ mb: 1, lineHeight: 1.4 }}
+                              >
+                                {exhibitor.jobTitle}
+                              </Typography>
+                            )}
+
                             {exhibitor.location && (
-                              <Box display="flex" alignItems="center" mb={1}>
-                                <LocationOn sx={{ fontSize: 18, mr: 1.5, color: 'text.secondary' }} />
+                              <Box display="flex" alignItems="left" mb={1}>
+                                <LocationOn sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
                                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
                                   {exhibitor.location}
                                 </Typography>
@@ -991,10 +1020,10 @@ export default function FavouritesPage() {
                           </Box>
                         )} */}
 
-                        <Divider sx={{ mb: 2, mt: 'auto' }} />
+                        <Divider sx={{ mb: 1, mt: 'auto' }} />
 
                         {/* Action Buttons */}
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={-2}>
                           <Box display="flex" gap={1}>
                             {exhibitor.customData?.linkedInProfile && exhibitor.customData.linkedInProfile.trim() !== '' && (
                               <IconButton 

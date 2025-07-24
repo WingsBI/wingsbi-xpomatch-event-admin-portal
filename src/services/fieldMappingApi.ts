@@ -1154,6 +1154,7 @@ class FieldMappingApiService {
           boothSize: exhibitorData.hall,
           website: exhibitorData.webSite,
           companyType: exhibitorData.companyType,
+          technology: exhibitorData.technology,
           companyDescription: exhibitorData.exhibitorProfile?.[0]?.companyProfile,
           
           // Products and other data

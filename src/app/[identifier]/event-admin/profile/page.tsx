@@ -33,23 +33,8 @@ import {
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState } from '@/store';
-import { getCurrentVisitorId } from '@/utils/authUtils';
-
-// Add this fetch function (could be moved to apiService.ts)
-async function getVisitorProfile(identifier: string, visitorId: number) {
-  const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
-  const url = `${azureApiUrl}/api/${identifier}/RegisterUsers/getVisitorById?visitorId=${visitorId}`;
-  const token = localStorage.getItem('jwtToken');
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error('Failed to fetch visitor profile');
-  const json = await response.json();
-  // Return the first element of the result array
-  return Array.isArray(json.result) ? json.result[0] : json.result;
-}
+import { getCurrentVisitorId, getCurrentExhibitorId, getCurrentUserId } from '@/utils/authUtils';
+import { fieldMappingApi } from '@/services/fieldMappingApi';
 
 interface ProfileData {
   id?: number;
@@ -84,9 +69,13 @@ interface ProfileData {
   countryName?: string | null;
   postalCode?: string | null;
   profilePhoto?: string | null;
+  // New fields for embedding update
+  interst?: string | null;
+  technology?: string | null;
 }
 
 export default function ProfileSettingsPage() {
+  console.log('ProfileSettingsPage component loaded');
   const params = useParams();
   const router = useRouter();
   const identifier = params?.identifier as string;
@@ -102,6 +91,8 @@ export default function ProfileSettingsPage() {
     dateOfBirth: null,
     userStatusId: 1,
     isActive: true,
+    interst: '',
+    technology: '',
   });
   
   const [loading, setLoading] = useState(false);
@@ -115,63 +106,78 @@ export default function ProfileSettingsPage() {
   const userRole = isVisitor ? 'visitor' : isExhibitor ? 'exhibitor' : 'event-admin';
 
   useEffect(() => {
-    loadProfileData();
-  }, []);
+    console.log('Profile useEffect', { user, identifier });
+    if (user && identifier) {
+      loadProfileData();
+    }
+  }, [user, identifier]);
+
+  const mapVisitorToProfileData = (profile: any): ProfileData => {
+    const userProfile = profile.userProfile || {};
+    const userAddress = profile.userAddress || {};
+    return {
+      id: profile.id,
+      salutation: profile.salutation || '',
+      firstName: profile.firstName || '',
+      middleName: profile.middleName || '',
+      lastName: profile.lastName || '',
+      email: profile.email || '',
+      gender: profile.gender || '',
+      dateOfBirth: profile.dateOfBirth || '',
+      userStatusId: profile.userStatusId || 1,
+      isActive: (profile.userStatusId || 1) === 1,
+      nationality: userProfile.nationality || '',
+      phone: userProfile.phone || '',
+      linkedInProfile: userProfile.linkedInProfile || '',
+      instagramProfile: userProfile.instagramProfile || '',
+      gitHubProfile: userProfile.gitHubProfile || '',
+      twitterProfile: userProfile.twitterProfile || '',
+      designation: userProfile.designation || '',
+      jobTitle: userProfile.jobTitle || '',
+      companyName: userProfile.companyName || '',
+      companyWebsite: userProfile.companyWebsite || '',
+      businessEmail: userProfile.businessEmail || '',
+      experienceYears: userProfile.experienceYears || 0,
+      decisionmaker: userProfile.decisionmaker || false,
+      addressLine1: userAddress.addressLine1 || '',
+      addressLine2: userAddress.addressLine2 || '',
+      cityName: userAddress.cityName || '',
+      stateName: userAddress.stateName || '',
+      countryName: userAddress.countryName || '',
+      postalCode: userAddress.postalCode || '',
+      profilePhoto: userProfile.profilePhoto || '',
+      interst: profile.interst || '',
+      technology: profile.technology || '',
+    };
+  };
 
   const loadProfileData = async () => {
+    console.log('loadProfileData called');
+    console.log('user:', user);
+    console.log('identifier:', identifier);
+    console.log('isVisitor:', isVisitor, 'isExhibitor:', isExhibitor, 'userRole:', userRole);
     try {
       setLoading(true);
       setError(null);
-      if (isVisitor && identifier) {
-        const visitorId = getCurrentVisitorId() || (user?.id ? parseInt(user.id) : undefined);
-        if (!visitorId) throw new Error('No visitor ID found');
-        const data = await getVisitorProfile(identifier, visitorId);
-        setProfileData({
-          id: data.id,
-          salutation: data.salutation || '',
-          firstName: data.firstName || '',
-          middleName: data.mIddleName || '', // Note typo in API
-          lastName: data.lastName || '',
-          email: data.email || '',
-          gender: data.gender || '',
-          dateOfBirth: data.dateOfBirth || '',
-          userStatusId: data.userStatusId,
-          isActive: data.userStatusId === 1,
-          // userProfile
-          nationality: data.userProfile?.nationality || '',
-          phone: data.userProfile?.phone || '',
-          linkedInProfile: data.userProfile?.linkedInProfile || '',
-          instagramProfile: data.userProfile?.instagramProfile || '',
-          gitHubProfile: data.userProfile?.gitHubProfile || '',
-          twitterProfile: data.userProfile?.twitterProfile || '',
-          designation: data.userProfile?.designation || '',
-          jobTitle: data.userProfile?.jobTitle || '',
-          companyName: data.userProfile?.companyName || '',
-          companyWebsite: data.userProfile?.companyWebsite || '',
-          businessEmail: data.userProfile?.businessEmail || '',
-          experienceYears: data.userProfile?.experienceYears || 0,
-          decisionmaker: data.userProfile?.decisionmaker || false,
-          // userAddress
-          addressLine1: data.userAddress?.addressLine1 || '',
-          addressLine2: data.userAddress?.addressLine2 || '',
-          cityName: data.userAddress?.cityName || '',
-          stateName: data.userAddress?.stateName || '',
-          countryName: data.userAddress?.countryName || '',
-          postalCode: data.userAddress?.postalCode || '',
-        });
-      } else if (user) {
-        setProfileData({
-          firstName: user.firstName || '',
-          middleName: '',
-          lastName: user.lastName || '',
-          salutation: '',
-          email: user.email || '',
-          gender: null,
-          dateOfBirth: null,
-          userStatusId: 1,
-          isActive: true,
-        });
+      let id: number | undefined;
+      let profile;
+      if (isVisitor) {
+        id = getCurrentVisitorId() || (user?.id ? parseInt(user.id) : undefined);
+        if (!id) throw new Error('No valid visitor ID found');
+        const data = await fieldMappingApi.getVisitorById(identifier, id);
+        profile = Array.isArray(data.result) ? data.result[0] : data.result;
+      } else if (isExhibitor) {
+        id = getCurrentExhibitorId() || (user?.id ? parseInt(user.id) : undefined);
+        if (!id) throw new Error('No valid exhibitor ID found');
+        const data = await fieldMappingApi.getVisitorById(identifier, id);
+        profile = Array.isArray(data.result) ? data.result[0] : data.result;
+      } else {
+        id = getCurrentUserId() || (user?.id ? parseInt(user.id) : undefined);
+        if (!id) throw new Error('No valid user ID found');
+        const data = await fieldMappingApi.getVisitorById(identifier, id);
+        profile = Array.isArray(data.result) ? data.result[0] : data.result;
       }
+      setProfileData(mapVisitorToProfileData(profile));
     } catch (err) {
       setError('Failed to load profile data');
     } finally {
@@ -198,97 +204,35 @@ export default function ProfileSettingsPage() {
       // Validate required fields
       if (!profileData.firstName || !profileData.lastName) {
         setError('First name and last name are required');
+        setSaving(false);
         return;
       }
 
-      // Prepare payload for visitor update
-      let payload: any = {};
-      if (isVisitor) {
-        payload = {
-          id: profileData.id,
-          visitorId: profileData.id, // or user?.id
-          salutation: profileData.salutation,
-          firstName: profileData.firstName,
-          mIddleName: profileData.middleName, // API expects typo
-          lastName: profileData.lastName,
-          email: profileData.email,
-          gender: profileData.gender,
-          dateOfBirth: profileData.dateOfBirth,
-          userStatusId: profileData.userStatusId,
-          isActive: profileData.isActive,
-          userProfile: {
-            userId: profileData.id,
-            nationality: profileData.nationality,
-            phone: profileData.phone,
-            linkedInProfile: profileData.linkedInProfile,
-            instagramProfile: profileData.instagramProfile,
-            gitHubProfile: profileData.gitHubProfile,
-            twitterProfile: profileData.twitterProfile,
-            designation: profileData.designation,
-            jobTitle: profileData.jobTitle,
-            companyName: profileData.companyName,
-            companyWebsite: profileData.companyWebsite,
-            businessEmail: profileData.businessEmail,
-            experienceYears: profileData.experienceYears,
-            decisionmaker: profileData.decisionmaker,
-            createdBy: profileData.id, // fallback
-            createdDate: '',
-            modifiedBy: profileData.id, // fallback
-            modifiedDate: '',
-          },
-          userAddress: {
-            userId: profileData.id,
-            addressLine1: profileData.addressLine1,
-            addressLine2: profileData.addressLine2,
-            cityName: profileData.cityName,
-            stateName: profileData.stateName,
-            countryName: profileData.countryName,
-            postalCode: profileData.postalCode,
-            latitude: 0,
-            longitude: 0,
-            createdDate: '',
-            modifiedDate: '',
-            createdBy: profileData.id, // fallback
-            modifiedBy: profileData.id, // fallback
-          },
-          customData: [],
-        };
-      } else if (isExhibitor) {
-        payload = {
-          ...profileData,
-          exhibitorId: user?.id ? parseInt(user.id) : 20,
-        };
-      } else {
-        payload = { ...profileData };
+      // Prepare body for updateVisitorEmbeddings
+      let visitorId: number = typeof profileData.id === 'number' ? profileData.id : Number(getCurrentVisitorId());
+      if (!visitorId || isNaN(visitorId)) {
+        setError('No valid visitor ID found');
+        setSaving(false);
+        return;
       }
+      const updateBody = {
+        visitorId,
+        interst: profileData.interst || '',
+        designation: profileData.designation || '',
+        technology: profileData.technology || '',
+      };
 
-      // Determine API endpoint based on role
-      const apiUrl = isVisitor 
-        ? `https://xpomatch-dev-event-admin-api.azurewebsites.net/api/${identifier}/RegisterUsers/updateVisitor`
-        : `https://xpomatch-dev-event-admin-api.azurewebsites.net/api/${identifier}/ExhibitorOnboarding/updateExhibitor`;
-
-      console.log('Updating profile:', { role: userRole, url: apiUrl, payload });
-
-      const response = await fetch(apiUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      console.log('Update response:', data);
-
-      if (response.ok) {
-        setSuccess(`${userRole.charAt(0).toUpperCase() + userRole.slice(1)} profile updated successfully!`);
+      // Call the new API
+      const result = await fieldMappingApi.updateVisitorEmbeddings(identifier, updateBody);
+      if (result && !result.isError) {
+        setSuccess('Profile updated successfully');
+        // Reload profile data to show updated profile
+        await loadProfileData();
       } else {
-        setError(data.message || 'Failed to update profile');
+        setError(result?.message || 'Failed to update profile');
       }
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError('Failed to update profile. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while saving');
     } finally {
       setSaving(false);
     }
@@ -610,6 +554,24 @@ export default function ProfileSettingsPage() {
                     label="Designation"
                     value={profileData.designation || ''}
                     onChange={(e) => handleInputChange('designation', e.target.value)}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Interest"
+                    value={profileData.interst || ''}
+                    onChange={(e) => handleInputChange('interst', e.target.value)}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Technology"
+                    value={profileData.technology || ''}
+                    onChange={(e) => handleInputChange('technology', e.target.value)}
                     size="small"
                   />
                 </Grid>

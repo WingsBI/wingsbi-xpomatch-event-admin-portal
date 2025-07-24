@@ -8,6 +8,7 @@ import { useSwipeable } from 'react-swipeable';
 import { useInView } from 'react-intersection-observer';
 import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 import { eventsApi } from '@/services/apiService';
+import { notificationsApi } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
 import {
   Box,
@@ -75,7 +76,8 @@ import {
   setTheme,
   removeNotification,
   DeviceType,
-  setIdentifier
+  setIdentifier,
+  setNotifications
 } from '@/store/slices/appSlice';
 import { logoutUser } from '@/store/slices/authSlice';
 
@@ -340,6 +342,33 @@ export default function ResponsiveDashboardLayout({
       loadEventDetails();
     }
   }, [loadEventDetails]);
+
+  // Fetch notifications on mount or when identifier changes
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!identifier) return;
+      try {
+        const response = await notificationsApi.getAllNotification(identifier);
+        // Assume response.data.result is the array of notifications
+        if (response.success && Array.isArray(response.data?.result)) {
+          // Map API notifications to UI notification structure if needed
+          const mappedNotifications = response.data.result.map((n: any) => ({
+            id: n.id?.toString() || Date.now().toString() + Math.random(),
+            type: n.type || 'info',
+            message: n.message || n.title || 'Notification',
+            timestamp: n.timestamp || Date.now(),
+          }));
+          dispatch(setNotifications(mappedNotifications));
+        } else {
+          dispatch(setNotifications([]));
+        }
+      } catch (error) {
+        // On error, clear notifications
+        dispatch(setNotifications([]));
+      }
+    };
+    fetchNotifications();
+  }, [identifier, dispatch]);
 
   // Update responsive state
   useEffect(() => {

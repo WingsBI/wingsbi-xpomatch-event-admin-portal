@@ -1573,6 +1573,43 @@ class FieldMappingApiService {
       };
     }
   }
+
+  /**
+   * Update visitor embeddings using the new embedding update API
+   */
+  async updateVisitorEmbeddings(identifier: string, updateData: { visitorId: number; interst: string; designation: string; technology: string }): Promise<any> {
+    try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/updateVisitorEmbeddings`;
+      const headers = this.getAuthHeaders();
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to update visitor embeddings`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: null
+        };
+      }
+      return data;
+    } catch (error) {
+      return {
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: null
+      };
+    }
+  }
 }
 
 export const fieldMappingApi = new FieldMappingApiService();

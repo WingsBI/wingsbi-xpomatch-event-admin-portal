@@ -43,7 +43,8 @@ import {
   TrendingUp,
   GetApp,
   Person,
-  Close
+  Close,
+  BusinessCenter
 } from '@mui/icons-material';
 import Link from 'next/link';
 
@@ -71,58 +72,47 @@ interface VisitorCardProps {
 
 
 // Transform API visitor data to UI format - only use actual API data
-const transformVisitorData = (apiVisitor: ApiVisitorData, identifier: string, index: number): TransformedVisitor => {
+const transformVisitorData = (apiVisitor: any, identifier: string, index: number): TransformedVisitor => {
   return {
-    // API fields - only use actual data from API
-    id: apiVisitor.id.toString(),
+    id: apiVisitor.id?.toString() || '',
     firstName: apiVisitor.firstName || '',
     lastName: apiVisitor.lastName || '',
     email: apiVisitor.email || '',
-
-    // Only use API data, no fallbacks to generated data
     company: apiVisitor.userProfile?.companyName || '',
     jobTitle: apiVisitor.userProfile?.jobTitle || apiVisitor.userProfile?.designation || '',
-    phone: apiVisitor.userProfile?.phone || undefined,
-    country: apiVisitor.customData?.countryName || undefined,
-    interests: [], // Not provided in current API response
+    phone: apiVisitor.userProfile?.phone || '',
+    country: apiVisitor.userAddress?.countryName || '',
+    interests: apiVisitor.interests || [],
     status: apiVisitor.statusName === 'Active' ? 'registered' : 'invited',
-    type: 'visitor' as const,
+    type: 'visitor',
     eventId: identifier,
     registrationDate: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : new Date(),
-    invitationSent: true, // Assume sent if they exist in system
-    invitationDate: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : undefined,
-    checkedIn: false, // Not provided in API
-    lastActivity: apiVisitor.modifiedDate ? new Date(apiVisitor.modifiedDate) : undefined,
+    invitationSent: true,
+    invitationDate: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : new Date(),
+    checkedIn: false,
+    lastActivity: apiVisitor.modifiedDate ? new Date(apiVisitor.modifiedDate) : new Date(),
     createdAt: apiVisitor.createdDate ? new Date(apiVisitor.createdDate) : new Date(),
     updatedAt: apiVisitor.modifiedDate ? new Date(apiVisitor.modifiedDate) : new Date(),
-
     customData: {
-      // Only API-based fields
       salutation: apiVisitor.salutation || '',
-      middleName: apiVisitor.mIddleName || '',
+      middleName: apiVisitor.middleName || '',
       gender: apiVisitor.gender || '',
-      dateOfBirth: apiVisitor.dateOfBirth,
+      dateOfBirth: apiVisitor.dateOfBirth || '',
       nationality: apiVisitor.userProfile?.nationality || '',
       linkedInProfile: apiVisitor.userProfile?.linkedInProfile || '',
       instagramProfile: apiVisitor.userProfile?.instagramProfile || '',
       gitHubProfile: apiVisitor.userProfile?.gitHubProfile || '',
       twitterProfile: apiVisitor.userProfile?.twitterProfile || '',
       businessEmail: apiVisitor.userProfile?.businessEmail || '',
-      experienceYears: apiVisitor.userProfile?.experienceYears || 0,
+      experience: apiVisitor.userProfile?.experienceYears ? `${apiVisitor.userProfile.experienceYears} years` : '',
       decisionmaker: apiVisitor.userProfile?.decisionmaker || false,
-      addressLine1: apiVisitor.customData?.addressLine1 || '',
-      addressLine2: apiVisitor.customData?.addressLine2 || '',
-      cityName: apiVisitor.customData?.cityName || '',
-      stateName: apiVisitor.customData?.stateName || '',
-      postalCode: apiVisitor.customData?.postalCode || '',
-      location: [apiVisitor.customData?.countryName].filter(Boolean).join(', ') || undefined,
-      avatar: `${apiVisitor.firstName?.charAt(0) || ''}${apiVisitor.lastName?.charAt(0) || ''}`,
-
-      // Only use API data when available
-      experience: apiVisitor.userProfile?.experienceYears ? `${apiVisitor.userProfile.experienceYears} years` : undefined,
-      matchScore: undefined, // Not provided in current API
-      industry: undefined, // Not provided in current API
-      lookingFor: [], // Not provided in current API
+      addressLine1: apiVisitor.userAddress?.addressLine1 || '',
+      addressLine2: apiVisitor.userAddress?.addressLine2 || '',
+      cityName: apiVisitor.userAddress?.cityName || '',
+      stateName: apiVisitor.userAddress?.stateName || '',
+      postalCode: apiVisitor.userAddress?.postalCode || '',
+      location: [apiVisitor.userAddress?.cityName, apiVisitor.userAddress?.stateName, apiVisitor.userAddress?.countryName].filter(Boolean).join(', '),
+      lookingFor: apiVisitor.lookingFor || [],
     },
   };
 };
@@ -299,7 +289,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           
             <Avatar
               sx={{
-              bgcolor: theme.palette.primary.main,
+              bgcolor: 'success.main',
               width: 36,
               height: 36,
               mr: 1.5,
@@ -307,7 +297,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               fontWeight: 'bold',
               flexShrink: 0,
               color: 'white',
-              alignSelf: 'center',
+              alignSelf: 'top',
               mt: 2,
               }}
             >
@@ -413,7 +403,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         {/* Content Section - Takes up available space */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Box display="flex" alignItems="center" mb={1}>
-            <LocationOn sx={{ fontSize: 15, mr: 1, color: 'text.secondary' }} />
+            <BusinessCenter sx={{ alignSelf: 'start', fontSize: 15, mr: 1, color: 'text.secondary' }} />
             <Typography variant="body2" color="text.secondary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3}}>
               {visitor.company}
             </Typography>
@@ -422,7 +412,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           <Box >
             {visitor.customData?.location && (
               <Box display="flex" alignItems="center" mb={1}>
-                <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
                 <Typography variant="subtitle2" color="text.secondary">
                   {visitor.customData.location}
                 </Typography>
@@ -431,7 +421,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           </Box>
 
           {/* Relevant Interests */}
-          {relevantInterests.length > 0 && (
+          {/* {relevantInterests.length > 0 && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                 <InterestPoint sx={{ fontSize: 14, mr: 0.5 }} />
@@ -465,10 +455,10 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 )}
               </Box>
             </Box>
-          )}
+          )} */}
 
           {/* Looking For (Relevant to exhibitor) */}
-          {relevantLookingFor.length > 0 && (
+          {/* {relevantLookingFor.length > 0 && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                 Looking for (matches your services):
@@ -501,17 +491,17 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 )}
               </Box>
             </Box>
-          )}
+          )} */}
 
           {/* Show interest level - only if match score exists from API */}
-          {visitor.customData?.matchScore && (
+          {/* {visitor.customData?.matchScore && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <TrendingUp sx={{ fontSize: 12 }} />
                 Interest Level: {visitor.customData.matchScore >= 90 ? 'Very High' : visitor.customData.matchScore >= 80 ? 'High' : visitor.customData.matchScore >= 70 ? 'Medium' : 'Low'}
               </Typography>
             </Box>
-          )}
+          )} */}
         </Box>
 
         <Divider sx={{ mb: 2 }} />
@@ -563,7 +553,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 500,
-              px: 2,
+              px: 1,
               '&:hover': {
                 bgcolor: theme.palette.primary.dark,
                 transform: 'scale(1.02)'
@@ -615,10 +605,62 @@ const RotatingIconButton = styled(IconButton)(({ theme }) => ({
 }));
 
 // Add VisitorDetailsDialog component
-function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClose: () => void; visitor: TransformedVisitor | null }) {
-  if (!visitor) return null;
-  const getInitials = (firstName: string, lastName: string) => `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+function VisitorDetailsDialog({ open, onClose, visitorId, identifier }: { open: boolean; onClose: () => void; visitorId: string | null; identifier: string }) {
+  const [visitor, setVisitor] = useState<TransformedVisitor | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isMobile = useMediaQuery('(max-width:600px)');
+
+  useEffect(() => {
+    if (open && visitorId && identifier) {
+      setLoading(true);
+      setError(null);
+      fieldMappingApi.getVisitorById(identifier, Number(visitorId))
+        .then((data) => {
+          if (data && data.result && data.result.length > 0) {
+            // Use transformVisitorData to match UI format
+            setVisitor(transformVisitorData(data.result[0], identifier, 0));
+          } else {
+            setVisitor(null);
+            setError('Visitor not found');
+          }
+        })
+        .catch(() => {
+          setVisitor(null);
+          setError('Failed to load visitor details');
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setVisitor(null);
+    }
+  }, [open, visitorId, identifier]);
+
+  if (!open) return null;
+  if (loading) return (
+    <Dialog open={open} maxWidth="lg" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: 3, width: '100%' , height: isMobile ? '100vh' : '100%' } }}>
+      <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
+        <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+          <CircularProgress />
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+  if (error) return (
+    <Dialog open={open} maxWidth="lg" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: 3, width: '100%' , height: isMobile ? '100vh' : '100%' } }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2 }}>
+        Visitor Details
+        <RotatingIconButton aria-label="close" onClick={onClose} size={isMobile ? 'medium' : 'small'}>
+          <Close />
+        </RotatingIconButton>
+      </DialogTitle>
+      <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </DialogContent>
+    </Dialog>
+  );
+  if (!visitor) return null;
+
+  const getInitials = (firstName: string, lastName: string) => `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   return (
     <Dialog open={open} maxWidth="lg" fullWidth
       fullScreen={isMobile}
@@ -1131,7 +1173,7 @@ function VisitorListView({ identifier }: { identifier: string }) {
       )}
 
       {/* Visitor Details Dialog */}
-      <VisitorDetailsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} visitor={selectedVisitor} />
+      <VisitorDetailsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} visitorId={selectedVisitor?.id || null} identifier={identifier} />
     </Container>
   );
 }

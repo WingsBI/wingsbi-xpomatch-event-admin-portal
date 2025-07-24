@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { 
   Box, 
   Container, 
@@ -24,7 +25,9 @@ import {
   IconButton as MuiIconButton,
   PaginationItem,
   Fade,
-  Slide
+  Slide,
+  useTheme,
+  alpha
 } from '@mui/material';
 import {
   Business,
@@ -38,7 +41,10 @@ import {
   FavoriteBorder,
   LinkedIn,
   Language as LanguageIcon,
-  Close
+  Close,
+  ArrowBackIos,
+  ArrowForwardIos,
+  BusinessCenter
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -50,6 +56,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ConnectIcon from '@mui/icons-material/ConnectWithoutContact';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { TransformedVisitor } from '@/types';
+import { AnimatePresence, motion } from 'framer-motion';
 
 
 export default function ExhibitorDashboard() {
@@ -65,9 +72,9 @@ export default function ExhibitorDashboard() {
   // Pagination hooks must be at the top level
   const [page, setPage] = useState(1);
   const cardsPerPage = 5;
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
-  const handleChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setSlideDirection(value > page ? 'left' : 'right');
+  const [pageDirection, setPageDirection] = useState<'left' | 'right'>('left');
+  const handlePageChange = (_: any, value: number) => {
+    setPageDirection(value > page ? 'left' : 'right');
     setPage(value);
   };
   const paginatedRecs = recommendations.slice((page - 1) * cardsPerPage, page * cardsPerPage);
@@ -129,7 +136,7 @@ export default function ExhibitorDashboard() {
           const exhibitorId = getCurrentExhibitorId();
           if (!exhibitorId) throw new Error('Exhibitor ID not found');
           const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
-          console.log("responseee",response);
+          console.log("responseee", response);
           if (response.isError) {
             setError(response.message || 'Failed to fetch recommendations');
             setRecommendations([]);
@@ -177,6 +184,9 @@ export default function ExhibitorDashboard() {
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
+
+  const theme = useTheme();
+  const router = useRouter();
 
   // // Show loading skeleton when fetching exhibitor details
   // if (loading) {
@@ -492,35 +502,52 @@ export default function ExhibitorDashboard() {
     return (
       <RoleBasedRoute allowedRoles={['event-admin', 'exhibitor']}>
         <ResponsiveDashboardLayout title="exhibitor Dashboard">
-          <Container maxWidth="lg" sx={{ mt: 0, mb: 1 }}>
-            <Typography variant="h5" sx={{  fontStyle: 'italic',fontWeight: 600, color: 'text.secondary', mb: 1, mt: -2 }}>
+          <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
+              <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
               Recommended Visitors for You
             </Typography>
-        
-            {/* Remove the Fade wrapper and use only Slide */}
-            <Slide in={true} direction={slideDirection} key={page} timeout={600}>
+            </Box>
+            <AnimatePresence mode="wait" custom={pageDirection}>
+              <motion.div
+                key={page}
+                custom={pageDirection}
+                variants={{
+                  enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                  center: { opacity: 1, x: 0 },
+                  exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: 'easeInOut' }}
+              >
               <Grid container spacing={2} sx={{ mb: -1 }}>
                 {paginatedRecs.map((rec) => (
                   <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
                     <Card
                       sx={{
-                        borderRadius: 2,
-                        boxShadow: 1,
-                        bgcolor: 'white',
-                        p: 2,
-                        minHeight: 185,
-                        maxHeight: 185,
-                        height: 185,
+                          mt: 0,
+                          borderRadius: 3,
+                          height: '100%',
+                          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                          border: '1px solid #e8eaed',
+                          bgcolor: 'background.paper',
+                          transition: 'all 0.3s ease-in-out',
+                          '&:hover': {
+                            transform: 'translateY(-4px) scale(1.02)',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                          },
+                          
+                          width: '100%',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'flex-start',
                         position: 'relative',
-                        overflow: 'hidden',
-                        wordWrap: 'break-word',
                       }}
+                        elevation={1}
                     >
-                      {/* Match Percentage Top Right with Favorite Button */}
-                      <Box sx={{ position: 'absolute', top: 10, right: 22, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+                        {/* Match Percentage and Favorite Icon (top right) */}
+                        <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
                           <Typography
                             variant="subtitle1"
                             sx={{
@@ -529,7 +556,6 @@ export default function ExhibitorDashboard() {
                               fontWeight: 600,
                               fontSize: 16,
                               letterSpacing: 0.5,
-                              mt: -1,
                             }}
                           >
                             {rec.matchPercentage?.toFixed(0)}%
@@ -537,189 +563,186 @@ export default function ExhibitorDashboard() {
                           <IconButton
                             size="small"
                             sx={{
-                              p: 0.5,
-                              mt: -1,
-                              mr: -2,
-                              cursor: 'pointer',
+
+                              ml: 0.5,
+                              color: favoriteVisitorIds.has(rec.id) ? '#ef4444' : '#b0bec5',
                               transition: 'all 0.2s ease',
-                              '&:hover': {
-                                transform: 'scale(1.1)',
-                              },
-                              '&:active': {
-                                transform: 'scale(0.95)',
-                              },
-                              '&:disabled': {
-                                opacity: 0.6
-                              }
+                              '&:hover': { color: '#ff6b9d' },
                             }}
                             onClick={() => handleFavoriteToggle(rec.id)}
                             disabled={loadingFavoriteId === rec.id}
                           >
-                            {favoriteVisitorIds.has(rec.id) ? (
-                              <Favorite 
-                              sx={{
-                                fontSize: 20,
-                                color: '#ef4444',
-                                filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))',
-                                transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                                animation: favoriteVisitorIds.has(rec.id) ? 'heartBeat 0.8s ease-in-out' : 'none',
-                                '@keyframes heartBeat': {
-                                  '0%': { transform: 'scale(1)' },
-                                  '25%': { transform: 'scale(1.3)' },
-                                  '50%': { transform: 'scale(1.1)' },
-                                  '75%': { transform: 'scale(1.2)' },
-                                  '100%': { transform: 'scale(1.1)' },
-                                },
-                              }}
-                              />
+                            {loadingFavoriteId === rec.id ? (
+                              <Skeleton variant="circular" width={20} height={20} />
+                            ) : favoriteVisitorIds.has(rec.id) ? (
+                              <Favorite sx={{ fontSize: 20, color: '#ef4444', filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))', transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)', animation: 'heartBeat 0.8s ease-in-out' }} />
                             ) : (
-                              <FavoriteBorder 
-                              sx={{
-                                fontSize: 20,
-                                color: '#b0bec5',
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                  color: '#ff6b9d',
-                                }
-                              }}
-                               />
+                              <FavoriteBorder sx={{ fontSize: 20, color: '#b0bec5' }} />
                             )}
                           </IconButton>
                         </Box>
-                        {/* Avatar and Name */}
-                        <Box display="flex" alignItems="flex-start" gap={0.5} mb={0} mt={1} sx={{ position: 'relative', zIndex: 1 }}>
-                          <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: 16 }}>
+                        <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+                          {/* Header with Avatar, Name, Job Title, Company, Location */}
+                          <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
+                            <Avatar sx={{
+                              bgcolor: 'success.main',
+                              width: 36,
+                              height: 36,
+                              mr: 1.5,
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              flexShrink: 0,
+                              color: 'white',
+                              alignSelf: 'top',
+                              mt: 2,
+                            }}>
                             {getInitials(rec.firstName, rec.lastName)}
                           </Avatar>
-                          <Box display="flex" flexDirection="column" gap={0.5}>
-                          <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
-                      <span
-                        style={{
-                          color: 'inherit',
-                          textDecoration: 'none',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                        }}
-                        onClick={() => handleNameClick(rec)}
-                        onMouseOver={e => {
-                          (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
-                          (e.currentTarget as HTMLElement).style.color = '#1976d2';
-                        }}
-                        onMouseOut={e => {
-                          (e.currentTarget as HTMLElement).style.textDecoration = 'none';
-                          (e.currentTarget as HTMLElement).style.color = 'inherit';
-                        }}
-                      >
-                           
+
+                            <Box sx={{ flex: 1, minWidth: 0, mt: 3}}>
+                              <Box>
+                                <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
                             {rec.salutation} {rec.firstName} {rec.lastName}
-                          </span>
+                                </Typography>
                           </Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, m: 0, p: 0, lineHeight: 1.2, wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                            {rec.userProfile?.jobTitle || 'No job title'}
+
+                              <Box>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+                                  {rec.userProfile?.jobTitle}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 13, whiteSpace: 'normal', m: 0, p: 0 , lineHeight: 1.2, wordBreak: 'break-word'}}>
+                              </Box>
+                            </Box>
+
+                          </Box>
+
+
+                          <Box display="flex" alignItems="center" mb={1}>
+                            <BusinessCenter sx={{ alignSelf: 'start', fontSize: 15, mr: 1, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3 }}>
                             {rec.userProfile?.companyName || 'No company'}
                           </Typography>
                         </Box>
+                          {rec.customData?.location && (
+                            <Box display="flex" alignItems="center" mb={1}>
+                              <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                              <Typography variant="subtitle2" color="text.secondary">
+                                {rec.customData.location}
+                              </Typography>
                       </Box>
-                      {/* Divider above button row */}
-                      <Divider sx={{ position: 'absolute', left: 16, right: 16, bottom: 60 }} />
-                      {/* Button Row */}
-                      <Box display="flex" alignItems="center" gap={1} sx={{ position: 'absolute', left: 16, right: 16, bottom: 12 }}>
-                        {/* {rec.userProfile?.linkedInProfile && (
-                          <IconButton size="small" sx={{ color: '#0077b5' }} onClick={() => window.open(rec.userProfile.linkedInProfile, '_blank')}>
+                          )}
+                          {/* Divider fixed above the action row at the bottom */}
+                          <Divider sx={{ mb: 1, mt: 'auto' }} />
+                          {/* Action Buttons Row at the bottom */}
+                          <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 0, mb: -2 }}>
+                            <Box display="flex" gap={1}>
+                              {rec.userProfile?.linkedInProfile && (
+                                <IconButton size="small" sx={{ color: '#0077b5', '&:hover': { backgroundColor: 'rgba(0, 119, 181, 0.1)', transform: 'scale(1.1)' } }} onClick={() => window.open(rec.userProfile.linkedInProfile, '_blank')} title="View LinkedIn Profile">
                             <LinkedIn fontSize="small" />
                           </IconButton>
                         )}
-                        {rec.userProfile?.companyWebsite && (
-                          <IconButton size="small" sx={{ color: '#555' }} onClick={() => window.open(rec.userProfile.companyWebsite, '_blank')}>
-                            <LanguageIcon fontSize="small" />
-                          </IconButton>
-                        )} */}
-                        <Box flex={1} />
+                            </Box>
                         <Button
                           variant="contained"
-                          color="primary"
                           size="small"
                           startIcon={<ConnectIcon />}
+                              onClick={() => {
+                                const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+                                const identifier = pathParts[1] || '';
+                                router.push(`/${identifier}/event-admin/meetings?view=list`);
+                              }}
                           sx={{
-                            fontWeight: 'bold',
+                                bgcolor: theme.palette.primary.main,
                             borderRadius: 2,
                             textTransform: 'none',
-                            px: 2,
-                            minWidth: 100,
-                            boxShadow: 'none',
+                                fontWeight: 500,
+                                px: 1,
+                                '&:hover': {
+                                  bgcolor: theme.palette.primary.dark,
+                                  transform: 'scale(1.02)'
+                                }
                           }}
                         >
                           Connect
                         </Button>
                       </Box>
+                        </CardContent>
                     </Card>
                   </Grid>
                 ))}
               </Grid>
-            </Slide>
-            {/* Pagination controls below cards */}
-            <Box display="flex" justifyContent="center" mt={2}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={handleChange}
-                color="primary"
-                renderItem={(item) => (
-                  <PaginationItem
-                    {...item}
-                    slots={{ previous: undefined, next: undefined }}
+              </motion.div>
+            </AnimatePresence>
+            {/* Pagination UI same as visitor dashboard */}
+            {totalPages > 1 && (
+              <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
+                <IconButton
+                  onClick={() => handlePageChange(null, Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  <ArrowBackIos fontSize="small" />
+                </IconButton>
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <Box
+                    key={idx}
                     sx={{
-                      minWidth: 15,
-                      height: 15,
+                      width: 12,
+                      height: 12,
                       borderRadius: '50%',
                       mx: 0.5,
-                      bgcolor: item.selected ? 'primary.main' : 'grey.200',
-                      color: item.selected ? 'white' : 'black',
-
-                      
-                      fontSize: 0,
-                      '& .MuiTouchRipple-root': { display: 'none' },
+                      backgroundColor:
+                        page === idx + 1
+                          ? theme.palette.primary.main
+                          : alpha(theme.palette.primary.main, 0.25),
+                      opacity: 1,
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      border: page === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
                     }}
-                    children={item.type === 'page' ? '•' : null}
+                    onClick={() => handlePageChange(null, idx + 1)}
                   />
-                )}
-                siblingCount={1}
-                boundaryCount={0}
-                hidePrevButton={false}
-                hideNextButton={false}
-              />
+                ))}
+                <IconButton
+                  onClick={() => handlePageChange(null, Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  <ArrowForwardIos fontSize="small" />
+                </IconButton>
             </Box>
+            )}
             {/* Leave the rest of the area blank */}
           </Container>
           
-            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: -2 }}>
+          {/* Section 2: Based On Category */}
+          <Divider sx={{ my: 0.5 }} />
+
+          <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
               Based On Category
             </Typography>
-             <Divider sx={{ mb: 1,mt:1 }} />
+
               <Box display="flex" alignItems="flex-start" gap={3}>
-            <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0,paddingBottom:3,paddingTop:3,paddingLeft:50 }}>
+            <Typography sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0, paddingBottom: 3, paddingTop: 3, paddingLeft: 50 }}>
                 
-                Comming Soon...
+              Coming Soon...
             </Typography>
             </Box>
               
             
-            <Divider sx={{ mb: 1,mt:1 }} />
+          <Divider sx={{ mb: 0.5, mt: 0.5 }} />
 
-           <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary', mb: -1, mt: 1 }}>
+          <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: -1, mt: 1 }}>
               Because you clicked
             </Typography>
-          <Divider sx={{ mt:2 }} />
+
                   <Box display="flex" alignItems="flex-start" gap={3}>
                    
            
-              <Typography sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0,paddingBottom:3,paddingTop:4,paddingLeft:50 }}>
-                Comming Soon...
+            <Typography sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0, paddingBottom: 3, paddingTop: 4, paddingLeft: 50 }}>
+              Coming Soon...
                 </Typography>
               </Box>
-              <Divider sx={{ mt:2 }} />
+          <Divider sx={{ mt: 2 }} />
            <VisitorDetailsDialog
              open={dialogOpen}
              onClose={() => setDialogOpen(false)}
@@ -731,7 +754,7 @@ export default function ExhibitorDashboard() {
   }
 }
 
-            {/* Add VisitorDetailsDialog component */}
+{/* Add VisitorDetailsDialog component */ }
 function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClose: () => void; visitor: TransformedVisitor | null }) {
   if (!visitor) return null;
   const getInitials = (firstName: string, lastName: string) => `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
@@ -739,7 +762,7 @@ function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClo
   return (
     <Dialog open={open} maxWidth="lg" fullWidth
       fullScreen={isMobile}
-      PaperProps={{ sx: { borderRadius: 3, width: '100%' , height: isMobile ? '100vh' : '100%' } }}
+      PaperProps={{ sx: { borderRadius: 3, width: '100%', height: isMobile ? '100vh' : '100%' } }}
       onClose={(_event: object, reason: string) => {
         if (reason !== 'backdropClick') {
           onClose();

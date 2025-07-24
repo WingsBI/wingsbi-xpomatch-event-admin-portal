@@ -548,7 +548,8 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
            
             
           </Box>
-``
+
+          
           <Button
             variant="contained"
             size="small"
@@ -558,7 +559,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 500,
-              px: 2,
+              px: 1,
               '&:hover': {
                 bgcolor: theme.palette.primary.dark,
               }

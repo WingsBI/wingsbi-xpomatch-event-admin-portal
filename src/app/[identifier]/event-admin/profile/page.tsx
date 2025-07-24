@@ -70,7 +70,7 @@ interface ProfileData {
   postalCode?: string | null;
   profilePhoto?: string | null;
   // New fields for embedding update
-  interst?: string | null;
+  interest?: string | null;
   technology?: string | null;
 }
 
@@ -91,7 +91,7 @@ export default function ProfileSettingsPage() {
     dateOfBirth: null,
     userStatusId: 1,
     isActive: true,
-    interst: '',
+    interest: '',
     technology: '',
   });
   
@@ -146,8 +146,8 @@ export default function ProfileSettingsPage() {
       countryName: userAddress.countryName || '',
       postalCode: userAddress.postalCode || '',
       profilePhoto: userProfile.profilePhoto || '',
-      interst: profile.interst || '',
-      technology: profile.technology || '',
+      interest: profile.interest || '', // fixed typo and correct mapping
+      technology: userProfile.technology || '', // map from userProfile
     };
   };
 
@@ -217,7 +217,7 @@ export default function ProfileSettingsPage() {
       }
       const updateBody = {
         visitorId,
-        interst: profileData.interst || '',
+        interest: profileData.interest || '',
         designation: profileData.designation || '',
         technology: profileData.technology || '',
       };
@@ -603,8 +603,8 @@ export default function ProfileSettingsPage() {
                   <TextField
                     fullWidth
                     label="Interest"
-                    value={profileData.interst || ''}
-                    onChange={(e) => handleInputChange('interst', e.target.value)}
+                    value={profileData.interest || ''}
+                    onChange={(e) => handleInputChange('interest', e.target.value)}
                     size="small"
                     sx={{ mb: 0.5 }}
                     InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}

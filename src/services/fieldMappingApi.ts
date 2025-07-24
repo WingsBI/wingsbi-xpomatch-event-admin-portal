@@ -166,6 +166,7 @@ export interface Exhibitor {
   website?: string;
   location?: string;
   companyType?: string;
+  technology?: string;
   
   // Additional fields from the actual API response
   hall?: string;
@@ -1532,6 +1533,80 @@ class FieldMappingApiService {
         isError: true,
         responseException: error,
         result: []
+      };
+    }
+  }
+
+  /**
+   * Update exhibitor profile using the new embedding update API
+   */
+  async updateExhibitorEmbeddingUpdate(identifier: string, updateData: any): Promise<any> {
+    try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/updateExhibitorEmbeddingUpdate`;
+      const headers = this.getAuthHeaders();
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to update exhibitor`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: null
+        };
+      }
+      return data;
+    } catch (error) {
+      return {
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: null
+      };
+    }
+  }
+
+  /**
+   * Update visitor embeddings using the new embedding update API
+   */
+  async updateVisitorEmbeddings(identifier: string, updateData: { visitorId: number; interst: string; designation: string; technology: string }): Promise<any> {
+    try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/updateVisitorEmbeddings`;
+      const headers = this.getAuthHeaders();
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to update visitor embeddings`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: null
+        };
+      }
+      return data;
+    } catch (error) {
+      return {
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: null
       };
     }
   }

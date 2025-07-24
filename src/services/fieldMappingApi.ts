@@ -1154,6 +1154,7 @@ class FieldMappingApiService {
           boothSize: exhibitorData.hall,
           website: exhibitorData.webSite,
           companyType: exhibitorData.companyType,
+          technology: exhibitorData.technology,
           companyDescription: exhibitorData.exhibitorProfile?.[0]?.companyProfile,
           
           // Products and other data
@@ -1577,7 +1578,7 @@ class FieldMappingApiService {
   /**
    * Update visitor embeddings using the new embedding update API
    */
-  async updateVisitorEmbeddings(identifier: string, updateData: { visitorId: number; interst: string; designation: string; technology: string }): Promise<any> {
+  async updateVisitorEmbeddings(identifier: string, updateData: { visitorId: number; interest: string; designation: string; technology: string }): Promise<any> {
     try {
       const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/updateVisitorEmbeddings`;
       const headers = this.getAuthHeaders();

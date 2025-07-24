@@ -114,7 +114,9 @@ export default function ExhibitorSelfDetails() {
         setError(response.message || 'Failed to update exhibitor');
       } else {
         setError(null);
+        setFormData(prev => prev ? { ...prev, ...updateBody } : prev); // Optimistically update
         // Refetch exhibitor details to show updated profile
+        await new Promise(res => setTimeout(res, 500));
         await fetchSelfDetails();
         setSuccessMessage('Profile updated successfully');
         setTimeout(() => setSuccessMessage(null), 3000);
@@ -125,6 +127,21 @@ export default function ExhibitorSelfDetails() {
       setSaving(false);
     }
   };
+
+  // Helper to get a valid brand object for editing
+  const getValidBrand = (existing?: any) => ({
+    id: existing?.id || 0,
+    exhibitorId: existing?.exhibitorId || formData?.id || 0,
+    brandName: existing?.brandName || '',
+    category: existing?.category || '',
+    description: existing?.description || '',
+    logoPath: existing?.logoPath || '',
+    createdBy: existing?.createdBy || 0,
+    createdDate: existing?.createdDate || '',
+    modifiedBy: existing?.modifiedBy || null,
+    modifiedDate: existing?.modifiedDate || null,
+    isActive: typeof existing?.isActive === 'boolean' ? existing.isActive : true,
+  });
 
   if (loading) {
     return (
@@ -258,7 +275,7 @@ export default function ExhibitorSelfDetails() {
                     label="Industry"
                     value={formData?.industry || ''}
                     size="small"
-                    disabled
+                    onChange={e => handleInputChange('industry', e.target.value)}
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -293,6 +310,66 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.technology || ''}
                     size="small"
                     onChange={e => handleInputChange('technology', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                  />
+                </Grid>
+                {/* Brand Information */}
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
+                    Brand Information
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Brand Name"
+                    value={formData?.brand && formData.brand[0]?.brandName || ''}
+                    size="small"
+                    onChange={e => {
+                      setFormData(f => {
+                        if (!f) return f;
+                        const current = f.brand && f.brand[0] ? f.brand[0] : undefined;
+                        const updatedBrand = { ...getValidBrand(current), brandName: e.target.value };
+                        return { ...f, brand: [updatedBrand] };
+                      });
+                    }}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Brand Category"
+                    value={formData?.brand && formData.brand[0]?.category || ''}
+                    size="small"
+                    onChange={e => {
+                      setFormData(f => {
+                        if (!f) return f;
+                        const current = f.brand && f.brand[0] ? f.brand[0] : undefined;
+                        const updatedBrand = { ...getValidBrand(current), category: e.target.value };
+                        return { ...f, brand: [updatedBrand] };
+                      });
+                    }}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Brand Description"
+                    value={formData?.brand && formData.brand[0]?.description || ''}
+                    size="small"
+                    onChange={e => {
+                      setFormData(f => {
+                        if (!f) return f;
+                        const current = f.brand && f.brand[0] ? f.brand[0] : undefined;
+                        const updatedBrand = { ...getValidBrand(current), description: e.target.value };
+                        return { ...f, brand: [updatedBrand] };
+                      });
+                    }}
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />

@@ -43,7 +43,8 @@ import {
   TrendingUp,
   GetApp,
   Person,
-  Close
+  Close,
+  BusinessCenter
 } from '@mui/icons-material';
 import Link from 'next/link';
 
@@ -299,7 +300,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           
             <Avatar
               sx={{
-              bgcolor: theme.palette.primary.main,
+              bgcolor: 'success.main',
               width: 36,
               height: 36,
               mr: 1.5,
@@ -307,7 +308,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               fontWeight: 'bold',
               flexShrink: 0,
               color: 'white',
-              alignSelf: 'center',
+              alignSelf: 'top',
               mt: 2,
               }}
             >
@@ -413,7 +414,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         {/* Content Section - Takes up available space */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Box display="flex" alignItems="center" mb={1}>
-            <LocationOn sx={{ fontSize: 15, mr: 1, color: 'text.secondary' }} />
+            <BusinessCenter sx={{ alignSelf: 'start', fontSize: 15, mr: 1, color: 'text.secondary' }} />
             <Typography variant="body2" color="text.secondary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3}}>
               {visitor.company}
             </Typography>
@@ -422,7 +423,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           <Box >
             {visitor.customData?.location && (
               <Box display="flex" alignItems="center" mb={1}>
-                <LocationOn sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
                 <Typography variant="subtitle2" color="text.secondary">
                   {visitor.customData.location}
                 </Typography>
@@ -431,7 +432,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           </Box>
 
           {/* Relevant Interests */}
-          {relevantInterests.length > 0 && (
+          {/* {relevantInterests.length > 0 && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                 <InterestPoint sx={{ fontSize: 14, mr: 0.5 }} />
@@ -465,10 +466,10 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 )}
               </Box>
             </Box>
-          )}
+          )} */}
 
           {/* Looking For (Relevant to exhibitor) */}
-          {relevantLookingFor.length > 0 && (
+          {/* {relevantLookingFor.length > 0 && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
                 Looking for (matches your services):
@@ -501,17 +502,17 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 )}
               </Box>
             </Box>
-          )}
+          )} */}
 
           {/* Show interest level - only if match score exists from API */}
-          {visitor.customData?.matchScore && (
+          {/* {visitor.customData?.matchScore && (
             <Box mb={1}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <TrendingUp sx={{ fontSize: 12 }} />
                 Interest Level: {visitor.customData.matchScore >= 90 ? 'Very High' : visitor.customData.matchScore >= 80 ? 'High' : visitor.customData.matchScore >= 70 ? 'Medium' : 'Low'}
               </Typography>
             </Box>
-          )}
+          )} */}
         </Box>
 
         <Divider sx={{ mb: 2 }} />
@@ -563,7 +564,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 500,
-              px: 2,
+              px: 1,
               '&:hover': {
                 bgcolor: theme.palette.primary.dark,
                 transform: 'scale(1.02)'

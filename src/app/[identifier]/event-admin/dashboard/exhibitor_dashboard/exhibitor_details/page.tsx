@@ -38,42 +38,44 @@ export default function ExhibitorSelfDetails() {
   const [formData, setFormData] = useState<Exhibitor | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const fetchSelfDetails = async () => {
-      const exhibitorId = getCurrentExhibitorId();
-      if (!exhibitorId) {
-        setError('No exhibitor ID found. Please log in as an exhibitor.');
-        return;
-      }
-      // Extract identifier from URL path
-      const pathParts = pathname.split('/');
-      const identifier = pathParts[1];
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fieldMappingApi.getExhibitorById(identifier, exhibitorId);
-        if (response.isError) {
-          let errorMessage = response.message || 'Failed to fetch exhibitor details';
-          if (response.statusCode === 404) {
-            errorMessage = `Exhibitor with ID ${exhibitorId} not found.`;
-          } else if (response.statusCode === 401) {
-            errorMessage = 'Authentication required. Please log in again.';
-          } else if (response.statusCode === 403) {
-            errorMessage = 'Access denied. You do not have permission to view this exhibitor.';
-          } else if (response.statusCode >= 500) {
-            errorMessage = 'Server error. Please try again later.';
-          }
-          setError(errorMessage);
-        } else {
-          setExhibitor(response.result);
-          setFormData(response.result); // initialize form data
+  // Move fetchSelfDetails outside useEffect
+  const fetchSelfDetails = async () => {
+    const exhibitorId = getCurrentExhibitorId();
+    if (!exhibitorId) {
+      setError('No exhibitor ID found. Please log in as an exhibitor.');
+      return;
+    }
+    // Extract identifier from URL path
+    const pathParts = pathname.split('/');
+    const identifier = pathParts[1];
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fieldMappingApi.getExhibitorById(identifier, exhibitorId);
+      if (response.isError) {
+        let errorMessage = response.message || 'Failed to fetch exhibitor details';
+        if (response.statusCode === 404) {
+          errorMessage = `Exhibitor with ID ${exhibitorId} not found.`;
+        } else if (response.statusCode === 401) {
+          errorMessage = 'Authentication required. Please log in again.';
+        } else if (response.statusCode === 403) {
+          errorMessage = 'Access denied. You do not have permission to view this exhibitor.';
+        } else if (response.statusCode >= 500) {
+          errorMessage = 'Server error. Please try again later.';
         }
-      } catch (err) {
-        setError('An error occurred while fetching exhibitor details. Please try again.');
-      } finally {
-        setLoading(false);
+        setError(errorMessage);
+      } else {
+        setExhibitor(response.result);
+        setFormData(response.result); // initialize form data
       }
-    };
+    } catch (err) {
+      setError('An error occurred while fetching exhibitor details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchSelfDetails();
   }, [pathname]);
 
@@ -88,10 +90,35 @@ export default function ExhibitorSelfDetails() {
   const handleSave = async () => {
     if (!formData) return;
     setSaving(true);
+    // Extract identifier from URL path
+    const pathParts = pathname.split('/');
+    const identifier = pathParts[1];
+    // Prepare the update body as per the new API
+    const updateBody: any = {
+      exhibitorId: formData.id,
+      products: formData.products || '',
+      technology: formData.technology || '',
+      companyProfile: formData.companyDescription || '',
+      companyType: formData.companyType || '',
+      productTitle: formData.product && formData.product[0]?.title || '',
+      productDescription: formData.product && formData.product[0]?.description || '',
+      productType: formData.product && formData.product[0]?.category || '',
+      brandCategory: formData.brand && formData.brand[0]?.category || '',
+      brandDescription: formData.brand && formData.brand[0]?.description || '',
+      brandName: formData.brand && formData.brand[0]?.brandName || '',
+    };
     try {
-      // TODO: Replace with actual API call to update exhibitor
-      // await fieldMappingApi.updateExhibitor(formData);
-      // Optionally refetch exhibitor details
+      const response = await fieldMappingApi.updateExhibitorEmbeddingUpdate(identifier, updateBody);
+      if (response.isError) {
+        setError(response.message || 'Failed to update exhibitor');
+      } else {
+        setError(null);
+        // Refetch exhibitor details to show updated profile
+        await fetchSelfDetails();
+        alert('Profile updated successfully');
+      }
+    } catch (err) {
+      setError('An error occurred while updating exhibitor. Please try again.');
     } finally {
       setSaving(false);
     }

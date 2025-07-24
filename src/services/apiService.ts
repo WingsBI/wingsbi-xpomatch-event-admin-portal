@@ -696,6 +696,45 @@ export const matchmakingApi = {
   },
 };
 
+// Notifications API
+export const notificationsApi = {
+  getAllNotification: async (identifier: string) => {
+    try {
+      // Get token from cookies first, then fallback to localStorage
+      let token = null;
+      if (typeof document !== 'undefined') {
+        token = getCookie('auth-token');
+      }
+      if (!token && typeof localStorage !== 'undefined') {
+        token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+      }
+      // Use the Azure API base URL for external API calls
+      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const url = `${azureApiUrl}/api/${identifier}/Dashboard/getAllNotification`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      // Add auth token if available
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const response = await axios.get(url, {
+        timeout: 30000,
+        headers,
+      });
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('API Error details:', error);
+      throw error;
+    }
+  },
+};
+
 // Export the main service
 export default apiService;
 

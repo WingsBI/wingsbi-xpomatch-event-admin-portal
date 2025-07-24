@@ -37,6 +37,7 @@ export default function ExhibitorSelfDetails() {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Exhibitor | null>(null);
   const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Move fetchSelfDetails outside useEffect
   const fetchSelfDetails = async () => {
@@ -115,7 +116,8 @@ export default function ExhibitorSelfDetails() {
         setError(null);
         // Refetch exhibitor details to show updated profile
         await fetchSelfDetails();
-        alert('Profile updated successfully');
+        setSuccessMessage('Profile updated successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
       }
     } catch (err) {
       setError('An error occurred while updating exhibitor. Please try again.');
@@ -184,6 +186,11 @@ export default function ExhibitorSelfDetails() {
     <RoleBasedRoute allowedRoles={['exhibitor']}>
       <ResponsiveDashboardLayout title="Exhibitor Details">
         <Container maxWidth="lg" sx={{ mt: 1, mb: 1 }}>
+          {successMessage && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {successMessage}
+            </Alert>
+          )}
           <Card>
             <CardContent sx={{ p: 2 }}>
               {/* Profile Header */}
@@ -229,7 +236,7 @@ export default function ExhibitorSelfDetails() {
                     label="Company Name"
                     value={formData?.companyName || ''}
                     size="small"
-                    onChange={e => handleInputChange('companyName', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -251,7 +258,7 @@ export default function ExhibitorSelfDetails() {
                     label="Industry"
                     value={formData?.industry || ''}
                     size="small"
-                    onChange={e => handleInputChange('industry', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -262,7 +269,7 @@ export default function ExhibitorSelfDetails() {
                     label="Website"
                     value={formData?.website || ''}
                     size="small"
-                    onChange={e => handleInputChange('website', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -274,6 +281,18 @@ export default function ExhibitorSelfDetails() {
                     value={formData?.companyDescription || ''}
                     size="small"
                     onChange={e => handleInputChange('companyDescription', e.target.value)}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                  />
+                </Grid>
+                {/* Technology Field (if present) */}
+                <Grid item xs={12} sm={6} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Technology"
+                    value={formData?.technology || ''}
+                    size="small"
+                    onChange={e => handleInputChange('technology', e.target.value)}
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -301,7 +320,7 @@ export default function ExhibitorSelfDetails() {
                     label="Phone"
                     value={formData?.phoneNumber || ''}
                     size="small"
-                    onChange={e => handleInputChange('phoneNumber', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -318,7 +337,7 @@ export default function ExhibitorSelfDetails() {
                     label="City"
                     value={formData?.city || ''}
                     size="small"
-                    onChange={e => handleInputChange('city', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -329,7 +348,7 @@ export default function ExhibitorSelfDetails() {
                     label="Country"
                     value={formData?.country || ''}
                     size="small"
-                    onChange={e => handleInputChange('country', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -340,7 +359,7 @@ export default function ExhibitorSelfDetails() {
                     label="Address"
                     value={formData?.address || ''}
                     size="small"
-                    onChange={e => handleInputChange('address', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -357,7 +376,7 @@ export default function ExhibitorSelfDetails() {
                     label="Booth Number"
                     value={formData?.boothNumber || ''}
                     size="small"
-                    onChange={e => handleInputChange('boothNumber', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -368,7 +387,7 @@ export default function ExhibitorSelfDetails() {
                     label="Hall"
                     value={formData?.hall || ''}
                     size="small"
-                    onChange={e => handleInputChange('hall', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -379,7 +398,7 @@ export default function ExhibitorSelfDetails() {
                     label="Location"
                     value={formData?.location || ''}
                     size="small"
-                    onChange={e => handleInputChange('location', e.target.value)}
+                    disabled
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -439,11 +458,7 @@ export default function ExhibitorSelfDetails() {
                           <TextField
                             label="Image URL"
                             value={prod.imagePath}
-                            onChange={e => {
-                              const updated = [...(formData.product || [])];
-                              updated[idx] = { ...prod, imagePath: e.target.value };
-                              setFormData(f => f ? { ...f, product: updated } : f);
-                            }}
+                            disabled
                             size="small"
                             sx={{ mr: 1, flex: 2 }}
                             InputProps={{ sx: { fontSize: '0.9rem' } }}

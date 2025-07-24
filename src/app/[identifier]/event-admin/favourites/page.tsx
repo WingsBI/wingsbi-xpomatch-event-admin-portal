@@ -44,6 +44,7 @@ import { setIdentifier } from "@/store/slices/appSlice";
 import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor, type FavoritesRequest } from '@/services/fieldMappingApi';
 import { getCurrentExhibitorId, getCurrentVisitorId, decodeJWTToken, isEventAdmin } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
+import { useRouter } from 'next/navigation';
 
 interface TransformedExhibitor {
   id: string;
@@ -225,6 +226,7 @@ export default function FavouritesPage() {
   const identifier = params.identifier as string;
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const router = useRouter();
   
   const [exhibitorFavourites, setExhibitorFavourites] = useState<TransformedExhibitor[]>([]);
   const [visitorFavourites, setVisitorFavourites] = useState<TransformedVisitor[]>([]);
@@ -475,12 +477,8 @@ export default function FavouritesPage() {
     <RoleBasedRoute allowedRoles={['event-admin' , 'visitor' , 'exhibitor']}>
       <ResponsiveDashboardLayout title="My Favourites">
         <Container maxWidth="xl" sx={{ mt: 1, mb: 1 }}>
-          {/* Error Alert */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          )}
+          
+          
 
           {/* Header with action buttons and stats */}
 {/*           
@@ -515,13 +513,7 @@ export default function FavouritesPage() {
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body1">Visitors</Typography>
-                    <Chip 
-                      label={`${visitorFavourites.length}`}
-                      variant="outlined"
-                      color="primary"
-                      size="small"
-                      sx={{ fontSize: '0.75rem', height: 20, minWidth: 20 }}
-                    />
+                    
                   </Box>
                 } 
               />
@@ -531,13 +523,7 @@ export default function FavouritesPage() {
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body1">Exhibitors</Typography>
-                    <Chip 
-                      label={`${exhibitorFavourites.length}`}
-                      variant="outlined"
-                      color="success"
-                      size="small"
-                      sx={{ fontSize: '0.75rem', height: 20, minWidth: 20 }}
-                    />
+                    
                   </Box>
                 } 
               />
@@ -747,12 +733,17 @@ export default function FavouritesPage() {
                             variant="contained"
                             size="small"
                             startIcon={<ConnectIcon />}
+                            onClick={() => {
+                              const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+                              const identifier = pathParts[1] || '';
+                              router.push(`/${identifier}/event-admin/meetings?view=list`);
+                            }}
                             sx={{ 
                               bgcolor: 'primary.main',
                               borderRadius: 2,
                               textTransform: 'none',
                               fontWeight: 500,
-                              px: 2,
+                              px: 1,
                               py: 0.75,
                               '&:hover': {
                                 bgcolor: 'primary.dark',
@@ -1059,12 +1050,17 @@ export default function FavouritesPage() {
                             variant="contained"
                             size="small"
                             startIcon={<ConnectIcon />}
+                            onClick={() => {
+                              const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+                              const identifier = pathParts[1] || '';
+                              router.push(`/${identifier}/event-admin/meetings?view=list`);
+                            }}
                             sx={{ 
                               bgcolor: 'primary.main',
                               borderRadius: 2,
                               textTransform: 'none',
                               fontWeight: 500,
-                              px: 2,
+                              px: 1,
                               py: 0.75,
                               '&:hover': {
                                 bgcolor: 'primary.dark',

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Container,
@@ -66,6 +67,7 @@ export default function VisitorDashboard() {
   const [removingFavorite, setRemovingFavorite] = useState<string | null>(null);
   const [pageDirection, setPageDirection] = useState<'left' | 'right'>('left');
   const theme = useTheme();
+  const router = useRouter();
 
   // Load favorites for the visitor on mount
   useEffect(() => {
@@ -621,6 +623,11 @@ export default function VisitorDashboard() {
                           variant="contained"
                           size="small"
                           startIcon={<ConnectIcon />}
+                          onClick={() => {
+                            const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+                            const identifier = pathParts[1] || '';
+                            router.push(`/${identifier}/event-admin/meetings?view=list`);
+                          }}
                           sx={{
                             bgcolor: theme.palette.primary.main,
                             borderRadius: 2,
@@ -629,6 +636,7 @@ export default function VisitorDashboard() {
                             px: 1,
                             '&:hover': {
                               bgcolor: theme.palette.primary.dark,
+                              transform: 'scale(1.02)'
                             }
                           }}
                         >
@@ -644,7 +652,7 @@ export default function VisitorDashboard() {
             </AnimatePresence>
             {/* Replace the Pagination component with custom dots and arrows: */}
             {totalPages > 1 && (
-              <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={2}>
+              <Box display="flex" justifyContent="center" alignItems="center" mt={0.5}  gap={1}>
                 <IconButton
                   onClick={() => handlePageChange(null, Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
@@ -684,7 +692,7 @@ export default function VisitorDashboard() {
           </Container>
 
           {/* Section 2: Based On Category */}
-          <Divider sx={{ my: 1 }} />
+          <Divider sx={{ my: 0.5 }} />
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
               Based On Category

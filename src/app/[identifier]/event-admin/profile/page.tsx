@@ -258,16 +258,12 @@ export default function ProfileSettingsPage() {
     <RoleBasedRoute allowedRoles={['visitor', 'exhibitor', 'event-admin']}>
       <ResponsiveDashboardLayout 
         title="Profile Settings"
-        
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="md" sx={{ px: { xs: 0.5, sm: 1 }, py: 1 }}>
           {/* Header */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Box display="flex" alignItems="center" gap={1}>
-              
-
-              
-              <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 0 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 0 }}>
                 Profile Details
               </Typography>
             </Box>
@@ -275,28 +271,28 @@ export default function ProfileSettingsPage() {
 
           {/* Error/Success Messages */}
           {error && (
-            <Alert severity="error" sx={{ mb: 1 }}>
+            <Alert severity="error" sx={{ mb: 0.5 }}>
               {error}
             </Alert>
           )}
           
           {success && (
-            <Alert severity="success" sx={{ mb: 1}}>
+            <Alert severity="success" sx={{ mb: 0.5}}>
               {success}
             </Alert>
           )}
 
           <Card>
-            <CardContent sx={{ p: 2 }}>
+            <CardContent sx={{ p: 1 }}>
               {/* Profile Header */}
-              <Box display="flex" alignItems="center" gap={2} mb={1.5}>
-                <Box sx={{ position: 'relative', width: 70, height: 70 }}>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <Box sx={{ position: 'relative', width: 50, height: 50 }}>
                   <Avatar
                     src={profileData.profilePhoto || undefined}
                     sx={{
-                      width: 50,
-                      height: 50,
-                      fontSize: '1.5rem',
+                      width: 40,
+                      height: 40,
+                      fontSize: '1.1rem',
                       fontWeight: 'bold',
                       color: 'white',
                       bgcolor: 'primary.main',
@@ -308,11 +304,11 @@ export default function ProfileSettingsPage() {
                     component="label"
                     sx={{
                       position: 'absolute',
-                      bottom: 5,
-                      right: 5,
+                      bottom: 2,
+                      right: 2,
                       bgcolor: 'white',
                       boxShadow: 1,
-                      p: 0.5,
+                      p: 0.2,
                       zIndex: 2,
                       '&:hover': { bgcolor: 'grey.100' },
                     }}
@@ -336,7 +332,7 @@ export default function ProfileSettingsPage() {
                   </IconButton>
                 </Box>
                 <Box>
-                  <Typography variant="h6" fontWeight="600">
+                  <Typography variant="subtitle1" fontWeight="600">
                     {profileData.salutation} {profileData.firstName} {profileData.middleName} {profileData.lastName}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -345,19 +341,19 @@ export default function ProfileSettingsPage() {
                 </Box>
               </Box>
 
-              <Divider sx={{ mb: 2.5 }} />
+              <Divider sx={{ mb: 1.5 }} />
 
               {/* Profile Form */}
-              <Grid container spacing={2}>
+              <Grid container spacing={1}>
                 {/* Personal Information Section */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, color: 'primary.main' }}>
                     Personal Information
                   </Typography>
                 </Grid>
                 
                 <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth size="small">
+                  <FormControl fullWidth size="small" disabled sx={{ mb: 0.5 }}>
                     <InputLabel>Salutation</InputLabel>
                     <Select
                       value={profileData.salutation}
@@ -382,6 +378,10 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     required
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -391,6 +391,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.middleName}
                     onChange={(e) => handleInputChange('middleName', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -401,6 +405,10 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     required
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 
@@ -412,10 +420,14 @@ export default function ProfileSettingsPage() {
                     value={profileData.email || ''}
                     onChange={(e) => handleInputChange('email', e.target.value || null)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
-                  <FormControl fullWidth size="small">
+                  <FormControl fullWidth size="small" disabled sx={{ mb: 0.5 }}>
                     <InputLabel>Gender</InputLabel>
                     <Select
                       value={profileData.gender || ''}
@@ -437,20 +449,23 @@ export default function ProfileSettingsPage() {
                     type="date"
                     value={profileData.dateOfBirth || ''}
                     onChange={(e) => handleInputChange('dateOfBirth', e.target.value || null)}
-                    InputLabelProps={{ shrink: true }}
+                    InputLabelProps={{ shrink: true, sx: { fontSize: 13 } }}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
                   />
                 </Grid>
 
                 {/* Contact & Status Section */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
                     Contact & Status
                   </Typography>
                 </Grid>
                 
                 <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth size="small">
+                  <FormControl fullWidth size="small" disabled sx={{ mb: 0.5 }}>
                     <InputLabel>Status</InputLabel>
                     <Select
                       value={profileData.userStatusId}
@@ -470,6 +485,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.phone || ''}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -480,10 +499,14 @@ export default function ProfileSettingsPage() {
                     value={profileData.experienceYears || 0}
                     onChange={(e) => handleInputChange('experienceYears', Number(e.target.value))}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth size="small">
+                  <FormControl fullWidth size="small" disabled sx={{ mb: 0.5 }}>
                     <InputLabel>Decision Maker</InputLabel>
                     <Select
                       value={profileData.decisionmaker ? 'Yes' : 'No'}
@@ -499,7 +522,7 @@ export default function ProfileSettingsPage() {
 
                 {/* Social Media Section */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
                     Social Media Profiles
                   </Typography>
                 </Grid>
@@ -511,6 +534,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.linkedInProfile || ''}
                     onChange={(e) => handleInputChange('linkedInProfile', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -520,6 +547,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.instagramProfile || ''}
                     onChange={(e) => handleInputChange('instagramProfile', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -529,6 +560,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.gitHubProfile || ''}
                     onChange={(e) => handleInputChange('gitHubProfile', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -538,12 +573,16 @@ export default function ProfileSettingsPage() {
                     value={profileData.twitterProfile || ''}
                     onChange={(e) => handleInputChange('twitterProfile', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
 
                 {/* Professional Information Section */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
                     Professional Information
                   </Typography>
                 </Grid>
@@ -555,6 +594,9 @@ export default function ProfileSettingsPage() {
                     value={profileData.designation || ''}
                     onChange={(e) => handleInputChange('designation', e.target.value)}
                     size="small"
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
@@ -564,6 +606,9 @@ export default function ProfileSettingsPage() {
                     value={profileData.interst || ''}
                     onChange={(e) => handleInputChange('interst', e.target.value)}
                     size="small"
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
@@ -573,6 +618,9 @@ export default function ProfileSettingsPage() {
                     value={profileData.technology || ''}
                     onChange={(e) => handleInputChange('technology', e.target.value)}
                     size="small"
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
@@ -582,6 +630,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.jobTitle || ''}
                     onChange={(e) => handleInputChange('jobTitle', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
@@ -591,6 +643,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.companyName || ''}
                     onChange={(e) => handleInputChange('companyName', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 
@@ -601,6 +657,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.companyWebsite || ''}
                     onChange={(e) => handleInputChange('companyWebsite', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={6}>
@@ -610,12 +670,16 @@ export default function ProfileSettingsPage() {
                     value={profileData.businessEmail || ''}
                     onChange={(e) => handleInputChange('businessEmail', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
 
                 {/* Address Section */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" fontWeight="600" sx={{ mb: 1, mt: 1, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
                     Address Information
                   </Typography>
                 </Grid>
@@ -627,6 +691,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.addressLine1 || ''}
                     onChange={(e) => handleInputChange('addressLine1', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={6}>
@@ -636,6 +704,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.addressLine2 || ''}
                     onChange={(e) => handleInputChange('addressLine2', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 
@@ -646,6 +718,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.cityName || ''}
                     onChange={(e) => handleInputChange('cityName', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -655,6 +731,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.stateName || ''}
                     onChange={(e) => handleInputChange('stateName', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -664,6 +744,10 @@ export default function ProfileSettingsPage() {
                     value={profileData.countryName || ''}
                     onChange={(e) => handleInputChange('countryName', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -673,19 +757,23 @@ export default function ProfileSettingsPage() {
                     value={profileData.postalCode || ''}
                     onChange={(e) => handleInputChange('postalCode', e.target.value)}
                     size="small"
+                    disabled
+                    sx={{ mb: 0.5 }}
+                    InputProps={{ sx: { height: 36, fontSize: 14, py: 0 } }}
+                    InputLabelProps={{ sx: { fontSize: 13 } }}
                   />
                 </Grid>
               </Grid>
 
               {/* Save Button */}
-              <Box display="flex" justifyContent="flex-end" mt={3}>
+              <Box display="flex" justifyContent="flex-end" mt={2}>
                 <Button
                   variant="contained"
-                  size="large"
-                  startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <Save />}
+                  size="medium"
+                  startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <Save />}
                   onClick={handleSave}
                   disabled={saving}
-                  sx={{ minWidth: 150 }}
+                  sx={{ minWidth: 120, height: 36 }}
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>

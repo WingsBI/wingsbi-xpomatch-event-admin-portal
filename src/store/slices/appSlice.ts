@@ -126,6 +126,9 @@ export const appSlice = createSlice({
     clearNotifications: (state) => {
       state.ui.notifications = [];
     },
+    setNotifications: (state, action: PayloadAction<UIState['notifications']>) => {
+      state.ui.notifications = action.payload;
+    },
     initializeApp: (state, action: PayloadAction<{ identifier: string; responsive: Partial<ResponsiveState> }>) => {
       const { identifier, responsive } = action.payload;
       state.identifier = identifier;
@@ -153,6 +156,7 @@ export const {
   addNotification,
   removeNotification,
   clearNotifications,
+  setNotifications,
   initializeApp,
 } = appSlice.actions;
 

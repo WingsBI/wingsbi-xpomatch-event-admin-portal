@@ -46,6 +46,7 @@ import { theme } from '@/lib/theme';
 import { getCurrentVisitorId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { motion, AnimatePresence } from 'framer-motion';
+import ExhibitorDetailsDialog from '@/components/common/ExhibitorDetailsDialog';
 
 export default function VisitorDashboard() {
   const searchParams = useSearchParams();
@@ -68,15 +69,17 @@ export default function VisitorDashboard() {
   const [pageDirection, setPageDirection] = useState<'left' | 'right'>('left');
   const theme = useTheme();
   const router = useRouter();
+  const [exhibitorDialogOpen, setExhibitorDialogOpen] = useState(false);
+  const [selectedExhibitorId, setSelectedExhibitorId] = useState<number | null>(null);
+
+  const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+  const identifier = pathParts[1] || '';
 
   // Load favorites for the visitor on mount
   useEffect(() => {
     async function loadFavorites() {
       const visitorId = getCurrentVisitorId();
       if (!visitorId) return;
-      // identifier from URL
-      const pathParts = window.location.pathname.split('/');
-      const identifier = pathParts[1];
       try {
         const response = await fieldMappingApi.getVisitorFavorites(identifier, visitorId);
         if (response && response.result && response.result.exhibitors) {
@@ -93,10 +96,9 @@ export default function VisitorDashboard() {
 
   // Handler to toggle favorite for an exhibitor
   const handleToggleExhibitorFavorite = async (exhibitorId: string) => {
-    const pathParts = window.location.pathname.split('/');
-    const identifier = pathParts[1];
+    if (!identifier) return;
     const visitorId = getCurrentVisitorId();
-    if (!identifier || !visitorId) return;
+    if (!visitorId) return;
     setRemovingFavorite(exhibitorId);
     const isCurrentlyFavorite = favoriteExhibitorIds.has(exhibitorId);
     try {
@@ -136,9 +138,6 @@ export default function VisitorDashboard() {
         setLoading(true);
         setError(null);
         try {
-          // Extract identifier from URL path
-          const pathParts = window.location.pathname.split('/');
-          const identifier = pathParts[1];
           console.log('Visitor Dashboard - Calling API with visitorId:', visitorId, 'for identifier:', identifier);
           const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
           if (response.isError) {
@@ -162,10 +161,6 @@ export default function VisitorDashboard() {
       setError(null);
 
       try {
-        // Extract identifier from URL path
-        const pathParts = window.location.pathname.split('/');
-        const identifier = pathParts[1]; // Assuming URL pattern: /[identifier]/event-admin/dashboard/visitor_dashboard
-
         const response = await fieldMappingApi.getExhibitorById(identifier, parseInt(exhibitorId, 10));
 
         if (response.isError) {
@@ -191,6 +186,12 @@ export default function VisitorDashboard() {
   const handlePageChange = (_: any, value: number) => {
     setPageDirection(value > currentPage ? 'left' : 'right');
     setCurrentPage(value);
+  };
+
+  // Handler for company name click
+  const handleCompanyNameClick = (exhibitorId: number) => {
+    setSelectedExhibitorId(exhibitorId);
+    setExhibitorDialogOpen(true);
   };
 
   // Show loading skeleton when fetching exhibitor details
@@ -580,7 +581,10 @@ export default function VisitorDashboard() {
                         </Avatar>
                         <Box flex={1} minWidth={0}>
                           <Typography 
-                          variant="body2" sx={{ fontWeight: 600,color: 'primary.main', fontSize: 14, wordBreak: 'break-word', mt: 1 }}>
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: 'primary.main', fontSize: 14, wordBreak: 'break-word', mt: 1, cursor: 'pointer', textDecoration: 'none', transition: 'text-decoration 0.2s', '&:hover': { textDecoration: 'underline' } }}
+                          onClick={() => handleCompanyNameClick(rec.id)}
+                          >
                             {rec.companyName}
                           </Typography>
                           
@@ -624,8 +628,6 @@ export default function VisitorDashboard() {
                           size="small"
                           startIcon={<ConnectIcon />}
                           onClick={() => {
-                            const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
-                            const identifier = pathParts[1] || '';
                             router.push(`/${identifier}/event-admin/meetings?view=list`);
                           }}
                           sx={{
@@ -713,6 +715,13 @@ export default function VisitorDashboard() {
               Coming soon
             </Box>
           </Box>
+          {/* Place the dialog at the end so it is always present */}
+          <ExhibitorDetailsDialog
+            open={exhibitorDialogOpen}
+            onClose={() => setExhibitorDialogOpen(false)}
+            exhibitorId={selectedExhibitorId}
+            identifier={identifier}
+          />
         </ResponsiveDashboardLayout>
       </RoleBasedRoute>
     );

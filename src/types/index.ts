@@ -244,6 +244,9 @@ export interface TransformedVisitor {
   phone?: string;
   country?: string;
   interests?: string[];
+  // Add these fields for dialog display
+  interest?: string;
+  technology?: string;
   status: string;
   type: 'visitor' | 'exhibitor';
   eventId: string;

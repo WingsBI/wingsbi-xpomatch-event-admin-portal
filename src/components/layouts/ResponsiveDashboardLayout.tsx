@@ -1001,6 +1001,7 @@ export default function ResponsiveDashboardLayout({
               color="primary"
               aria-label="scroll to top"
               onClick={scrollToTop}
+              size="small"
               sx={{
                 position: 'fixed',
                 bottom: 16,
@@ -1008,7 +1009,7 @@ export default function ResponsiveDashboardLayout({
                 zIndex: theme.zIndex.speedDial,
               }}
             >
-              <KeyboardArrowUp />
+              <KeyboardArrowUp fontSize="small" />
             </Fab>
           </motion.div>
         )}

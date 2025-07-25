@@ -259,7 +259,7 @@ export default function ProfileSettingsPage() {
       <ResponsiveDashboardLayout 
         title="Profile Settings"
       >
-        <Container maxWidth="md" sx={{ px: { xs: 0.5, sm: 1 }, py: 1 }}>
+        <Container maxWidth="lg" sx={{ mt:-1, mb: 1, px: { xs: 0.5, sm: 1 }, py: 1 }}>
           {/* Header */}
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
             <Box display="flex" alignItems="center" gap={0.5}>
@@ -271,21 +271,21 @@ export default function ProfileSettingsPage() {
 
           {/* Error/Success Messages */}
           {error && (
-            <Alert severity="error" sx={{ mb: 0.5 }}>
+            <Alert severity="error" sx={{ mb: 1.5 }}>
               {error}
             </Alert>
           )}
           
           {success && (
-            <Alert severity="success" sx={{ mb: 0.5}}>
+            <Alert severity="success" sx={{ mb: 1.5}}>
               {success}
             </Alert>
           )}
 
           <Card>
-            <CardContent sx={{ p: 1 }}>
+            <CardContent sx={{ p: 2 }}>
               {/* Profile Header */}
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <Box display="flex" alignItems="center" gap={2} mb={1}>
                 <Box sx={{ position: 'relative', width: 50, height: 50 }}>
                   <Avatar
                     src={profileData.profilePhoto || undefined}
@@ -344,7 +344,7 @@ export default function ProfileSettingsPage() {
               <Divider sx={{ mb: 1.5 }} />
 
               {/* Profile Form */}
-              <Grid container spacing={1}>
+              <Grid container spacing={2}>
                 {/* Personal Information Section */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, color: 'primary.main' }}>

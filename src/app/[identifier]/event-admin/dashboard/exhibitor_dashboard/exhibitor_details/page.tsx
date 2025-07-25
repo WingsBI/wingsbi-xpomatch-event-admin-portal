@@ -296,12 +296,18 @@ export default function ExhibitorSelfDetails() {
                     fullWidth
                     label="Description"
                     value={formData?.companyDescription || ''}
-                    size="small"
+                    
                     onChange={e => handleInputChange('companyDescription', e.target.value)}
-                    InputProps={{ sx: { fontSize: '0.9rem' } }}
-                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                    multiline
+                    minRows={2} // Start with 2 rows
+                    maxRows={10} // Optional: limit to 10 rows max
+                    size="small"
+                    sx={{ mr: 1, flex: 2, width: '100%' }}
+                   InputProps={{ sx: { fontSize: '0.9rem' } }}
+                   InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
+               
                 {/* Technology Field (if present) */}
                 <Grid item xs={12} sm={6} md={6}>
                   <TextField
@@ -314,6 +320,9 @@ export default function ExhibitorSelfDetails() {
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
+
+               
+                
                 {/* Brand Information */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
@@ -519,7 +528,19 @@ export default function ExhibitorSelfDetails() {
                             InputProps={{ sx: { fontSize: '0.9rem' } }}
                             InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                           />
+                         
                           <TextField
+                            label="Image URL"
+                            value={prod.imagePath}
+                            disabled
+                            size="small"
+                            sx={{ mr: 1, flex: 2 }}
+                            InputProps={{ sx: { fontSize: '0.9rem' } }}
+                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                          />
+                        </Box>
+                        <Box>
+                        <TextField
                             label="Description"
                             value={prod.description}
                             onChange={e => {
@@ -527,17 +548,11 @@ export default function ExhibitorSelfDetails() {
                               updated[idx] = { ...prod, description: e.target.value };
                               setFormData(f => f ? { ...f, product: updated } : f);
                             }}
+                            multiline
+                            minRows={2} // Start with 2 rows
+                            maxRows={10} // Optional: limit to 10 rows max
                             size="small"
-                            sx={{ mr: 1, flex: 2 }}
-                            InputProps={{ sx: { fontSize: '0.9rem' } }}
-                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
-                          />
-                          <TextField
-                            label="Image URL"
-                            value={prod.imagePath}
-                            disabled
-                            size="small"
-                            sx={{ mr: 1, flex: 2 }}
+                            sx={{ mr: 1, flex: 2, width: '100%' }}
                             InputProps={{ sx: { fontSize: '0.9rem' } }}
                             InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                           />

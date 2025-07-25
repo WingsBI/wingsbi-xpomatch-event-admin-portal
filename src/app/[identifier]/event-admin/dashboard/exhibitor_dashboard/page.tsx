@@ -57,6 +57,7 @@ import ConnectIcon from '@mui/icons-material/ConnectWithoutContact';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { TransformedVisitor } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
+import VisitorDetailsDialog from '@/components/common/VisitorDetailsDialog';
 
 
 export default function ExhibitorDashboard() {
@@ -84,12 +85,15 @@ export default function ExhibitorDashboard() {
   const [loadingFavoriteId, setLoadingFavoriteId] = useState<string | null>(null);
 
   // Dialog state for visitor details
-  const [selectedVisitor, setSelectedVisitor] = useState<TransformedVisitor | null>(null);
+  const [selectedVisitorId, setSelectedVisitorId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleNameClick = (visitor: TransformedVisitor) => {
-    console.log('Clicked visitor:', visitor);
-    setSelectedVisitor(visitor);
+  // Get identifier from URL
+  const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+  const identifier = pathParts[1] || '';
+
+  const handleNameClick = (visitorId: number) => {
+    setSelectedVisitorId(visitorId);
     setDialogOpen(true);
   };
 
@@ -477,7 +481,8 @@ export default function ExhibitorDashboard() {
            <VisitorDetailsDialog
              open={dialogOpen}
              onClose={() => setDialogOpen(false)}
-             visitor={selectedVisitor}
+             visitorId={selectedVisitorId}
+             identifier={identifier}
            />
           </ResponsiveDashboardLayout>
         </RoleBasedRoute>
@@ -493,7 +498,8 @@ export default function ExhibitorDashboard() {
             <VisitorDetailsDialog
               open={dialogOpen}
               onClose={() => setDialogOpen(false)}
-              visitor={selectedVisitor}
+              visitorId={selectedVisitorId}
+              identifier={identifier}
             />
           </ResponsiveDashboardLayout>
         </RoleBasedRoute>
@@ -601,8 +607,28 @@ export default function ExhibitorDashboard() {
 
                             <Box sx={{ flex: 1, minWidth: 0, mt: 3}}>
                               <Box>
-                                <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
-                            {rec.salutation} {rec.firstName} {rec.lastName}
+                                <Typography
+                                  variant="body2"
+                                  component="div"
+                                  fontWeight="600"
+                                  sx={{
+                                    ml: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    lineHeight: 1.2,
+                                    wordBreak: 'break-word',
+                                    cursor: 'pointer',
+                                    color: 'primary.main', // link color
+                                    textDecoration: 'none', // no underline by default
+                                    transition: 'text-decoration 0.2s',
+                                    '&:hover': {
+                                      textDecoration: 'underline', // underline only on hover
+                                    },
+                                  }}
+                                  onClick={() => handleNameClick(rec.id)}
+                                >
+                                  {rec.salutation} {rec.firstName} {rec.lastName}
                                 </Typography>
                           </Box>
 
@@ -746,169 +772,13 @@ export default function ExhibitorDashboard() {
            <VisitorDetailsDialog
              open={dialogOpen}
              onClose={() => setDialogOpen(false)}
-             visitor={selectedVisitor}
+             visitorId={selectedVisitorId}
+             identifier={identifier}
            />
            </ResponsiveDashboardLayout>
       </RoleBasedRoute>
     );
   }
-}
-
-{/* Add VisitorDetailsDialog component */ }
-function VisitorDetailsDialog({ open, onClose, visitor }: { open: boolean; onClose: () => void; visitor: TransformedVisitor | null }) {
-  if (!visitor) return null;
-  const getInitials = (firstName: string, lastName: string) => `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
-  const isMobile = useMediaQuery('(max-width:600px)');
-  return (
-    <Dialog open={open} maxWidth="lg" fullWidth
-      fullScreen={isMobile}
-      PaperProps={{ sx: { borderRadius: 3, width: '100%', height: isMobile ? '100vh' : '100%' } }}
-      onClose={(_event: object, reason: string) => {
-        if (reason !== 'backdropClick') {
-          onClose();
-        }
-      }}
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2 }}>
-        Visitor Details
-        <MuiIconButton aria-label="close" onClick={onClose} size={isMobile ? 'medium' : 'small'}>
-          <Close />
-        </MuiIconButton>
-      </DialogTitle>
-      <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
-        <Box display="flex" alignItems="center" gap={2} mb={2}>
-          <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
-            {getInitials(visitor.firstName, visitor.lastName)}
-          </Avatar>
-          <Box>
-            <Typography variant="h6" fontWeight={700}>{visitor.firstName} {visitor.lastName}</Typography>
-            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">{visitor.jobTitle}</Typography>
-            <Typography variant="body2" color="text.secondary">{visitor.company}</Typography>
-          </Box>
-        </Box>
-        <Divider sx={{ mb: 2 }} />
-        <Grid container spacing={2}>
-          {/* Column 1: Personal Info */}
-          <Grid item xs={12} sm={4}>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Email:</Typography>
-              <Typography variant="body2">{visitor.email}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Phone:</Typography>
-              <Typography variant="body2">{visitor.phone || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Country:</Typography>
-              <Typography variant="body2">{visitor.country || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Status:</Typography>
-              <Typography variant="body2">{visitor.status}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Registration Date:</Typography>
-              <Typography variant="body2">{visitor.registrationDate?.toLocaleString?.() || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Salutation:</Typography>
-              <Typography variant="body2">{visitor.customData?.salutation || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Middle Name:</Typography>
-              <Typography variant="body2">{visitor.customData?.middleName || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Gender:</Typography>
-              <Typography variant="body2">{visitor.customData?.gender || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Date of Birth:</Typography>
-              <Typography variant="body2">{visitor.customData?.dateOfBirth || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Nationality:</Typography>
-              <Typography variant="body2">{visitor.customData?.nationality || '-'}</Typography>
-            </Box>
-          </Grid>
-          {/* Column 2: Social/Contact */}
-          <Grid item xs={12} sm={4}>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>LinkedIn:</Typography>
-              <Typography variant="body2">
-                {visitor.customData?.linkedInProfile ? (
-                  <a href={visitor.customData.linkedInProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.linkedInProfile}</a>
-                ) : '-'}
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Instagram:</Typography>
-              <Typography variant="body2">
-                {visitor.customData?.instagramProfile ? (
-                  <a href={visitor.customData.instagramProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.instagramProfile}</a>
-                ) : '-'}
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>GitHub:</Typography>
-              <Typography variant="body2">
-                {visitor.customData?.gitHubProfile ? (
-                  <a href={visitor.customData.gitHubProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.gitHubProfile}</a>
-                ) : '-'}
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Twitter:</Typography>
-              <Typography variant="body2">
-                {visitor.customData?.twitterProfile ? (
-                  <a href={visitor.customData.twitterProfile} target="_blank" rel="noopener noreferrer">{visitor.customData.twitterProfile}</a>
-                ) : '-'}
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Decision Maker:</Typography>
-              <Typography variant="body2">{visitor.customData?.decisionmaker ? 'Yes' : 'No'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Experience:</Typography>
-              <Typography variant="body2">{visitor.customData?.experience || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Interests:</Typography>
-              <Typography variant="body2">{visitor.interests && visitor.interests.length > 0 ? visitor.interests.join(', ') : '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Looking For:</Typography>
-              <Typography variant="body2">{visitor.customData?.lookingFor && visitor.customData.lookingFor.length > 0 ? visitor.customData.lookingFor.join(', ') : '-'}</Typography>
-            </Box>
-          </Grid>
-          {/* Column 3: Address/Other */}
-          <Grid item xs={12} sm={4}>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Address:</Typography>
-              <Typography variant="body2">{visitor.customData?.addressLine1 || '-'} {visitor.customData?.addressLine2 || ''}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>City:</Typography>
-              <Typography variant="body2">{visitor.customData?.cityName || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>State:</Typography>
-              <Typography variant="body2">{visitor.customData?.stateName || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Postal Code:</Typography>
-              <Typography variant="body2">{visitor.customData?.postalCode || '-'}</Typography>
-            </Box>
-            <Box display="flex" alignItems="center" mb={0.5}>
-              <Typography variant="body2" fontWeight={600} mr={1}>Location:</Typography>
-              <Typography variant="body2">{visitor.customData?.location || '-'}</Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </DialogContent>
-    </Dialog>
-  );
 }
 
       

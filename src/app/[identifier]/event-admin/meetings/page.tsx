@@ -967,6 +967,7 @@ export default function MeetingsPage() {
             {getFilteredMeetings().map((meeting) => (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
+                  
                   transition: 'all 0.3s',
                   '&:hover': { 
                     transform: 'translateY(-2px)',
@@ -975,122 +976,129 @@ export default function MeetingsPage() {
                 }}>
                   <CardContent sx={{ p: 1.5 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-                      {/* Left: Title and Status */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="h6" component="div">
-                          {meeting.title}
-                        </Typography>
-                        <Chip 
-                          label={meeting.status} 
-                          color={getStatusColor(meeting.status)}
-                          size="small"
-                        />
-                      </Box>
-                      {/* Right: Action Buttons */}
-                      {(tabValue === 0 || tabValue === 1) && (
-                        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
-                          {/* Approve */}
-                          <IconButton 
-                            size="small" 
-                            color="success"
-                            sx={{ 
-                              bgcolor: 'success.light', 
-                              color: 'white',
-                              '&:hover': { bgcolor: 'success.main' }
-                            }}
-                            title="Approve Meeting"
-                          >
-                            <CheckCircleOutline fontSize="small" />
-                          </IconButton>
-                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>Approve</Typography>
-                          {/* Reject */}
-                          <IconButton 
-                            size="small" 
-                            color="error"
-                            sx={{ 
-                              bgcolor: 'error.light', 
-                              color: 'white',
-                              '&:hover': { bgcolor: 'error.main' }
-                            }}
-                            title="Reject Meeting"
-                          >
-                            <CancelOutlined fontSize="small" />
-                          </IconButton>
-                          <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>Reject</Typography>
-                          {/* Reschedule */}
-                          <IconButton 
-                            size="small" 
-                            color="warning"
-                            sx={{ 
-                              bgcolor: 'warning.light', 
-                              color: 'white',
-                              '&:hover': { bgcolor: 'warning.main' }
-                            }}
-                            title="Reschedule Meeting"
-                          >
-                            <EventAvailable fontSize="small" />
-                          </IconButton>
-                          <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>Reschedule</Typography>
-                        </Box>
-                      )}
-                    </Box>
-                    {/* Meeting Description */}
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                      {meeting.description}
-                    </Typography>
-                    {/* Date/Time, Duration, Location */}
-                    <Grid container spacing={1.5} sx={{ mb: 2 }}>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <HourglassBottom fontSize="small" color="warning" />
-                          <Typography variant="body2">
-                            {formatDateTime(meeting.dateTime)}
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Typography variant="h6" component="div">
+                            {meeting.title}
                           </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <HourglassBottom fontSize="small" color="warning" />
-                          <Typography variant="body2">
-                            {formatDuration(meeting.duration)}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      {meeting.location && (
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <LocationOn fontSize="small" />
-                            <Typography variant="body2">
-                              {meeting.location}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      )}
-                    </Grid>
-                    {/* Attendees */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: -2 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                        Attendees:
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        {meeting.attendees.map((attendee) => (
-                          <Chip
-                            key={attendee.id}
-                            avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>{attendee.avatar}</Avatar>}
-                            label={`${attendee.name} (${attendee.company})`}
-                            variant="outlined"
+                          <Chip 
+                            label={meeting.status} 
+                            color={getStatusColor(meeting.status)}
                             size="small"
-                            sx={{ fontSize: '0.75rem', height: 24 }}
                           />
-                        ))}
-                      </Box>
-                    </Box>
+                        </Box>
+                        
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                          {meeting.description}
+                        </Typography>
+                        
+                        <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                                                      <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <HourglassBottom fontSize="small" color="warning" />
+                                <Typography variant="body2">
+                                  {formatDateTime(meeting.dateTime)}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <HourglassBottom fontSize="small" color="warning" />
+                              <Typography variant="body2">
+                                {formatDuration(meeting.duration)}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          {meeting.location && (
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <LocationOn fontSize="small" />
+                                <Typography variant="body2">
+                                  {meeting.location}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          )}
+                        </Grid>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                            Attendees:
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {meeting.attendees.map((attendee) => (
+                              <Chip
+                                key={attendee.id}
+                                avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>{attendee.avatar}</Avatar>}
+                                label={`${attendee.name} (${attendee.company})`}
+                                variant="outlined"
+                                size="small"
+                                sx={{ fontSize: '0.75rem', height: 24 }}
+                              />
+                            ))}
+                          </Box>
+                        </Box>
                     {/* Notes */}
                     {meeting.notes && (
-                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: -1 }}>
                         Notes: {meeting.notes}
                       </Typography>
                     )}
+                      </Box>
+
+                      <Box sx={{ display: 'flex', gap: 1.5, ml: 1, flexDirection: 'column', alignItems: 'flex-start' }}>
+                        {(tabValue === 0 || tabValue === 1) ? (
+                          // Pending and Upcoming meetings - show approve/reschedule/reject buttons
+                          <>
+                            <Box display="flex" flexDirection="row" alignItems="center" gap={1}>
+                              <IconButton 
+                                size="small" 
+                                color="success"
+                                sx={{ 
+                                  bgcolor: 'success.light', 
+                                  color: 'white',
+                                  '&:hover': { bgcolor: 'success.main' }
+                                }}
+                                title="Approve Meeting"
+                              >
+                                <CheckCircleOutline fontSize="small" />
+                              </IconButton>
+                              <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>Approve</Typography>
+                            </Box>
+                            <Box display="flex" flexDirection="row" alignItems="center" gap={1}>
+                              <IconButton 
+                                size="small" 
+                                color="warning"
+                                sx={{ 
+                                  bgcolor: 'warning.light', 
+                                  color: 'white',
+                                  '&:hover': { bgcolor: 'warning.main' }
+                                }}
+                                title="Reschedule Meeting"
+                              >
+                                <EventAvailable fontSize="small" />
+                              </IconButton>
+                              <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>Reschedule</Typography>
+                            </Box>
+                            <Box display="flex" flexDirection="row" alignItems="center" gap={1}>
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                sx={{ 
+                                  bgcolor: 'error.light', 
+                                  color: 'white',
+                                  '&:hover': { bgcolor: 'error.main' }
+                                }}
+                                title="Reject Meeting"
+                              >
+                                <CancelOutlined fontSize="small" />
+                              </IconButton>
+                              <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>Reject</Typography>
+                            </Box>
+                          </>
+                        ) : null}
+                      </Box>
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>

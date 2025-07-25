@@ -967,6 +967,7 @@ export default function MeetingsPage() {
             {getFilteredMeetings().map((meeting) => (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
+                  
                   transition: 'all 0.3s',
                   '&:hover': { 
                     transform: 'translateY(-2px)',
@@ -1068,7 +1069,7 @@ export default function MeetingsPage() {
                       )}
                     </Grid>
                     {/* Attendees */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: -2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                         Attendees:
                       </Typography>
@@ -1087,7 +1088,7 @@ export default function MeetingsPage() {
                     </Box>
                     {/* Notes */}
                     {meeting.notes && (
-                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: -1 }}>
                         Notes: {meeting.notes}
                       </Typography>
                     )}

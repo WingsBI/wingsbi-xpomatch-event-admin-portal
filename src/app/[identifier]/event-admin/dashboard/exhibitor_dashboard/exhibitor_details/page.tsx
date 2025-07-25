@@ -202,7 +202,7 @@ export default function ExhibitorSelfDetails() {
   return (
     <RoleBasedRoute allowedRoles={['exhibitor']}>
       <ResponsiveDashboardLayout title="Exhibitor Details">
-        <Container maxWidth="lg" sx={{ mt: 1, mb: 1 }}>
+        <Container maxWidth="lg" sx={{ mt: -1 }}>
           {successMessage && (
             <Alert severity="success" sx={{ mb: 2 }}>
               {successMessage}
@@ -211,7 +211,7 @@ export default function ExhibitorSelfDetails() {
           <Card>
             <CardContent sx={{ p: 2 }}>
               {/* Profile Header */}
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <Box display="flex" alignItems="center" mb={1} mt={-1}>
                 <Box sx={{ position: 'relative', width: 70, height: 70 }}>
                   <Avatar
                     src={formData?.companyLogoPath || undefined}
@@ -222,12 +222,13 @@ export default function ExhibitorSelfDetails() {
                       fontWeight: 'bold',
                       color: 'white',
                       bgcolor: 'primary.main',
+                      mt: 1
                     }}
                   >
                     {!formData?.companyLogoPath && getInitials(formData?.firstName || '', formData?.lastName || '')}
                   </Avatar>
                 </Box>
-                <Box>
+                <Box >
                   <Typography variant="subtitle2" fontWeight="600" sx={{ fontSize: '0.95rem' }}>
                     {formData?.companyName}
                   </Typography>
@@ -291,25 +292,8 @@ export default function ExhibitorSelfDetails() {
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    value={formData?.companyDescription || ''}
-                    
-                    onChange={e => handleInputChange('companyDescription', e.target.value)}
-                    multiline
-                    minRows={2} // Start with 2 rows
-                    maxRows={10} // Optional: limit to 10 rows max
-                    size="small"
-                    sx={{ mr: 1, flex: 2, width: '100%' }}
-                   InputProps={{ sx: { fontSize: '0.9rem' } }}
-                   InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
-                  />
-                </Grid>
-               
-                {/* Technology Field (if present) */}
-                <Grid item xs={12} sm={6} md={6}>
+                {/* Move Technology above Description */}
+                <Grid item xs={12}>
                   <TextField
                     fullWidth
                     label="Technology"
@@ -320,81 +304,102 @@ export default function ExhibitorSelfDetails() {
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
-
-                     {/* Products Section */}
-              <Box mt={2} ml={2}>
-                <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 2, color: 'primary.main', fontSize: '0.95rem' }}>
-                  Products
-                </Typography>
-                <Grid container spacing={2}>
-                  {formData?.product && formData.product.length > 0 ? (
-                    formData.product.map((prod, idx) => (
-                      <Grid item xs={12} key={prod.id || idx}>
-                        <Box display="flex" gap={2} alignItems="center" mb={2}>
-                          <TextField
-                            label="Title"
-                            value={prod.title}
-                            onChange={e => {
-                              const updated = [...(formData.product || [])];
-                              updated[idx] = { ...prod, title: e.target.value };
-                              setFormData(f => f ? { ...f, product: updated } : f);
-                            }}
-                            size="small"
-                            sx={{ mr: 1, flex: 1 }}
-                            InputProps={{ sx: { fontSize: '0.9rem' } }}
-                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
-                          />
-                          <TextField
-                            label="Category"
-                            value={prod.category}
-                            onChange={e => {
-                              const updated = [...(formData.product || [])];
-                              updated[idx] = { ...prod, category: e.target.value };
-                              setFormData(f => f ? { ...f, product: updated } : f);
-                            }}
-                            size="small"
-                            sx={{ mr: 1, flex: 1 }}
-                            InputProps={{ sx: { fontSize: '0.9rem' } }}
-                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
-                          />
-                         
-                          <TextField
-                            label="Image URL"
-                            value={prod.imagePath}
-                            disabled
-                            size="small"
-                            sx={{ mr: 1, flex: 2 }}
-                            InputProps={{ sx: { fontSize: '0.9rem' } }}
-                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
-                          />
-                        </Box>
-                        <Box>
-                        <TextField
-                            label="Description"
-                            value={prod.description}
-                            onChange={e => {
-                              const updated = [...(formData.product || [])];
-                              updated[idx] = { ...prod, description: e.target.value };
-                              setFormData(f => f ? { ...f, product: updated } : f);
-                            }}
-                            multiline
-                            minRows={2} // Start with 2 rows
-                            maxRows={10} // Optional: limit to 10 rows max
-                            size="small"
-                            sx={{ mr: 1, flex: 2, width: '100%' }}
-                            InputProps={{ sx: { fontSize: '0.9rem' } }}
-                            InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
-                          />
-                        </Box>
-                      </Grid>
-                    ))
-                  ) : (
-                    <Grid item xs={12}><Typography color="text.secondary" variant="caption" sx={{ fontSize: '0.8rem' }}>No products added.</Typography></Grid>
-                  )}
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Description"
+                    value={formData?.companyDescription || ''}
+                    onChange={e => handleInputChange('companyDescription', e.target.value)}
+                    multiline
+                    minRows={1} // Start with 2 rows
+                    maxRows={10} // Optional: limit to 10 rows max
+                    size="small"
+                    sx={{ mr: 1, flex: 2, width: '100%' }}
+                    InputProps={{ sx: { fontSize: '0.9rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                  />
                 </Grid>
-              </Box>
-               
-                
+
+                {/* Products Section */}
+                <Box mt={2} ml={2}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 2, color: 'primary.main', fontSize: '0.95rem' }}>
+                    Products
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {formData?.product && formData.product.length > 0 ? (
+                      formData.product.map((prod, idx) => (
+                        <Grid item xs={12} key={prod.id || idx}>
+                          <Grid container spacing={2} alignItems="center">
+                            <Grid item xs={12} sm={4} md={4}>
+                              <TextField
+                                fullWidth
+                                label="Title"
+                                value={prod.title}
+                                onChange={e => {
+                                  const updated = [...(formData.product || [])];
+                                  updated[idx] = { ...prod, title: e.target.value };
+                                  setFormData(f => f ? { ...f, product: updated } : f);
+                                }}
+                                size="small"
+                                InputProps={{ sx: { fontSize: '0.9rem' } }}
+                                InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                              />
+                            </Grid>
+                            <Grid item xs={12} sm={4} md={4}>
+                              <TextField
+                                fullWidth
+                                label="Category"
+                                value={prod.category}
+                                onChange={e => {
+                                  const updated = [...(formData.product || [])];
+                                  updated[idx] = { ...prod, category: e.target.value };
+                                  setFormData(f => f ? { ...f, product: updated } : f);
+                                }}
+                                size="small"
+                                InputProps={{ sx: { fontSize: '0.9rem' } }}
+                                InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                              />
+                            </Grid>
+                            <Grid item xs={12} sm={4} md={4}>
+                              <TextField
+                                fullWidth
+                                label="Image URL"
+                                value={prod.imagePath}
+                                disabled
+                                size="small"
+                                InputProps={{ sx: { fontSize: '0.9rem' } }}
+                                InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                              />
+                            </Grid>
+                            <Grid item xs={12}>
+                              <TextField
+                                fullWidth
+                                label="Description"
+                                value={prod.description}
+                                onChange={e => {
+                                  const updated = [...(formData.product || [])];
+                                  updated[idx] = { ...prod, description: e.target.value };
+                                  setFormData(f => f ? { ...f, product: updated } : f);
+                                }}
+                                multiline
+                                minRows={1}
+                                maxRows={10}
+                                size="small"
+                                sx={{ width: '100%' }}
+                                InputProps={{ sx: { fontSize: '0.9rem' } }}
+                                InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
+                              />
+                            </Grid>
+                          </Grid>
+                        </Grid>
+                      ))
+                    ) : (
+                      <Grid item xs={12}><Typography color="text.secondary" variant="caption" sx={{ fontSize: '0.8rem' }}>No products added.</Typography></Grid>
+                    )}
+                  </Grid>
+                </Box>
+
+
                 {/* Brand Information */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
@@ -437,7 +442,8 @@ export default function ExhibitorSelfDetails() {
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={4}>
+                
+                <Grid item xs={12} sm={8} md={8}>
                   <TextField
                     fullWidth
                     label="Brand Description"
@@ -451,6 +457,10 @@ export default function ExhibitorSelfDetails() {
                         return { ...f, brand: [updatedBrand] };
                       });
                     }}
+                    multiline
+                    minRows={1}
+                    maxRows={10}
+                    sx={{ width: '100%' }}
                     InputProps={{ sx: { fontSize: '0.9rem' } }}
                     InputLabelProps={{ sx: { fontSize: '0.8rem' } }}
                   />
@@ -564,7 +574,7 @@ export default function ExhibitorSelfDetails() {
                 {/* Add more fields as needed, following the same pattern */}
               </Grid>
 
-             
+
 
               {/* Save Button */}
               <Box display="flex" justifyContent="flex-end" mt={3}>

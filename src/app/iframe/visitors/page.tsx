@@ -83,6 +83,9 @@ const transformVisitorData = (apiVisitor: any, identifier: string, index: number
     phone: apiVisitor.userProfile?.phone || '',
     country: apiVisitor.userAddress?.countryName || '',
     interests: apiVisitor.interests || [],
+    // Add these fields for dialog display
+    interest: apiVisitor.interest || '',
+    technology: apiVisitor.userProfile?.technology || '',
     status: apiVisitor.statusName === 'Active' ? 'registered' : 'invited',
     type: 'visitor',
     eventId: identifier,
@@ -777,7 +780,11 @@ function VisitorDetailsDialog({ open, onClose, visitorId, identifier }: { open: 
             </Box>
             <Box display="flex" alignItems="center" mb={0.5}>
               <Typography variant="body2" fontWeight={600} mr={1}>Interests:</Typography>
-              <Typography variant="body2">{visitor.interests && visitor.interests.length > 0 ? visitor.interests.join(', ') : '-'}</Typography>
+              <Typography variant="body2">{visitor.interest || '-'}</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" mb={0.5}>
+              <Typography variant="body2" fontWeight={600} mr={1}>Technology:</Typography>
+              <Typography variant="body2">{visitor.technology || '-'}</Typography>
             </Box>
             <Box display="flex" alignItems="center" mb={0.5}>
               <Typography variant="body2" fontWeight={600} mr={1}>Looking For:</Typography>

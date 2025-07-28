@@ -29,6 +29,29 @@ function getCookie(name: string): string | null {
   return null;
 }
 
+// Types for meeting creation
+export interface CreateMeetingRequest {
+  agenda: string;
+  visitorId: number;
+  exhibitorId: number;
+  meetingDate: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface MeetingResponse {
+  id: number;
+  agenda: string;
+  visitorId: number;
+  exhibitorId: number;
+  meetingDate: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 class ApiService {
   private axiosInstance: AxiosInstance;
   private baseURL: string;
@@ -237,6 +260,39 @@ class ApiService {
     return apiError;
   }
 
+  private getAuthToken(): string | null {
+    // Try different possible token keys
+    const possibleKeys = [
+      'jwtToken',
+      'authToken',
+      'token',
+      'accessToken'
+    ];
+    let token = null;
+    if (typeof localStorage !== 'undefined') {
+      for (const key of possibleKeys) {
+        token = localStorage.getItem(key);
+        if (token) break;
+      }
+    }
+    if (!token && typeof document !== 'undefined') {
+      token = getCookie('auth-token');
+    }
+    return token;
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    const token = this.getAuthToken();
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
   // Generic GET method
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
     try {
@@ -402,6 +458,75 @@ class ApiService {
         console.log('401 in iframe context - this might be expected, check if API requires auth for iframes');
       }
       throw error;
+    }
+  }
+
+  // Meeting API methods
+  public async createMeeting(identifier: string, meetingData: CreateMeetingRequest): Promise<ApiResponse<MeetingResponse>> {
+    try {
+      // Use the Azure API base URL for external API calls
+      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const apiUrl = `${azureApiUrl}/api/${identifier}/Meeting/createMeeting`;
+      
+      console.log('Meeting API Debug Info:', {
+        baseURL: azureApiUrl,
+        identifier,
+        constructedUrl: apiUrl,
+        windowOrigin: typeof window !== 'undefined' ? window.location.origin : 'Server side',
+        currentPath: typeof window !== 'undefined' ? window.location.pathname : 'Server side'
+      });
+      
+      console.log('Calling create meeting API:', {
+        url: apiUrl,
+        meetingData,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(meetingData),
+      });
+
+      console.log('Create meeting response status:', response.status);
+      
+      // Handle empty response
+      const responseText = await response.text();
+      console.log('Create meeting response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { message: 'Invalid JSON response from server' };
+      }
+      
+      console.log('Create meeting response data:', data);
+
+      if (!response.ok) {
+        return {
+          data: null as any,
+          message: data.message || `HTTP ${response.status}: Failed to create meeting`,
+          status: response.status,
+          success: false
+        };
+      }
+
+      return {
+        data: data.data,
+        message: data.message || 'Meeting created successfully',
+        status: response.status,
+        success: data.success
+      };
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      return {
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Network error',
+        status: 500,
+        success: false
+      };
     }
   }
 }

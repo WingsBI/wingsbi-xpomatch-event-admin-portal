@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
@@ -24,15 +24,14 @@ import {
   Tabs,
   Tab,
   Badge,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   MenuItem,
   FormControl,
   InputLabel,
   Select,
+  FormHelperText,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -56,6 +55,7 @@ import {
   CheckCircleOutline,
   CancelOutlined,
   EventAvailable,
+  Event,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -92,6 +92,8 @@ interface Meeting {
   createdAt: Date;
   updatedAt: Date;
 }
+
+
 
 // Mock meetings data
 const mockMeetings: Meeting[] = [
@@ -293,13 +295,13 @@ const mockMeetings: Meeting[] = [
 export default function MeetingsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const identifier = params.identifier as string;
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   
   const [meetings, setMeetings] = useState<Meeting[]>(mockMeetings);
   const [tabValue, setTabValue] = useState(0);
-  const [openDialog, setOpenDialog] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -431,8 +433,16 @@ export default function MeetingsPage() {
     }
   }, [searchParams]);
 
+
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+
+
+  const handleScheduleMeeting = () => {
+    router.push(`/${identifier}/event-admin/meetings/schedule-meeting`);
   };
 
   const getStatusColor = (status: Meeting['status']) => {
@@ -676,7 +686,7 @@ export default function MeetingsPage() {
               <Button
                 variant="contained"
                 startIcon={<Add />}
-                onClick={() => setOpenDialog(true)}
+                onClick={handleScheduleMeeting}
               >
                 Schedule Meeting
               </Button>
@@ -851,7 +861,6 @@ export default function MeetingsPage() {
                                 key={meeting.id}
                                 onClick={() => {
                                   setSelectedMeeting(meeting);
-                                  setOpenDialog(true);
                                 }}
                                 sx={{
                                   position: 'absolute',
@@ -950,15 +959,16 @@ export default function MeetingsPage() {
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
                     <Tab label="Completed" />
                     <Tab label="Cancelled" />
+                    
                   </Tabs>
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={() => setOpenDialog(true)}
-                    sx={{ ml: 2 }}
-                  >
-                    Schedule Meeting
-                  </Button>
+                                  <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={handleScheduleMeeting}
+                  sx={{ ml: 2 }}
+                >
+                  Schedule Meeting
+                </Button>
                 </Box>
               </Paper>
 
@@ -1123,23 +1133,7 @@ export default function MeetingsPage() {
           )}
         </Container>
 
-        {/* Add/Edit Meeting Dialog */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-          <DialogTitle>
-            {selectedMeeting ? 'Edit Meeting' : 'Schedule New Meeting'}
-          </DialogTitle>
-          <DialogContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Meeting scheduling functionality would be implemented here
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-            <Button variant="contained">
-              {selectedMeeting ? 'Update' : 'Schedule'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+
       </ResponsiveDashboardLayout>
     </RoleBasedRoute>
   );

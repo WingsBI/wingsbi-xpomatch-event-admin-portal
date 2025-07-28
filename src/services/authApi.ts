@@ -32,6 +32,7 @@ export interface AuthResponse {
       lastName: string;
       role:  'event-admin' | 'exhibitor' | 'visitor';
       eventId?: string;
+      exhibitorid?: string; // Add exhibitorid field
       avatar?: string;
       createdAt: string;
     };
@@ -170,6 +171,7 @@ class AuthApiService {
             lastName: lastName || 'User',
             role: userRole,
             eventId: eventId,
+            exhibitorid: jwtPayload?.exhibitorid, // Include exhibitorid from JWT
             avatar: jwtPayload?.avatar,
             createdAt: new Date().toISOString(),
           },

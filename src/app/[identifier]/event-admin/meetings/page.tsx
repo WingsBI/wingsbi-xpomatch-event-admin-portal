@@ -62,7 +62,7 @@ import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardL
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
-import { eventsApi } from '@/services/apiService';
+import { eventsApi, MeetingDetailsApi } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
 
 interface Meeting {
@@ -95,202 +95,7 @@ interface Meeting {
 
 
 
-// Mock meetings data
-const mockMeetings: Meeting[] = [
-  {
-    id: '1',
-    title: 'AI Solutions Partnership Discussion',
-    description: 'Exploring potential partnership opportunities for AI-driven business solutions',
-    dateTime: new Date('2024-01-25T10:00:00'),
-    duration: 60,
-    type: 'video-call',
-    attendees: [
-      {
-        id: '1',
-        name: 'Rahul Sharma',
-        email: 'rahul@company.com',
-        company: 'TechCorp India',
-        type: 'visitor',
-        avatar: 'RS'
-      },
-      {
-        id: '7',
-        name: 'Rajesh Gupta',
-        email: 'rajesh@aitech.com',
-        company: 'AI Technologies Inc',
-        type: 'exhibitor',
-        avatar: 'RG'
-      }
-    ],
-    status: 'scheduled',
-    organizer: {
-      id: 'admin1',
-      name: 'Event Admin',
-      email: 'admin@event.com'
-    },
-    agenda: [
-      'Introduction and company overview',
-      'AI solution presentation',
-      'Partnership framework discussion',
-      'Next steps and timeline'
-    ],
-    createdAt: new Date('2024-01-20T09:00:00'),
-    updatedAt: new Date('2024-01-20T09:00:00'),
-  },
-  {
-    id: '2',
-    title: 'Product Demo: Healthcare Technology',
-    description: 'Live demonstration of innovative healthcare technology solutions',
-    dateTime: new Date('2024-01-24T14:30:00'),
-    duration: 45,
-    type: 'in-person',
-    location: 'Booth A-102, Hall 1',
-    attendees: [
-      {
-        id: '4',
-        name: 'Sneha Reddy',
-        email: 'sneha@healthtech.com',
-        company: 'HealthTech Innovations',
-        type: 'visitor',
-        avatar: 'SR'
-      },
-      {
-        id: '8',
-        name: 'Kavya Nair',
-        email: 'kavya@blocksecure.com',
-        company: 'BlockSecure Technologies',
-        type: 'exhibitor',
-        avatar: 'KN'
-      }
-    ],
-    status: 'completed',
-    organizer: {
-      id: 'admin1',
-      name: 'Event Admin',
-      email: 'admin@event.com'
-    },
-    agenda: [
-      'Technology overview',
-      'Live product demonstration',
-      'Q&A session',
-      'Implementation discussion'
-    ],
-    notes: 'Great demo! Visitor showed strong interest in implementation.',
-    createdAt: new Date('2024-01-18T11:00:00'),
-    updatedAt: new Date('2024-01-24T15:15:00'),
-  },
-  {
-    id: '3',
-    title: 'Investment Opportunity Briefing',
-    description: 'Discussing funding opportunities for emerging startups',
-    dateTime: new Date('2024-01-26T16:00:00'),
-    duration: 30,
-    type: 'phone-call',
-    attendees: [
-      {
-        id: '2',
-        name: 'Priya Patel',
-        email: 'priya@startup.com',
-        company: 'StartupXYZ',
-        type: 'visitor',
-        avatar: 'PP'
-      },
-      {
-        id: '9',
-        name: 'Arjun Mehta',
-        email: 'arjun@fintech.com',
-        company: 'FinTech Solutions',
-        type: 'exhibitor',
-        avatar: 'AM'
-      }
-    ],
-    status: 'scheduled',
-    organizer: {
-      id: 'admin1',
-      name: 'Event Admin',
-      email: 'admin@event.com'
-    },
-    agenda: [
-      'Startup pitch presentation',
-      'Financial requirements review',
-      'Investment terms discussion'
-    ],
-    createdAt: new Date('2024-01-21T13:00:00'),
-    updatedAt: new Date('2024-01-21T13:00:00'),
-  },
-  {
-    id: '4',
-    title: 'Green Technology Collaboration',
-    description: 'Exploring sustainable technology partnerships',
-    dateTime: new Date('2024-01-23T11:00:00'),
-    duration: 90,
-    type: 'in-person',
-    location: 'Conference Room B-3',
-    attendees: [
-      {
-        id: '6',
-        name: 'Ananya Krishnan',
-        email: 'ananya@greentech.com',
-        company: 'GreenTech Solutions',
-        type: 'visitor',
-        avatar: 'AK'
-      },
-      {
-        id: '10',
-        name: 'Deepak Kumar',
-        email: 'deepak@renewable.com',
-        company: 'Renewable Energy Corp',
-        type: 'exhibitor',
-        avatar: 'DK'
-      }
-    ],
-    status: 'completed',
-    organizer: {
-      id: 'admin1',
-      name: 'Event Admin',
-      email: 'admin@event.com'
-    },
-    notes: 'Successful meeting. Both parties agreed to proceed with pilot project.',
-    createdAt: new Date('2024-01-19T10:00:00'),
-    updatedAt: new Date('2024-01-23T12:30:00'),
-  },
-  {
-    id: '5',
-    title: 'Networking Session: EdTech Innovations',
-    description: 'Informal networking focused on education technology trends',
-    dateTime: new Date('2024-01-27T15:00:00'),
-    duration: 120,
-    type: 'in-person',
-    location: 'Networking Lounge',
-    attendees: [
-      {
-        id: '5',
-        name: 'Vikram Singh',
-        email: 'vikram@edtech.com',
-        company: 'EduFuture Platform',
-        type: 'visitor',
-        avatar: 'VS'
-      },
-      {
-        id: '11',
-        name: 'Ravi Gupta',
-        email: 'ravi@logistics.com',
-        company: 'Smart Logistics Ltd',
-        type: 'exhibitor',
-        avatar: 'RG'
-      }
-    ],
-    status: 'cancelled',
-    organizer: {
-      id: 'admin1',
-      name: 'Event Admin',
-      email: 'admin@event.com'
-    },
-    notes: 'Cancelled due to schedule conflicts.',
-    createdAt: new Date('2024-01-22T14:00:00'),
-    updatedAt: new Date('2024-01-25T09:00:00'),
-  }
-];
+// Mock meetings data removed - now using real API data
 
 export default function MeetingsPage() {
   const params = useParams();
@@ -300,7 +105,8 @@ export default function MeetingsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   
-  const [meetings, setMeetings] = useState<Meeting[]>(mockMeetings);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetingsLoading, setMeetingsLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -316,21 +122,10 @@ export default function MeetingsPage() {
       setEventLoading(true);
       
       if (!identifier) {
-        console.warn('⚠️ No identifier available for meetings page event details load');
         return;
       }
       
-      console.log('🔍 Loading event details in meetings page for identifier:', identifier);
       const response = await eventsApi.getEventDetails(identifier);
-      
-      console.log('🔍 Meetings page event details response:', {
-        success: response.success,
-        status: response.status,
-        hasData: !!response.data,
-        hasResult: !!(response.data?.result),
-        resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
-        resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
-      });
       
       if (response.success && response.data?.result && response.data.result.length > 0) {
         const eventData = response.data.result[0];
@@ -339,23 +134,144 @@ export default function MeetingsPage() {
           eventData.title = eventData.title.replace(/exhibitor/gi, '').trim();
         }
         setEventDetails(eventData);
-        console.log('✅ Event details loaded in meetings page:', eventData.title);
-      } else {
-        console.warn('⚠️ No event details found in meetings page response:', response);
       }
     } catch (error: any) {
-      console.error('❌ Error loading event details in meetings page:', {
-        message: error.message,
-        status: error.response?.status,
-        identifier
-      });
-      
-      // Don't set error state to avoid breaking the UI
-      // Just log the error for debugging
+      console.error('Error loading event details:', error);
     } finally {
       setEventLoading(false);
     }
   }, [identifier]);
+
+  // Load meetings based on user role
+  const loadMeetings = useCallback(async () => {
+    try {
+      setMeetingsLoading(true);
+      
+      if (!identifier || !user) {
+        return;
+      }
+      
+      let response;
+      
+      if (user.role === 'visitor' || user.role === 'event-admin') {
+        // For visitors and event-admins, call visitor meeting details
+        // Using visitorId = 2 as specified in the requirement
+        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, 2);
+      } else if (user.role === 'exhibitor') {
+        // For exhibitors, call exhibitor meeting details
+        // Try to get exhibitorId from user object first, then fallback to JWT token
+        let exhibitorId = user.exhibitorid ? parseInt(user.exhibitorid) : null;
+        
+        // If not found in user object, try to get from JWT token
+        if (!exhibitorId && typeof localStorage !== 'undefined') {
+          try {
+            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+            if (token) {
+              const base64Url = token.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              
+              const tokenData = JSON.parse(jsonPayload);
+              
+              if (tokenData.exhibitorid) {
+                exhibitorId = parseInt(tokenData.exhibitorid);
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing JWT token for exhibitorId:', error);
+          }
+        }
+        
+        if (!exhibitorId) {
+          console.warn('No exhibitorId found for exhibitor role');
+          return;
+        }
+        
+        response = await MeetingDetailsApi.getExhibitorMeetingDetails(identifier, exhibitorId);
+      } else {
+        console.warn('Unknown user role for meetings:', user.role);
+        return;
+      }
+      
+      if (response && !response.isError && response.result) {
+        // Transform API response to match our Meeting interface
+        const transformedMeetings = response.result.map((apiMeeting: any) => ({
+          id: apiMeeting.id?.toString() || Math.random().toString(),
+          title: apiMeeting.agenda || 'Meeting',
+          description: apiMeeting.description || 'No description available',
+          dateTime: new Date(apiMeeting.meetingDate + 'T' + apiMeeting.startTime),
+          duration: calculateDuration(apiMeeting.startTime, apiMeeting.endTime),
+          type: 'in-person' as const, // Default type
+          location: apiMeeting.location || undefined,
+          attendees: [
+            // Add attendees based on available data
+            {
+              id: '1',
+              name: 'Attendee',
+              email: 'attendee@example.com',
+              company: 'Company',
+              type: 'visitor' as const,
+              avatar: 'A'
+            }
+          ],
+          status: mapApiStatusToMeetingStatus(apiMeeting.status),
+          organizer: {
+            id: 'admin1',
+            name: 'Event Admin',
+            email: 'admin@event.com'
+          },
+          agenda: apiMeeting.agenda ? [apiMeeting.agenda] : [],
+          notes: apiMeeting.notes || undefined,
+          createdAt: new Date(apiMeeting.createdAt || Date.now()),
+          updatedAt: new Date(apiMeeting.updatedAt || Date.now()),
+        }));
+        
+        setMeetings(transformedMeetings);
+      } else {
+        setMeetings([]);
+      }
+    } catch (error: any) {
+      console.error('Error loading meetings:', error);
+      setMeetings([]);
+    } finally {
+      setMeetingsLoading(false);
+    }
+  }, [identifier, user]);
+
+  // Helper function to calculate duration from start and end times
+  const calculateDuration = (startTime: string, endTime: string): number => {
+    try {
+      const start = new Date(`2000-01-01T${startTime}`);
+      const end = new Date(`2000-01-01T${endTime}`);
+      const diffMs = end.getTime() - start.getTime();
+      return Math.round(diffMs / (1000 * 60)); // Convert to minutes
+    } catch (error) {
+      console.warn('Error calculating duration:', error);
+      return 60; // Default 60 minutes
+    }
+  };
+
+  // Helper function to map API status to meeting status
+  const mapApiStatusToMeetingStatus = (apiStatus: string): Meeting['status'] => {
+    switch (apiStatus?.toLowerCase()) {
+      case 'scheduled':
+      case 'pending':
+        return 'scheduled';
+      case 'completed':
+      case 'finished':
+        return 'completed';
+      case 'cancelled':
+      case 'cancelled':
+        return 'cancelled';
+      case 'in-progress':
+      case 'ongoing':
+        return 'in-progress';
+      default:
+        return 'scheduled';
+    }
+  };
 
   // Load event details on mount (single source of truth)
   useEffect(() => {
@@ -364,21 +280,10 @@ export default function MeetingsPage() {
         setEventLoading(true);
         
         if (!identifier) {
-          console.warn('⚠️ No identifier available for meetings page useEffect event details load');
           return;
         }
         
-        console.log('🔍 Loading event details in meetings page useEffect for identifier:', identifier);
         const response = await eventsApi.getEventDetails(identifier);
-        
-        console.log('🔍 Meetings page useEffect event details response:', {
-          success: response.success,
-          status: response.status,
-          hasData: !!response.data,
-          hasResult: !!(response.data?.result),
-          resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
-          resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
-        });
         
         if (response.success && response.data?.result && response.data.result.length > 0) {
           const eventData = response.data.result[0];
@@ -387,7 +292,6 @@ export default function MeetingsPage() {
             eventData.title = eventData.title.replace(/exhibitor/gi, '').trim();
           }
           setEventDetails(eventData);
-          console.log('✅ Event details loaded in meetings page useEffect:', eventData.title);
           
           // Set initial week to event start date if available
           if (eventData.startDateTime) {
@@ -395,18 +299,9 @@ export default function MeetingsPage() {
             const weekStart = getWeekStart(eventStartDate);
             setCurrentWeekStart(weekStart);
           }
-        } else {
-          console.warn('⚠️ No event details found in meetings page useEffect response:', response);
         }
       } catch (error: any) {
-        console.error('❌ Error loading event details in meetings page useEffect:', {
-          message: error.message,
-          status: error.response?.status,
-          identifier
-        });
-        
-        // Don't set error state to avoid breaking the UI
-        // Just log the error for debugging
+        console.error('Error loading event details:', error);
       } finally {
         setEventLoading(false);
       }
@@ -422,6 +317,13 @@ export default function MeetingsPage() {
       dispatch(setIdentifier(identifier));
     }
   }, [identifier, dispatch]);
+
+  // Load meetings when component mounts or when user/identifier changes
+  useEffect(() => {
+    if (identifier && user) {
+      loadMeetings();
+    }
+  }, [identifier, user, loadMeetings]);
 
   // Check for view parameter and set appropriate view
   useEffect(() => {
@@ -799,7 +701,22 @@ export default function MeetingsPage() {
                 overflow: 'auto',
                 position: 'relative'
               }}>
-                {eventDetails ? getEventDays().map((day, dayIndex) => {
+                {eventDetails ? (meetingsLoading ? (
+                  // Show loading state for meetings in calendar view
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%',
+                    flexDirection: 'column',
+                    gap: 2
+                  }}>
+                    <CircularProgress />
+                    <Typography variant="body2" color="text.secondary">
+                      Loading meetings...
+                    </Typography>
+                  </Box>
+                ) : getEventDays().map((day, dayIndex) => {
                   const isToday = day.toDateString() === new Date().toDateString();
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   
@@ -910,7 +827,7 @@ export default function MeetingsPage() {
                       })}
                     </Box>
                   );
-                }) : (
+                })) : (
                   // Show loading or empty state when no event details
                   <Box sx={{ 
                     display: 'flex', 
@@ -973,8 +890,16 @@ export default function MeetingsPage() {
               </Paper>
 
               {/* Meetings list */}
-              <Grid container spacing={2}>
-            {getFilteredMeetings().map((meeting) => (
+              {meetingsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+                  <CircularProgress />
+                  <Typography variant="body1" sx={{ ml: 2 }}>
+                    Loading meetings...
+                  </Typography>
+                </Box>
+              ) : (
+                <Grid container spacing={2}>
+                  {getFilteredMeetings().map((meeting) => (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
                   
@@ -1113,9 +1038,10 @@ export default function MeetingsPage() {
                 </Card>
               </Grid>
             ))}
-          </Grid>
+                </Grid>
+              )}
 
-              {getFilteredMeetings().length === 0 && (
+              {!meetingsLoading && getFilteredMeetings().length === 0 && (
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
                   <CalendarMonth sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">

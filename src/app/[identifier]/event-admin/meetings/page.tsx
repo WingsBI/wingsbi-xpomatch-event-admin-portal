@@ -64,6 +64,7 @@ import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
 import { eventsApi, MeetingDetailsApi } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
+import { getCurrentVisitorId } from '@/utils/authUtils';
 
 interface Meeting {
   id: string;
@@ -155,8 +156,13 @@ export default function MeetingsPage() {
       
       if (user.role === 'visitor' || user.role === 'event-admin') {
         // For visitors and event-admins, call visitor meeting details
-        // Using visitorId = 2 as specified in the requirement
-        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, 2);
+        // Get visitor ID from JWT token instead of hardcoding
+        const visitorId = getCurrentVisitorId();
+        if (!visitorId) {
+          console.warn('No visitor ID found for visitor/event-admin role');
+          return;
+        }
+        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, visitorId);
       } else if (user.role === 'exhibitor') {
         // For exhibitors, call exhibitor meeting details
         // Try to get exhibitorId from user object first, then fallback to JWT token

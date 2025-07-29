@@ -64,6 +64,7 @@ import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
 import { eventsApi, MeetingDetailsApi } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
+import { getCurrentVisitorId } from '@/utils/authUtils';
 
 interface Meeting {
   id: string;
@@ -91,6 +92,13 @@ interface Meeting {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  // Original API data for display
+  meetingDate?: string;
+  startTime?: string;
+  endTime?: string;
+  // Additional fields for approval status
+  isApproved?: boolean;
+  approvalStatus?: string;
 }
 
 
@@ -115,7 +123,7 @@ export default function MeetingsPage() {
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
 
   const [eventLoading, setEventLoading] = useState(true);
-
+  const [approvingMeetingId, setApprovingMeetingId] = useState<string | null>(null);
 
   const loadEventDetails = useCallback(async () => {
     try {
@@ -145,18 +153,28 @@ export default function MeetingsPage() {
   // Load meetings based on user role
   const loadMeetings = useCallback(async () => {
     try {
+      console.log('loadMeetings function called');
       setMeetingsLoading(true);
       
       if (!identifier || !user) {
+        console.log('Missing identifier or user:', { identifier, user });
         return;
       }
       
+      console.log('Loading meetings for user:', user);
       let response;
       
       if (user.role === 'visitor' || user.role === 'event-admin') {
         // For visitors and event-admins, call visitor meeting details
-        // Using visitorId = 2 as specified in the requirement
-        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, 2);
+        // Get visitor ID from JWT token instead of hardcoding
+        const visitorId = getCurrentVisitorId();
+        if (!visitorId) {
+          console.warn('No visitor ID found for visitor/event-admin role');
+          return;
+        }
+        console.log('Calling getVisitorMeetingDetails with visitorId:', visitorId);
+        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, visitorId);
+        console.log('API response received:', response);
       } else if (user.role === 'exhibitor') {
         // For exhibitors, call exhibitor meeting details
         // Try to get exhibitorId from user object first, then fallback to JWT token
@@ -197,36 +215,167 @@ export default function MeetingsPage() {
       
       if (response && !response.isError && response.result) {
         // Transform API response to match our Meeting interface
-        const transformedMeetings = response.result.map((apiMeeting: any) => ({
-          id: apiMeeting.id?.toString() || Math.random().toString(),
-          title: apiMeeting.agenda || 'Meeting',
-          description: apiMeeting.description || 'No description available',
-          dateTime: new Date(apiMeeting.meetingDate + 'T' + apiMeeting.startTime),
-          duration: calculateDuration(apiMeeting.startTime, apiMeeting.endTime),
-          type: 'in-person' as const, // Default type
-          location: apiMeeting.location || undefined,
-          attendees: [
-            // Add attendees based on available data
-            {
+        const transformedMeetings = response.result.map((apiMeeting: any) => {
+          console.log('Processing API meeting:', apiMeeting);
+          
+          // Safely create dateTime with validation
+          let dateTime: Date;
+          try {
+            if (apiMeeting.meetingDate && apiMeeting.startTime) {
+              // API returns meetingDate in ISO format: "2025-07-31T00:00:00"
+              // and startTime as separate time: "10:23:00"
+              const dateStr = apiMeeting.meetingDate;
+              const timeStr = apiMeeting.startTime;
+              
+              // Extract just the date part from the ISO string (remove time part)
+              let dateOnly = dateStr;
+              if (dateStr.includes('T')) {
+                dateOnly = dateStr.split('T')[0]; // Get "2025-07-31" from "2025-07-31T00:00:00"
+              }
+              
+              // Use the startTime as provided
+              const formattedTime = timeStr;
+              
+              // Create the full datetime string
+              dateTime = new Date(`${dateOnly}T${formattedTime}`);
+              
+              // Validate the created date
+              if (isNaN(dateTime.getTime())) {
+                console.warn('Invalid date created from:', { dateStr, timeStr, dateOnly, formattedTime });
+                dateTime = new Date(); // Fallback to current date
+              }
+            } else {
+              console.warn('Missing meetingDate or startTime for meeting:', apiMeeting);
+              dateTime = new Date(); // Fallback to current date
+            }
+          } catch (error) {
+            console.error('Error creating date for meeting:', apiMeeting, error);
+            dateTime = new Date(); // Fallback to current date
+          }
+
+          // Extract attendee information based on user role
+          let attendees: Meeting['attendees'] = [];
+          
+          if (user.role === 'visitor' || user.role === 'event-admin') {
+            // For visitors, show exhibitor information
+            console.log('Visitor/Event-admin role - API meeting data:', apiMeeting);
+            console.log('exhibitor array:', apiMeeting.exhibitor);
+            
+            // Check if exhibitor array exists and has data
+            if (apiMeeting.exhibitor && apiMeeting.exhibitor.length > 0) {
+              const exhibitorData = apiMeeting.exhibitor[0];
+              console.log('First exhibitor data:', exhibitorData);
+              
+              // Check if exhibitorToUserMaps exists in the exhibitor data
+              if (exhibitorData.exhibitorToUserMaps && exhibitorData.exhibitorToUserMaps.length > 0) {
+                console.log('Using exhibitorToUserMaps path');
+                const exhibitorMap = exhibitorData.exhibitorToUserMaps[0]; // Get first exhibitor user
+                console.log('First exhibitor map:', exhibitorMap);
+                
+                const firstName = exhibitorMap.firstName || '';
+                const lastName = exhibitorMap.lastName || '';
+                const fullName = `${firstName} ${lastName}`.trim() || 'Exhibitor';
+                const companyName = exhibitorMap.companyName || exhibitorData.companyName || 'Exhibitor Company';
+                
+                console.log('Extracted values:', { firstName, lastName, fullName, companyName });
+                
+                const attendeeData = {
+                  id: exhibitorMap.exhibitorId?.toString() || 'exhibitor-1',
+                  name: fullName,
+                  email: exhibitorMap.email || 'exhibitor@example.com',
+                  company: companyName,
+                  type: 'exhibitor' as const,
+                  avatar: fullName.charAt(0).toUpperCase()
+                };
+                console.log('Extracted attendee data from exhibitorToUserMaps:', attendeeData);
+                attendees.push(attendeeData);
+              } else {
+                console.log('Using exhibitor direct fields path');
+                // Fallback to exhibitor direct fields if exhibitorToUserMaps is not available
+                const attendeeData = {
+                  id: exhibitorData.id?.toString() || 'exhibitor-1',
+                  name: 'Exhibitor',
+                  email: 'exhibitor@example.com',
+                  company: exhibitorData.companyName || 'Exhibitor Company',
+                  type: 'exhibitor' as const,
+                  avatar: 'E'
+                };
+                console.log('Extracted attendee data from exhibitor direct fields:', attendeeData);
+                attendees.push(attendeeData);
+              }
+            } else if (apiMeeting.exhibitorName || apiMeeting.companyName || apiMeeting.exhibitorCompany) {
+              console.log('Using direct fields fallback path');
+              // Fallback to direct fields if exhibitor array is not available
+              const exhibitorData = {
+                id: apiMeeting.exhibitorId?.toString() || 'exhibitor-1',
+                name: apiMeeting.exhibitorName || 'Exhibitor',
+                email: apiMeeting.exhibitorEmail || 'exhibitor@example.com',
+                company: apiMeeting.companyName || apiMeeting.exhibitorCompany || 'Exhibitor Company',
+                type: 'exhibitor' as const,
+                avatar: (apiMeeting.exhibitorName || 'E').charAt(0).toUpperCase()
+              };
+              console.log('Extracted exhibitor data from direct fields:', exhibitorData);
+              attendees.push(exhibitorData);
+            } else {
+              console.log('No exhibitor data found in API response');
+            }
+          } else if (user.role === 'exhibitor') {
+            // For exhibitors, show visitor information
+            console.log('Exhibitor role - API meeting data:', apiMeeting);
+            if (apiMeeting.visitorName || apiMeeting.companyName || apiMeeting.visitorCompany) {
+              const visitorData = {
+                id: apiMeeting.visitorId?.toString() || 'visitor-1',
+                name: apiMeeting.visitorName || 'Visitor',
+                email: apiMeeting.visitorEmail || 'visitor@example.com',
+                company: apiMeeting.companyName || apiMeeting.visitorCompany || 'Visitor Company',
+                type: 'visitor' as const,
+                avatar: (apiMeeting.visitorName || 'V').charAt(0).toUpperCase()
+              };
+              console.log('Extracted visitor data:', visitorData);
+              attendees.push(visitorData);
+            }
+          }
+
+          // If no attendees found, add a fallback
+          if (attendees.length === 0) {
+            attendees.push({
               id: '1',
               name: 'Attendee',
               email: 'attendee@example.com',
               company: 'Company',
-              type: 'visitor' as const,
+              type: user.role === 'exhibitor' ? 'visitor' as const : 'exhibitor' as const,
               avatar: 'A'
-            }
-          ],
-          status: mapApiStatusToMeetingStatus(apiMeeting.status),
-          organizer: {
-            id: 'admin1',
-            name: 'Event Admin',
-            email: 'admin@event.com'
-          },
-          agenda: apiMeeting.agenda ? [apiMeeting.agenda] : [],
-          notes: apiMeeting.notes || undefined,
-          createdAt: new Date(apiMeeting.createdAt || Date.now()),
-          updatedAt: new Date(apiMeeting.updatedAt || Date.now()),
-        }));
+            });
+          }
+
+          return {
+            id: apiMeeting.id?.toString() || Math.random().toString(),
+            title: apiMeeting.agenda || 'Meeting',
+            description: apiMeeting.description || 'No description available',
+            dateTime: dateTime,
+            duration: calculateDuration(apiMeeting.startTime, apiMeeting.endTime),
+            type: 'in-person' as const, // Default type
+            location: apiMeeting.location || undefined,
+            attendees: attendees,
+            status: mapApiStatusToMeetingStatus(apiMeeting.status),
+            organizer: {
+              id: 'admin1',
+              name: 'Event Admin',
+              email: 'admin@event.com'
+            },
+            agenda: apiMeeting.agenda ? [apiMeeting.agenda] : [],
+            notes: apiMeeting.notes || undefined,
+            createdAt: new Date(apiMeeting.createdAt || Date.now()),
+            updatedAt: new Date(apiMeeting.updatedAt || Date.now()),
+            // Store original API data for display
+            meetingDate: apiMeeting.meetingDate,
+            startTime: apiMeeting.startTime,
+            endTime: apiMeeting.endTime,
+            // Additional fields for approval status
+            isApproved: apiMeeting.isApproved || apiMeeting.status?.toLowerCase() === 'approved' || false,
+            approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
+          };
+        });
         
         setMeetings(transformedMeetings);
       } else {
@@ -259,6 +408,8 @@ export default function MeetingsPage() {
       case 'scheduled':
       case 'pending':
         return 'scheduled';
+      case 'approved':
+        return 'scheduled'; // Approved meetings are still considered 'scheduled' but with isApproved=true
       case 'completed':
       case 'finished':
         return 'completed';
@@ -270,6 +421,53 @@ export default function MeetingsPage() {
         return 'in-progress';
       default:
         return 'scheduled';
+    }
+  };
+
+  // Handle meeting approval
+  const handleApproveMeeting = async (meetingId: string) => {
+    try {
+      setApprovingMeetingId(meetingId);
+      
+      if (!identifier) {
+        console.error('No identifier found');
+        return;
+      }
+
+      const meetingIdNumber = parseInt(meetingId);
+      if (isNaN(meetingIdNumber)) {
+        console.error('Invalid meeting ID:', meetingId);
+        return;
+      }
+
+      console.log('Approving meeting:', { meetingId: meetingIdNumber, identifier });
+      
+      const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, true);
+      
+      if (response && !response.isError) {
+        console.log('Meeting approved successfully:', response);
+        
+        // Update the local state immediately to show the change
+        setMeetings(prevMeetings => {
+          console.log('Updating meetings state for approval:', { meetingId, prevMeetings });
+          const updatedMeetings = prevMeetings.map(meeting => 
+            meeting.id === meetingId 
+              ? { ...meeting, isApproved: true }
+              : meeting
+          );
+          console.log('Updated meetings:', updatedMeetings);
+          return updatedMeetings;
+        });
+        
+        // Also reload meetings to get the latest data from the server
+        await loadMeetings();
+      } else {
+        console.error('Failed to approve meeting:', response);
+      }
+    } catch (error) {
+      console.error('Error approving meeting:', error);
+    } finally {
+      setApprovingMeetingId(null);
     }
   };
 
@@ -336,7 +534,6 @@ export default function MeetingsPage() {
   }, [searchParams]);
 
 
-
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -368,11 +565,33 @@ export default function MeetingsPage() {
 
   const getFilteredMeetings = () => {
     const now = new Date();
+    console.log('Filtering meetings:', { 
+      tabValue, 
+      totalMeetings: meetings.length, 
+      now: now.toISOString(),
+      meetings: meetings.map(m => ({ 
+        id: m.id, 
+        status: m.status, 
+        isApproved: m.isApproved, 
+        dateTime: m.dateTime.toISOString() 
+      }))
+    });
+    
     switch (tabValue) {
-      case 0: // Pending meetings
-        return meetings.filter(m => m.status === 'scheduled');
-      case 1: // Upcoming
-        return meetings.filter(m => m.dateTime > now && m.status === 'scheduled');
+      case 0: // Pending meetings - show scheduled meetings that are not yet approved
+        const pendingMeetings = meetings.filter(m => {
+          // Show meetings that are scheduled but not approved
+          return m.status === 'scheduled' && !m.isApproved;
+        });
+        console.log('Pending meetings:', pendingMeetings.length);
+        return pendingMeetings;
+      case 1: // Upcoming - show approved meetings that are in the future
+        const upcomingMeetings = meetings.filter(m => {
+          // Show meetings that are scheduled, approved, and in the future
+          return m.status === 'scheduled' && m.isApproved && m.dateTime > now;
+        });
+        console.log('Upcoming meetings:', upcomingMeetings.length);
+        return upcomingMeetings;
       case 2: // Completed
         return meetings.filter(m => m.status === 'completed');
       case 3: // Cancelled
@@ -384,7 +603,7 @@ export default function MeetingsPage() {
 
   const getUpcomingCount = () => {
     const now = new Date();
-    return meetings.filter(m => m.dateTime > now && m.status === 'scheduled').length;
+    return meetings.filter(m => m.status === 'scheduled' && m.isApproved && m.dateTime > now).length;
   };
 
   const getCompletedCount = () => {
@@ -396,14 +615,80 @@ export default function MeetingsPage() {
   };
 
   const formatDateTime = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      // Check if date is valid
+      if (!date || isNaN(date.getTime())) {
+        console.warn('Invalid date passed to formatDateTime:', date);
+        return 'Invalid Date';
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error, date);
+      return 'Invalid Date';
+    }
+  };
+
+  // Helper function to format meeting date from API data
+  const formatMeetingDate = (meetingDate: string) => {
+    try {
+      if (!meetingDate) return 'No Date';
+      
+      // Extract date part from ISO string "2025-07-31T00:00:00"
+      const dateOnly = meetingDate.split('T')[0];
+      const date = new Date(dateOnly);
+      
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting meeting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  // Helper function to format time from API data
+  const formatTime = (timeStr: string) => {
+    try {
+      if (!timeStr) return 'No Time';
+      
+      // Handle time format "10:23:00" or "10:23"
+      const timeParts = timeStr.split(':');
+      if (timeParts.length >= 2) {
+        const hours = parseInt(timeParts[0]);
+        const minutes = parseInt(timeParts[1]);
+        
+        if (isNaN(hours) || isNaN(minutes)) {
+          return 'Invalid Time';
+        }
+        
+        // Format as 12-hour time
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const displayMinutes = minutes.toString().padStart(2, '0');
+        
+        return `${displayHours}:${displayMinutes} ${period}`;
+      }
+      
+      return 'Invalid Time';
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Invalid Time';
+    }
   };
 
   const formatDuration = (minutes: number) => {
@@ -923,27 +1208,48 @@ export default function MeetingsPage() {
                           />
                         </Box>
                         
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                          {meeting.description}
-                        </Typography>
                         
-                        <Grid container spacing={1.5} sx={{ mb: 2 }}>
-                                                      <Grid item xs={12} sm={6} md={3}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <HourglassBottom fontSize="small" color="warning" />
-                                <Typography variant="body2">
-                                  {formatDateTime(meeting.dateTime)}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          <Grid item xs={12} sm={6} md={3}>
+                        <Grid container spacing={1} sx={{ mb: 2 }}>
+                          {/* Meeting Date */}
+                          <Grid item xs={12} sm={6} md={3} sx={{ mr: -2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <HourglassBottom fontSize="small" color="warning" />
+                              <Typography variant="body2">
+                                {formatMeetingDate(meeting.meetingDate || '')}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          
+                          {/* Start Time */}
+                          <Grid item xs={12} sm={6} md={3} sx={{ mr: -2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <HourglassBottom fontSize="small" color="success" />
+                              <Typography variant="body2">
+                                Start: {formatTime(meeting.startTime || '')}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          
+                          {/* End Time */}
+                          <Grid item xs={12} sm={6} md={3} sx={{ mr: -2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <HourglassBottom fontSize="small" color="error" />
+                              <Typography variant="body2">
+                                End: {formatTime(meeting.endTime || '')}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          
+                          {/* Duration */}
+                          {/* <Grid item xs={12} sm={6} md={3} sx={{ mr: -2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <HourglassBottom fontSize="small" color="info" />
                               <Typography variant="body2">
                                 {formatDuration(meeting.duration)}
                               </Typography>
                             </Box>
-                          </Grid>
+                          </Grid> */}
+                          
                           {meeting.location && (
                             <Grid item xs={12} sm={6} md={3}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -956,21 +1262,30 @@ export default function MeetingsPage() {
                           )}
                         </Grid>
 
+                      
+
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                             Attendees:
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                            {meeting.attendees.map((attendee) => (
-                              <Chip
-                                key={attendee.id}
-                                avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>{attendee.avatar}</Avatar>}
-                                label={`${attendee.name} (${attendee.company})`}
-                                variant="outlined"
-                                size="small"
-                                sx={{ fontSize: '0.75rem', height: 24 }}
-                              />
-                            ))}
+                            {meeting.attendees.map((attendee) => {
+                              console.log('Rendering attendee chip with data:', attendee);
+                              const displayLabel = attendee.company && attendee.company.trim() !== '' 
+                                ? `${attendee.name} (${attendee.company})`
+                                : attendee.name;
+                              console.log('Display label:', displayLabel);
+                              return (
+                                <Chip
+                                  key={attendee.id}
+                                  avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>{attendee.avatar}</Avatar>}
+                                  label={displayLabel}
+                                  variant="outlined"
+                                  size="small"
+                                  sx={{ fontSize: '0.75rem', height: 24 }}
+                                />
+                              );
+                            })}
                           </Box>
                         </Box>
                     {/* Notes */}
@@ -984,23 +1299,47 @@ export default function MeetingsPage() {
                       {/* Action buttons in top right corner */}
                       {(tabValue === 0 || tabValue === 1) && (
                         <Box sx={{ display: 'flex', gap: 1, ml: 1, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <IconButton 
-                              size="small" 
-                              color="success"
-                              sx={{ 
-                                bgcolor: 'success.light', 
-                                color: 'white',
-                                '&:hover': { bgcolor: 'success.main' }
-                              }}
-                              title="Approve Meeting"
-                            >
-                              <CheckCircleOutline fontSize="small" />
-                            </IconButton>
-                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                              Approve
-                            </Typography>
-                          </Box>
+                          {/* Show approve button only for pending meetings */}
+                          {!meeting.isApproved && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <IconButton 
+                                size="small" 
+                                color="success"
+                                disabled={approvingMeetingId === meeting.id}
+                                onClick={() => handleApproveMeeting(meeting.id)}
+                                sx={{ 
+                                  bgcolor: 'success.light', 
+                                  color: 'white',
+                                  '&:hover': { bgcolor: 'success.main' },
+                                  '&:disabled': { bgcolor: 'grey.300', color: 'grey.500' }
+                                }}
+                                title="Approve Meeting"
+                              >
+                                {approvingMeetingId === meeting.id ? (
+                                  <CircularProgress size={16} color="inherit" />
+                                ) : (
+                                  <CheckCircleOutline fontSize="small" />
+                                )}
+                              </IconButton>
+                              <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                {approvingMeetingId === meeting.id ? 'Approving...' : 'Approve'}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          {/* Show approved status for approved meetings */}
+                          {meeting.isApproved && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Chip 
+                                label="Approved" 
+                                color="success"
+                                size="small"
+                                icon={<CheckCircleOutline />}
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            </Box>
+                          )}
+                          
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <IconButton 
                               size="small" 

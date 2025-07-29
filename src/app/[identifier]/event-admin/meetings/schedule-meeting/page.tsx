@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import {
   Dialog,
   DialogTitle,
@@ -34,6 +35,7 @@ import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardL
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { apiService } from '@/services/apiService';
+import { addNotification } from '@/store/slices/appSlice';
 
 interface MeetingFormData {
   agenda: string;
@@ -66,6 +68,7 @@ interface Exhibitor {
 export default function ScheduleMeetingPage() {
   const params = useParams();
   const router = useRouter();
+  const dispatch = useDispatch();
   const identifier = params.identifier as string;
 
   const [meetingForm, setMeetingForm] = useState<MeetingFormData>({
@@ -224,6 +227,12 @@ export default function ScheduleMeetingPage() {
       // Call the createMeeting API
       const response = await apiService.createMeeting(identifier, meetingData);
       if (response.success) {
+        // Show success notification
+        dispatch(addNotification({
+          type: 'success',
+          message: 'Meeting created successfully',
+        }));
+        
         // Success - navigate back to meetings page
         router.push(`/${identifier}/event-admin/meetings`);
       } else {
@@ -320,7 +329,7 @@ export default function ScheduleMeetingPage() {
               value={meetingForm.agenda}
               onChange={(e) => handleFormChange('agenda', e.target.value)}
               multiline
-              rows={3}
+              rows={1}
               error={!!formErrors.agenda}
               helperText={formErrors.agenda}
               disabled={loading}

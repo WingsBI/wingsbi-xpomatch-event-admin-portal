@@ -987,58 +987,62 @@ export default function MeetingsPage() {
                     )}
                       </Box>
 
-                      <Box sx={{ display: 'flex', gap: 1.5, ml: 1, flexDirection: 'column', alignItems: 'flex-start' }}>
-                        {(tabValue === 0 || tabValue === 1) ? (
-                          // Pending and Upcoming meetings - show approve/reschedule/reject buttons
-                          <>
-                            <Box display="flex" flexDirection="row" alignItems="center" gap={1}>
-                              <IconButton 
-                                size="small" 
-                                color="success"
-                                sx={{ 
-                                  bgcolor: 'success.light', 
-                                  color: 'white',
-                                  '&:hover': { bgcolor: 'success.main' }
-                                }}
-                                title="Approve Meeting"
-                              >
-                                <CheckCircleOutline fontSize="small" />
-                              </IconButton>
-                              <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>Approve</Typography>
-                            </Box>
-                            <Box display="flex" flexDirection="row" alignItems="center" gap={1}>
-                              <IconButton 
-                                size="small" 
-                                color="warning"
-                                sx={{ 
-                                  bgcolor: 'warning.light', 
-                                  color: 'white',
-                                  '&:hover': { bgcolor: 'warning.main' }
-                                }}
-                                title="Reschedule Meeting"
-                              >
-                                <EventAvailable fontSize="small" />
-                              </IconButton>
-                              <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>Reschedule</Typography>
-                            </Box>
-                            <Box display="flex" flexDirection="row" alignItems="center" gap={1}>
-                              <IconButton 
-                                size="small" 
-                                color="error"
-                                sx={{ 
-                                  bgcolor: 'error.light', 
-                                  color: 'white',
-                                  '&:hover': { bgcolor: 'error.main' }
-                                }}
-                                title="Reject Meeting"
-                              >
-                                <CancelOutlined fontSize="small" />
-                              </IconButton>
-                              <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>Reject</Typography>
-                            </Box>
-                          </>
-                        ) : null}
-                      </Box>
+                      {/* Action buttons in top right corner */}
+                      {(tabValue === 0 || tabValue === 1) && (
+                        <Box sx={{ display: 'flex', gap: 1, ml: 1, flexWrap: 'wrap' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <IconButton 
+                              size="small" 
+                              color="success"
+                              sx={{ 
+                                bgcolor: 'success.light', 
+                                color: 'white',
+                                '&:hover': { bgcolor: 'success.main' }
+                              }}
+                              title="Approve Meeting"
+                            >
+                              <CheckCircleOutline fontSize="small" />
+                            </IconButton>
+                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              Approve
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <IconButton 
+                              size="small" 
+                              color="error"
+                              sx={{ 
+                                bgcolor: 'error.light', 
+                                color: 'white',
+                                '&:hover': { bgcolor: 'error.main' }
+                              }}
+                              title="Reject Meeting"
+                            >
+                              <CancelOutlined fontSize="small" />
+                            </IconButton>
+                            <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              Reject
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <IconButton 
+                              size="small" 
+                              color="warning"
+                              sx={{ 
+                                bgcolor: 'warning.light', 
+                                color: 'white',
+                                '&:hover': { bgcolor: 'warning.main' }
+                              }}
+                              title="Reschedule Meeting"
+                            >
+                              <EventAvailable fontSize="small" />
+                            </IconButton>
+                            <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              Reschedule
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
                     </Box>
                   </CardContent>
                 </Card>

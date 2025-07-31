@@ -32,6 +32,7 @@ import {
   FormHelperText,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -806,9 +807,39 @@ export default function MeetingsPage() {
   const getMeetingsForDate = (date: Date) => {
     return meetings.filter(meeting => {
       const meetingDate = meeting.dateTime;
-      return meetingDate.getDate() === date.getDate() &&
+      const isSameDate = meetingDate.getDate() === date.getDate() &&
              meetingDate.getMonth() === date.getMonth() &&
              meetingDate.getFullYear() === date.getFullYear();
+      
+      // Only show scheduled meetings (not completed or cancelled)
+      const isScheduled = meeting.status === 'scheduled' || meeting.status === 'in-progress';
+      
+      // Show both approved and pending meetings (but not completed)
+      const isNotCompleted = meeting.status !== 'completed';
+      
+      // Check if meeting is in the future or today (not past)
+      const now = new Date();
+      const isNotPast = meetingDate >= now;
+      
+      // Debug logging
+      if (isSameDate) {
+        console.log('Calendar meeting check:', {
+          id: meeting.id,
+          title: meeting.title,
+          status: meeting.status,
+          isApproved: meeting.isApproved,
+          approvalStatus: meeting.approvalStatus,
+          isScheduled,
+          isNotCompleted,
+          isNotPast,
+          meetingDate: meetingDate.toISOString(),
+          now: now.toISOString(),
+          checkDate: date.toISOString(),
+          willShow: isSameDate && isScheduled && isNotCompleted && isNotPast
+        });
+      }
+      
+      return isSameDate && isScheduled && isNotCompleted && isNotPast;
     });
   };
 
@@ -911,14 +942,110 @@ export default function MeetingsPage() {
     return hour >= eventStartHour && hour <= eventEndHour;
   };
 
-  const getMeetingsForDateAndHour = (date: Date, hour: number) => {
-    return meetings.filter(meeting => {
+
+
+  // Calculate meeting layout for Teams-like calendar
+  const getMeetingLayout = (date: Date) => {
+    const dayMeetings = getMeetingsForDate(date);
+    const layout: { [hour: number]: { meeting: Meeting; top: number; height: number; left: number; width: number }[] } = {};
+    
+    // Group meetings by hour and calculate overlaps
+    dayMeetings.forEach(meeting => {
       const meetingDate = meeting.dateTime;
-      return meetingDate.getDate() === date.getDate() &&
-             meetingDate.getMonth() === date.getMonth() &&
-             meetingDate.getFullYear() === date.getFullYear() &&
-             meetingDate.getHours() === hour;
+      const meetingEndTime = new Date(meetingDate.getTime() + meeting.duration * 60000);
+      const startHour = meetingDate.getHours();
+      const endHour = meetingEndTime.getHours();
+      
+      // Add meeting to all hours it spans
+      for (let hour = startHour; hour <= endHour; hour++) {
+        if (!layout[hour]) layout[hour] = [];
+        
+        // Calculate top position within the hour slot (50px height per hour)
+        const top = hour === startHour ? (meetingDate.getMinutes() / 60) * 50 : 0;
+        
+        // Calculate height for this hour slot
+        let height: number;
+        if (hour === startHour && hour === endHour) {
+          // Meeting starts and ends in the same hour
+          const startMinutes = meetingDate.getMinutes();
+          const endMinutes = meetingEndTime.getMinutes();
+          height = ((endMinutes - startMinutes) / 60) * 50;
+        } else if (hour === startHour) {
+          // Meeting starts in this hour
+          const startMinutes = meetingDate.getMinutes();
+          height = ((60 - startMinutes) / 60) * 50;
+        } else if (hour === endHour) {
+          // Meeting ends in this hour
+          const endMinutes = meetingEndTime.getMinutes();
+          height = (endMinutes / 60) * 50;
+        } else {
+          // Meeting spans the full hour
+          height = 50;
+        }
+        
+        // Ensure height is within bounds and has minimum size
+        height = Math.max(Math.min(height, 50), 20);
+        
+        // Ensure the meeting block fits within the hour slot
+        const maxTop = 50 - height;
+        const constrainedTop = Math.max(0, Math.min(top, maxTop));
+        
+        layout[hour].push({
+          meeting,
+          top: constrainedTop,
+          height: Math.min(height, 50 - constrainedTop), // Ensure height doesn't exceed remaining space
+          left: 0, // Will be calculated below
+          width: 100 // Will be calculated below
+        });
+      }
     });
+    
+    // Calculate overlapping positions for each hour
+    Object.keys(layout).forEach(hourStr => {
+      const hour = parseInt(hourStr);
+      const hourMeetings = layout[hour];
+      
+      // Sort meetings by start time within the hour
+      hourMeetings.sort((a, b) => a.top - b.top);
+      
+      // Group overlapping meetings - improved algorithm
+      const overlappingGroups: typeof hourMeetings[] = [];
+      const processed = new Set<number>();
+      
+      hourMeetings.forEach((meeting, index) => {
+        if (processed.has(index)) return;
+        
+        const currentGroup = [meeting];
+        processed.add(index);
+        
+        // Find all meetings that overlap with this one
+        hourMeetings.forEach((otherMeeting, otherIndex) => {
+          if (processed.has(otherIndex)) return;
+          
+          const meetingEnd = meeting.top + meeting.height;
+          const otherEnd = otherMeeting.top + otherMeeting.height;
+          
+          // Check if meetings overlap
+          if ((meeting.top < otherEnd) && (otherMeeting.top < meetingEnd)) {
+            currentGroup.push(otherMeeting);
+            processed.add(otherIndex);
+          }
+        });
+        
+        overlappingGroups.push(currentGroup);
+      });
+      
+      // Calculate positions for each overlapping group
+      overlappingGroups.forEach(group => {
+        const groupWidth = 100 / group.length;
+        group.forEach((meeting, index) => {
+          meeting.left = index * groupWidth;
+          meeting.width = groupWidth;
+        });
+      });
+    });
+    
+    return layout;
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -1003,7 +1130,6 @@ export default function MeetingsPage() {
                       {eventDetails.locationDetails && eventDetails.locationDetails.length > 0 && 
                        `${eventDetails.locationDetails[0].venueName} • `}
                       {eventDetails.categoryName}
-                      {eventDetails && ` • ${getEventDays().length} event day${getEventDays().length > 1 ? 's' : ''}`}
                     </Typography>
                   )}
                 </Box>
@@ -1077,7 +1203,7 @@ export default function MeetingsPage() {
               {/* Date Grid - Vertical with Day Partitioning */}
               <Box sx={{ 
                 height: eventDetails ? `calc(${getEventDays().length} * 50px)` : '200px', 
-                overflow: 'auto',
+                overflow: 'hidden', // Changed from 'auto' to 'hidden' to prevent scrollbars
                 position: 'relative'
               }}>
                 {eventDetails ? (meetingsLoading ? (
@@ -1139,68 +1265,98 @@ export default function MeetingsPage() {
 
                       {/* Time slot columns with day partitioning */}
                       {getHourSlots().map((hour, hourIndex) => {
-                        const hourMeetings = getMeetingsForDateAndHour(day, hour);
+                        const meetingLayout = getMeetingLayout(day);
+                        const hourMeetings = meetingLayout[hour] || [];
                         
                         return (
                           <Box key={hourIndex} sx={{ 
                             flex: 1, 
                             borderRight: hourIndex < 23 ? 1 : 0, 
                             position: 'relative',
-                           display: 'flex',
-                            //bgcolor: 'grey.100',
+                            display: 'flex',
                             cursor: 'pointer',
+                            height: 50, // Fixed height for each hour slot
+                            overflow: 'hidden', // Prevent overflow
                             '&:hover': { bgcolor: 'primary.25' }
                           }}>
                             {/* Meetings for this time slot */}
-                            {hourMeetings.map((meeting, meetingIndex) => (
-                              <Box
-                                key={meeting.id}
-                                onClick={() => {
-                                  setSelectedMeeting(meeting);
-                                }}
-                                sx={{
-                                  position: 'absolute',
-                                  top: 2,
-                                  left: 2,
-                                  right: 2,
-                                  bgcolor: getStatusColor(meeting.status) === 'primary' ? 'primary.main' :
-                                           getStatusColor(meeting.status) === 'success' ? 'success.main' :
-                                           getStatusColor(meeting.status) === 'warning' ? 'warning.main' :
-                                           getStatusColor(meeting.status) === 'error' ? 'error.main' : 'grey.500',
-                                  color: 'white',
-                                  borderRadius: 1,
-                                  p: 0.5,
-                                  cursor: 'pointer',
-                                  zIndex: 1,
-                                  height: `${Math.min(meeting.duration, 50) - 4}px`,
-                                  overflow: 'hidden',
-                                  '&:hover': {
-                                    opacity: 0.9,
-                                    transform: 'scale(1.02)'
-                                  }
-                                }}
-                              >
-                                <Typography variant="caption" sx={{ 
-                                  display: 'block',
-                                  fontWeight: 'bold',
-                                  fontSize: '0.65rem',
-                                  lineHeight: 1.1,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  {meeting.title}
-                                </Typography>
-                                <Typography variant="caption" sx={{ 
-                                  display: 'block',
-                                  fontSize: '0.6rem',
-                                  opacity: 0.9,
-                                  lineHeight: 1.1
-                                }}>
-                                  {formatDuration(meeting.duration)}
-                                </Typography>
-                              </Box>
-                            ))}
+                            {hourMeetings.map((meetingData, meetingIndex) => {
+                              // Ensure the meeting block stays within the hour slot bounds
+                              const constrainedTop = Math.max(0, Math.min(meetingData.top, 50 - meetingData.height));
+                              const constrainedHeight = Math.min(meetingData.height, 50 - constrainedTop);
+                              
+                              return (
+                                <Tooltip
+                                  key={`${meetingData.meeting.id}-${hour}`}
+                                  title={meetingData.meeting.title}
+                                  placement="top"
+                                  arrow
+                                >
+                                  <Box
+                                    onClick={() => {
+                                      setSelectedMeeting(meetingData.meeting);
+                                    }}
+                                    sx={{
+                                      position: 'absolute',
+                                      top: constrainedTop + 1,
+                                      left: `${meetingData.left}%`,
+                                      width: `${meetingData.width}%`,
+                                      bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.main' :
+                                               getStatusColor(meetingData.meeting.status) === 'success' ? 'success.main' :
+                                               getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.main' :
+                                               getStatusColor(meetingData.meeting.status) === 'error' ? 'error.main' : 'grey.500',
+                                      color: 'white',
+                                      borderRadius: 1,
+                                      p: 0.5,
+                                      cursor: 'pointer',
+                                      zIndex: 1,
+                                      height: `${constrainedHeight - 2}px`,
+                                      overflow: 'hidden',
+                                      margin: '0 1px',
+                                      border: '1px solid rgba(255,255,255,0.2)',
+                                      maxHeight: '48px', // Ensure it doesn't exceed the hour slot
+                                      '&:hover': {
+                                        opacity: 0.9,
+                                        transform: 'scale(1.02)'
+                                      }
+                                    }}
+                                  >
+                                    <Typography variant="caption" sx={{ 
+                                      display: 'block',
+                                      fontWeight: 'bold',
+                                      fontSize: '0.65rem',
+                                      lineHeight: 1.1,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {meetingData.meeting.title}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ 
+                                      display: 'block',
+                                      fontSize: '0.6rem',
+                                      opacity: 0.9,
+                                      lineHeight: 1.1
+                                    }}>
+                                      {formatDuration(meetingData.meeting.duration)}
+                                      {/* Show indicator if meeting continues to next hour */}
+                                      {hour < 23 && meetingData.meeting.duration > 60 && 
+                                       meetingData.meeting.dateTime.getHours() === hour && 
+                                       meetingData.meeting.dateTime.getMinutes() + meetingData.meeting.duration > 60 && (
+                                        <Box component="span" sx={{ 
+                                          display: 'inline-block',
+                                          width: '4px',
+                                          height: '4px',
+                                          borderRadius: '50%',
+                                          bgcolor: 'rgba(255,255,255,0.8)',
+                                          ml: 0.5
+                                        }} />
+                                      )}
+                                    </Typography>
+                                  </Box>
+                                </Tooltip>
+                              );
+                            })}
                           </Box>
                         );
                       })}

@@ -674,7 +674,8 @@ export default function ExhibitorDashboard() {
                               onClick={() => {
                                 const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
                                 const identifier = pathParts[1] || '';
-                                router.push(`/${identifier}/event-admin/meetings?view=list`);
+                                console.log('Connect button clicked for visitor:', rec.id, 'Type:', typeof rec.id);
+                                router.push(`/${identifier}/event-admin/meetings/schedule-meeting?visitorId=${rec.id}`);
                               }}
                           sx={{
                                 bgcolor: theme.palette.primary.main,

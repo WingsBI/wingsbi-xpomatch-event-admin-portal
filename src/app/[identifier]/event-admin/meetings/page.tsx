@@ -214,6 +214,22 @@ export default function MeetingsPage() {
       }
       
       if (response && !response.isError && response.result) {
+        console.log('=== RAW API RESPONSE ===');
+        console.log('Response structure:', response);
+        console.log('Result array length:', response.result.length);
+        response.result.forEach((meeting: any, index: number) => {
+          console.log(`Raw API meeting ${index + 1}:`, {
+            id: meeting.id,
+            status: meeting.status,
+            isApproved: meeting.isApproved,
+            meetingDate: meeting.meetingDate,
+            startTime: meeting.startTime,
+            endTime: meeting.endTime,
+            agenda: meeting.agenda
+          });
+        });
+        console.log('=== END RAW API RESPONSE ===');
+        
         // Transform API response to match our Meeting interface
         const transformedMeetings = response.result.map((apiMeeting: any) => {
           console.log('Processing API meeting:', apiMeeting);
@@ -227,6 +243,8 @@ export default function MeetingsPage() {
               const dateStr = apiMeeting.meetingDate;
               const timeStr = apiMeeting.startTime;
               
+              console.log('Parsing date for meeting:', apiMeeting.id, { dateStr, timeStr });
+              
               // Extract just the date part from the ISO string (remove time part)
               let dateOnly = dateStr;
               if (dateStr.includes('T')) {
@@ -237,12 +255,17 @@ export default function MeetingsPage() {
               const formattedTime = timeStr;
               
               // Create the full datetime string
-              dateTime = new Date(`${dateOnly}T${formattedTime}`);
+              const fullDateTimeString = `${dateOnly}T${formattedTime}`;
+              console.log('Created datetime string:', fullDateTimeString);
+              
+              dateTime = new Date(fullDateTimeString);
               
               // Validate the created date
               if (isNaN(dateTime.getTime())) {
-                console.warn('Invalid date created from:', { dateStr, timeStr, dateOnly, formattedTime });
+                console.warn('Invalid date created from:', { dateStr, timeStr, dateOnly, formattedTime, fullDateTimeString });
                 dateTime = new Date(); // Fallback to current date
+              } else {
+                console.log('Successfully parsed date:', dateTime.toISOString());
               }
             } else {
               console.warn('Missing meetingDate or startTime for meeting:', apiMeeting);
@@ -348,7 +371,7 @@ export default function MeetingsPage() {
             });
           }
 
-          return {
+          const transformedMeeting = {
             id: apiMeeting.id?.toString() || Math.random().toString(),
             title: apiMeeting.agenda || 'Meeting',
             description: apiMeeting.description || 'No description available',
@@ -372,10 +395,43 @@ export default function MeetingsPage() {
             startTime: apiMeeting.startTime,
             endTime: apiMeeting.endTime,
             // Additional fields for approval status
-            isApproved: apiMeeting.isApproved || apiMeeting.status?.toLowerCase() === 'approved' || false,
+            isApproved: apiMeeting.isApproved === true || apiMeeting.status?.toLowerCase() === 'approved' || apiMeeting.status?.toLowerCase() === 'upcoming' || false,
             approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
           };
+          
+          console.log('Transformed meeting:', {
+            id: transformedMeeting.id,
+            title: transformedMeeting.title,
+            originalStatus: apiMeeting.status,
+            mappedStatus: transformedMeeting.status,
+            isApproved: transformedMeeting.isApproved,
+            apiIsApproved: apiMeeting.isApproved,
+            dateTime: transformedMeeting.dateTime.toISOString(),
+            now: new Date().toISOString(),
+            isFuture: transformedMeeting.dateTime > new Date(),
+            willShowInPending: !transformedMeeting.isApproved,
+            willShowInUpcoming: transformedMeeting.isApproved && transformedMeeting.dateTime > new Date()
+          });
+          
+          return transformedMeeting;
         });
+        
+        // Log summary of all transformed meetings
+        console.log('=== MEETINGS TRANSFORMATION SUMMARY ===');
+        console.log('Total meetings transformed:', transformedMeetings.length);
+        transformedMeetings.forEach((meeting: Meeting, index: number) => {
+          console.log(`Meeting ${index + 1}:`, {
+            id: meeting.id,
+            title: meeting.title,
+            status: meeting.status,
+            isApproved: meeting.isApproved,
+            dateTime: meeting.dateTime.toISOString(),
+            isFuture: meeting.dateTime > new Date(),
+            pendingTab: !meeting.isApproved,
+            upcomingTab: meeting.isApproved && meeting.dateTime > new Date()
+          });
+        });
+        console.log('=== END SUMMARY ===');
         
         setMeetings(transformedMeetings);
       } else {
@@ -404,9 +460,11 @@ export default function MeetingsPage() {
 
   // Helper function to map API status to meeting status
   const mapApiStatusToMeetingStatus = (apiStatus: string): Meeting['status'] => {
+    console.log('Mapping API status:', apiStatus);
     switch (apiStatus?.toLowerCase()) {
       case 'scheduled':
       case 'pending':
+      case 'upcoming':
         return 'scheduled';
       case 'approved':
         return 'scheduled'; // Approved meetings are still considered 'scheduled' but with isApproved=true
@@ -420,6 +478,7 @@ export default function MeetingsPage() {
       case 'ongoing':
         return 'in-progress';
       default:
+        console.log('Unknown API status, defaulting to scheduled:', apiStatus);
         return 'scheduled';
     }
   };
@@ -573,27 +632,61 @@ export default function MeetingsPage() {
         id: m.id, 
         status: m.status, 
         isApproved: m.isApproved, 
-        dateTime: m.dateTime.toISOString() 
+        dateTime: m.dateTime.toISOString(),
+        approvalStatus: m.approvalStatus,
+        isFuture: m.dateTime > now
       }))
     });
     
     switch (tabValue) {
-      case 0: // Pending meetings - show scheduled meetings that are not yet approved
+      case 0: // Pending meetings - show meetings that are not yet approved
         const pendingMeetings = meetings.filter(m => {
-          // Show meetings that are scheduled but not approved
-          return m.status === 'scheduled' && !m.isApproved;
+          const shouldShow = !m.isApproved;
+          console.log(`Meeting ${m.id} pending check:`, {
+            id: m.id,
+            isApproved: m.isApproved,
+            shouldShow,
+            status: m.status,
+            approvalStatus: m.approvalStatus
+          });
+          return shouldShow;
         });
         console.log('Pending meetings:', pendingMeetings.length);
         return pendingMeetings;
       case 1: // Upcoming - show approved meetings that are in the future
         const upcomingMeetings = meetings.filter(m => {
-          // Show meetings that are scheduled, approved, and in the future
-          return m.status === 'scheduled' && m.isApproved && m.dateTime > now;
+          const shouldShow = m.isApproved && m.dateTime > now;
+          console.log(`Meeting ${m.id} upcoming check:`, {
+            id: m.id,
+            isApproved: m.isApproved,
+            dateTime: m.dateTime.toISOString(),
+            now: now.toISOString(),
+            isFuture: m.dateTime > now,
+            shouldShow,
+            status: m.status,
+            approvalStatus: m.approvalStatus
+          });
+          return shouldShow;
         });
         console.log('Upcoming meetings:', upcomingMeetings.length);
         return upcomingMeetings;
-      case 2: // Completed
-        return meetings.filter(m => m.status === 'completed');
+      case 2: // Completed - show approved meetings that are in the past
+        const completedMeetings = meetings.filter(m => {
+          const shouldShow = m.isApproved && m.dateTime <= now;
+          console.log(`Meeting ${m.id} completed check:`, {
+            id: m.id,
+            isApproved: m.isApproved,
+            dateTime: m.dateTime.toISOString(),
+            now: now.toISOString(),
+            isPast: m.dateTime <= now,
+            shouldShow,
+            status: m.status,
+            approvalStatus: m.approvalStatus
+          });
+          return shouldShow;
+        });
+        console.log('Completed meetings:', completedMeetings.length);
+        return completedMeetings;
       case 3: // Cancelled
         return meetings.filter(m => m.status === 'cancelled');
       default:
@@ -603,11 +696,12 @@ export default function MeetingsPage() {
 
   const getUpcomingCount = () => {
     const now = new Date();
-    return meetings.filter(m => m.status === 'scheduled' && m.isApproved && m.dateTime > now).length;
+    return meetings.filter(m => m.isApproved && m.dateTime > now).length;
   };
 
   const getCompletedCount = () => {
-    return meetings.filter(m => m.status === 'completed').length;
+    const now = new Date();
+    return meetings.filter(m => m.isApproved && m.dateTime <= now).length;
   };
 
   const getCancelledCount = () => {
@@ -1159,7 +1253,7 @@ export default function MeetingsPage() {
                   <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
                     <Tab label="Pending" />
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
-                    <Tab label="Completed" />
+                    <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
                     <Tab label="Cancelled" />
                     
                   </Tabs>
@@ -1184,7 +1278,16 @@ export default function MeetingsPage() {
                 </Box>
               ) : (
                 <Grid container spacing={2}>
-                  {getFilteredMeetings().map((meeting) => (
+                  {getFilteredMeetings().map((meeting) => {
+                    console.log('Rendering meeting:', {
+                      id: meeting.id,
+                      title: meeting.title,
+                      status: meeting.status,
+                      isApproved: meeting.isApproved,
+                      dateTime: meeting.dateTime.toISOString()
+                    });
+                    
+                    return (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
                   
@@ -1380,7 +1483,8 @@ export default function MeetingsPage() {
                   </CardContent>
                 </Card>
               </Grid>
-            ))}
+            );
+                  })}
                 </Grid>
               )}
 

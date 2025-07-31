@@ -628,7 +628,7 @@ export default function VisitorDashboard() {
                           size="small"
                           startIcon={<ConnectIcon />}
                           onClick={() => {
-                            router.push(`/${identifier}/event-admin/meetings?view=list`);
+                            router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${rec.id}`);
                           }}
                           sx={{
                             bgcolor: theme.palette.primary.main,

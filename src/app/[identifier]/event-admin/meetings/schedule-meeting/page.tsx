@@ -36,6 +36,7 @@ import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { apiService } from '@/services/apiService';
 import { addNotification } from '@/store/slices/appSlice';
+import { getCurrentUser, getCurrentExhibitorId, getCurrentVisitorId } from '@/utils/authUtils';
 
 interface MeetingFormData {
   agenda: string;
@@ -86,6 +87,44 @@ export default function ScheduleMeetingPage() {
   const [submitError, setSubmitError] = useState<string>('');
   const [openDialog, setOpenDialog] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  // Initialize current user data
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    console.log('ScheduleMeeting - Current user:', currentUser);
+    
+    if (currentUser) {
+      setCurrentUserRole(currentUser.role);
+      console.log('ScheduleMeeting - User role:', currentUser.role);
+      
+      // Set the appropriate ID based on user role
+      if (currentUser.role === 'exhibitor') {
+        const exhibitorId = getCurrentExhibitorId();
+        console.log('ScheduleMeeting - Exhibitor ID:', exhibitorId);
+        setCurrentUserId(exhibitorId);
+        // Auto-set exhibitor ID in form
+        if (exhibitorId) {
+          setMeetingForm(prev => ({
+            ...prev,
+            exhibitorId: exhibitorId
+          }));
+        }
+      } else if (currentUser.role === 'visitor') {
+        const visitorId = getCurrentVisitorId();
+        console.log('ScheduleMeeting - Visitor ID:', visitorId);
+        setCurrentUserId(visitorId);
+        // Auto-set visitor ID in form
+        if (visitorId) {
+          setMeetingForm(prev => ({
+            ...prev,
+            visitorId: visitorId
+          }));
+        }
+      }
+    }
+  }, []);
 
   // Load participants data
   useEffect(() => {
@@ -227,10 +266,31 @@ export default function ScheduleMeetingPage() {
       // Call the createMeeting API
       const response = await apiService.createMeeting(identifier, meetingData);
       if (response.success) {
-        // Show success notification
+        // Determine who needs to accept the meeting based on who scheduled it
+        let acceptanceMessage = '';
+        if (currentUserRole === 'exhibitor') {
+          acceptanceMessage = 'Meeting scheduled successfully! The visitor will need to accept this meeting request.';
+        } else if (currentUserRole === 'visitor') {
+          acceptanceMessage = 'Meeting scheduled successfully! The exhibitor will need to accept this meeting request.';
+        } else {
+          // For event-admin, determine based on which party they're representing
+          const currentUserId = getCurrentUser()?.id;
+          const scheduledVisitorId = Number(meetingForm.visitorId);
+          const scheduledExhibitorId = Number(meetingForm.exhibitorId);
+          
+          if (currentUserId && Number(currentUserId) === scheduledVisitorId) {
+            acceptanceMessage = 'Meeting scheduled successfully! The exhibitor will need to accept this meeting request.';
+          } else if (currentUserId && Number(currentUserId) === scheduledExhibitorId) {
+            acceptanceMessage = 'Meeting scheduled successfully! The visitor will need to accept this meeting request.';
+          } else {
+            acceptanceMessage = 'Meeting scheduled successfully! The meeting is pending acceptance.';
+          }
+        }
+
+        // Show success notification with role-specific message
         dispatch(addNotification({
           type: 'success',
-          message: 'Meeting created successfully',
+          message: acceptanceMessage,
         }));
         
         // Success - navigate back to meetings page
@@ -319,6 +379,8 @@ export default function ScheduleMeetingPage() {
               No participants found. Please ensure there are registered visitors and exhibitors for this event.
             </Alert>
           )}
+          
+
           <Grid container spacing={3}>
           {/* Agenda Field */}
           <Grid item xs={12}>
@@ -343,7 +405,7 @@ export default function ScheduleMeetingPage() {
 
           {/* Visitor Selection */}
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!formErrors.visitorId} disabled={loading}>
+            <FormControl fullWidth error={!!formErrors.visitorId} disabled={loading || currentUserRole === 'visitor'}>
               <InputLabel>Select Visitor</InputLabel>
               <Select
                 value={meetingForm.visitorId}
@@ -353,7 +415,24 @@ export default function ScheduleMeetingPage() {
                   <Person sx={{ mr: 1, color: 'text.secondary' }} />
                 }
               >
-                {visitors.length === 0 ? (
+                {currentUserRole === 'visitor' ? (
+                  // Show current visitor info when user is a visitor
+                  <MenuItem value={currentUserId || ''} disabled>
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {visitors.find(v => v.id === currentUserId)?.firstName || 'Current'} {visitors.find(v => v.id === currentUserId)?.lastName || 'Visitor'}
+                      </Typography>
+                      {visitors.find(v => v.id === currentUserId)?.company && (
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {visitors.find(v => v.id === currentUserId)?.company}
+                        </Typography>
+                      )}
+                      {/* <Typography variant="caption" color="text.secondary">
+                        (You)
+                      </Typography> */}
+                    </Box>
+                  </MenuItem>
+                ) : visitors.length === 0 ? (
                   <MenuItem disabled>
                     <Typography variant="body2" color="text.secondary">
                       No visitors available
@@ -387,7 +466,7 @@ export default function ScheduleMeetingPage() {
 
           {/* Exhibitor Selection */}
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!formErrors.exhibitorId} disabled={loading}>
+            <FormControl fullWidth error={!!formErrors.exhibitorId} disabled={loading || currentUserRole === 'exhibitor'}>
               <InputLabel>Select Exhibitor</InputLabel>
               <Select
                 value={meetingForm.exhibitorId}
@@ -397,7 +476,24 @@ export default function ScheduleMeetingPage() {
                   <Business sx={{ mr: 1, color: 'text.secondary' }} />
                 }
               >
-                {exhibitors.length === 0 ? (
+                {currentUserRole === 'exhibitor' ? (
+                  // Show current exhibitor info when user is an exhibitor
+                  <MenuItem value={currentUserId || ''} disabled>
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {exhibitors.find(e => e.id === currentUserId)?.companyName || 'Current Exhibitor'}
+                      </Typography>
+                      {exhibitors.find(e => e.id === currentUserId)?.companyType && (
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {exhibitors.find(e => e.id === currentUserId)?.companyType}
+                        </Typography>
+                      )}
+                      {/* <Typography variant="caption" color="text.secondary">
+                        (You)
+                      </Typography> */}
+                    </Box>
+                  </MenuItem>
+                ) : exhibitors.length === 0 ? (
                   <MenuItem disabled>
                     <Typography variant="body2" color="text.secondary">
                       No exhibitors available

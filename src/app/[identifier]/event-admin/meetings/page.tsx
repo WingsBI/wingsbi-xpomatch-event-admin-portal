@@ -125,6 +125,7 @@ export default function MeetingsPage() {
 
   const [eventLoading, setEventLoading] = useState(true);
   const [approvingMeetingId, setApprovingMeetingId] = useState<string | null>(null);
+  const [rejectingMeetingId, setRejectingMeetingId] = useState<string | null>(null);
 
   const loadEventDetails = useCallback(async () => {
     try {
@@ -484,6 +485,42 @@ export default function MeetingsPage() {
     }
   };
 
+  // Handle meeting rejection
+  const handleRejectMeeting = async (meetingId: string) => {
+    try {
+      setRejectingMeetingId(meetingId);
+      
+      if (!identifier) {
+        console.error('No identifier found');
+        return;
+      }
+
+      const meetingIdNumber = parseInt(meetingId);
+      if (isNaN(meetingIdNumber)) {
+        console.error('Invalid meeting ID:', meetingId);
+        return;
+      }
+
+      console.log('Rejecting meeting:', { meetingId: meetingIdNumber, identifier });
+      
+      const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, false);
+      
+      if (response && !response.isError) {
+        console.log('Meeting rejected successfully:', response);
+        
+        // Update the local state immediately to show the change
+        // Reload meetings to get the latest data from the server
+        await loadMeetings();
+      } else {
+        console.error('Failed to reject meeting:', response);
+      }
+    } catch (error) {
+      console.error('Error rejecting meeting:', error);
+    } finally {
+      setRejectingMeetingId(null);
+    }
+  };
+
   // Handle meeting approval
   const handleApproveMeeting = async (meetingId: string) => {
     try {
@@ -640,9 +677,9 @@ export default function MeetingsPage() {
     });
     
     switch (tabValue) {
-      case 0: // Pending meetings - show meetings that are not yet approved
+      case 0: // Pending meetings - show meetings that are not yet approved and not cancelled
         const pendingMeetings = meetings.filter(m => {
-          const shouldShow = !m.isApproved;
+          const shouldShow = !m.isApproved && m.status !== 'cancelled';
           console.log(`Meeting ${m.id} pending check:`, {
             id: m.id,
             isApproved: m.isApproved,
@@ -654,9 +691,9 @@ export default function MeetingsPage() {
         });
         console.log('Pending meetings:', pendingMeetings.length);
         return pendingMeetings;
-      case 1: // Upcoming - show approved meetings that are in the future
+      case 1: // Upcoming - show approved meetings that are in the future and not cancelled
         const upcomingMeetings = meetings.filter(m => {
-          const shouldShow = m.isApproved && m.dateTime > now;
+          const shouldShow = m.isApproved && m.dateTime > now && m.status !== 'cancelled';
           console.log(`Meeting ${m.id} upcoming check:`, {
             id: m.id,
             isApproved: m.isApproved,
@@ -671,25 +708,18 @@ export default function MeetingsPage() {
         });
         console.log('Upcoming meetings:', upcomingMeetings.length);
         return upcomingMeetings;
-      case 2: // Completed - show approved meetings that are in the past
-        const completedMeetings = meetings.filter(m => {
-          const shouldShow = m.isApproved && m.dateTime <= now;
-          console.log(`Meeting ${m.id} completed check:`, {
-            id: m.id,
-            isApproved: m.isApproved,
-            dateTime: m.dateTime.toISOString(),
-            now: now.toISOString(),
-            isPast: m.dateTime <= now,
-            shouldShow,
-            status: m.status,
-            approvalStatus: m.approvalStatus
-          });
-          return shouldShow;
-        });
+      case 2: // Ongoing - show approved meetings that are currently in progress
+        const ongoingMeetings = meetings.filter(isOngoingMeeting);
+        console.log('Ongoing meetings:', ongoingMeetings.length);
+        return ongoingMeetings;
+      case 3: // Completed - show approved meetings that are in the past and not cancelled
+        const completedMeetings = meetings.filter(isCompletedMeeting);
         console.log('Completed meetings:', completedMeetings.length);
         return completedMeetings;
-      case 3: // Cancelled
-        return meetings.filter(m => m.status === 'cancelled');
+      case 4: // Cancelled - show all cancelled meetings
+        const cancelledMeetings = meetings.filter(m => m.status === 'cancelled');
+        console.log('Cancelled meetings:', cancelledMeetings.length);
+        return cancelledMeetings;
       default:
         return meetings;
     }
@@ -697,16 +727,104 @@ export default function MeetingsPage() {
 
   const getUpcomingCount = () => {
     const now = new Date();
-    return meetings.filter(m => m.isApproved && m.dateTime > now).length;
+    return meetings.filter(m => m.isApproved && m.dateTime > now && m.status !== 'cancelled').length;
+  };
+
+  const isCompletedMeeting = (meeting: Meeting) => {
+    const now = new Date();
+    if (!meeting.endTime || !meeting.meetingDate) return false;
+    
+    const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
+    if (!endDateTime) return false;
+    
+    return meeting.isApproved && now > endDateTime && meeting.status !== 'cancelled';
   };
 
   const getCompletedCount = () => {
-    const now = new Date();
-    return meetings.filter(m => m.isApproved && m.dateTime <= now).length;
+    return meetings.filter(isCompletedMeeting).length;
   };
 
   const getCancelledCount = () => {
     return meetings.filter(m => m.status === 'cancelled').length;
+  };
+
+  const parseMeetingDateTime = (date: string, time: string): Date | null => {
+    try {
+      console.log('Parsing date/time:', { date, time });
+      
+      // Handle date format "YYYY-MM-DDTHH:mm:ss" or "YYYY-MM-DD"
+      const cleanDate = date.split('T')[0];
+      
+      // Ensure proper date format YYYY-MM-DD
+      const [year, month, day] = cleanDate.split('-').map(num => num.padStart(2, '0'));
+      
+      // Handle time format "HH:mm:ss" or "HH:mm"
+      const cleanTime = time.split(':').slice(0, 2).join(':');
+      
+      // Ensure proper time format HH:mm
+      const [hours, minutes] = cleanTime.split(':').map(num => num.padStart(2, '0'));
+      
+      const dateTimeStr = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+      console.log('Constructed datetime string:', dateTimeStr);
+      
+      const dateObj = new Date(dateTimeStr);
+      console.log('Parsed date object:', dateObj);
+      
+      if (isNaN(dateObj.getTime())) {
+        console.warn('Invalid date created:', { dateTimeStr, dateObj });
+        return null;
+      }
+      
+      return dateObj;
+    } catch (error) {
+      console.error('Error parsing date/time:', { error, date, time });
+      return null;
+    }
+  };
+
+  const isOngoingMeeting = (meeting: Meeting) => {
+    const now = new Date();
+    console.log('Checking if meeting is ongoing:', {
+      id: meeting.id,
+      title: meeting.title,
+      meetingDate: meeting.meetingDate,
+      startTime: meeting.startTime,
+      endTime: meeting.endTime,
+      status: meeting.status,
+      isApproved: meeting.isApproved,
+      now: now.toISOString()
+    });
+
+    if (!meeting.startTime || !meeting.endTime || !meeting.meetingDate) {
+      console.log('Meeting missing required date/time fields');
+      return false;
+    }
+    
+    const startDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.startTime);
+    const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
+    
+    if (!startDateTime || !endDateTime) {
+      console.log('Failed to parse meeting date/time');
+      return false;
+    }
+    
+    const isOngoing = now >= startDateTime && now <= endDateTime && meeting.status !== 'cancelled' && meeting.isApproved;
+    console.log('Meeting ongoing check result:', {
+      id: meeting.id,
+      startDateTime: startDateTime.toISOString(),
+      endDateTime: endDateTime.toISOString(),
+      isAfterStart: now >= startDateTime,
+      isBeforeEnd: now <= endDateTime,
+      notCancelled: meeting.status !== 'cancelled',
+      isApproved: meeting.isApproved,
+      isOngoing
+    });
+    
+    return isOngoing;
+  };
+
+  const getOngoingCount = () => {
+    return meetings.filter(isOngoingMeeting).length;
   };
 
   const formatDateTime = (date: Date) => {
@@ -960,8 +1078,8 @@ export default function MeetingsPage() {
       for (let hour = startHour; hour <= endHour; hour++) {
         if (!layout[hour]) layout[hour] = [];
         
-        // Calculate top position within the hour slot (50px height per hour)
-        const top = hour === startHour ? (meetingDate.getMinutes() / 60) * 50 : 0;
+        // Calculate top position within the hour slot (60px height per hour)
+        const top = hour === startHour ? (meetingDate.getMinutes() / 60) * 60 : 0;
         
         // Calculate height for this hour slot
         let height: number;
@@ -969,31 +1087,31 @@ export default function MeetingsPage() {
           // Meeting starts and ends in the same hour
           const startMinutes = meetingDate.getMinutes();
           const endMinutes = meetingEndTime.getMinutes();
-          height = ((endMinutes - startMinutes) / 60) * 50;
+          height = ((endMinutes - startMinutes) / 60) * 60;
         } else if (hour === startHour) {
           // Meeting starts in this hour
           const startMinutes = meetingDate.getMinutes();
-          height = ((60 - startMinutes) / 60) * 50;
+          height = ((60 - startMinutes) / 60) * 60;
         } else if (hour === endHour) {
           // Meeting ends in this hour
           const endMinutes = meetingEndTime.getMinutes();
-          height = (endMinutes / 60) * 50;
+          height = (endMinutes / 60) * 60;
         } else {
           // Meeting spans the full hour
-          height = 50;
+          height = 60;
         }
         
         // Ensure height is within bounds and has minimum size
-        height = Math.max(Math.min(height, 50), 20);
+        height = Math.max(Math.min(height, 60), 24);
         
         // Ensure the meeting block fits within the hour slot
-        const maxTop = 50 - height;
+        const maxTop = 60 - height;
         const constrainedTop = Math.max(0, Math.min(top, maxTop));
         
         layout[hour].push({
           meeting,
           top: constrainedTop,
-          height: Math.min(height, 50 - constrainedTop), // Ensure height doesn't exceed remaining space
+          height: Math.min(height, 60 - constrainedTop), // Ensure height doesn't exceed remaining space
           left: 0, // Will be calculated below
           width: 100 // Will be calculated below
         });
@@ -1174,8 +1292,8 @@ export default function MeetingsPage() {
               {/* Time Slots Header - Horizontal */}
               <Box sx={{ display: 'flex', borderBottom: 2, borderColor: 'grey.400' }}>
                 {/* Date column header */}
-                <Box sx={{ width: 120, p: 1, borderRight: 2, borderColor: 'grey.400' }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+                <Box sx={{ width: 120, p: 1, borderRight: 2, borderColor: 'grey.400', bgcolor: 'grey.50' }}>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
                     Date
                   </Typography>
                 </Box>
@@ -1187,11 +1305,14 @@ export default function MeetingsPage() {
                       flex: 1, 
                       p: 1, 
                       textAlign: 'center', 
-                      borderRight: index < 23 ? 1 : 0, 
-                    
+                      borderRight: index < getHourSlots().length - 1 ? 1 : 0, 
+                      borderColor: 'grey.300',
+                      bgcolor: 'grey.50'
                     }}>
                       <Typography variant="body2" sx={{ 
                         fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'text.secondary'
                       }}>
                         {formatHour(hour)}
                       </Typography>
@@ -1202,8 +1323,8 @@ export default function MeetingsPage() {
 
               {/* Date Grid - Vertical with Day Partitioning */}
               <Box sx={{ 
-                height: eventDetails ? `calc(${getEventDays().length} * 50px)` : '200px', 
-                overflow: 'hidden', // Changed from 'auto' to 'hidden' to prevent scrollbars
+                height: eventDetails ? `calc(${getEventDays().length} * 60px)` : '240px', 
+                overflow: 'hidden',
                 position: 'relative'
               }}>
                 {eventDetails ? (meetingsLoading ? (
@@ -1228,11 +1349,11 @@ export default function MeetingsPage() {
                   return (
                     <Box key={dayIndex} sx={{ 
                       display: 'flex',
-                      height: 50,
+                      height: 60,
                       borderBottom: dayIndex < getEventDays().length - 1 ? (isWeekend ? 3 : 2) : 0, 
-                      
-                      
-                      '&:hover': { bgcolor: 'grey.25' }
+                      borderColor: 'grey.300',
+                      bgcolor: dayIndex % 2 === 0 ? 'grey.25' : 'white',
+                      '&:hover': { bgcolor: 'grey.50' }
                     }}>
                       {/* Date label */}
                       <Box sx={{ 
@@ -1243,13 +1364,13 @@ export default function MeetingsPage() {
                         display: 'flex', 
                         alignItems: 'center',
                         justifyContent: 'center',
-                        
+                        bgcolor: isToday ? 'primary.50' : 'grey.50'
                       }}>
                         <Box sx={{ textAlign: 'center' }}>
                           <Typography variant="body2" sx={{ 
                             fontWeight: isToday ? 'bold' : 'normal',
                             color: isToday ? 'primary.main' : 'text.primary',
-                            fontSize: '0.85rem  '
+                            fontSize: '0.85rem'
                           }}>
                             {day.toLocaleDateString('en-US', { weekday: 'short' })}
                           </Typography>
@@ -1271,19 +1392,21 @@ export default function MeetingsPage() {
                         return (
                           <Box key={hourIndex} sx={{ 
                             flex: 1, 
-                            borderRight: hourIndex < 23 ? 1 : 0, 
+                            borderRight: hourIndex < getHourSlots().length - 1 ? 1 : 0, 
+                            borderColor: 'grey.200',
                             position: 'relative',
                             display: 'flex',
                             cursor: 'pointer',
-                            height: 50, // Fixed height for each hour slot
-                            overflow: 'hidden', // Prevent overflow
+                            height: 60, // Increased height for each hour slot
+                            overflow: 'hidden',
+                            bgcolor: hour % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
                             '&:hover': { bgcolor: 'primary.25' }
                           }}>
                             {/* Meetings for this time slot */}
                             {hourMeetings.map((meetingData, meetingIndex) => {
                               // Ensure the meeting block stays within the hour slot bounds
-                              const constrainedTop = Math.max(0, Math.min(meetingData.top, 50 - meetingData.height));
-                              const constrainedHeight = Math.min(meetingData.height, 50 - constrainedTop);
+                              const constrainedTop = Math.max(0, Math.min(meetingData.top, 60 - meetingData.height));
+                              const constrainedHeight = Math.min(meetingData.height, 60 - constrainedTop);
                               
                               return (
                                 <Tooltip
@@ -1298,26 +1421,27 @@ export default function MeetingsPage() {
                                     }}
                                     sx={{
                                       position: 'absolute',
-                                      top: constrainedTop + 1,
+                                      top: constrainedTop + 2,
                                       left: `${meetingData.left}%`,
                                       width: `${meetingData.width}%`,
-                                      bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.main' :
-                                               getStatusColor(meetingData.meeting.status) === 'success' ? 'success.main' :
-                                               getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.main' :
-                                               getStatusColor(meetingData.meeting.status) === 'error' ? 'error.main' : 'grey.500',
-                                      color: 'white',
+                                      bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.light' :
+                                               getStatusColor(meetingData.meeting.status) === 'success' ? 'success.light' :
+                                               getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.light' :
+                                               getStatusColor(meetingData.meeting.status) === 'error' ? 'error.light' : 'grey.300',
+                                      color: 'text.primary',
                                       borderRadius: 1,
                                       p: 0.5,
                                       cursor: 'pointer',
                                       zIndex: 1,
-                                      height: `${constrainedHeight - 2}px`,
+                                      height: `${constrainedHeight - 4}px`,
                                       overflow: 'hidden',
-                                      margin: '0 1px',
-                                      border: '1px solid rgba(255,255,255,0.2)',
-                                      maxHeight: '48px', // Ensure it doesn't exceed the hour slot
+                                      margin: '0 2px',
+                                      border: '1px solid rgba(0,0,0,0.1)',
+                                      maxHeight: '56px',
                                       '&:hover': {
                                         opacity: 0.9,
-                                        transform: 'scale(1.02)'
+                                        transform: 'scale(1.02)',
+                                        boxShadow: 2
                                       }
                                     }}
                                   >
@@ -1335,12 +1459,12 @@ export default function MeetingsPage() {
                                     <Typography variant="caption" sx={{ 
                                       display: 'block',
                                       fontSize: '0.6rem',
-                                      opacity: 0.9,
+                                      opacity: 0.8,
                                       lineHeight: 1.1
                                     }}>
                                       {formatDuration(meetingData.meeting.duration)}
                                       {/* Show indicator if meeting continues to next hour */}
-                                      {hour < 23 && meetingData.meeting.duration > 60 && 
+                                      {hour < getHourSlots().length - 1 && meetingData.meeting.duration > 60 && 
                                        meetingData.meeting.dateTime.getHours() === hour && 
                                        meetingData.meeting.dateTime.getMinutes() + meetingData.meeting.duration > 60 && (
                                         <Box component="span" sx={{ 
@@ -1348,7 +1472,7 @@ export default function MeetingsPage() {
                                           width: '4px',
                                           height: '4px',
                                           borderRadius: '50%',
-                                          bgcolor: 'rgba(255,255,255,0.8)',
+                                          bgcolor: 'rgba(0,0,0,0.6)',
                                           ml: 0.5
                                         }} />
                                       )}
@@ -1409,9 +1533,9 @@ export default function MeetingsPage() {
                   <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
                     <Tab label="Pending" />
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
+                    <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
                     <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
                     <Tab label="Cancelled" />
-                    
                   </Tabs>
                                   <Button
                   variant="contained"
@@ -1461,9 +1585,21 @@ export default function MeetingsPage() {
                             {meeting.title}
                           </Typography>
                           <Chip 
-                            label={meeting.status} 
-                            color={getStatusColor(meeting.status)}
+                            label={
+                              tabValue === 3 ? "completed" : 
+                              tabValue === 2 && isOngoingMeeting(meeting) ? "ongoing" :
+                              meeting.status
+                            } 
+                            color={
+                              tabValue === 3 ? "success" :
+                              tabValue === 2 ? "warning" :
+                              getStatusColor(meeting.status)
+                            }
                             size="small"
+                            sx={meeting.status === 'scheduled' && tabValue !== 3 ? {
+                              bgcolor: 'info.main',
+                              color: 'white'
+                            } : undefined}
                           />
                         </Box>
                         
@@ -1548,15 +1684,15 @@ export default function MeetingsPage() {
                           </Box>
                         </Box>
                     {/* Notes */}
-                    {meeting.notes && (
+                    {/* {meeting.notes && (
                       <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: -1 }}>
                         Notes: {meeting.notes}
                       </Typography>
-                    )}
+                    )} */}
                       </Box>
 
                       {/* Action buttons in top right corner */}
-                      {(tabValue === 0 || tabValue === 1) && (
+                      {(tabValue === 0 || tabValue === 1) && meeting.status !== 'cancelled' && (
                         <Box sx={{ display: 'flex', gap: 1, ml: 1, flexWrap: 'wrap' }}>
                           {/* Show approve button only for pending meetings */}
                           {!meeting.isApproved && (
@@ -1603,17 +1739,24 @@ export default function MeetingsPage() {
                             <IconButton 
                               size="small" 
                               color="error"
+                              disabled={rejectingMeetingId === meeting.id}
+                              onClick={() => handleRejectMeeting(meeting.id)}
                               sx={{ 
                                 bgcolor: 'error.light', 
                                 color: 'white',
-                                '&:hover': { bgcolor: 'error.main' }
+                                '&:hover': { bgcolor: 'error.main' },
+                                '&:disabled': { bgcolor: 'grey.300', color: 'grey.500' }
                               }}
                               title="Reject Meeting"
                             >
-                              <CancelOutlined fontSize="small" />
+                              {rejectingMeetingId === meeting.id ? (
+                                <CircularProgress size={16} color="inherit" />
+                              ) : (
+                                <CancelOutlined fontSize="small" />
+                              )}
                             </IconButton>
                             <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                              Reject
+                              {rejectingMeetingId === meeting.id ? 'Rejecting...' : 'Reject'}
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

@@ -20,7 +20,8 @@ import {
   CircularProgress,
   Box,
   Typography,
-  IconButton
+  IconButton,
+  Divider
 } from '@mui/material';
 import {
   ScheduleSend,
@@ -29,7 +30,8 @@ import {
   Business,
   Event,
   AccessTime,
-  Close
+  Close,
+  Favorite
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -37,6 +39,7 @@ import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { apiService } from '@/services/apiService';
 import { addNotification } from '@/store/slices/appSlice';
 import { getCurrentUser, getCurrentExhibitorId, getCurrentVisitorId } from '@/utils/authUtils';
+import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface MeetingFormData {
   agenda: string;
@@ -89,6 +92,12 @@ export default function ScheduleMeetingPage() {
   const [loading, setLoading] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [favoriteVisitors, setFavoriteVisitors] = useState<any[]>([]);
+  const [favoriteExhibitors, setFavoriteExhibitors] = useState<any[]>([]);
+  const [selectedVisitorDetails, setSelectedVisitorDetails] = useState<any>(null);
+  const [selectedExhibitorDetails, setSelectedExhibitorDetails] = useState<any>(null);
+  const [loadingVisitorDetails, setLoadingVisitorDetails] = useState(false);
+  const [loadingExhibitorDetails, setLoadingExhibitorDetails] = useState(false);
 
   // Initialize current user data
   useEffect(() => {
@@ -127,7 +136,6 @@ export default function ScheduleMeetingPage() {
   }, []);
 
   // Load participants data
-  useEffect(() => {
     const loadParticipantsData = async () => {
       try {
         setLoading(true);
@@ -184,16 +192,129 @@ export default function ScheduleMeetingPage() {
       }
     };
 
-    if (identifier) {
+  // Load participants data when component mounts
+  useEffect(() => {
       loadParticipantsData();
-    }
   }, [identifier]);
 
+  // Function to load favorites
+  const loadFavorites = async () => {
+    try {
+      console.log('🔍 Loading favorites...');
+      if (currentUserRole === 'visitor') {
+        const favoriteExhibitorsData = await FavoritesManager.getVisitorFavoriteExhibitors(identifier);
+        // Since the API returns only favorite exhibitors, we don't need to filter
+        setFavoriteExhibitors(favoriteExhibitorsData);
+      } else if (currentUserRole === 'exhibitor') {
+        const favoriteVisitorsData = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
+        console.log('🔍 Favorite visitors data:', favoriteVisitorsData);
+        // Since the API returns only favorite visitors, we don't need to filter
+        console.log('🔍 Using all favorite visitors directly:', favoriteVisitorsData);
+        setFavoriteVisitors(favoriteVisitorsData);
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+
+  // Load favorites when component mounts
+  useEffect(() => {
+    console.log('🔍 useEffect for loadFavorites triggered');
+    console.log('🔍 currentUserRole:', currentUserRole);
+    console.log('🔍 currentUserId:', currentUserId);
+    console.log('🔍 identifier:', identifier);
+    if (currentUserRole && currentUserId && identifier) {
+      console.log('🔍 Calling loadFavorites...');
+      loadFavorites();
+    } else {
+      console.log('🔍 Not calling loadFavorites - missing required data');
+    }
+  }, [currentUserRole, currentUserId, identifier]);
+
+  // Debug form state changes
+  useEffect(() => {
+    console.log('🔍 Form state changed:', meetingForm);
+  }, [meetingForm]);
+
+  // Debug current user role
+  useEffect(() => {
+    console.log('🔍 Current user role:', currentUserRole);
+    console.log('🔍 Visitor dropdown disabled:', currentUserRole === 'visitor');
+    console.log('🔍 Exhibitor dropdown disabled:', currentUserRole === 'exhibitor');
+  }, [currentUserRole]);
+
+  // Function to fetch visitor details by ID
+  const fetchVisitorDetails = async (visitorId: number) => {
+    console.log('🔍 fetchVisitorDetails called with ID:', visitorId);
+    if (!visitorId) {
+      setSelectedVisitorDetails(null);
+      return;
+    }
+
+    setLoadingVisitorDetails(true);
+    try {
+      console.log('🔍 Calling getVisitorById API...');
+      const response = await fieldMappingApi.getVisitorById(identifier, visitorId);
+      console.log('🔍 getVisitorById response:', response);
+      if (response.statusCode === 200 && response.result) {
+        setSelectedVisitorDetails(response.result);
+        console.log('Fetched visitor details:', response.result);
+      } else {
+        console.error('Failed to fetch visitor details:', response);
+        setSelectedVisitorDetails(null);
+      }
+    } catch (error) {
+      console.error('Error fetching visitor details:', error);
+      setSelectedVisitorDetails(null);
+    } finally {
+      setLoadingVisitorDetails(false);
+    }
+  };
+
+  // Function to fetch exhibitor details by ID
+  const fetchExhibitorDetails = async (exhibitorId: number) => {
+    console.log('🔍 fetchExhibitorDetails called with ID:', exhibitorId);
+    if (!exhibitorId) {
+      setSelectedExhibitorDetails(null);
+      return;
+    }
+
+    setLoadingExhibitorDetails(true);
+    try {
+      console.log('🔍 Calling getExhibitorById API...');
+      const response = await fieldMappingApi.getExhibitorById(identifier, exhibitorId);
+      console.log('🔍 getExhibitorById response:', response);
+      if (response.statusCode === 200 && response.result) {
+        setSelectedExhibitorDetails(response.result);
+        console.log('Fetched exhibitor details:', response.result);
+      } else {
+        console.error('Failed to fetch exhibitor details:', response);
+        setSelectedExhibitorDetails(null);
+      }
+    } catch (error) {
+      console.error('Error fetching exhibitor details:', error);
+      setSelectedExhibitorDetails(null);
+    } finally {
+      setLoadingExhibitorDetails(false);
+    }
+  };
+
   const handleFormChange = (field: keyof MeetingFormData, value: string | number) => {
+    console.log('🔍 handleFormChange called:', field, value, 'Type:', typeof value);
+    
     setMeetingForm(prev => ({
       ...prev,
       [field]: value
     }));
+
+    // Fetch details when visitor or exhibitor is selected
+    if (field === 'visitorId' && value) {
+      console.log('🔍 Fetching visitor details for ID:', value);
+      fetchVisitorDetails(Number(value));
+    } else if (field === 'exhibitorId' && value) {
+      console.log('🔍 Fetching exhibitor details for ID:', value);
+      fetchExhibitorDetails(Number(value));
+    }
 
     // Clear error for this field
     if (formErrors[field]) {
@@ -409,57 +530,81 @@ export default function ScheduleMeetingPage() {
               <InputLabel>Select Visitor</InputLabel>
               <Select
                 value={meetingForm.visitorId}
-                onChange={(e) => handleFormChange('visitorId', e.target.value)}
+                onChange={(e) => {
+                  console.log('🔍 Visitor Select onChange triggered:', e.target.value);
+                  handleFormChange('visitorId', e.target.value);
+                }}
                 label="Select Visitor"
                 startAdornment={
                   <Person sx={{ mr: 1, color: 'text.secondary' }} />
                 }
               >
-                {currentUserRole === 'visitor' ? (
-                  // Show current visitor info when user is a visitor
-                  <MenuItem value={currentUserId || ''} disabled>
-                    <Box>
-                      <Typography variant="body2" fontWeight="medium">
-                        {visitors.find(v => v.id === currentUserId)?.firstName || 'Current'} {visitors.find(v => v.id === currentUserId)?.lastName || 'Visitor'}
-                      </Typography>
-                      {visitors.find(v => v.id === currentUserId)?.company && (
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          {visitors.find(v => v.id === currentUserId)?.company}
-                        </Typography>
-                      )}
-                      {/* <Typography variant="caption" color="text.secondary">
-                        (You)
-                      </Typography> */}
-                    </Box>
-                  </MenuItem>
-                ) : visitors.length === 0 ? (
+                {/* No visitors state */}
+                {!loading && visitors.length === 0 && (
                   <MenuItem disabled>
                     <Typography variant="body2" color="text.secondary">
                       No visitors available
                     </Typography>
                   </MenuItem>
-                ) : (
-                  visitors.map((visitor) => (
-                    <MenuItem key={visitor.id} value={visitor.id}>
-                      <Box>
-                        <Typography variant="body2" fontWeight="medium">
-                          {visitor.firstName} {visitor.lastName}
-                        </Typography>
-                        {/* <Typography variant="caption" color="text.secondary">
-                          {visitor.email}
-                        </Typography> */}
-                        {visitor.company && (
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            {visitor.company}
-                          </Typography>
-                        )}
-                      </Box>
-                    </MenuItem>
-                  ))
                 )}
+                
+                {/* Current visitor when user is a visitor */}
+                {!loading && currentUserRole === 'visitor' && (
+                  <MenuItem value={currentUserId || ''} disabled>
+                    {visitors.find(v => v.id === currentUserId)?.firstName || 'Current'} {visitors.find(v => v.id === currentUserId)?.lastName || 'Visitor'}
+                    {visitors.find(v => v.id === currentUserId)?.company && ` (${visitors.find(v => v.id === currentUserId)?.company})`}
+                  </MenuItem>
+                )}
+                
+                {/* My Favorites Header */}
+                {!loading && currentUserRole !== 'visitor' && favoriteVisitors.length > 0 && (
+                  <MenuItem disabled>
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <Favorite sx={{ mr: 1, color: 'error.main', fontSize: 16 }} />
+                      <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                        My Favorites ({favoriteVisitors.length})
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                )}
+                
+                {/* Favorite Visitors */}
+                {!loading && currentUserRole !== 'visitor' && favoriteVisitors.map((favorite) => {
+                  const visitor = visitors.find(v => v.id === favorite.visitorId);
+                  if (!visitor) return null;
+                  return (
+                    <MenuItem key={`fav-${visitor.id}`} value={visitor.id}>
+                      {visitor.firstName} {visitor.lastName}
+                      {visitor.company && ` (${visitor.company})`}
+                    </MenuItem>
+                  );
+                })}
+                
+                {/* Divider */}
+                {!loading && currentUserRole !== 'visitor' && favoriteVisitors.length > 0 && <Divider />}
+                
+                {/* Regular Visitors */}
+                {!loading && currentUserRole !== 'visitor' && visitors
+                  .filter(visitor => !favoriteVisitors.some(f => f.visitorId === visitor.id))
+                  .map((visitor) => (
+                    <MenuItem key={visitor.id} value={visitor.id}>
+                      {visitor.firstName} {visitor.lastName}
+                      {visitor.company && ` (${visitor.company})`}
+                    </MenuItem>
+                  ))}
               </Select>
               {formErrors.visitorId && (
                 <FormHelperText>{formErrors.visitorId}</FormHelperText>
+              )}
+            
+              
+              {loadingVisitorDetails && (
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} />
+                  <Typography variant="body2" color="text.secondary">
+                    Loading visitor details...
+                  </Typography>
+                </Box>
               )}
             </FormControl>
           </Grid>
@@ -469,64 +614,86 @@ export default function ScheduleMeetingPage() {
             <FormControl fullWidth error={!!formErrors.exhibitorId} disabled={loading || currentUserRole === 'exhibitor'}>
               <InputLabel>Select Exhibitor</InputLabel>
               <Select
-                value={meetingForm.exhibitorId}
-                onChange={(e) => handleFormChange('exhibitorId', e.target.value)}
+                  value={meetingForm.exhibitorId || ''}
+                  onChange={(e) => {
+                    handleFormChange('exhibitorId', e.target.value);
+                  }}
+                  onOpen={() => {
+                    console.log('🔍 Exhibitor Select opened');
+                  }}
+                  onClose={() => {
+                    console.log('🔍 Exhibitor Select closed');
+                  }}
                 label="Select Exhibitor"
                 startAdornment={
                   <Business sx={{ mr: 1, color: 'text.secondary' }} />
                 }
               >
-                {currentUserRole === 'exhibitor' ? (
-                  // Show current exhibitor info when user is an exhibitor
-                  <MenuItem value={currentUserId || ''} disabled>
-                    <Box>
-                      <Typography variant="body2" fontWeight="medium">
-                        {exhibitors.find(e => e.id === currentUserId)?.companyName || 'Current Exhibitor'}
+                {/* Loading state */}
+                {loading && (
+                  <MenuItem disabled>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CircularProgress size={16} />
+                      <Typography variant="body2" color="text.secondary">
+                        Loading exhibitors...
                       </Typography>
-                      {exhibitors.find(e => e.id === currentUserId)?.companyType && (
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          {exhibitors.find(e => e.id === currentUserId)?.companyType}
-                        </Typography>
-                      )}
-                      {/* <Typography variant="caption" color="text.secondary">
-                        (You)
-                      </Typography> */}
                     </Box>
                   </MenuItem>
-                ) : exhibitors.length === 0 ? (
+                )}
+                
+                                {/* No exhibitors state */}
+                {!loading && exhibitors.length === 0 && (
                   <MenuItem disabled>
                     <Typography variant="body2" color="text.secondary">
                       No exhibitors available
                     </Typography>
                   </MenuItem>
-                ) : (
-                  exhibitors.map((exhibitor) => (
-                    <MenuItem key={exhibitor.id} value={exhibitor.id}>
-                      <Box>
-                        {/* <Typography variant="body2" fontWeight="medium">
-                          {exhibitor.firstName} {exhibitor.lastName}
-                        </Typography> */}
-                        {exhibitor.companyName && (
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            {exhibitor.companyName}
-                          </Typography>
-                        )}
-                        {/* <Typography variant="caption" color="text.secondary">
-                          {exhibitor.email}
-                        </Typography> */}
-                        {exhibitor.companyType && (
-                          <Typography variant="caption" color="text.secondary">
-                            {exhibitor.companyType}
-                          </Typography>
-                        )}
-                      </Box>
-                    </MenuItem>
-                  ))
                 )}
+                
+                {/* My Favorites Header */}
+                {!loading && favoriteExhibitors.length > 0 && (
+                  <MenuItem disabled>
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <Favorite sx={{ mr: 1, color: 'error.main', fontSize: 16 }} />
+                      <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                        My Favorites ({favoriteExhibitors.length})
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                )}
+                
+                {/* Favorite Exhibitors */}
+                {!loading && favoriteExhibitors.map((favorite) => {
+                  const exhibitor = exhibitors.find(e => e.id === favorite.id);
+                  if (!exhibitor) return null;
+                  return (
+                    <MenuItem key={`fav-${exhibitor.id}`} value={exhibitor.id}>
+                      {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                      {exhibitor.companyType && ` (${exhibitor.companyType})`}
+                    </MenuItem>
+                  );
+                })}
+                
+                {/* Divider */}
+                {!loading && favoriteExhibitors.length > 0 && <Divider />}
+                
+                {/* Regular Exhibitors */}
+                {!loading && exhibitors
+                  .filter(exhibitor => !favoriteExhibitors.some(f => f.id === exhibitor.id))
+                  .map((exhibitor) => (
+                    <MenuItem key={exhibitor.id} value={exhibitor.id}>
+                      {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                      {exhibitor.companyType && ` (${exhibitor.companyType})`}
+                    </MenuItem>
+                  ))}
               </Select>
               {formErrors.exhibitorId && (
                 <FormHelperText>{formErrors.exhibitorId}</FormHelperText>
               )}
+              
+         
+              
+
             </FormControl>
           </Grid>
 

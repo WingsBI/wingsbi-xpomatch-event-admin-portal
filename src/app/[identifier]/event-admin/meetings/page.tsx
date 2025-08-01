@@ -960,8 +960,8 @@ export default function MeetingsPage() {
       for (let hour = startHour; hour <= endHour; hour++) {
         if (!layout[hour]) layout[hour] = [];
         
-        // Calculate top position within the hour slot (50px height per hour)
-        const top = hour === startHour ? (meetingDate.getMinutes() / 60) * 50 : 0;
+        // Calculate top position within the hour slot (60px height per hour)
+        const top = hour === startHour ? (meetingDate.getMinutes() / 60) * 60 : 0;
         
         // Calculate height for this hour slot
         let height: number;
@@ -969,31 +969,31 @@ export default function MeetingsPage() {
           // Meeting starts and ends in the same hour
           const startMinutes = meetingDate.getMinutes();
           const endMinutes = meetingEndTime.getMinutes();
-          height = ((endMinutes - startMinutes) / 60) * 50;
+          height = ((endMinutes - startMinutes) / 60) * 60;
         } else if (hour === startHour) {
           // Meeting starts in this hour
           const startMinutes = meetingDate.getMinutes();
-          height = ((60 - startMinutes) / 60) * 50;
+          height = ((60 - startMinutes) / 60) * 60;
         } else if (hour === endHour) {
           // Meeting ends in this hour
           const endMinutes = meetingEndTime.getMinutes();
-          height = (endMinutes / 60) * 50;
+          height = (endMinutes / 60) * 60;
         } else {
           // Meeting spans the full hour
-          height = 50;
+          height = 60;
         }
         
         // Ensure height is within bounds and has minimum size
-        height = Math.max(Math.min(height, 50), 20);
+        height = Math.max(Math.min(height, 60), 24);
         
         // Ensure the meeting block fits within the hour slot
-        const maxTop = 50 - height;
+        const maxTop = 60 - height;
         const constrainedTop = Math.max(0, Math.min(top, maxTop));
         
         layout[hour].push({
           meeting,
           top: constrainedTop,
-          height: Math.min(height, 50 - constrainedTop), // Ensure height doesn't exceed remaining space
+          height: Math.min(height, 60 - constrainedTop), // Ensure height doesn't exceed remaining space
           left: 0, // Will be calculated below
           width: 100 // Will be calculated below
         });
@@ -1174,8 +1174,8 @@ export default function MeetingsPage() {
               {/* Time Slots Header - Horizontal */}
               <Box sx={{ display: 'flex', borderBottom: 2, borderColor: 'grey.400' }}>
                 {/* Date column header */}
-                <Box sx={{ width: 120, p: 1, borderRight: 2, borderColor: 'grey.400' }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+                <Box sx={{ width: 120, p: 1, borderRight: 2, borderColor: 'grey.400', bgcolor: 'grey.50' }}>
+                  <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
                     Date
                   </Typography>
                 </Box>
@@ -1187,11 +1187,14 @@ export default function MeetingsPage() {
                       flex: 1, 
                       p: 1, 
                       textAlign: 'center', 
-                      borderRight: index < 23 ? 1 : 0, 
-                    
+                      borderRight: index < getHourSlots().length - 1 ? 1 : 0, 
+                      borderColor: 'grey.300',
+                      bgcolor: 'grey.50'
                     }}>
                       <Typography variant="body2" sx={{ 
                         fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'text.secondary'
                       }}>
                         {formatHour(hour)}
                       </Typography>
@@ -1202,8 +1205,8 @@ export default function MeetingsPage() {
 
               {/* Date Grid - Vertical with Day Partitioning */}
               <Box sx={{ 
-                height: eventDetails ? `calc(${getEventDays().length} * 50px)` : '200px', 
-                overflow: 'hidden', // Changed from 'auto' to 'hidden' to prevent scrollbars
+                height: eventDetails ? `calc(${getEventDays().length} * 60px)` : '240px', 
+                overflow: 'hidden',
                 position: 'relative'
               }}>
                 {eventDetails ? (meetingsLoading ? (
@@ -1228,11 +1231,11 @@ export default function MeetingsPage() {
                   return (
                     <Box key={dayIndex} sx={{ 
                       display: 'flex',
-                      height: 50,
+                      height: 60,
                       borderBottom: dayIndex < getEventDays().length - 1 ? (isWeekend ? 3 : 2) : 0, 
-                      
-                      
-                      '&:hover': { bgcolor: 'grey.25' }
+                      borderColor: 'grey.300',
+                      bgcolor: dayIndex % 2 === 0 ? 'grey.25' : 'white',
+                      '&:hover': { bgcolor: 'grey.50' }
                     }}>
                       {/* Date label */}
                       <Box sx={{ 
@@ -1243,13 +1246,13 @@ export default function MeetingsPage() {
                         display: 'flex', 
                         alignItems: 'center',
                         justifyContent: 'center',
-                        
+                        bgcolor: isToday ? 'primary.50' : 'grey.50'
                       }}>
                         <Box sx={{ textAlign: 'center' }}>
                           <Typography variant="body2" sx={{ 
                             fontWeight: isToday ? 'bold' : 'normal',
                             color: isToday ? 'primary.main' : 'text.primary',
-                            fontSize: '0.85rem  '
+                            fontSize: '0.85rem'
                           }}>
                             {day.toLocaleDateString('en-US', { weekday: 'short' })}
                           </Typography>
@@ -1271,19 +1274,21 @@ export default function MeetingsPage() {
                         return (
                           <Box key={hourIndex} sx={{ 
                             flex: 1, 
-                            borderRight: hourIndex < 23 ? 1 : 0, 
+                            borderRight: hourIndex < getHourSlots().length - 1 ? 1 : 0, 
+                            borderColor: 'grey.200',
                             position: 'relative',
                             display: 'flex',
                             cursor: 'pointer',
-                            height: 50, // Fixed height for each hour slot
-                            overflow: 'hidden', // Prevent overflow
+                            height: 60, // Increased height for each hour slot
+                            overflow: 'hidden',
+                            bgcolor: hour % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
                             '&:hover': { bgcolor: 'primary.25' }
                           }}>
                             {/* Meetings for this time slot */}
                             {hourMeetings.map((meetingData, meetingIndex) => {
                               // Ensure the meeting block stays within the hour slot bounds
-                              const constrainedTop = Math.max(0, Math.min(meetingData.top, 50 - meetingData.height));
-                              const constrainedHeight = Math.min(meetingData.height, 50 - constrainedTop);
+                              const constrainedTop = Math.max(0, Math.min(meetingData.top, 60 - meetingData.height));
+                              const constrainedHeight = Math.min(meetingData.height, 60 - constrainedTop);
                               
                               return (
                                 <Tooltip
@@ -1298,26 +1303,27 @@ export default function MeetingsPage() {
                                     }}
                                     sx={{
                                       position: 'absolute',
-                                      top: constrainedTop + 1,
+                                      top: constrainedTop + 2,
                                       left: `${meetingData.left}%`,
                                       width: `${meetingData.width}%`,
-                                      bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.main' :
-                                               getStatusColor(meetingData.meeting.status) === 'success' ? 'success.main' :
-                                               getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.main' :
-                                               getStatusColor(meetingData.meeting.status) === 'error' ? 'error.main' : 'grey.500',
-                                      color: 'white',
+                                      bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.light' :
+                                               getStatusColor(meetingData.meeting.status) === 'success' ? 'success.light' :
+                                               getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.light' :
+                                               getStatusColor(meetingData.meeting.status) === 'error' ? 'error.light' : 'grey.300',
+                                      color: 'text.primary',
                                       borderRadius: 1,
                                       p: 0.5,
                                       cursor: 'pointer',
                                       zIndex: 1,
-                                      height: `${constrainedHeight - 2}px`,
+                                      height: `${constrainedHeight - 4}px`,
                                       overflow: 'hidden',
-                                      margin: '0 1px',
-                                      border: '1px solid rgba(255,255,255,0.2)',
-                                      maxHeight: '48px', // Ensure it doesn't exceed the hour slot
+                                      margin: '0 2px',
+                                      border: '1px solid rgba(0,0,0,0.1)',
+                                      maxHeight: '56px',
                                       '&:hover': {
                                         opacity: 0.9,
-                                        transform: 'scale(1.02)'
+                                        transform: 'scale(1.02)',
+                                        boxShadow: 2
                                       }
                                     }}
                                   >
@@ -1335,12 +1341,12 @@ export default function MeetingsPage() {
                                     <Typography variant="caption" sx={{ 
                                       display: 'block',
                                       fontSize: '0.6rem',
-                                      opacity: 0.9,
+                                      opacity: 0.8,
                                       lineHeight: 1.1
                                     }}>
                                       {formatDuration(meetingData.meeting.duration)}
                                       {/* Show indicator if meeting continues to next hour */}
-                                      {hour < 23 && meetingData.meeting.duration > 60 && 
+                                      {hour < getHourSlots().length - 1 && meetingData.meeting.duration > 60 && 
                                        meetingData.meeting.dateTime.getHours() === hour && 
                                        meetingData.meeting.dateTime.getMinutes() + meetingData.meeting.duration > 60 && (
                                         <Box component="span" sx={{ 
@@ -1348,7 +1354,7 @@ export default function MeetingsPage() {
                                           width: '4px',
                                           height: '4px',
                                           borderRadius: '50%',
-                                          bgcolor: 'rgba(255,255,255,0.8)',
+                                          bgcolor: 'rgba(0,0,0,0.6)',
                                           ml: 0.5
                                         }} />
                                       )}
@@ -1548,11 +1554,11 @@ export default function MeetingsPage() {
                           </Box>
                         </Box>
                     {/* Notes */}
-                    {meeting.notes && (
+                    {/* {meeting.notes && (
                       <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: -1 }}>
                         Notes: {meeting.notes}
                       </Typography>
-                    )}
+                    )} */}
                       </Box>
 
                       {/* Action buttons in top right corner */}

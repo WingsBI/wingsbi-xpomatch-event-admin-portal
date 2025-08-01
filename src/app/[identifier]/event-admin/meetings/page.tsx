@@ -125,6 +125,7 @@ export default function MeetingsPage() {
 
   const [eventLoading, setEventLoading] = useState(true);
   const [approvingMeetingId, setApprovingMeetingId] = useState<string | null>(null);
+  const [rejectingMeetingId, setRejectingMeetingId] = useState<string | null>(null);
 
   const loadEventDetails = useCallback(async () => {
     try {
@@ -484,6 +485,42 @@ export default function MeetingsPage() {
     }
   };
 
+  // Handle meeting rejection
+  const handleRejectMeeting = async (meetingId: string) => {
+    try {
+      setRejectingMeetingId(meetingId);
+      
+      if (!identifier) {
+        console.error('No identifier found');
+        return;
+      }
+
+      const meetingIdNumber = parseInt(meetingId);
+      if (isNaN(meetingIdNumber)) {
+        console.error('Invalid meeting ID:', meetingId);
+        return;
+      }
+
+      console.log('Rejecting meeting:', { meetingId: meetingIdNumber, identifier });
+      
+      const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, false);
+      
+      if (response && !response.isError) {
+        console.log('Meeting rejected successfully:', response);
+        
+        // Update the local state immediately to show the change
+        // Reload meetings to get the latest data from the server
+        await loadMeetings();
+      } else {
+        console.error('Failed to reject meeting:', response);
+      }
+    } catch (error) {
+      console.error('Error rejecting meeting:', error);
+    } finally {
+      setRejectingMeetingId(null);
+    }
+  };
+
   // Handle meeting approval
   const handleApproveMeeting = async (meetingId: string) => {
     try {
@@ -640,9 +677,9 @@ export default function MeetingsPage() {
     });
     
     switch (tabValue) {
-      case 0: // Pending meetings - show meetings that are not yet approved
+      case 0: // Pending meetings - show meetings that are not yet approved and not cancelled
         const pendingMeetings = meetings.filter(m => {
-          const shouldShow = !m.isApproved;
+          const shouldShow = !m.isApproved && m.status !== 'cancelled';
           console.log(`Meeting ${m.id} pending check:`, {
             id: m.id,
             isApproved: m.isApproved,
@@ -654,9 +691,9 @@ export default function MeetingsPage() {
         });
         console.log('Pending meetings:', pendingMeetings.length);
         return pendingMeetings;
-      case 1: // Upcoming - show approved meetings that are in the future
+      case 1: // Upcoming - show approved meetings that are in the future and not cancelled
         const upcomingMeetings = meetings.filter(m => {
-          const shouldShow = m.isApproved && m.dateTime > now;
+          const shouldShow = m.isApproved && m.dateTime > now && m.status !== 'cancelled';
           console.log(`Meeting ${m.id} upcoming check:`, {
             id: m.id,
             isApproved: m.isApproved,
@@ -671,25 +708,18 @@ export default function MeetingsPage() {
         });
         console.log('Upcoming meetings:', upcomingMeetings.length);
         return upcomingMeetings;
-      case 2: // Completed - show approved meetings that are in the past
-        const completedMeetings = meetings.filter(m => {
-          const shouldShow = m.isApproved && m.dateTime <= now;
-          console.log(`Meeting ${m.id} completed check:`, {
-            id: m.id,
-            isApproved: m.isApproved,
-            dateTime: m.dateTime.toISOString(),
-            now: now.toISOString(),
-            isPast: m.dateTime <= now,
-            shouldShow,
-            status: m.status,
-            approvalStatus: m.approvalStatus
-          });
-          return shouldShow;
-        });
+      case 2: // Ongoing - show approved meetings that are currently in progress
+        const ongoingMeetings = meetings.filter(isOngoingMeeting);
+        console.log('Ongoing meetings:', ongoingMeetings.length);
+        return ongoingMeetings;
+      case 3: // Completed - show approved meetings that are in the past and not cancelled
+        const completedMeetings = meetings.filter(isCompletedMeeting);
         console.log('Completed meetings:', completedMeetings.length);
         return completedMeetings;
-      case 3: // Cancelled
-        return meetings.filter(m => m.status === 'cancelled');
+      case 4: // Cancelled - show all cancelled meetings
+        const cancelledMeetings = meetings.filter(m => m.status === 'cancelled');
+        console.log('Cancelled meetings:', cancelledMeetings.length);
+        return cancelledMeetings;
       default:
         return meetings;
     }
@@ -697,16 +727,104 @@ export default function MeetingsPage() {
 
   const getUpcomingCount = () => {
     const now = new Date();
-    return meetings.filter(m => m.isApproved && m.dateTime > now).length;
+    return meetings.filter(m => m.isApproved && m.dateTime > now && m.status !== 'cancelled').length;
+  };
+
+  const isCompletedMeeting = (meeting: Meeting) => {
+    const now = new Date();
+    if (!meeting.endTime || !meeting.meetingDate) return false;
+    
+    const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
+    if (!endDateTime) return false;
+    
+    return meeting.isApproved && now > endDateTime && meeting.status !== 'cancelled';
   };
 
   const getCompletedCount = () => {
-    const now = new Date();
-    return meetings.filter(m => m.isApproved && m.dateTime <= now).length;
+    return meetings.filter(isCompletedMeeting).length;
   };
 
   const getCancelledCount = () => {
     return meetings.filter(m => m.status === 'cancelled').length;
+  };
+
+  const parseMeetingDateTime = (date: string, time: string): Date | null => {
+    try {
+      console.log('Parsing date/time:', { date, time });
+      
+      // Handle date format "YYYY-MM-DDTHH:mm:ss" or "YYYY-MM-DD"
+      const cleanDate = date.split('T')[0];
+      
+      // Ensure proper date format YYYY-MM-DD
+      const [year, month, day] = cleanDate.split('-').map(num => num.padStart(2, '0'));
+      
+      // Handle time format "HH:mm:ss" or "HH:mm"
+      const cleanTime = time.split(':').slice(0, 2).join(':');
+      
+      // Ensure proper time format HH:mm
+      const [hours, minutes] = cleanTime.split(':').map(num => num.padStart(2, '0'));
+      
+      const dateTimeStr = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+      console.log('Constructed datetime string:', dateTimeStr);
+      
+      const dateObj = new Date(dateTimeStr);
+      console.log('Parsed date object:', dateObj);
+      
+      if (isNaN(dateObj.getTime())) {
+        console.warn('Invalid date created:', { dateTimeStr, dateObj });
+        return null;
+      }
+      
+      return dateObj;
+    } catch (error) {
+      console.error('Error parsing date/time:', { error, date, time });
+      return null;
+    }
+  };
+
+  const isOngoingMeeting = (meeting: Meeting) => {
+    const now = new Date();
+    console.log('Checking if meeting is ongoing:', {
+      id: meeting.id,
+      title: meeting.title,
+      meetingDate: meeting.meetingDate,
+      startTime: meeting.startTime,
+      endTime: meeting.endTime,
+      status: meeting.status,
+      isApproved: meeting.isApproved,
+      now: now.toISOString()
+    });
+
+    if (!meeting.startTime || !meeting.endTime || !meeting.meetingDate) {
+      console.log('Meeting missing required date/time fields');
+      return false;
+    }
+    
+    const startDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.startTime);
+    const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
+    
+    if (!startDateTime || !endDateTime) {
+      console.log('Failed to parse meeting date/time');
+      return false;
+    }
+    
+    const isOngoing = now >= startDateTime && now <= endDateTime && meeting.status !== 'cancelled' && meeting.isApproved;
+    console.log('Meeting ongoing check result:', {
+      id: meeting.id,
+      startDateTime: startDateTime.toISOString(),
+      endDateTime: endDateTime.toISOString(),
+      isAfterStart: now >= startDateTime,
+      isBeforeEnd: now <= endDateTime,
+      notCancelled: meeting.status !== 'cancelled',
+      isApproved: meeting.isApproved,
+      isOngoing
+    });
+    
+    return isOngoing;
+  };
+
+  const getOngoingCount = () => {
+    return meetings.filter(isOngoingMeeting).length;
   };
 
   const formatDateTime = (date: Date) => {
@@ -1415,9 +1533,9 @@ export default function MeetingsPage() {
                   <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
                     <Tab label="Pending" />
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
+                    <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
                     <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
                     <Tab label="Cancelled" />
-                    
                   </Tabs>
                                   <Button
                   variant="contained"
@@ -1467,9 +1585,21 @@ export default function MeetingsPage() {
                             {meeting.title}
                           </Typography>
                           <Chip 
-                            label={meeting.status} 
-                            color={getStatusColor(meeting.status)}
+                            label={
+                              tabValue === 3 ? "completed" : 
+                              tabValue === 2 && isOngoingMeeting(meeting) ? "ongoing" :
+                              meeting.status
+                            } 
+                            color={
+                              tabValue === 3 ? "success" :
+                              tabValue === 2 ? "warning" :
+                              getStatusColor(meeting.status)
+                            }
                             size="small"
+                            sx={meeting.status === 'scheduled' && tabValue !== 3 ? {
+                              bgcolor: 'info.main',
+                              color: 'white'
+                            } : undefined}
                           />
                         </Box>
                         
@@ -1562,7 +1692,7 @@ export default function MeetingsPage() {
                       </Box>
 
                       {/* Action buttons in top right corner */}
-                      {(tabValue === 0 || tabValue === 1) && (
+                      {(tabValue === 0 || tabValue === 1) && meeting.status !== 'cancelled' && (
                         <Box sx={{ display: 'flex', gap: 1, ml: 1, flexWrap: 'wrap' }}>
                           {/* Show approve button only for pending meetings */}
                           {!meeting.isApproved && (
@@ -1609,17 +1739,24 @@ export default function MeetingsPage() {
                             <IconButton 
                               size="small" 
                               color="error"
+                              disabled={rejectingMeetingId === meeting.id}
+                              onClick={() => handleRejectMeeting(meeting.id)}
                               sx={{ 
                                 bgcolor: 'error.light', 
                                 color: 'white',
-                                '&:hover': { bgcolor: 'error.main' }
+                                '&:hover': { bgcolor: 'error.main' },
+                                '&:disabled': { bgcolor: 'grey.300', color: 'grey.500' }
                               }}
                               title="Reject Meeting"
                             >
-                              <CancelOutlined fontSize="small" />
+                              {rejectingMeetingId === meeting.id ? (
+                                <CircularProgress size={16} color="inherit" />
+                              ) : (
+                                <CancelOutlined fontSize="small" />
+                              )}
                             </IconButton>
                             <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                              Reject
+                              {rejectingMeetingId === meeting.id ? 'Rejecting...' : 'Reject'}
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

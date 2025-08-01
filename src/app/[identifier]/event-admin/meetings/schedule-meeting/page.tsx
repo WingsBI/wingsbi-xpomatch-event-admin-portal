@@ -584,6 +584,13 @@ export default function ScheduleMeetingPage() {
                 {!loading && currentUserRole !== 'visitor' && favoriteVisitors.length > 0 && <Divider />}
                 
                 {/* Regular Visitors */}
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' ,ml: 2,mb: 1}}>
+                     
+                      <Typography variant="body2" color="text.secondary" fontWeight={200}>
+                       All Visitors
+                      </Typography>
+                    </Box>
+                  
                 {!loading && currentUserRole !== 'visitor' && visitors
                   .filter(visitor => !favoriteVisitors.some(f => f.visitorId === visitor.id))
                   .map((visitor) => (
@@ -677,6 +684,12 @@ export default function ScheduleMeetingPage() {
                 {/* Divider */}
                 {!loading && favoriteExhibitors.length > 0 && <Divider />}
                 
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' ,ml: 2,mb: 1}}>
+                     
+                      <Typography variant="body2" color="text.secondary" fontWeight={200}>
+                       All Exhibitors
+                      </Typography>
+                    </Box>
                 {/* Regular Exhibitors */}
                 {!loading && exhibitors
                   .filter(exhibitor => !favoriteExhibitors.some(f => f.id === exhibitor.id))

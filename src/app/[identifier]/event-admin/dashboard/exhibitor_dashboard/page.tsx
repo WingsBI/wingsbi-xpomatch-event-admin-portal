@@ -769,9 +769,9 @@ export default function ExhibitorDashboard() {
                     {/* Section 2: Recommended Exhibitors */}
           <Divider sx={{ my: 0.5 }} />
 
-          <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 2 }}>
+          <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', ml: 3 }}>
               Recommended Exhibitors for You
-          </Typography>
+            </Typography>
 
           <AnimatePresence mode="wait" custom={pageDirection}>
             <motion.div
@@ -787,9 +787,9 @@ export default function ExhibitorDashboard() {
               exit="exit"
               transition={{ duration: 0.35, ease: 'easeInOut' }}
             >
-              <Grid container spacing={2} sx={{ mb: -1 }}>
+              <Grid container spacing={2} sx={{ mb: -1  , mt: 0,ml: 1}}>
                 {paginatedExhibitorRecs.map((rec) => (
-                  <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
+                  <Grid item xs={12} sm={6} md={2.3} key={rec.id}>
                     <Card
                       sx={{
                         mt: 0,
@@ -844,7 +844,7 @@ export default function ExhibitorDashboard() {
                           )}
                         </IconButton>
                       </Box>
-                      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+                      <CardContent sx={{ p: 0.5 , pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
                         {/* Header with Avatar, Name, Job Title, Company, Location */}
                         <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
                           <Avatar sx={{

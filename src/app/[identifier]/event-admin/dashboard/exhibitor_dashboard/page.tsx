@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -62,24 +63,65 @@ import VisitorDetailsDialog from '@/components/common/VisitorDetailsDialog';
 
 export default function ExhibitorDashboard() {
   const searchParams = useSearchParams();
+  const params = useParams();
+  const identifier = params.identifier as string;
   const visitorId = searchParams.get('visitorId');
   const { user } = useAuth();
   const [visitor, setVisitor] = useState<Visitor | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [exhibitorRecommendations, setExhibitorRecommendations] = useState<any[]>([]);
+  const [exhibitorId, setExhibitorId] = useState<number | null>(null);
+
+  // Fetch exhibitor recommendations
+  useEffect(() => {
+    const fetchExhibitorRecommendations = async () => {
+      try {
+        const currentExhibitorId = await getCurrentExhibitorId();
+        setExhibitorId(currentExhibitorId);
+        
+        if (currentExhibitorId && identifier) {
+          const response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
+          if (response && response.result) {
+            const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+            setExhibitorRecommendations(sorted);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching exhibitor recommendations:', error);
+        setError('Failed to fetch exhibitor recommendations');
+      }
+    };
+
+    if (identifier) {
+      fetchExhibitorRecommendations();
+    }
+  }, [identifier]);
 
 
   // Pagination hooks must be at the top level
-  const [page, setPage] = useState(1);
+  // Pagination for visitor recommendations
+  const [visitorPage, setVisitorPage] = useState(1);
+  const [exhibitorPage, setExhibitorPage] = useState(1);
   const cardsPerPage = 5;
   const [pageDirection, setPageDirection] = useState<'left' | 'right'>('left');
-  const handlePageChange = (_: any, value: number) => {
-    setPageDirection(value > page ? 'left' : 'right');
-    setPage(value);
+  
+  const handleVisitorPageChange = (_: any, value: number) => {
+    setPageDirection(value > visitorPage ? 'left' : 'right');
+    setVisitorPage(value);
   };
-  const paginatedRecs = recommendations.slice((page - 1) * cardsPerPage, page * cardsPerPage);
-  const totalPages = Math.ceil(recommendations.length / cardsPerPage);
+
+  const handleExhibitorPageChange = (_: any, value: number) => {
+    setPageDirection(value > exhibitorPage ? 'left' : 'right');
+    setExhibitorPage(value);
+  };
+
+  const paginatedVisitorRecs = recommendations.slice((visitorPage - 1) * cardsPerPage, visitorPage * cardsPerPage);
+  const paginatedExhibitorRecs = exhibitorRecommendations.slice((exhibitorPage - 1) * cardsPerPage, exhibitorPage * cardsPerPage);
+  
+  const totalVisitorPages = Math.ceil(recommendations.length / cardsPerPage);
+  const totalExhibitorPages = Math.ceil(exhibitorRecommendations.length / cardsPerPage);
 
   const [favoriteVisitorIds, setFavoriteVisitorIds] = useState(new Set());
   const [loadingFavoriteId, setLoadingFavoriteId] = useState<string | null>(null);
@@ -87,10 +129,6 @@ export default function ExhibitorDashboard() {
   // Dialog state for visitor details
   const [selectedVisitorId, setSelectedVisitorId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  // Get identifier from URL
-  const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
-  const identifier = pathParts[1] || '';
 
   const handleNameClick = (visitorId: number) => {
     setSelectedVisitorId(visitorId);
@@ -100,8 +138,6 @@ export default function ExhibitorDashboard() {
   // Load favorites on mount
   useEffect(() => {
     const loadFavorites = async () => {
-      const pathParts = window.location.pathname.split('/');
-      const identifier = pathParts[1];
       const favorites = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
       setFavoriteVisitorIds(new Set(favorites.map(fav => fav.visitorId)));
     };
@@ -111,8 +147,6 @@ export default function ExhibitorDashboard() {
   // Toggle handler
   const handleFavoriteToggle = async (visitorId: string) => {
     setLoadingFavoriteId(visitorId);
-    const pathParts = window.location.pathname.split('/');
-    const identifier = pathParts[1];
     const isCurrentlyFavorite = favoriteVisitorIds.has(visitorId);
     const finalStatus = await FavoritesManager.toggleVisitorFavorite(identifier, visitorId, isCurrentlyFavorite);
     setFavoriteVisitorIds(prev => {
@@ -134,9 +168,6 @@ export default function ExhibitorDashboard() {
         setError(null);
         // Fetch recommendations for the logged-in visitor
         try {
-          // Extract identifier from URL path
-          const pathParts = window.location.pathname.split('/');
-          const identifier = pathParts[1];
           const exhibitorId = getCurrentExhibitorId();
           if (!exhibitorId) throw new Error('Exhibitor ID not found');
           const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
@@ -162,10 +193,6 @@ export default function ExhibitorDashboard() {
       setError(null);
 
       try {
-        // Extract identifier from URL path
-        const pathParts = window.location.pathname.split('/');
-        const identifier = pathParts[1]; // Assuming URL pattern: /[identifier]/event-admin/dashboard/visitor_dashboard
-
         const response = await fieldMappingApi.getVisitorById(identifier, parseInt(visitorId, 10));
         
         if (response.isError) {
@@ -516,20 +543,20 @@ export default function ExhibitorDashboard() {
             </Box>
             <AnimatePresence mode="wait" custom={pageDirection}>
               <motion.div
-                key={page}
-                custom={pageDirection}
-                variants={{
-                  enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
-                  center: { opacity: 1, x: 0 },
-                  exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
-                }}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
-              >
+                              key={visitorPage}
+              custom={pageDirection}
+              variants={{
+                enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                center: { opacity: 1, x: 0 },
+                exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+              }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.35, ease: 'easeInOut' }}
+            >
               <Grid container spacing={2} sx={{ mb: -1 }}>
-                {paginatedRecs.map((rec) => (
+                {paginatedVisitorRecs.map((rec) => (
                   <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
                     <Card
                       sx={{
@@ -672,10 +699,8 @@ export default function ExhibitorDashboard() {
                           size="small"
                           startIcon={<ConnectIcon />}
                               onClick={() => {
-                                const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
-                                const identifier = pathParts[1] || '';
-                                console.log('Connect button clicked for visitor:', rec.id, 'Type:', typeof rec.id);
-                                router.push(`/${identifier}/event-admin/meetings/schedule-meeting?visitorId=${rec.id}`);
+                                console.log('Connect button clicked for exhibitor:', rec.id, 'Type:', typeof rec.id);
+                                router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${rec.id}`);
                               }}
                           sx={{
                                 bgcolor: theme.palette.primary.main,
@@ -700,16 +725,16 @@ export default function ExhibitorDashboard() {
               </motion.div>
             </AnimatePresence>
             {/* Pagination UI same as visitor dashboard */}
-            {totalPages > 1 && (
+            {totalVisitorPages > 1 && (
               <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
                 <IconButton
-                  onClick={() => handlePageChange(null, Math.max(1, page - 1))}
-                  disabled={page === 1}
+                  onClick={() => handleVisitorPageChange(null, Math.max(1, visitorPage - 1))}
+                  disabled={visitorPage === 1}
                   sx={{ color: theme.palette.primary.main }}
                 >
                   <ArrowBackIos fontSize="small" />
                 </IconButton>
-                {Array.from({ length: totalPages }).map((_, idx) => (
+                {Array.from({ length: totalVisitorPages }).map((_, idx) => (
                   <Box
                     key={idx}
                     sx={{
@@ -718,20 +743,20 @@ export default function ExhibitorDashboard() {
                       borderRadius: '50%',
                       mx: 0.5,
                       backgroundColor:
-                        page === idx + 1
+                        visitorPage === idx + 1
                           ? theme.palette.primary.main
                           : alpha(theme.palette.primary.main, 0.25),
                       opacity: 1,
                       cursor: 'pointer',
                       transition: 'background 0.2s',
-                      border: page === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
+                      border: visitorPage === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
                     }}
-                    onClick={() => handlePageChange(null, idx + 1)}
+                    onClick={() => handleVisitorPageChange(null, idx + 1)}
                   />
                 ))}
                 <IconButton
-                  onClick={() => handlePageChange(null, Math.min(totalPages, page + 1))}
-                  disabled={page === totalPages}
+                  onClick={() => handleVisitorPageChange(null, Math.min(totalVisitorPages, visitorPage + 1))}
+                  disabled={visitorPage === totalVisitorPages}
                   sx={{ color: theme.palette.primary.main }}
                 >
                   <ArrowForwardIos fontSize="small" />
@@ -741,20 +766,251 @@ export default function ExhibitorDashboard() {
             {/* Leave the rest of the area blank */}
           </Container>
           
-          {/* Section 2: Based On Category */}
+                    {/* Section 2: Recommended Exhibitors */}
           <Divider sx={{ my: 0.5 }} />
 
-          <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
-              Based On Category
-            </Typography>
+          <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 2 }}>
+              Recommended Exhibitors for You
+          </Typography>
 
-              <Box display="flex" alignItems="flex-start" gap={3}>
-            <Typography sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1, mt: 0, paddingBottom: 3, paddingTop: 3, paddingLeft: 50 }}>
-                
-              Coming Soon...
-            </Typography>
+          <AnimatePresence mode="wait" custom={pageDirection}>
+            <motion.div
+              key={exhibitorPage}
+              custom={pageDirection}
+              variants={{
+                enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                center: { opacity: 1, x: 0 },
+                exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+              }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.35, ease: 'easeInOut' }}
+            >
+              <Grid container spacing={2} sx={{ mb: -1 }}>
+                {paginatedExhibitorRecs.map((rec) => (
+                  <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
+                    <Card
+                      sx={{
+                        mt: 0,
+                        borderRadius: 3,
+                        height: '100%',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                        border: '1px solid #e8eaed',
+                        bgcolor: 'background.paper',
+                        transition: 'all 0.3s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-4px) scale(1.02)',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        },
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                      }}
+                      elevation={1}
+                    >
+                      {/* Match Percentage and Favorite Icon (top right) */}
+                      <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontStyle: 'italic',
+                            color: '#222',
+                            fontWeight: 600,
+                            fontSize: 16,
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          {rec.matchPercentage?.toFixed(0)}%
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          sx={{
+                            ml: 0.5,
+                            color: favoriteVisitorIds.has(rec.id) ? '#ef4444' : '#b0bec5',
+                            transition: 'all 0.2s ease',
+                            '&:hover': { color: '#ff6b9d' },
+                          }}
+                          onClick={() => handleFavoriteToggle(rec.id)}
+                          disabled={loadingFavoriteId === rec.id}
+                        >
+                          {loadingFavoriteId === rec.id ? (
+                            <Skeleton variant="circular" width={20} height={20} />
+                          ) : favoriteVisitorIds.has(rec.id) ? (
+                            <Favorite sx={{ fontSize: 20, color: '#ef4444', filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))', transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)', animation: 'heartBeat 0.8s ease-in-out' }} />
+                          ) : (
+                            <FavoriteBorder sx={{ fontSize: 20, color: '#b0bec5' }} />
+                          )}
+                        </IconButton>
+                      </Box>
+                      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+                        {/* Header with Avatar, Name, Job Title, Company, Location */}
+                        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
+                          <Avatar sx={{
+                            bgcolor: 'success.main',
+                            width: 36,
+                            height: 36,
+                            mr: 1.5,
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold',
+                            flexShrink: 0,
+                            color: 'white',
+                            alignSelf: 'top',
+                            mt: 2,
+                          }}>
+                            {rec.companyName ? rec.companyName.charAt(0).toUpperCase() : 'E'}
+                          </Avatar>
+
+                          <Box sx={{ flex: 1, minWidth: 0, mt: 3}}>
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                component="div"
+                                fontWeight="600"
+                                sx={{
+                                  ml: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                  lineHeight: 1.2,
+                                  wordBreak: 'break-word',
+                                  cursor: 'pointer',
+                                  color: 'primary.main',
+                                  textDecoration: 'none',
+                                  transition: 'text-decoration 0.2s',
+                                  '&:hover': {
+                                    textDecoration: 'underline',
+                                  },
+                                }}
+                                onClick={() => handleNameClick(rec.id)}
+                              >
+                                {rec.companyName}
+                              </Typography>
+                            </Box>
+
+                            <Box>
+                              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+                                {rec.companyType}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+
+                        {rec.exhibitorAddress && rec.exhibitorAddress[0] && (
+                          <Box display="flex" alignItems="center" mb={1}>
+                            <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                            <Typography variant="subtitle2" color="text.secondary">
+                              {`${rec.exhibitorAddress[0].city}, ${rec.exhibitorAddress[0].stateProvince}, ${rec.country}`}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        <Divider sx={{ mb: 1, mt: 'auto' }} />
+                        
+                        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 0, mb: -2 }}>
+                          <Box display="flex" gap={1}>
+                            {rec.exhibitorProfile && rec.exhibitorProfile[0]?.linkedInLink && (
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  color: '#0077b5', 
+                                  '&:hover': { 
+                                    backgroundColor: 'rgba(0, 119, 181, 0.1)', 
+                                    transform: 'scale(1.1)' 
+                                  } 
+                                }} 
+                                onClick={() => window.open(rec.exhibitorProfile[0].linkedInLink, '_blank')} 
+                                title="View LinkedIn Profile"
+                              >
+                                <LinkedIn fontSize="small" />
+                              </IconButton>
+                            )}
+                            {rec.webSite && (
+                              <IconButton 
+                                size="small" 
+                                sx={{ 
+                                  color: 'gray', 
+                                  '&:hover': { 
+                                    backgroundColor: alpha(theme.palette.primary.main, 0.1), 
+                                    transform: 'scale(1.1)' 
+                                  } 
+                                }} 
+                                onClick={() => window.open(rec.webSite, '_blank')} 
+                                title="Visit Website"
+                              >
+                                <Language fontSize="small" />
+                              </IconButton>
+                            )}
+                          </Box>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<ConnectIcon />}
+                            onClick={() => {
+                              router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${rec.id}`);
+                            }}
+                            sx={{
+                              bgcolor: theme.palette.primary.main,
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 500,
+                              px: 1,
+                              '&:hover': {
+                                bgcolor: theme.palette.primary.dark,
+                                transform: 'scale(1.02)'
+                              }
+                            }}
+                          >
+                            Connect
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </motion.div>
+          </AnimatePresence>
+          
+          {totalExhibitorPages > 1 && (
+            <Box display="flex" justifyContent="center" alignItems="center" mt={3} mb={0.5} gap={1}>
+              <IconButton
+                onClick={() => handleExhibitorPageChange(null, Math.max(1, exhibitorPage - 1))}
+                disabled={exhibitorPage === 1}
+                sx={{ color: theme.palette.primary.main }}
+              >
+                <ArrowBackIos fontSize="small" />
+              </IconButton>
+              {Array.from({ length: totalExhibitorPages }).map((_, idx) => (
+                <Box
+                  key={idx}
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    mx: 0.5,
+                    backgroundColor:
+                      exhibitorPage === idx + 1
+                        ? theme.palette.primary.main
+                        : alpha(theme.palette.primary.main, 0.25),
+                    opacity: 1,
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    border: exhibitorPage === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
+                  }}
+                  onClick={() => handleExhibitorPageChange(null, idx + 1)}
+                />
+              ))}
+              <IconButton
+                onClick={() => handleExhibitorPageChange(null, Math.min(totalExhibitorPages, exhibitorPage + 1))}
+                disabled={exhibitorPage === totalExhibitorPages}
+                sx={{ color: theme.palette.primary.main }}
+              >
+                <ArrowForwardIos fontSize="small" />
+              </IconButton>
             </Box>
-              
+          )}
             
           <Divider sx={{ mb: 0.5, mt: 0.5 }} />
 

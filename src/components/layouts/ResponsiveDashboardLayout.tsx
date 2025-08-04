@@ -65,7 +65,7 @@ import {
   FullscreenExit,
   Palette,
   CalendarMonth,
-  Favorite,
+  Favorite as FavoriteIcon,
   Search,
 } from '@mui/icons-material';
 import { RootState, AppDispatch } from '@/store';
@@ -101,7 +101,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
       ] },
-      { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
         { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },
       ] },
@@ -111,12 +111,13 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     baseItems = [
       { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard`, children: [] },
       { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
+      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
       // { text: 'Visitor Details', icon: <Person />, href: `/${identifier}/event-admin/visitors/details`, children: [] },
       { text: 'Meetings', icon: <CalendarMonth />, children: [
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
       ] },
-      { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
         { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },,
         { text: 'Exhibitor Profile', href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },,
@@ -132,7 +133,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
       ] },
-      // { text: 'My Favourites', icon: <Favorite />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      // { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
         { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },
         { text: 'Theme Settings', href: '#', children: [] },
@@ -875,7 +876,23 @@ export default function ResponsiveDashboardLayout({
                 </IconButton>
               </Tooltip>
 
-              <Tooltip title={`${user?.firstName} ${user?.lastName}`}>
+              <Tooltip 
+                componentsProps={{
+                  tooltip: {
+                    sx: { bgcolor: 'background.paper', color: 'text.primary' }
+                  }
+                }}
+                title={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {user?.role === 'visitor' ? (
+                      <Person sx={{ fontSize: 20 }} />
+                    ) : (
+                      <Business sx={{ fontSize: 20 }} />
+                    )}
+                    <span>{`${user?.firstName} ${user?.lastName}`}</span>
+                  </Box>
+                }
+              >
                 <IconButton onClick={handleProfileMenuOpen} sx={{ p: 0.5 }}>
                   <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}>
                     {user?.firstName?.[0] || user?.email?.[0] || 'U'}

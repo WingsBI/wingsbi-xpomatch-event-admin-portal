@@ -90,6 +90,11 @@ export default function ScheduleMeetingPage() {
   const [submitError, setSubmitError] = useState<string>('');
   const [openDialog, setOpenDialog] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationDetails, setConfirmationDetails] = useState({
+    date: '',
+    time: '',
+  });
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [favoriteVisitors, setFavoriteVisitors] = useState<any[]>([]);
@@ -387,35 +392,13 @@ export default function ScheduleMeetingPage() {
       // Call the createMeeting API
       const response = await apiService.createMeeting(identifier, meetingData);
       if (response.success) {
-        // Determine who needs to accept the meeting based on who scheduled it
-        let acceptanceMessage = '';
-        if (currentUserRole === 'exhibitor') {
-          acceptanceMessage = 'Meeting scheduled successfully! The visitor will need to accept this meeting request.';
-        } else if (currentUserRole === 'visitor') {
-          acceptanceMessage = 'Meeting scheduled successfully! The exhibitor will need to accept this meeting request.';
-        } else {
-          // For event-admin, determine based on which party they're representing
-          const currentUserId = getCurrentUser()?.id;
-          const scheduledVisitorId = Number(meetingForm.visitorId);
-          const scheduledExhibitorId = Number(meetingForm.exhibitorId);
-          
-          if (currentUserId && Number(currentUserId) === scheduledVisitorId) {
-            acceptanceMessage = 'Meeting scheduled successfully! The exhibitor will need to accept this meeting request.';
-          } else if (currentUserId && Number(currentUserId) === scheduledExhibitorId) {
-            acceptanceMessage = 'Meeting scheduled successfully! The visitor will need to accept this meeting request.';
-          } else {
-            acceptanceMessage = 'Meeting scheduled successfully! The meeting is pending acceptance.';
-          }
-        }
-
-        // Show success notification with role-specific message
-        dispatch(addNotification({
-          type: 'success',
-          message: acceptanceMessage,
-        }));
-        
-        // Success - navigate back to meetings page
-        router.push(`/${identifier}/event-admin/meetings`);
+        // Show confirmation dialog with meeting details
+        setConfirmationDetails({
+          date: meetingForm.meetingDate,
+          time: `${meetingForm.startTime} - ${meetingForm.endTime}`,
+        });
+        setShowConfirmation(true);
+        setOpenDialog(false); // Hide the main dialog
       } else {
         setSubmitError(response.message || 'Failed to schedule meeting. Please try again.');
       }
@@ -800,6 +783,46 @@ export default function ScheduleMeetingPage() {
           startIcon={isSubmitting ? <CircularProgress size={16} /> : <ScheduleSend />}
         >
           {isSubmitting ? 'Scheduling...' : 'Schedule Meeting'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* Confirmation Dialog */}
+    <Dialog
+      open={showConfirmation}
+      onClose={() => {}}
+      maxWidth="sm"
+      fullWidth
+      disableEscapeKeyDown
+    >
+      <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <ScheduleSend color="primary" />
+          <Typography variant="h6">Meeting Scheduled Successfully</Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 3 }}>
+        <Typography variant="body1" sx={{ mb: 2 }}>
+          Your meeting has been scheduled for:
+        </Typography>
+        <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Date: {confirmationDetails.date}
+        </Typography>
+        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+          Time: {confirmationDetails.time}
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ borderTop: '1px solid', borderColor: 'divider', p: 2 }}>
+        <Button
+          variant="contained"
+          onClick={() => {
+            setShowConfirmation(false);
+            router.push(`/${identifier}/event-admin/meetings?view=list`);
+          }}
+          autoFocus
+          startIcon={<ScheduleSend />}
+        >
+          OK
         </Button>
       </DialogActions>
     </Dialog>

@@ -507,33 +507,27 @@ export default function FavouritesPage() {
           </Box> */}
 
           <Paper sx={{ mb: 2, mt:-2 }}>
-            <Tabs value={isVisitor ? 1 : tabValue} onChange={isVisitor ? undefined : handleTabChange}>
-              {!isVisitor && (
+            <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab 
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body1">Visitors</Typography>
-                    
                   </Box>
                 } 
               />
-              )}
-              {isVisitor && (
               <Tab 
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body1">Exhibitors</Typography>
-                    
                   </Box>
                 } 
               />
-              )}
             </Tabs>
           </Paper>
 
           {/* Content based on selected tab */}
-          {(!isVisitor && tabValue === 0) && (
-            // Visitors Tab (for exhibitors)
+          {tabValue === 0 && (
+            // Visitors Tab
             <>
               <Grid container spacing={1.5}>
                 {getFilteredVisitors().map((visitor) => (
@@ -776,8 +770,8 @@ export default function FavouritesPage() {
             </>
           )}
 
-          {(isVisitor || tabValue === 1) && (
-            // Exhibitors Tab (for visitors)
+          {tabValue === 1 && (
+            // Exhibitors Tab
             <>
               <Grid container spacing={1.5}>
                 {getFilteredExhibitors().map((exhibitor) => (

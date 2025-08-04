@@ -318,6 +318,14 @@ export interface FavoritesRequest {
   isFavorite: boolean;
 }
 
+export interface AddExhibitorFavouriteRequest {
+  request: {
+    currentExhibitorId: number;
+    targetExhibitorId: number;
+    isFavorite: boolean;
+  };
+}
+
 export interface FavoritesResponse {
   version: string;
   statusCode: number;
@@ -1190,6 +1198,59 @@ class FieldMappingApiService {
         isError: true,
         responseException: error,
         result: {} as Exhibitor
+      };
+    }
+  }
+
+  /**
+   * Add or remove exhibitor favorite visitor
+   */
+  async addExhibitorFavorite(identifier: string, payload: AddExhibitorFavouriteRequest): Promise<FavoritesResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/addExhibitorFavourite`;
+      const headers = this.getAuthHeaders();
+      
+      console.log('🔥 ADD EXHIBITOR FAVORITE API CALL STARTING');
+      console.log('🔥 URL:', apiUrl);
+      console.log('🔥 Payload:', payload);
+      console.log('🔥 Headers:', headers);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('✅ Add exhibitor favorite response status:', response.status);
+      
+      const data = await response.json();
+      console.log('✅ Add exhibitor favorite response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: "1.0.0.0",
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to update exhibitor favorite`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: false
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error updating exhibitor favorite:', error);
+      return {
+        version: "1.0.0.0",
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: false
       };
     }
   }

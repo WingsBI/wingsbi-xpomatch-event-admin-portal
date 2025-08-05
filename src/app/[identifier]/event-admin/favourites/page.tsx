@@ -706,7 +706,7 @@ export default function FavouritesPage() {
 
                         {/* Action Buttons */}
                         <Box display="flex" alignItems="center" justifyContent="space-between" mb={-2}>
-                          <Box display="flex" gap={1}>
+                          {/* <Box display="flex" gap={1}>
                             {visitor.customData?.linkedInProfile && visitor.customData.linkedInProfile.trim() !== '' && (
                               <IconButton 
                                 size="small" 
@@ -721,7 +721,7 @@ export default function FavouritesPage() {
                                 <LinkedIn fontSize="small" />
                               </IconButton>
                             )}
-                          </Box>
+                          </Box> */}
 
                           <Button
                             variant="contained"
@@ -739,6 +739,7 @@ export default function FavouritesPage() {
                               fontWeight: 500,
                               px: 1,
                               py: 0.75,
+                              ml : 10,
                               '&:hover': {
                                 bgcolor: 'primary.dark',
                               }

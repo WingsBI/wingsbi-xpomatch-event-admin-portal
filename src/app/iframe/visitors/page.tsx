@@ -314,18 +314,18 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                     style={{
                       color: 'inherit',
                       textDecoration: 'none',
-                      cursor: 'pointer',
+                     // cursor: 'pointer',
                       fontWeight: 600,
                     }}
-                    onClick={() => onNameClick && onNameClick(visitor)}
-                    onMouseOver={e => {
-                      (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
-                      (e.currentTarget as HTMLElement).style.color = '#1976d2';
-                    }}
-                    onMouseOut={e => {
-                      (e.currentTarget as HTMLElement).style.textDecoration = 'none';
-                      (e.currentTarget as HTMLElement).style.color = 'inherit';
-                    }}
+                   // onClick={() => onNameClick && onNameClick(visitor)}
+                    // onMouseOver={e => {
+                    //   (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
+                    //   (e.currentTarget as HTMLElement).style.color = '#1976d2';
+                    // }}
+                    // onMouseOut={e => {
+                    //   (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+                    //   (e.currentTarget as HTMLElement).style.color = 'inherit';
+                    // }}
                   >
                     {visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}
                   </span>
@@ -511,7 +511,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
 
         {/* Action Buttons */}
         <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: -1, mb: -2 }}>
-          <Box display="flex" gap={1}>
+          {/* <Box display="flex" gap={1}>
             {visitor.customData?.linkedInProfile && (
               <IconButton
                 size="small"
@@ -545,7 +545,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 <Language fontSize="small" />
               </IconButton>
             )}
-          </Box>
+          </Box> */}
 
           <Button
             variant="contained"
@@ -556,6 +556,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 500,
+              ml: 10,
               px: 1,
               '&:hover': {
                 bgcolor: theme.palette.primary.dark,

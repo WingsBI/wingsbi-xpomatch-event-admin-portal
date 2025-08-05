@@ -293,7 +293,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
               variant="body2" 
               component="div" 
               fontWeight="600" 
-              onClick={handleExhibitorNameClick}
+             // onClick={handleExhibitorNameClick}
               sx={{ 
                 ml: 0, 
                 minHeight: '1.2rem', 
@@ -302,16 +302,16 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
                 gap: 0.5, 
                 lineHeight: 1.2, 
                 wordBreak: 'break-word',
-                cursor: 'pointer',
-                color: 'primary.main',
-                textDecoration: 'underline',
-                textDecorationColor: 'transparent',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  color: 'primary.dark',
-                  textDecorationColor: 'currentColor',
-                  transform: 'translateY(-1px)'
-                }
+                // cursor: 'pointer',
+                // color: 'primary.main',
+                // textDecoration: 'underline',
+                // textDecorationColor: 'transparent',
+                // transition: 'all 0.2s ease',
+                // '&:hover': {
+                //   color: 'primary.dark',
+                //   textDecorationColor: 'currentColor',
+                //   transform: 'translateY(-1px)'
+                // }
               }}
             >
               {exhibitor.company}

@@ -644,16 +644,16 @@ export default function ExhibitorDashboard() {
                                     alignItems: 'center',
                                     gap: 0.5,
                                     lineHeight: 1.2,
-                                    wordBreak: 'break-word',
-                                    cursor: 'pointer',
-                                    color: 'primary.main', // link color
-                                    textDecoration: 'none', // no underline by default
-                                    transition: 'text-decoration 0.2s',
-                                    '&:hover': {
-                                      textDecoration: 'underline', // underline only on hover
-                                    },
+                                    // wordBreak: 'break-word',
+                                    // cursor: 'pointer',
+                                    // color: 'primary.main', // link color
+                                    // textDecoration: 'none', // no underline by default
+                                    // transition: 'text-decoration 0.2s',
+                                    // '&:hover': {
+                                    //   textDecoration: 'underline', // underline only on hover
+                                    // },
                                   }}
-                                  onClick={() => handleNameClick(rec.id)}
+                                 // onClick={() => handleNameClick(rec.id)}
                                 >
                                   {rec.salutation} {rec.firstName} {rec.lastName}
                                 </Typography>
@@ -687,13 +687,13 @@ export default function ExhibitorDashboard() {
                           <Divider sx={{ mb: 1, mt: 'auto' }} />
                           {/* Action Buttons Row at the bottom */}
                           <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 0, mb: -2 }}>
-                            <Box display="flex" gap={1}>
+                            {/* <Box display="flex" gap={1}>
                               {rec.userProfile?.linkedInProfile && (
                                 <IconButton size="small" sx={{ color: '#0077b5', '&:hover': { backgroundColor: 'rgba(0, 119, 181, 0.1)', transform: 'scale(1.1)' } }} onClick={() => window.open(rec.userProfile.linkedInProfile, '_blank')} title="View LinkedIn Profile">
                             <LinkedIn fontSize="small" />
                           </IconButton>
                         )}
-                            </Box>
+                            </Box> */}
                         <Button
                           variant="contained"
                           size="small"
@@ -708,6 +708,7 @@ export default function ExhibitorDashboard() {
                             textTransform: 'none',
                                 fontWeight: 500,
                                 px: 1,
+                                ml:10,
                                 '&:hover': {
                                   bgcolor: theme.palette.primary.dark,
                                   transform: 'scale(1.02)'
@@ -875,15 +876,15 @@ export default function ExhibitorDashboard() {
                                   gap: 0.5,
                                   lineHeight: 1.2,
                                   wordBreak: 'break-word',
-                                  cursor: 'pointer',
-                                  color: 'primary.main',
-                                  textDecoration: 'none',
-                                  transition: 'text-decoration 0.2s',
-                                  '&:hover': {
-                                    textDecoration: 'underline',
-                                  },
+                                  // cursor: 'pointer',
+                                  // color: 'primary.main',
+                                  // textDecoration: 'none',
+                                  // transition: 'text-decoration 0.2s',
+                                  // '&:hover': {
+                                  //   textDecoration: 'underline',
+                                  // },
                                 }}
-                                onClick={() => handleNameClick(rec.id)}
+                               // onClick={() => handleNameClick(rec.id)}
                               >
                                 {rec.companyName}
                               </Typography>

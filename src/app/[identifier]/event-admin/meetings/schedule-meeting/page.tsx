@@ -21,7 +21,11 @@ import {
   Box,
   Typography,
   IconButton,
-  Divider
+  Divider,
+  ListSubheader,
+  Avatar,
+  SelectChangeEvent,
+  Popover
 } from '@mui/material';
 import {
   ScheduleSend,
@@ -31,7 +35,19 @@ import {
   Event,
   AccessTime,
   Close,
-  Favorite
+  Favorite,
+  LocationOn,
+  FormatBold,
+  FormatItalic,
+  FormatUnderlined,
+  FormatListBulleted,
+  FormatListNumbered,
+  AttachFile,
+  InsertPhoto,
+  InsertLink,
+  CalendarToday,
+  CheckCircle,
+  Celebration
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -48,6 +64,7 @@ interface MeetingFormData {
   meetingDate: string;
   startTime: string;
   endTime: string;
+  location?: string; // Optional location field
 }
 
 interface Visitor {
@@ -103,6 +120,31 @@ export default function ScheduleMeetingPage() {
   const [selectedExhibitorDetails, setSelectedExhibitorDetails] = useState<any>(null);
   const [loadingVisitorDetails, setLoadingVisitorDetails] = useState(false);
   const [loadingExhibitorDetails, setLoadingExhibitorDetails] = useState(false);
+  const [showAttendeesPopover, setShowAttendeesPopover] = useState(false);
+  const [manuallySelectedVisitor, setManuallySelectedVisitor] = useState<number | null>(null);
+  const [manuallySelectedExhibitor, setManuallySelectedExhibitor] = useState<number | null>(null);
+
+  const getSelectedAttendeesDisplay = () => {
+    const names = [];
+    
+    // Show manually selected visitor
+    if (manuallySelectedVisitor) {
+      const selectedVisitor = visitors.find(v => v.id === manuallySelectedVisitor);
+      if (selectedVisitor) {
+        names.push(`${selectedVisitor.firstName} ${selectedVisitor.lastName}`);
+      }
+    }
+    
+    // Show manually selected exhibitor
+    if (manuallySelectedExhibitor) {
+      const selectedExhibitor = exhibitors.find(e => e.id === manuallySelectedExhibitor);
+      if (selectedExhibitor) {
+        names.push(selectedExhibitor.companyName || `${selectedExhibitor.firstName} ${selectedExhibitor.lastName}`);
+      }
+    }
+    
+    return names.join('; ');
+  };
 
   // Initialize current user data
   useEffect(() => {
@@ -423,9 +465,17 @@ export default function ScheduleMeetingPage() {
     <Dialog 
       open={openDialog} 
       onClose={() => {}} // Prevent closing on outside click
-      maxWidth="md" 
+      maxWidth="sm" 
       fullWidth
       disableEscapeKeyDown={false}
+      PaperProps={{
+        sx: {
+          maxHeight: '80vh',
+          '& .MuiDialogContent-root': {
+            p: 2
+          }
+        }
+      }}
     >
       <DialogTitle sx={{ 
         display: 'flex', 
@@ -434,44 +484,42 @@ export default function ScheduleMeetingPage() {
         gap: 2,
         borderBottom: '1px solid',
         borderColor: 'divider',
-        pb: 2
+        p: 2
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <ScheduleSend color="primary" />
-          <Typography variant="h6" component="div">
-            Schedule New Meeting
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ScheduleSend color="primary" fontSize="small" />
+          <Typography variant="subtitle1" component="div">
+            New meeting
           </Typography>
         </Box>
         <IconButton
           onClick={handleCloseDialog}
           disabled={isSubmitting}
+          size="small"
           sx={{
             transition: 'all 0.3s ease',
             '&:hover': {
-              transform: 'rotate(90deg) scale(1.1)',
+              transform: 'rotate(90deg)',
               backgroundColor: 'action.hover',
-            },
-            '&:active': {
-              transform: 'rotate(180deg) scale(0.9)',
             }
           }}
         >
-          <Close />
+          <Close fontSize="small" />
         </IconButton>
       </DialogTitle>
       
-      <DialogContent sx={{ pt: 3 }}>
+      <DialogContent>
         {submitError && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: 2 }} variant="outlined">
             {submitError}
           </Alert>
         )}
         
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
-            <CircularProgress />
-            <Typography variant="body2" sx={{ ml: 2 }}>
-              Loading participants data...
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 2 }}>
+            <CircularProgress size={20} />
+            <Typography variant="body2" sx={{ ml: 1 }}>
+              Loading participants...
             </Typography>
           </Box>
         )}
@@ -479,218 +527,215 @@ export default function ScheduleMeetingPage() {
         {!loading && (
         <>
           {visitors.length === 0 && exhibitors.length === 0 && (
-            <Alert severity="warning" sx={{ mb: 3 }}>
-              No participants found. Please ensure there are registered visitors and exhibitors for this event.
+            <Alert severity="warning" sx={{ mb: 2 }} variant="outlined">
+              No participants found.
             </Alert>
           )}
-          
 
-          <Grid container spacing={3}>
-          {/* Agenda Field */}
+          <Grid container spacing={2}>
+          {/* Title Field */}
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              sx={{mt: 1}}
-              label="Meeting Agenda"
-              value={meetingForm.agenda}
-              onChange={(e) => handleFormChange('agenda', e.target.value)}
-              multiline
-              rows={1}
-              error={!!formErrors.agenda}
-              helperText={formErrors.agenda}
-              disabled={loading}
-              InputProps={{
-                startAdornment: (
-                  <Description sx={{ mr: 1, color: 'text.secondary' }} />
-                ),
-              }}
-            />
-          </Grid>
-
-          {/* Visitor Selection */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!formErrors.visitorId} disabled={loading || currentUserRole === 'visitor'}>
-              <InputLabel>Select Visitor</InputLabel>
-              <Select
-                value={meetingForm.visitorId}
-                onChange={(e) => {
-                  console.log('🔍 Visitor Select onChange triggered:', e.target.value);
-                  handleFormChange('visitorId', e.target.value);
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
+              <Box
+                sx={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  flexShrink: 0
                 }}
-                label="Select Visitor"
-                startAdornment={
-                  <Person sx={{ mr: 1, color: 'text.secondary' }} />
-                }
               >
-                {/* No visitors state */}
-                {!loading && visitors.length === 0 && (
-                  <MenuItem disabled>
-                    <Typography variant="body2" color="text.secondary">
-                      No visitors available
-                    </Typography>
-                  </MenuItem>
-                )}
-                
-                {/* Current visitor when user is a visitor */}
-                {!loading && currentUserRole === 'visitor' && (
-                  <MenuItem value={currentUserId || ''} disabled>
-                    {visitors.find(v => v.id === currentUserId)?.firstName || 'Current'} {visitors.find(v => v.id === currentUserId)?.lastName || 'Visitor'}
-                    {visitors.find(v => v.id === currentUserId)?.company && ` (${visitors.find(v => v.id === currentUserId)?.company})`}
-                  </MenuItem>
-                )}
-                
-                {/* My Favorites Header */}
-                {!loading && currentUserRole !== 'visitor' && favoriteVisitors.length > 0 && (
-                  <MenuItem disabled>
-                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                      <Favorite sx={{ mr: 1, color: 'error.main', fontSize: 16 }} />
-                      <Typography variant="body2" color="text.secondary" fontWeight="medium">
-                        My Favorites ({favoriteVisitors.length})
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                )}
-                
-                {/* Favorite Visitors */}
-                {!loading && currentUserRole !== 'visitor' && favoriteVisitors.map((favorite) => {
-                  const visitor = visitors.find(v => v.id === favorite.visitorId);
-                  if (!visitor) return null;
-                  return (
-                    <MenuItem key={`fav-${visitor.id}`} value={visitor.id}>
-                      {visitor.firstName} {visitor.lastName}
-                      {visitor.company && ` (${visitor.company})`}
-                    </MenuItem>
-                  );
-                })}
-                
-                {/* Divider */}
-                {!loading && currentUserRole !== 'visitor' && favoriteVisitors.length > 0 && <Divider />}
-                
-                {/* Regular Visitors */}
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' ,ml: 2,mb: 1}}>
-                     
-                      <Typography variant="body2" color="text.secondary" fontWeight={200}>
-                       All Visitors
-                      </Typography>
-                    </Box>
-                  
-                {!loading && currentUserRole !== 'visitor' && visitors
-                  .filter(visitor => !favoriteVisitors.some(f => f.visitorId === visitor.id))
-                  .map((visitor) => (
-                    <MenuItem key={visitor.id} value={visitor.id}>
-                      {visitor.firstName} {visitor.lastName}
-                      {visitor.company && ` (${visitor.company})`}
-                    </MenuItem>
-                  ))}
-              </Select>
-              {formErrors.visitorId && (
-                <FormHelperText>{formErrors.visitorId}</FormHelperText>
-              )}
-            
-              
-              {loadingVisitorDetails && (
-                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CircularProgress size={16} />
-                  <Typography variant="body2" color="text.secondary">
-                    Loading visitor details...
-                  </Typography>
-                </Box>
-              )}
-            </FormControl>
+                <Description fontSize="small" />
+              </Box>
+              <TextField
+                fullWidth
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      border: 'none',
+                    },
+                    '&:hover fieldset': {
+                      border: 'none',
+                    },
+                    '&.Mui-focused fieldset': {
+                      border: 'none',
+                    },
+                    '& input': {
+                      fontSize: '1.25rem',
+                      fontWeight: 500,
+                      padding: '0',
+                      '&::placeholder': {
+                        color: 'text.primary',
+                        opacity: 1,
+                      },
+                    },
+                  },
+                }}
+                placeholder="Add a title"
+                value={meetingForm.agenda}
+                onChange={(e) => handleFormChange('agenda', e.target.value)}
+                variant="outlined"
+                error={!!formErrors.agenda}
+                helperText={formErrors.agenda}
+                disabled={loading}
+              />
+            </Box>
           </Grid>
 
-          {/* Exhibitor Selection */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!formErrors.exhibitorId} disabled={loading || currentUserRole === 'exhibitor'}>
-              <InputLabel>Select Exhibitor</InputLabel>
-              <Select
-                  value={meetingForm.exhibitorId || ''}
-                  onChange={(e) => {
-                    handleFormChange('exhibitorId', e.target.value);
-                  }}
-                  onOpen={() => {
-                    console.log('🔍 Exhibitor Select opened');
-                  }}
-                  onClose={() => {
-                    console.log('🔍 Exhibitor Select closed');
-                  }}
-                label="Select Exhibitor"
-                startAdornment={
-                  <Business sx={{ mr: 1, color: 'text.secondary' }} />
-                }
+          {/* Attendees Selection */}
+          <Grid item xs={12}>
+            <Box sx={{ position: 'relative' }}>
+              <TextField
+                fullWidth
+                placeholder="Invite attendees"
+                onClick={() => setShowAttendeesPopover(true)}
+                value={getSelectedAttendeesDisplay()}
+                InputProps={{
+                  startAdornment: (
+                    <Person sx={{ mr: 1, color: 'text.secondary' }} />
+                  ),
+                  readOnly: true,
+                  sx: {
+                    cursor: 'pointer',
+                    '& fieldset': {
+                      borderColor: 'transparent',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                  }
+                }}
+              />
+              <Popover
+                open={showAttendeesPopover}
+                onClose={() => setShowAttendeesPopover(false)}
+                anchorEl={document.activeElement}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'left',
+                }}
+                PaperProps={{
+                  sx: {
+                    width: '100%',
+                    maxWidth: 400,
+                    mt: 1,
+                    maxHeight: 400,
+                    overflow: 'auto'
+                  }
+                }}
               >
-                {/* Loading state */}
-                {loading && (
-                  <MenuItem disabled>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CircularProgress size={16} />
-                      <Typography variant="body2" color="text.secondary">
-                        Loading exhibitors...
-                      </Typography>
+                <Box sx={{ p: 2 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                    Suggested contacts
+                  </Typography>
+                  
+                  {/* Visitor Selection - Only show if not a visitor */}
+                  {currentUserRole !== 'visitor' && (
+                    <Box>
+                      {!loading && visitors.map((visitor) => (
+                        <Box
+                          key={visitor.id}
+                          onClick={() => {
+                            handleFormChange('visitorId', visitor.id);
+                            setManuallySelectedVisitor(visitor.id);
+                            setManuallySelectedExhibitor(null); // Clear other manual selection
+                            setShowAttendeesPopover(false);
+                          }}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            p: 1,
+                            cursor: 'pointer',
+                            borderRadius: 1,
+                            '&:hover': {
+                              bgcolor: 'action.hover'
+                            }
+                          }}
+                        >
+                          <Avatar 
+                            sx={{ 
+                              width: 32, 
+                              height: 32,
+                              bgcolor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                            }}
+                          >
+                            {visitor.firstName[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2">
+                              {visitor.firstName} {visitor.lastName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {visitor.email}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      ))}
                     </Box>
-                  </MenuItem>
-                )}
-                
-                                {/* No exhibitors state */}
-                {!loading && exhibitors.length === 0 && (
-                  <MenuItem disabled>
-                    <Typography variant="body2" color="text.secondary">
-                      No exhibitors available
-                    </Typography>
-                  </MenuItem>
-                )}
-                
-                {/* My Favorites Header */}
-                {!loading && favoriteExhibitors.length > 0 && (
-                  <MenuItem disabled>
-                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                      <Favorite sx={{ mr: 1, color: 'error.main', fontSize: 16 }} />
-                      <Typography variant="body2" color="text.secondary" fontWeight="medium">
-                        My Favorites ({favoriteExhibitors.length})
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                )}
-                
-                {/* Favorite Exhibitors */}
-                {!loading && favoriteExhibitors.map((favorite) => {
-                  const exhibitor = exhibitors.find(e => e.id === favorite.id);
-                  if (!exhibitor) return null;
-                  return (
-                    <MenuItem key={`fav-${exhibitor.id}`} value={exhibitor.id}>
-                      {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                      {exhibitor.companyType && ` (${exhibitor.companyType})`}
-                    </MenuItem>
-                  );
-                })}
-                
-                {/* Divider */}
-                {!loading && favoriteExhibitors.length > 0 && <Divider />}
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' ,ml: 2,mb: 1}}>
-                     
-                      <Typography variant="body2" color="text.secondary" fontWeight={200}>
-                       All Exhibitors
-                      </Typography>
-                    </Box>
-                {/* Regular Exhibitors */}
-                {!loading && exhibitors
-                  .filter(exhibitor => !favoriteExhibitors.some(f => f.id === exhibitor.id))
-                  .map((exhibitor) => (
-                    <MenuItem key={exhibitor.id} value={exhibitor.id}>
-                      {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                      {exhibitor.companyType && ` (${exhibitor.companyType})`}
-                    </MenuItem>
-                  ))}
-              </Select>
-              {formErrors.exhibitorId && (
-                <FormHelperText>{formErrors.exhibitorId}</FormHelperText>
-              )}
-              
-         
-              
+                  )}
 
-            </FormControl>
+                  {/* Exhibitor Selection - Only show if not an exhibitor */}
+                  {currentUserRole !== 'exhibitor' && (
+                    <Box>
+                      {!loading && exhibitors.map((exhibitor) => (
+                        <Box
+                          key={exhibitor.id}
+                          onClick={() => {
+                            handleFormChange('exhibitorId', exhibitor.id);
+                            setManuallySelectedExhibitor(exhibitor.id);
+                            setManuallySelectedVisitor(null); // Clear other manual selection
+                            setShowAttendeesPopover(false);
+                          }}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            p: 1,
+                            cursor: 'pointer',
+                            borderRadius: 1,
+                            '&:hover': {
+                              bgcolor: 'action.hover'
+                            }
+                          }}
+                        >
+                          <Avatar 
+                            sx={{ 
+                              width: 32, 
+                              height: 32,
+                              bgcolor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                            }}
+                          >
+                            {exhibitor.companyName?.[0] || exhibitor.firstName?.[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2">
+                              {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {exhibitor.email}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              </Popover>
+            </Box>
+            {(formErrors.visitorId || formErrors.exhibitorId) && (
+              <FormHelperText error>
+                {formErrors.visitorId || formErrors.exhibitorId}
+              </FormHelperText>
+            )}
           </Grid>
 
           {/* Meeting Date */}
@@ -712,66 +757,317 @@ export default function ScheduleMeetingPage() {
                   <Event sx={{ mr: 1, color: 'text.secondary' }} />
                 ),
               }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  height: '40px',
+                  '& input': {
+                    padding: '8px 12px',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '0.875rem',
+                },
+              }}
             />
           </Grid>
 
           {/* Start Time */}
           <Grid item xs={12} md={4}>
+            <FormControl fullWidth error={!!formErrors.startTime} disabled={loading}>
+              <InputLabel>Start Time</InputLabel>
+              <Select
+                value={meetingForm.startTime}
+                onChange={(e) => handleFormChange('startTime', e.target.value)}
+                label="Start Time"
+                startAdornment={
+                  <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
+                }
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    height: '40px',
+                  },
+                  '& .MuiSelect-select': {
+                    padding: '8px 12px',
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.875rem',
+                  },
+                }}
+              >
+                {Array.from({ length: 48 }, (_, i) => {
+                  const hour = Math.floor(i / 2);
+                  const minute = i % 2 === 0 ? '00' : '30';
+                  const ampm = hour < 12 ? 'AM' : 'PM';
+                  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                  const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
+                  const displayTime = `${displayHour}:${minute} ${ampm}`;
+                  return (
+                    <MenuItem key={timeValue} value={timeValue}>
+                      {displayTime}
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+              {formErrors.startTime && (
+                <FormHelperText>{formErrors.startTime}</FormHelperText>
+              )}
+            </FormControl>
+          </Grid>
+
+          {/* End Time */}
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth error={!!formErrors.endTime} disabled={loading}>
+              <InputLabel>End Time</InputLabel>
+              <Select
+                value={meetingForm.endTime}
+                onChange={(e) => handleFormChange('endTime', e.target.value)}
+                label="End Time"
+                startAdornment={
+                  <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
+                }
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    height: '40px',
+                  },
+                  '& .MuiSelect-select': {
+                    padding: '8px 12px',
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.875rem',
+                  },
+                }}
+              >
+                {Array.from({ length: 48 }, (_, i) => {
+                  const hour = Math.floor(i / 2);
+                  const minute = i % 2 === 0 ? '00' : '30';
+                  const ampm = hour < 12 ? 'AM' : 'PM';
+                  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                  const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
+                  const displayTime = `${displayHour}:${minute} ${ampm}`;
+                  return (
+                    <MenuItem 
+                      key={timeValue} 
+                      value={timeValue}
+                      disabled={timeValue <= meetingForm.startTime}
+                    >
+                      {displayTime}
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+              {formErrors.endTime && (
+                <FormHelperText>{formErrors.endTime}</FormHelperText>
+              )}
+            </FormControl>
+          </Grid>
+
+          {/* Location Field */}
+          <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Start Time"
-              type="time"
-              value={meetingForm.startTime}
-              onChange={(e) => handleFormChange('startTime', e.target.value)}
-              error={!!formErrors.startTime}
-              helperText={formErrors.startTime}
-              disabled={loading}
-              InputLabelProps={{
-                shrink: true,
+              placeholder="Add a room or location"
+              value={meetingForm.location || ''}
+              onChange={(e) => handleFormChange('location', e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: 'transparent',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
               }}
               InputProps={{
                 startAdornment: (
-                  <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                    <LocationOn fontSize="small" />
+                  </Box>
                 ),
               }}
             />
           </Grid>
 
-          {/* End Time */}
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="End Time"
-              type="time"
-              value={meetingForm.endTime}
-              onChange={(e) => handleFormChange('endTime', e.target.value)}
-              error={!!formErrors.endTime}
-              helperText={formErrors.endTime}
-              disabled={loading}
-              InputLabelProps={{
-                shrink: true,
+          {/* Rich Text Editor Area */}
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                bgcolor: 'background.paper',
               }}
-              InputProps={{
-                startAdornment: (
-                  <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
-                ),
-              }}
-            />
+            >
+              {/* Editor Toolbar */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, pb: 2, borderBottom: '1px solid', borderColor: 'divider', alignItems: 'center' }}>
+                {/* Paperclip with dropdown */}
+                <IconButton size="small" sx={{ position: 'relative' }}>
+                  <AttachFile />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: -2,
+                      right: -2,
+                      width: 8,
+                      height: 8,
+                      borderLeft: '4px solid transparent',
+                      borderRight: '4px solid transparent',
+                      borderTop: '4px solid #666',
+                    }}
+                  />
+                </IconButton>
+                
+                {/* Picture frame */}
+                <IconButton size="small">
+                  <InsertPhoto />
+                </IconButton>
+                
+                {/* Smiley face emoji */}
+                <IconButton size="small">
+                  <Box
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      bgcolor: '#FFD700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      color: '#000',
+                      border: '1px solid #000'
+                    }}
+                  >
+                    😊
+                  </Box>
+                </IconButton>
+                
+                {/* Pencil with A and square */}
+                <IconButton size="small" sx={{ position: 'relative' }}>
+                  <Box sx={{ position: 'relative' }}>
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: '16px',
+                        color: '#1976d2',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      A
+                    </Box>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: -8,
+                        right: -4,
+                        width: 6,
+                        height: 6,
+                        bgcolor: '#ccc',
+                        borderRadius: '1px'
+                      }}
+                    />
+                  </Box>
+                </IconButton>
+                
+                {/* Pencil with lines */}
+                <IconButton size="small">
+                  <Box sx={{ position: 'relative' }}>
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 2,
+                        bgcolor: '#666',
+                        mb: 0.5
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 2,
+                        bgcolor: '#666',
+                        mb: 0.5
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 2,
+                        bgcolor: '#666'
+                      }}
+                    />
+                  </Box>
+                </IconButton>
+                
+                {/* Blue outlined shape with P */}
+                <IconButton size="small">
+                  <Box
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      border: '2px solid #1976d2',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      color: '#1976d2',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    P
+                  </Box>
+                </IconButton>
+                
+                {/* Document with refresh arrow */}
+                <IconButton size="small">
+                  <Box sx={{ position: 'relative' }}>
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 20,
+                        border: '1px solid #666',
+                        borderRadius: '2px',
+                        bgcolor: 'white'
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 2,
+                        left: 2,
+                        width: 12,
+                        height: 12,
+                        border: '1px solid #666',
+                        borderRadius: '50%',
+                        borderTop: '1px solid transparent',
+                        transform: 'rotate(-45deg)'
+                      }}
+                    />
+                  </Box>
+                </IconButton>
+              </Box>
+            </Box>
           </Grid>
+
         </Grid>
         </>
         )}
       </DialogContent>
 
       <DialogActions sx={{ 
-        px: 3, 
-        py: 2, 
+        p: 2, 
         borderTop: '1px solid',
-        borderColor: 'divider'
+        borderColor: 'divider',
+        gap: 1
       }}>
         <Button 
           onClick={handleCloseDialog} 
-          variant="outlined" 
+          size="small"
           disabled={isSubmitting}
         >
           Cancel
@@ -779,10 +1075,11 @@ export default function ScheduleMeetingPage() {
         <Button 
           variant="contained" 
           onClick={handleSubmit} 
+          size="small"
           disabled={isSubmitting}
-          startIcon={isSubmitting ? <CircularProgress size={16} /> : <ScheduleSend />}
+          startIcon={isSubmitting ? <CircularProgress size={14} /> : <ScheduleSend fontSize="small" />}
         >
-          {isSubmitting ? 'Scheduling...' : 'Schedule Meeting'}
+          {isSubmitting ? 'Scheduling...' : 'Send'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -794,25 +1091,129 @@ export default function ScheduleMeetingPage() {
       maxWidth="sm"
       fullWidth
       disableEscapeKeyDown
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+          overflow: 'hidden',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(90deg, #1976d2, #42a5f5, #90caf9)',
+          }
+        }
+      }}
     >
-      <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
+      <DialogTitle 
+        sx={{ 
+          borderBottom: '1px solid', 
+          borderColor: 'divider', 
+          pb: 3,
+          pt: 3,
+          px: 3,
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <ScheduleSend color="primary" />
-          <Typography variant="h6">Meeting Scheduled Successfully</Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+              animation: 'pulse 2s infinite'
+            }}
+          >
+            <CheckCircle sx={{ color: 'white', fontSize: 28 }} />
+          </Box>
+          <Box>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 0.5
+              }}
+            >
+              Meeting Scheduled Successfully!
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              Your meeting has been confirmed and added to the calendar
+            </Typography>
+          </Box>
         </Box>
       </DialogTitle>
-      <DialogContent sx={{ pt: 3 }}>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          Your meeting has been scheduled for:
-        </Typography>
-        <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 1 }}>
-          Date: {confirmationDetails.date}
-        </Typography>
-        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-          Time: {confirmationDetails.time}
-        </Typography>
+      <DialogContent sx={{ pt: 4, px: 3, pb: 2 }}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary', fontWeight: 500 }}>
+            Meeting Details:
+          </Typography>
+          <Box sx={{ 
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%)',
+            borderRadius: 2,
+            p: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '4px',
+              background: 'linear-gradient(180deg, #1976d2, #42a5f5)',
+              borderRadius: '0 2px 2px 0'
+            }
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <CalendarToday sx={{ color: 'primary.main', fontSize: 20 }} />
+              <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                {confirmationDetails.date}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AccessTime sx={{ color: 'primary.main', fontSize: 20 }} />
+              <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                {confirmationDetails.time}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1.5,
+          p: 2,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)',
+          border: '1px solid',
+          borderColor: 'success.light'
+        }}>
+          <Celebration sx={{ color: 'success.main', fontSize: 20 }} />
+          <Typography variant="body2" sx={{ color: 'success.dark', fontWeight: 500 }}>
+            All participants will receive calendar invitations 
+          </Typography>
+        </Box>
       </DialogContent>
-      <DialogActions sx={{ borderTop: '1px solid', borderColor: 'divider', p: 2 }}>
+      <DialogActions sx={{ 
+        borderTop: '1px solid', 
+        borderColor: 'divider', 
+        p: 3,
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+      }}>
         <Button
           variant="contained"
           onClick={() => {
@@ -821,10 +1222,39 @@ export default function ScheduleMeetingPage() {
           }}
           autoFocus
           startIcon={<ScheduleSend />}
+          sx={{
+            background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+            borderRadius: 2,
+            px: 4,
+            py: 1.5,
+            fontWeight: 600,
+            textTransform: 'none',
+            fontSize: '1rem',
+            boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+              boxShadow: '0 6px 16px rgba(25, 118, 210, 0.4)',
+              transform: 'translateY(-1px)'
+            },
+            transition: 'all 0.3s ease'
+          }}
         >
-          OK
+          View All Meetings
         </Button>
       </DialogActions>
+      <style jsx>{`
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </Dialog>
      </ResponsiveDashboardLayout>
      </RoleBasedRoute>

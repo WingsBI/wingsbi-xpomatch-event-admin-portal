@@ -82,11 +82,16 @@ export default function ExhibitorDashboard() {
         setExhibitorId(currentExhibitorId);
         
         if (currentExhibitorId && identifier) {
+          // Fetch exhibitor recommendations
           const response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
           if (response && response.result) {
             const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setExhibitorRecommendations(sorted);
           }
+          
+          // Also fetch favorited exhibitors to update favorite state
+          const favorites = await FavoritesManager.getExhibitorFavoriteExhibitors(identifier);
+          setFavoriteVisitorIds(new Set(favorites.map(fav => fav.id)));
         }
       } catch (error) {
         console.error('Error fetching exhibitor recommendations:', error);
@@ -135,26 +140,19 @@ export default function ExhibitorDashboard() {
     setDialogOpen(true);
   };
 
-  // Load favorites on mount
-  useEffect(() => {
-    const loadFavorites = async () => {
-      const favorites = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
-      setFavoriteVisitorIds(new Set(favorites.map(fav => fav.visitorId)));
-    };
-    loadFavorites();
-  }, []);
 
-  // Toggle handler
-  const handleFavoriteToggle = async (visitorId: string) => {
-    setLoadingFavoriteId(visitorId);
-    const isCurrentlyFavorite = favoriteVisitorIds.has(visitorId);
-    const finalStatus = await FavoritesManager.toggleVisitorFavorite(identifier, visitorId, isCurrentlyFavorite);
+
+  // Toggle handler for exhibitor-to-exhibitor favorites
+  const handleFavoriteToggle = async (exhibitorId: string) => {
+    setLoadingFavoriteId(exhibitorId);
+    const isCurrentlyFavorite = favoriteVisitorIds.has(exhibitorId);
+    const finalStatus = await FavoritesManager.toggleExhibitorToExhibitorFavorite(identifier, exhibitorId, isCurrentlyFavorite);
     setFavoriteVisitorIds(prev => {
       const newSet = new Set(prev);
       if (finalStatus) {
-        newSet.add(visitorId);
+        newSet.add(exhibitorId);
       } else {
-        newSet.delete(visitorId);
+        newSet.delete(exhibitorId);
       }
       return newSet;
     });
@@ -170,6 +168,8 @@ export default function ExhibitorDashboard() {
         try {
           const exhibitorId = getCurrentExhibitorId();
           if (!exhibitorId) throw new Error('Exhibitor ID not found');
+          
+          // Fetch visitor recommendations
           const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
           console.log("responseee", response);
           if (response.isError) {
@@ -180,6 +180,10 @@ export default function ExhibitorDashboard() {
             const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setRecommendations(sorted);
           }
+          
+          // Also fetch favorited visitors to update favorite state
+          const favoriteVisitors = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
+          setFavoriteVisitorIds(new Set(favoriteVisitors.map(fav => fav.visitorId)));
         } catch (err: any) {
           setError(err.message || 'An error occurred while fetching recommendations');
           setRecommendations([]);

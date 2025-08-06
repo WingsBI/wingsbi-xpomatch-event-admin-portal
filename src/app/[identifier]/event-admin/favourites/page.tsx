@@ -41,7 +41,7 @@ import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardL
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
-import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor, type FavoritesRequest } from '@/services/fieldMappingApi';
+import { fieldMappingApi, type VisitorFavoritesResponse, type VisitorFavoriteExhibitor, type ExhibitorFavoriteVisitorsResponse, type ExhibitorFavoriteVisitor, type FavoritesRequest, type AddExhibitorFavouriteRequest, type Exhibitor } from '@/services/fieldMappingApi';
 import { getCurrentExhibitorId, getCurrentVisitorId, decodeJWTToken, isEventAdmin } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { useRouter } from 'next/navigation';
@@ -131,7 +131,7 @@ const transformVisitorData = (apiVisitor: ExhibitorFavoriteVisitor): Transformed
   };
 };
 
-// Transform API exhibitor data to UI format
+// Transform API exhibitor data to UI format (for visitor favorites)
 const transformExhibitorData = (apiExhibitor: VisitorFavoriteExhibitor): TransformedExhibitor => {
   const userMap = apiExhibitor.exhibitorToUserMaps?.[0];
   const profile = apiExhibitor.exhibitorProfile?.[0];
@@ -221,6 +221,31 @@ const transformExhibitorData = (apiExhibitor: VisitorFavoriteExhibitor): Transfo
   };
 };
 
+// Transform basic Exhibitor data to UI format (for exhibitor favorites)
+const transformBasicExhibitorData = (apiExhibitor: Exhibitor): TransformedExhibitor => {
+  return {
+    id: apiExhibitor.id.toString(),
+    name: `${apiExhibitor.firstName} ${apiExhibitor.lastName}`,
+    email: apiExhibitor.email || '',
+    company: apiExhibitor.companyName || 'Unknown Company',
+    jobTitle: apiExhibitor.jobTitle || '',
+    type: 'exhibitor' as const,
+    avatar: apiExhibitor.companyName?.charAt(0).toUpperCase() || 'E',
+    phone: apiExhibitor.phoneNumber,
+    location: [apiExhibitor.city, apiExhibitor.country].filter(Boolean).join(', '),
+    interests: apiExhibitor.interests || [],
+    customData: {
+      industry: apiExhibitor.industry,
+      boothNumber: apiExhibitor.boothNumber,
+      products: apiExhibitor.products || [],
+      website: apiExhibitor.website,
+      companyProfile: apiExhibitor.companyDescription,
+      listingAs: apiExhibitor.industry,
+      experience: apiExhibitor.experience,
+    }
+  };
+};
+
 export default function FavouritesPage() {
   const params = useParams();
   const identifier = params.identifier as string;
@@ -232,7 +257,7 @@ export default function FavouritesPage() {
   const [visitorFavourites, setVisitorFavourites] = useState<TransformedVisitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tabValue, setTabValue] = useState(0); // 0 = Visitors, 1 = Exhibitors
+  const [tabValue, setTabValue] = useState(0); // For exhibitors: 0 = Visitors, 1 = Exhibitors; For visitors: 0 = Exhibitors
   const [searchTerm, setSearchTerm] = useState('');
   const [removingFavorite, setRemovingFavorite] = useState<string | null>(null);
   const [isVisitor, setIsVisitor] = useState(false);
@@ -244,8 +269,10 @@ export default function FavouritesPage() {
     const tokenData = decodeJWTToken();
     if (tokenData && (tokenData.roleName === 'Visitor' || tokenData.role === 'visitor' || tokenData.roleId === 4 || tokenData.roleid === 4)) {
       setIsVisitor(true);
+      setTabValue(0); // For visitors, always start with Exhibitors tab (index 0)
     } else {
       setIsVisitor(false);
+      setTabValue(0); // For exhibitors, start with Visitors tab (index 0)
     }
   }, []);
 
@@ -323,7 +350,7 @@ export default function FavouritesPage() {
         }
         setVisitorFavourites([]); // No visitors tab for visitor
       } else {
-        // For exhibitors: load only visitor favorites
+        // For exhibitors: load visitor favorites and exhibitor favorites
         const currentExhibitorId = getCurrentExhibitorId();
         if (!currentExhibitorId) {
           throw new Error('No exhibitor ID found in token');
@@ -332,6 +359,7 @@ export default function FavouritesPage() {
         console.log('🔍 Loading exhibitor favorites for exhibitor ID:', currentExhibitorId);
         console.log('🔍 Token data:', decodeJWTToken());
         
+        // Load visitor favorites
         const visitorResponse = await fieldMappingApi.getAllExhibitorFavorites(identifier, currentExhibitorId);
         
         if (visitorResponse.statusCode === 200 && visitorResponse.result) {
@@ -345,7 +373,21 @@ export default function FavouritesPage() {
             setError(visitorResponse.message || 'Failed to load favorite visitors');
           }
         }
-        setExhibitorFavourites([]); // No exhibitor favorites for exhibitors
+
+        // Load exhibitor favorites using getFavouritedExhibitors
+        const exhibitorResponse = await fieldMappingApi.getFavouritedExhibitors(identifier, currentExhibitorId);
+        
+        if (exhibitorResponse.statusCode === 200 && exhibitorResponse.result) {
+          console.log('✅ Loaded exhibitor favorites:', exhibitorResponse.result.length, 'exhibitors');
+          const transformedExhibitors = exhibitorResponse.result.map(transformBasicExhibitorData);
+          setExhibitorFavourites(transformedExhibitors);
+        } else {
+          console.log('📦 No exhibitor favorites found or API error');
+          setExhibitorFavourites([]);
+          if (exhibitorResponse.message) {
+            setError(exhibitorResponse.message || 'Failed to load favorite exhibitors');
+          }
+        }
       }
     } catch (err: any) {
       console.error('Error loading favorites:', err);
@@ -387,17 +429,21 @@ export default function FavouritesPage() {
 
     try {
       setRemovingFavorite(exhibitorId);
-      // Get current user ID (defaulting to 1 for now)
-      let currentUserId = 1; // Using visitor ID 1 for exhibitor favorites
+      
+      // Get current exhibitor ID from token
+      const currentExhibitorId = getCurrentExhibitorId();
+      if (!currentExhibitorId) {
+        throw new Error('No exhibitor ID found in token');
+      }
 
-      const payload: FavoritesRequest = {
-        visitorId: currentUserId,
-        exhibitorId: parseInt(exhibitorId),
-        isFavorite: false // Set to false to remove from favorites
+      const payload: AddExhibitorFavouriteRequest = {
+        likedByExhibitorId: currentExhibitorId,
+        likedExhibitorId: parseInt(exhibitorId),
+        isFavourite: false // Set to false to remove from favorites
       };
 
       console.log('🔥 Removing exhibitor from favorites:', payload);
-      const response = await fieldMappingApi.addFavorites(identifier, payload);
+      const response = await fieldMappingApi.addExhibitorFavorite(identifier, payload);
 
       if (response.statusCode === 200 && response.result) {
         console.log('✅ Successfully removed exhibitor from favorites');
@@ -508,6 +554,8 @@ export default function FavouritesPage() {
 
           <Paper sx={{ mb: 2, mt:-2 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
+              {/* Show Visitors tab only for exhibitors */}
+              {!isVisitor && (
               <Tab 
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -515,6 +563,8 @@ export default function FavouritesPage() {
                   </Box>
                 } 
               />
+              )}
+              {/* Show Exhibitors tab for both visitors and exhibitors */}
               <Tab 
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -526,8 +576,10 @@ export default function FavouritesPage() {
           </Paper>
 
           {/* Content based on selected tab */}
-          {tabValue === 0 && (
-            // Visitors Tab
+          {/* For exhibitors: tabValue 0 = Visitors, tabValue 1 = Exhibitors */}
+          {/* For visitors: only tabValue 0 = Exhibitors */}
+          {(!isVisitor && tabValue === 0) && (
+            // Visitors Tab (only for exhibitors)
             <>
               <Grid container spacing={1.5}>
                 {getFilteredVisitors().map((visitor) => (
@@ -771,8 +823,8 @@ export default function FavouritesPage() {
             </>
           )}
 
-          {tabValue === 1 && (
-            // Exhibitors Tab
+          {((isVisitor && tabValue === 0) || (!isVisitor && tabValue === 1)) && (
+            // Exhibitors Tab (for visitors: index 0, for exhibitors: index 1)
             <>
               <Grid container spacing={1.5}>
                 {getFilteredExhibitors().map((exhibitor) => (

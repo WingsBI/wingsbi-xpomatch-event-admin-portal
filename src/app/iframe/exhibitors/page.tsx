@@ -53,7 +53,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { fieldMappingApi, type Exhibitor, type FavoritesRequest, type GetFavoritesResponse } from '@/services/fieldMappingApi';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
-import { getCurrentUserId, isEventAdmin } from '@/utils/authUtils';
+import { getCurrentUserId, getCurrentExhibitorId, isEventAdmin } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface ExhibitorCardProps {
@@ -148,6 +148,13 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
   const router = useRouter();
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
+  // Debug heart icon rendering (only log changes, not every render)
+  useEffect(() => {
+    if (isFavorite) {
+      console.log('💖 ExhibitorCard favorite status changed - Exhibitor:', exhibitor.company, 'ID:', exhibitor.id, 'isFavorite:', isFavorite);
+    }
+  }, [isFavorite, exhibitor.id, exhibitor.company]);
+
   // Debug website data
   useEffect(() => {
     console.log('🔍 Website icon check:', {
@@ -198,14 +205,41 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
     setIsLoadingFavorite(true);
 
     try {
-      // Use FavoritesManager to toggle favorite status
-      const finalStatus = await FavoritesManager.toggleExhibitorFavorite(identifier, exhibitor.id, isFavorite);
+      // Check if current user is an exhibitor
+      const currentExhibitorId = getCurrentExhibitorId();
+      let finalStatus: boolean;
+      
+      console.log('🔍 Current status before API call:', isFavorite);
+      console.log('🔍 Expected status after API call:', !isFavorite);
+      
+      if (currentExhibitorId) {
+        // User is an exhibitor - use exhibitor-to-exhibitor favorite method
+        console.log('🏢 User is exhibitor, using exhibitor-to-exhibitor favorite API');
+        finalStatus = await FavoritesManager.toggleExhibitorToExhibitorFavorite(identifier, exhibitor.id, isFavorite);
+      } else {
+        // User is a visitor - use visitor-to-exhibitor favorite method
+        console.log('👤 User is visitor, using visitor-to-exhibitor favorite API');
+        finalStatus = await FavoritesManager.toggleExhibitorFavorite(identifier, exhibitor.id, isFavorite);
+      }
+      
+      console.log('🔍 Final status returned from API:', finalStatus);
+      console.log('🔍 UI will be updated to:', finalStatus);
       
       // Update UI with the final status from API
       onFavoriteToggle(exhibitor.id, finalStatus);
       
       if (finalStatus !== newFavoriteState) {
-        console.log('⚠️ API returned different status than expected, UI updated to match API');
+        console.log('⚠️ API returned different status than expected');
+        console.log('⚠️ Expected:', newFavoriteState, 'Got:', finalStatus);
+      } else {
+        console.log('✅ API returned expected status:', finalStatus);
+      }
+      
+      // For exhibitor users, reload favorites to ensure we have the latest state
+      if (getCurrentExhibitorId()) {
+        console.log('🔄 Will reload favorites after successful toggle to ensure sync');
+        // Note: For now, the immediate UI update should be sufficient
+        // If persistence issues continue, we can add a page-level reload mechanism
       }
     } catch (error) {
       console.error('Error updating favorites:', error);
@@ -368,7 +402,7 @@ function ExhibitorCard({ exhibitor, visitorInterests, isClient, identifier, isFa
               }
             }}
           >
-            {(isLoadingFavorite) ? (
+            {isLoadingFavorite ? (
               <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
             ) : isFavorite ? (
               <Favorite
@@ -790,32 +824,67 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
 
   // Load all favorite statuses in one API call
   const loadFavoriteStatuses = async (eventIdentifier: string) => {
-    if (!eventIdentifier) return;
+    if (!eventIdentifier) {
+      console.log('❌ loadFavoriteStatuses called with empty identifier');
+      return;
+    }
 
+    console.log('🚀 loadFavoriteStatuses CALLED with identifier:', eventIdentifier);
+    
     try {
       console.log('🔍 Loading all exhibitor favorite statuses');
       
-      // Get current visitor ID
-      let currentUserId = getCurrentUserId();
-      if (!currentUserId) {
-        console.log('🔍 No user ID found, using default ID 1 for favorites check');
-        currentUserId = 1;
-      }
-
-      const response = await fieldMappingApi.getVisitorFavorites(eventIdentifier, currentUserId);
+      // Check if current user is an exhibitor
+      const currentExhibitorId = getCurrentExhibitorId();
+      console.log('🔍 Role detection - currentExhibitorId:', currentExhibitorId);
+      console.log('🔍 User type:', currentExhibitorId ? 'EXHIBITOR' : 'VISITOR');
       
-      if (response.statusCode === 200 && response.result?.exhibitors) {
+      if (currentExhibitorId) {
+        // User is an exhibitor - load exhibitor-to-exhibitor favorites using getFavouritedExhibitors
+        console.log('🏢 User is exhibitor - loading exhibitor-to-exhibitor favorites');
+        
+        const favoriteExhibitors = await FavoritesManager.getExhibitorFavoriteExhibitors(eventIdentifier);
+        console.log('🔍 API returned favorite exhibitors:', favoriteExhibitors);
+        
         const favoriteIds = new Set(
-          response.result.exhibitors.map((exhibitor: any) => exhibitor.id.toString())
+          favoriteExhibitors.map((exhibitor: any) => {
+            console.log('🔍 Processing favorite exhibitor:', exhibitor.id, 'as string:', exhibitor.id.toString());
+            return exhibitor.id.toString();
+          })
         );
         setFavoriteExhibitors(favoriteIds);
-        console.log('✅ Loaded favorite statuses for', favoriteIds.size, 'exhibitors');
+        console.log('✅ Loaded', favoriteIds.size, 'favorite exhibitors for exhibitor user');
+        console.log('✅ Favorite IDs set:', Array.from(favoriteIds));
       } else {
-        console.log('📦 No favorites found in API or API error');
-        setFavoriteExhibitors(new Set());
+        // User is a visitor - use visitor favorites API
+        console.log('👤 User is visitor - loading visitor-to-exhibitor favorites');
+        
+        // Get current visitor ID
+        let currentUserId = getCurrentUserId();
+        if (!currentUserId) {
+          console.log('🔍 No user ID found, using default ID 1 for favorites check');
+          currentUserId = 1;
+        }
+
+        const response = await fieldMappingApi.getVisitorFavorites(eventIdentifier, currentUserId);
+        
+        if (response.statusCode === 200 && response.result?.exhibitors) {
+          const favoriteIds = new Set(
+            response.result.exhibitors.map((exhibitor: any) => exhibitor.id.toString())
+          );
+          setFavoriteExhibitors(favoriteIds);
+          console.log('✅ Loaded favorite statuses for', favoriteIds.size, 'exhibitors');
+        } else {
+          console.log('📦 No favorites found in API or API error');
+          setFavoriteExhibitors(new Set());
+        }
       }
     } catch (error) {
-      console.error('Error loading favorite statuses:', error);
+      console.error('❌ Error loading favorite statuses:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       setFavoriteExhibitors(new Set());
     }
   };
@@ -861,11 +930,14 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
       const response = await fieldMappingApi.getAllExhibitors(eventIdentifier);
 
       if (response.statusCode === 200 && response.result) {
+        console.log('✅ Exhibitors loaded successfully, count:', response.result.length);
         const transformedExhibitors = response.result.map((exhibitor: Exhibitor, index: number) => transformExhibitorData(exhibitor, eventIdentifier, index));
         setExhibitors(transformedExhibitors);
 
+        console.log('🔄 About to call loadFavoriteStatuses with identifier:', eventIdentifier);
         // Load favorite statuses after exhibitors are loaded
         await loadFavoriteStatuses(eventIdentifier);
+        console.log('✅ loadFavoriteStatuses completed');
       } else {
         setError('Failed to fetch exhibitors data');
       }
@@ -1088,13 +1160,19 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
                 identifier={identifier || ''}
                 isFavorite={favoriteExhibitors.has(exhibitor.id)}
                 onFavoriteToggle={(id, newStatus) => {
+                  console.log('🔄 onFavoriteToggle called with:', { id, newStatus });
                   setFavoriteExhibitors(prev => {
+                    console.log('🔄 Previous favorites set:', Array.from(prev));
                     const newSet = new Set(prev);
                     if (newStatus) {
+                      console.log('🔄 Adding exhibitor to favorites:', id);
                       newSet.add(id);
                     } else {
+                      console.log('🔄 Removing exhibitor from favorites:', id);
                       newSet.delete(id);
                     }
+                    console.log('🔄 New favorites set:', Array.from(newSet));
+                    console.log('🔄 Is exhibitor', id, 'now favorited?', newSet.has(id));
                     return newSet;
                   });
                 }}

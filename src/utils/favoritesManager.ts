@@ -1,4 +1,4 @@
-import { fieldMappingApi, type FavoritesRequest } from '@/services/fieldMappingApi';
+import { fieldMappingApi, type FavoritesRequest, type AddExhibitorFavouriteRequest } from '@/services/fieldMappingApi';
 import { getCurrentVisitorId, getCurrentExhibitorId } from '@/utils/authUtils';
 
 /**
@@ -185,6 +185,109 @@ export class FavoritesManager {
     } catch (error) {
       console.error('Error getting exhibitor favorite visitors:', error);
       return [];
+    }
+  }
+
+  /**
+   * Toggle exhibitor favorite status for another exhibitor (exhibitor-to-exhibitor favorites)
+   */
+  static async toggleExhibitorToExhibitorFavorite(identifier: string, targetExhibitorId: string, currentStatus: boolean): Promise<boolean> {
+    try {
+      let currentExhibitorId = getCurrentExhibitorId();
+      if (!currentExhibitorId) {
+        console.log('🔍 No exhibitor ID found in token, cannot toggle exhibitor favorite');
+        return currentStatus; // Return current status if no exhibitor ID
+      }
+
+      console.log('🔍 Exhibitor', currentExhibitorId, 'toggling favorite for exhibitor', targetExhibitorId);
+
+      const payload: AddExhibitorFavouriteRequest = {
+        likedByExhibitorId: currentExhibitorId,
+        likedExhibitorId: parseInt(targetExhibitorId, 10),
+        isFavourite: !currentStatus
+      };
+
+      console.log('🔍 Exhibitor-to-exhibitor favorite API payload:', payload);
+
+      console.log('🔍 Making API call to addExhibitorFavorite...');
+      
+      // Add timeout wrapper to detect hanging API calls
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('API call timeout after 30 seconds')), 30000)
+      );
+      
+      const response = await Promise.race([
+        fieldMappingApi.addExhibitorFavorite(identifier, payload),
+        timeoutPromise
+      ]);
+      
+      console.log('🔍 API call completed, response received:', !!response);
+      
+      console.log('🔍 addExhibitorFavorite API response:', response);
+      console.log('🔍 Response statusCode:', response.statusCode);
+      console.log('🔍 Response result:', response.result);
+      console.log('🔍 Expected new status:', !currentStatus);
+      
+      if (response.statusCode === 200) {
+        console.log(`✅ Successfully ${!currentStatus ? 'added' : 'removed'} exhibitor from exhibitor favorites`);
+        console.log('✅ Returning new status:', !currentStatus);
+        return !currentStatus;
+      } else {
+        console.error('Failed to toggle exhibitor-to-exhibitor favorite:', response.message);
+        console.error('Full response:', response);
+        return currentStatus; // Return current status if API failed
+      }
+    } catch (error) {
+      console.error('Error toggling exhibitor-to-exhibitor favorite:', error);
+      return currentStatus; // Return current status if error occurred
+    }
+  }
+
+  /**
+   * Get all favorite exhibitors for an exhibitor (exhibitor-to-exhibitor favorites)
+   */
+  static async getExhibitorFavoriteExhibitors(identifier: string): Promise<any[]> {
+    try {
+      let currentExhibitorId = getCurrentExhibitorId();
+      if (!currentExhibitorId) {
+        console.log('🔍 No exhibitor ID found in token, cannot get favorite exhibitors');
+        return [];
+      }
+
+      console.log('🔍 Getting favorite exhibitors for exhibitor ID:', currentExhibitorId);
+
+      const response = await fieldMappingApi.getFavouritedExhibitors(identifier, currentExhibitorId);
+      
+      console.log('🔍 getFavouritedExhibitors response:', response);
+      console.log('🔍 Response statusCode:', response.statusCode);
+      console.log('🔍 Response result:', response.result);
+      
+      if (response.statusCode === 200 && response.result) {
+        console.log('✅ Found', response.result.length, 'favorite exhibitors for exhibitor', currentExhibitorId);
+        console.log('✅ Favorite exhibitors data:', response.result);
+        return response.result;
+      }
+      
+      console.log('📦 No favorite exhibitors found or API error');
+      return [];
+    } catch (error) {
+      console.error('Error getting exhibitor favorite exhibitors:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if an exhibitor is favorited by another exhibitor (exhibitor-to-exhibitor favorites)
+   * Now uses the getFavouritedExhibitors API to check status
+   */
+  static async checkExhibitorToExhibitorFavoriteStatus(identifier: string, targetExhibitorId: string): Promise<boolean> {
+    try {
+      const favoriteExhibitors = await this.getExhibitorFavoriteExhibitors(identifier);
+      const targetId = parseInt(targetExhibitorId, 10);
+      return favoriteExhibitors.some((exhibitor: any) => exhibitor.id === targetId);
+    } catch (error) {
+      console.error('Error checking exhibitor-to-exhibitor favorite status:', error);
+      return false;
     }
   }
 } 

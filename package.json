@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:test": "cp .env.test .env && next dev",
     "build": "next build",
+    "build:test": "cp .env.test .env && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker:build:test": "docker build -f Dockerfile.test -t xpomatch-admin-test .",
+    "docker:run:test": "docker run -p 3000:3000 xpomatch-admin-test"
   },
   "dependencies": {
     "@emotion/react": "^11.11.0",

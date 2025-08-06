@@ -582,8 +582,11 @@ export default function VisitorDashboard() {
                         <Box flex={1} minWidth={0}>
                           <Typography 
                           variant="body2"
-                          sx={{ fontWeight: 600, color: 'primary.main', fontSize: 14, wordBreak: 'break-word', mt: 1, cursor: 'pointer', textDecoration: 'none', transition: 'text-decoration 0.2s', '&:hover': { textDecoration: 'underline' } }}
-                          onClick={() => handleCompanyNameClick(rec.id)}
+                          sx={{ fontWeight: 600, color: 'primary.main', fontSize: 14, wordBreak: 'break-word',  mt: 1, 
+                            //cursor: 'pointer', textDecoration: 'none', transition: 'text-decoration 0.2s',
+                            //   '&:hover': { textDecoration: 'underline' } 
+                            }}
+                          //onClick={() => handleCompanyNameClick(rec.id)}
                           >
                             {rec.companyName}
                           </Typography>

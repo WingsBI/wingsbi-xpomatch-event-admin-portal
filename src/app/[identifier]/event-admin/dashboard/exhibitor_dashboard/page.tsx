@@ -82,11 +82,16 @@ export default function ExhibitorDashboard() {
         setExhibitorId(currentExhibitorId);
         
         if (currentExhibitorId && identifier) {
+          // Fetch exhibitor recommendations
           const response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
           if (response && response.result) {
             const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setExhibitorRecommendations(sorted);
           }
+          
+          // Also fetch favorited exhibitors to update favorite state
+          const favorites = await FavoritesManager.getExhibitorFavoriteExhibitors(identifier);
+          setFavoriteVisitorIds(new Set(favorites.map(fav => fav.id)));
         }
       } catch (error) {
         console.error('Error fetching exhibitor recommendations:', error);
@@ -135,26 +140,19 @@ export default function ExhibitorDashboard() {
     setDialogOpen(true);
   };
 
-  // Load favorites on mount
-  useEffect(() => {
-    const loadFavorites = async () => {
-      const favorites = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
-      setFavoriteVisitorIds(new Set(favorites.map(fav => fav.visitorId)));
-    };
-    loadFavorites();
-  }, []);
 
-  // Toggle handler
-  const handleFavoriteToggle = async (visitorId: string) => {
-    setLoadingFavoriteId(visitorId);
-    const isCurrentlyFavorite = favoriteVisitorIds.has(visitorId);
-    const finalStatus = await FavoritesManager.toggleVisitorFavorite(identifier, visitorId, isCurrentlyFavorite);
+
+  // Toggle handler for exhibitor-to-exhibitor favorites
+  const handleFavoriteToggle = async (exhibitorId: string) => {
+    setLoadingFavoriteId(exhibitorId);
+    const isCurrentlyFavorite = favoriteVisitorIds.has(exhibitorId);
+    const finalStatus = await FavoritesManager.toggleExhibitorToExhibitorFavorite(identifier, exhibitorId, isCurrentlyFavorite);
     setFavoriteVisitorIds(prev => {
       const newSet = new Set(prev);
       if (finalStatus) {
-        newSet.add(visitorId);
+        newSet.add(exhibitorId);
       } else {
-        newSet.delete(visitorId);
+        newSet.delete(exhibitorId);
       }
       return newSet;
     });
@@ -170,6 +168,8 @@ export default function ExhibitorDashboard() {
         try {
           const exhibitorId = getCurrentExhibitorId();
           if (!exhibitorId) throw new Error('Exhibitor ID not found');
+          
+          // Fetch visitor recommendations
           const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
           console.log("responseee", response);
           if (response.isError) {
@@ -180,6 +180,10 @@ export default function ExhibitorDashboard() {
             const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setRecommendations(sorted);
           }
+          
+          // Also fetch favorited visitors to update favorite state
+          const favoriteVisitors = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
+          setFavoriteVisitorIds(new Set(favoriteVisitors.map(fav => fav.visitorId)));
         } catch (err: any) {
           setError(err.message || 'An error occurred while fetching recommendations');
           setRecommendations([]);
@@ -644,16 +648,16 @@ export default function ExhibitorDashboard() {
                                     alignItems: 'center',
                                     gap: 0.5,
                                     lineHeight: 1.2,
-                                    wordBreak: 'break-word',
-                                    cursor: 'pointer',
-                                    color: 'primary.main', // link color
-                                    textDecoration: 'none', // no underline by default
-                                    transition: 'text-decoration 0.2s',
-                                    '&:hover': {
-                                      textDecoration: 'underline', // underline only on hover
-                                    },
+                                    // wordBreak: 'break-word',
+                                    // cursor: 'pointer',
+                                    // color: 'primary.main', // link color
+                                    // textDecoration: 'none', // no underline by default
+                                    // transition: 'text-decoration 0.2s',
+                                    // '&:hover': {
+                                    //   textDecoration: 'underline', // underline only on hover
+                                    // },
                                   }}
-                                  onClick={() => handleNameClick(rec.id)}
+                                 // onClick={() => handleNameClick(rec.id)}
                                 >
                                   {rec.salutation} {rec.firstName} {rec.lastName}
                                 </Typography>
@@ -687,13 +691,13 @@ export default function ExhibitorDashboard() {
                           <Divider sx={{ mb: 1, mt: 'auto' }} />
                           {/* Action Buttons Row at the bottom */}
                           <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: 0, mb: -2 }}>
-                            <Box display="flex" gap={1}>
+                            {/* <Box display="flex" gap={1}>
                               {rec.userProfile?.linkedInProfile && (
                                 <IconButton size="small" sx={{ color: '#0077b5', '&:hover': { backgroundColor: 'rgba(0, 119, 181, 0.1)', transform: 'scale(1.1)' } }} onClick={() => window.open(rec.userProfile.linkedInProfile, '_blank')} title="View LinkedIn Profile">
                             <LinkedIn fontSize="small" />
                           </IconButton>
                         )}
-                            </Box>
+                            </Box> */}
                         <Button
                           variant="contained"
                           size="small"
@@ -708,6 +712,7 @@ export default function ExhibitorDashboard() {
                             textTransform: 'none',
                                 fontWeight: 500,
                                 px: 1,
+                                ml:10,
                                 '&:hover': {
                                   bgcolor: theme.palette.primary.dark,
                                   transform: 'scale(1.02)'
@@ -875,15 +880,15 @@ export default function ExhibitorDashboard() {
                                   gap: 0.5,
                                   lineHeight: 1.2,
                                   wordBreak: 'break-word',
-                                  cursor: 'pointer',
-                                  color: 'primary.main',
-                                  textDecoration: 'none',
-                                  transition: 'text-decoration 0.2s',
-                                  '&:hover': {
-                                    textDecoration: 'underline',
-                                  },
+                                  // cursor: 'pointer',
+                                  // color: 'primary.main',
+                                  // textDecoration: 'none',
+                                  // transition: 'text-decoration 0.2s',
+                                  // '&:hover': {
+                                  //   textDecoration: 'underline',
+                                  // },
                                 }}
-                                onClick={() => handleNameClick(rec.id)}
+                               // onClick={() => handleNameClick(rec.id)}
                               >
                                 {rec.companyName}
                               </Typography>

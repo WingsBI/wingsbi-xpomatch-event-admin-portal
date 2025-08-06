@@ -121,18 +121,21 @@ export default function ScheduleMeetingPage() {
   const [loadingVisitorDetails, setLoadingVisitorDetails] = useState(false);
   const [loadingExhibitorDetails, setLoadingExhibitorDetails] = useState(false);
   const [showAttendeesPopover, setShowAttendeesPopover] = useState(false);
-  const [manuallySelectedVisitor, setManuallySelectedVisitor] = useState<number | null>(null);
+  const [manuallySelectedVisitors, setManuallySelectedVisitors] = useState<number[]>([]);
   const [manuallySelectedExhibitor, setManuallySelectedExhibitor] = useState<number | null>(null);
 
   const getSelectedAttendeesDisplay = () => {
     const names = [];
     
-    // Show manually selected visitor
-    if (manuallySelectedVisitor) {
-      const selectedVisitor = visitors.find(v => v.id === manuallySelectedVisitor);
-      if (selectedVisitor) {
-        names.push(`${selectedVisitor.firstName} ${selectedVisitor.lastName}`);
-      }
+    // Show manually selected visitors
+    if (manuallySelectedVisitors.length > 0) {
+      const selectedVisitorNames = manuallySelectedVisitors
+        .map(visitorId => {
+          const visitor = visitors.find(v => v.id === visitorId);
+          return visitor ? `${visitor.firstName} ${visitor.lastName}` : '';
+        })
+        .filter(name => name !== '');
+      names.push(...selectedVisitorNames);
     }
     
     // Show manually selected exhibitor
@@ -143,7 +146,7 @@ export default function ScheduleMeetingPage() {
       }
     }
     
-    return names.join('; ');
+    return names.join(', ');
   };
 
   // Initialize current user data
@@ -472,7 +475,7 @@ export default function ScheduleMeetingPage() {
         sx: {
           maxHeight: '80vh',
           '& .MuiDialogContent-root': {
-            p: 2
+            p: 3
           }
         }
       }}
@@ -546,6 +549,7 @@ export default function ScheduleMeetingPage() {
                   justifyContent: 'center',
                   bgcolor: 'primary.main',
                   color: 'white',
+                  mt: 1,
                   flexShrink: 0
                 }}
               >
@@ -568,6 +572,7 @@ export default function ScheduleMeetingPage() {
                       fontSize: '1.25rem',
                       fontWeight: 500,
                       padding: '0',
+                      mt:1,
                       '&::placeholder': {
                         color: 'text.primary',
                         opacity: 1,
@@ -625,107 +630,169 @@ export default function ScheduleMeetingPage() {
                 PaperProps={{
                   sx: {
                     width: '100%',
-                    maxWidth: 400,
+                    maxWidth: 500,
                     mt: 1,
-                    maxHeight: 400,
+                    maxHeight: 500,
+                    minHeight: 300,
                     overflow: 'auto'
                   }
                 }}
               >
                 <Box sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2 }}>
-                    Suggested contacts
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle2">
+                      Select Attendees
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => setShowAttendeesPopover(false)}
+                    >
+                      Done
+                    </Button>
+                  </Box>
                   
                   {/* Visitor Selection - Only show if not a visitor */}
                   {currentUserRole !== 'visitor' && (
                     <Box>
-                      {!loading && visitors.map((visitor) => (
-                        <Box
-                          key={visitor.id}
-                          onClick={() => {
-                            handleFormChange('visitorId', visitor.id);
-                            setManuallySelectedVisitor(visitor.id);
-                            setManuallySelectedExhibitor(null); // Clear other manual selection
-                            setShowAttendeesPopover(false);
-                          }}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2,
-                            p: 1,
-                            cursor: 'pointer',
-                            borderRadius: 1,
-                            '&:hover': {
-                              bgcolor: 'action.hover'
-                            }
-                          }}
-                        >
-                          <Avatar 
-                            sx={{ 
-                              width: 32, 
-                              height: 32,
-                              bgcolor: `#${Math.floor(Math.random()*16777215).toString(16)}`
-                            }}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        
+                        {manuallySelectedVisitors.length > 0 && (
+                          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
+                            {manuallySelectedVisitors.length} selected
+                          </Typography>
+                        )}
+                      </Box>
+                      {!loading && visitors.map((visitor) => {
+                        const isSelected = manuallySelectedVisitors.includes(visitor.id);
+                        return (
+                          <Box
+                            key={visitor.id}
+                                                         onClick={() => {
+                               if (isSelected) {
+                                 // Remove visitor from selection
+                                 const updatedVisitors = manuallySelectedVisitors.filter(id => id !== visitor.id);
+                                 setManuallySelectedVisitors(updatedVisitors);
+                                 // Update form with first visitor ID or empty string
+                                 handleFormChange('visitorId', updatedVisitors.length > 0 ? updatedVisitors[0] : '');
+                               } else {
+                                 // Add visitor to selection
+                                 const updatedVisitors = [...manuallySelectedVisitors, visitor.id];
+                                 setManuallySelectedVisitors(updatedVisitors);
+                                 // Update form with first visitor ID
+                                 handleFormChange('visitorId', updatedVisitors[0]);
+                               }
+                             }}
+                             sx={{
+                               display: 'flex',
+                               alignItems: 'center',
+                               gap: 2,
+                               p: 1,
+                               cursor: 'pointer',
+                               borderRadius: 1,
+                               bgcolor: isSelected ? 'primary.light' : 'transparent',
+                               '&:hover': {
+                                 bgcolor: isSelected ? 'grey.200' : 'action.hover'
+                               }
+                             }}
                           >
-                            {visitor.firstName[0]}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body2">
-                              {visitor.firstName} {visitor.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {visitor.email}
-                            </Typography>
+                                                         <Box sx={{ position: 'relative' }}>
+                               <Avatar 
+                                 sx={{ 
+                                   width: 32, 
+                                   height: 32,
+                                   bgcolor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                                 }}
+                               >
+                                 {visitor.firstName[0]}
+                               </Avatar>
+                               {isSelected && (
+                                 <Box
+                                   sx={{
+                                     position: 'absolute',
+                                     bottom: -2,
+                                     right: -2,
+                                     width: 16,
+                                     height: 16,
+                                     borderRadius: '50%',
+                                                                           bgcolor: '#00E676',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     justifyContent: 'center',
+                                     border: '2px solid white',
+                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                   }}
+                                 >
+                                   <CheckCircle sx={{ color: 'white', fontSize: 10 }} />
+                                 </Box>
+                               )}
+                             </Box>
+                                                         <Box sx={{ flex: 1 }}>
+                               <Typography variant="body2">
+                                 {visitor.firstName} {visitor.lastName}
+                               </Typography>
+                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                 {visitor.email}
+                               </Typography>
+                             </Box>
                           </Box>
-                        </Box>
-                      ))}
+                        );
+                      })}
                     </Box>
                   )}
 
                   {/* Exhibitor Selection - Only show if not an exhibitor */}
                   {currentUserRole !== 'exhibitor' && (
                     <Box>
-                      {!loading && exhibitors.map((exhibitor) => (
-                        <Box
-                          key={exhibitor.id}
-                          onClick={() => {
-                            handleFormChange('exhibitorId', exhibitor.id);
-                            setManuallySelectedExhibitor(exhibitor.id);
-                            setManuallySelectedVisitor(null); // Clear other manual selection
-                            setShowAttendeesPopover(false);
-                          }}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2,
-                            p: 1,
-                            cursor: 'pointer',
-                            borderRadius: 1,
-                            '&:hover': {
-                              bgcolor: 'action.hover'
-                            }
-                          }}
-                        >
-                          <Avatar 
-                            sx={{ 
-                              width: 32, 
-                              height: 32,
-                              bgcolor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium', mt: 2 }}>
+                        Select Exhibitor
+                      </Typography>
+                      {!loading && exhibitors.map((exhibitor) => {
+                        const isSelected = manuallySelectedExhibitor === exhibitor.id;
+                        return (
+                          <Box
+                            key={exhibitor.id}
+                            onClick={() => {
+                              handleFormChange('exhibitorId', exhibitor.id);
+                              setManuallySelectedExhibitor(exhibitor.id);
+                              setShowAttendeesPopover(false);
+                            }}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              p: 1,
+                              cursor: 'pointer',
+                              borderRadius: 1,
+                              bgcolor: isSelected ? 'primary.light' : 'transparent',
+                              '&:hover': {
+                                bgcolor: isSelected ? 'primary.main' : 'action.hover'
+                              }
                             }}
                           >
-                            {exhibitor.companyName?.[0] || exhibitor.firstName?.[0]}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body2">
-                              {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {exhibitor.email}
-                            </Typography>
+                            <Avatar 
+                              sx={{ 
+                                width: 32, 
+                                height: 32,
+                                bgcolor: isSelected ? 'white' : `#${Math.floor(Math.random()*16777215).toString(16)}`
+                              }}
+                            >
+                              {exhibitor.companyName?.[0] || exhibitor.firstName?.[0]}
+                            </Avatar>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" sx={{ color: isSelected ? 'white' : 'inherit' }}>
+                                {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: isSelected ? 'white' : 'text.secondary' }}>
+                                {exhibitor.email}
+                              </Typography>
+                            </Box>
+                            {isSelected && (
+                              <CheckCircle sx={{ color: 'white', fontSize: 20 }} />
+                            )}
                           </Box>
-                        </Box>
-                      ))}
+                        );
+                      })}
                     </Box>
                   )}
                 </Box>
@@ -760,6 +827,7 @@ export default function ScheduleMeetingPage() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   height: '40px',
+                  width: '100%',
                   '& input': {
                     padding: '8px 12px',
                   },
@@ -861,198 +929,7 @@ export default function ScheduleMeetingPage() {
             </FormControl>
           </Grid>
 
-          {/* Location Field */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              placeholder="Add a room or location"
-              value={meetingForm.location || ''}
-              onChange={(e) => handleFormChange('location', e.target.value)}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: 'transparent',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'primary.main',
-                  },
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-                    <LocationOn fontSize="small" />
-                  </Box>
-                ),
-              }}
-            />
-          </Grid>
-
-          {/* Rich Text Editor Area */}
-          <Grid item xs={12}>
-            <Box
-              sx={{
-                mt: 2,
-                p: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-              }}
-            >
-              {/* Editor Toolbar */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 2, pb: 2, borderBottom: '1px solid', borderColor: 'divider', alignItems: 'center' }}>
-                {/* Paperclip with dropdown */}
-                <IconButton size="small" sx={{ position: 'relative' }}>
-                  <AttachFile />
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: -2,
-                      right: -2,
-                      width: 8,
-                      height: 8,
-                      borderLeft: '4px solid transparent',
-                      borderRight: '4px solid transparent',
-                      borderTop: '4px solid #666',
-                    }}
-                  />
-                </IconButton>
-                
-                {/* Picture frame */}
-                <IconButton size="small">
-                  <InsertPhoto />
-                </IconButton>
-                
-                {/* Smiley face emoji */}
-                <IconButton size="small">
-                  <Box
-                    sx={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      bgcolor: '#FFD700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      color: '#000',
-                      border: '1px solid #000'
-                    }}
-                  >
-                    😊
-                  </Box>
-                </IconButton>
-                
-                {/* Pencil with A and square */}
-                <IconButton size="small" sx={{ position: 'relative' }}>
-                  <Box sx={{ position: 'relative' }}>
-                    <Box
-                      component="span"
-                      sx={{
-                        fontSize: '16px',
-                        color: '#1976d2',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      A
-                    </Box>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: -8,
-                        right: -4,
-                        width: 6,
-                        height: 6,
-                        bgcolor: '#ccc',
-                        borderRadius: '1px'
-                      }}
-                    />
-                  </Box>
-                </IconButton>
-                
-                {/* Pencil with lines */}
-                <IconButton size="small">
-                  <Box sx={{ position: 'relative' }}>
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 2,
-                        bgcolor: '#666',
-                        mb: 0.5
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 2,
-                        bgcolor: '#666',
-                        mb: 0.5
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 2,
-                        bgcolor: '#666'
-                      }}
-                    />
-                  </Box>
-                </IconButton>
-                
-                {/* Blue outlined shape with P */}
-                <IconButton size="small">
-                  <Box
-                    sx={{
-                      width: 20,
-                      height: 20,
-                      border: '2px solid #1976d2',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      color: '#1976d2',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    P
-                  </Box>
-                </IconButton>
-                
-                {/* Document with refresh arrow */}
-                <IconButton size="small">
-                  <Box sx={{ position: 'relative' }}>
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 20,
-                        border: '1px solid #666',
-                        borderRadius: '2px',
-                        bgcolor: 'white'
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 2,
-                        left: 2,
-                        width: 12,
-                        height: 12,
-                        border: '1px solid #666',
-                        borderRadius: '50%',
-                        borderTop: '1px solid transparent',
-                        transform: 'rotate(-45deg)'
-                      }}
-                    />
-                  </Box>
-                </IconButton>
-              </Box>
-            </Box>
-          </Grid>
+         
 
         </Grid>
         </>
@@ -1150,7 +1027,7 @@ export default function ScheduleMeetingPage() {
               Meeting Scheduled Successfully!
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-              Your meeting has been confirmed and added to the calendar
+              Your meeting has been confirmed 
             </Typography>
           </Box>
         </Box>
@@ -1204,7 +1081,7 @@ export default function ScheduleMeetingPage() {
         }}>
           <Celebration sx={{ color: 'success.main', fontSize: 20 }} />
           <Typography variant="body2" sx={{ color: 'success.dark', fontWeight: 500 }}>
-            All participants will receive calendar invitations 
+            All participants will receive invitations 
           </Typography>
         </Box>
       </DialogContent>

@@ -319,11 +319,9 @@ export interface FavoritesRequest {
 }
 
 export interface AddExhibitorFavouriteRequest {
-  request: {
-    currentExhibitorId: number;
-    targetExhibitorId: number;
-    isFavorite: boolean;
-  };
+  likedByExhibitorId: number;
+  likedExhibitorId: number;
+  isFavourite: boolean;
 }
 
 export interface FavoritesResponse {
@@ -1527,6 +1525,58 @@ class FieldMappingApiService {
       return data;
     } catch (error) {
       console.error('Error getting exhibitor favorite visitors:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Get favourited exhibitors for a logged-in exhibitor
+   */
+  async getFavouritedExhibitors(identifier: string, exhibitorId: number): Promise<ExhibitorsListResponse> {
+    try {
+      // Call external backend API directly  
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/getFavouritedExhibitors?ExhibitorId=${exhibitorId}`;
+      const headers = this.getAuthHeaders();
+      
+      console.log('🔍 GET FAVOURITED EXHIBITORS API CALL STARTING');
+      console.log('🔍 URL:', apiUrl);
+      console.log('🔍 Exhibitor ID:', exhibitorId);
+      console.log('🔍 Headers:', headers);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Get favourited exhibitors response status:', response.status);
+      
+      const data = await response.json();
+      console.log('✅ Get favourited exhibitors response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to get favourited exhibitors`,
+          isError: true,
+          responseException: data.responseException || null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting favourited exhibitors:', error);
       return {
         version: null,
         statusCode: 500,

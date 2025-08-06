@@ -12,16 +12,12 @@ RUN \
 # Copy source code
 COPY . .
 
-# Build the app with .env.test (Next.js will pick up .env.test automatically)
+# Build the app
 RUN npm run build
 
 # 2. Production stage
 FROM node:18-alpine AS runner
 WORKDIR /app
-
-# Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
 
 # Only copy necessary files for production
 COPY --from=builder /app/package.json ./
@@ -29,22 +25,18 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 
 # Copy public directory if it exists
-COPY --from=builder /app/public ./public 2>/dev/null || echo "No public directory found"
+COPY --from=builder /app/public ./public
 
 # Copy next config file
 COPY --from=builder /app/next.config.js* ./
 
-# Copy ONLY the .env.test file (keep files separate)
+# Copy ONLY the .env.test file
 COPY --from=builder /app/.env.test ./
-
-# Set correct permissions
-RUN chown -R nextjs:nodejs /app
-USER nextjs
 
 # Expose port
 EXPOSE 3000
 
-# Set environment to use .env.test
+# Set environment
 ENV NODE_ENV=test
 
 # Start the app with .env.test

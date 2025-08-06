@@ -27,8 +27,8 @@ COPY --from=builder /app/.next ./.next
 # Copy public directory if it exists (optional)
 COPY --from=builder /app/public* ./
 
-# If you have a next.config.js or other config files, copy them too:
-COPY --from=builder /app/next.config.js* ./
+# Copy next config file
+COPY --from=builder /app/next.config.ts* ./
 COPY --from=builder /app/.env* ./
 
 # Expose port (default for Next.js is 3000)

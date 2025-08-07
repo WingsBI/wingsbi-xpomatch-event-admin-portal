@@ -91,7 +91,7 @@ export default function ExhibitorDashboard() {
           
           // Also fetch favorited exhibitors to update favorite state
           const favorites = await FavoritesManager.getExhibitorFavoriteExhibitors(identifier);
-          setFavoriteVisitorIds(new Set(favorites.map(fav => fav.id)));
+          setFavoriteExhibitorIds(new Set(favorites.map(fav => fav.id)));
         }
       } catch (error) {
         console.error('Error fetching exhibitor recommendations:', error);
@@ -129,6 +129,7 @@ export default function ExhibitorDashboard() {
   const totalExhibitorPages = Math.ceil(exhibitorRecommendations.length / cardsPerPage);
 
   const [favoriteVisitorIds, setFavoriteVisitorIds] = useState(new Set());
+  const [favoriteExhibitorIds, setFavoriteExhibitorIds] = useState(new Set());
   const [loadingFavoriteId, setLoadingFavoriteId] = useState<string | null>(null);
 
   // Dialog state for visitor details
@@ -142,12 +143,29 @@ export default function ExhibitorDashboard() {
 
 
 
-  // Toggle handler for exhibitor-to-exhibitor favorites
-  const handleFavoriteToggle = async (exhibitorId: string) => {
-    setLoadingFavoriteId(exhibitorId);
-    const isCurrentlyFavorite = favoriteVisitorIds.has(exhibitorId);
-    const finalStatus = await FavoritesManager.toggleExhibitorToExhibitorFavorite(identifier, exhibitorId, isCurrentlyFavorite);
+  // Toggle handler for visitor-to-exhibitor favorites (recommended visitors section)
+  const handleVisitorFavoriteToggle = async (visitorId: string) => {
+    setLoadingFavoriteId(visitorId);
+    const isCurrentlyFavorite = favoriteVisitorIds.has(visitorId);
+    const finalStatus = await FavoritesManager.toggleVisitorFavorite(identifier, visitorId, isCurrentlyFavorite);
     setFavoriteVisitorIds(prev => {
+      const newSet = new Set(prev);
+      if (finalStatus) {
+        newSet.add(visitorId);
+      } else {
+        newSet.delete(visitorId);
+      }
+      return newSet;
+    });
+    setLoadingFavoriteId(null);
+  };
+
+  // Toggle handler for exhibitor-to-exhibitor favorites (recommended exhibitors section)
+  const handleExhibitorFavoriteToggle = async (exhibitorId: string) => {
+    setLoadingFavoriteId(exhibitorId);
+    const isCurrentlyFavorite = favoriteExhibitorIds.has(exhibitorId);
+    const finalStatus = await FavoritesManager.toggleExhibitorToExhibitorFavorite(identifier, exhibitorId, isCurrentlyFavorite);
+    setFavoriteExhibitorIds(prev => {
       const newSet = new Set(prev);
       if (finalStatus) {
         newSet.add(exhibitorId);
@@ -179,11 +197,12 @@ export default function ExhibitorDashboard() {
             // Sort by matchPercentage descending
             const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setRecommendations(sorted);
+            
+            // Also fetch favorited visitors to update favorite state
+            const favoriteVisitors = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
+            const favoriteVisitorIds = favoriteVisitors.map((favorite: any) => favorite.visitorId.toString());
+            setFavoriteVisitorIds(new Set(favoriteVisitorIds));
           }
-          
-          // Also fetch favorited visitors to update favorite state
-          const favoriteVisitors = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
-          setFavoriteVisitorIds(new Set(favoriteVisitors.map(fav => fav.visitorId)));
         } catch (err: any) {
           setError(err.message || 'An error occurred while fetching recommendations');
           setRecommendations([]);
@@ -602,16 +621,16 @@ export default function ExhibitorDashboard() {
                             sx={{
 
                               ml: 0.5,
-                              color: favoriteVisitorIds.has(rec.id) ? '#ef4444' : '#b0bec5',
+                              color: favoriteVisitorIds.has(rec.id.toString()) ? '#ef4444' : '#b0bec5',
                               transition: 'all 0.2s ease',
                               '&:hover': { color: '#ff6b9d' },
                             }}
-                            onClick={() => handleFavoriteToggle(rec.id)}
-                            disabled={loadingFavoriteId === rec.id}
+                            onClick={() => handleVisitorFavoriteToggle(rec.id.toString())}
+                            disabled={loadingFavoriteId === rec.id.toString()}
                           >
-                            {loadingFavoriteId === rec.id ? (
+                            {loadingFavoriteId === rec.id.toString() ? (
                               <Skeleton variant="circular" width={20} height={20} />
-                            ) : favoriteVisitorIds.has(rec.id) ? (
+                            ) : favoriteVisitorIds.has(rec.id.toString()) ? (
                               <Favorite sx={{ fontSize: 20, color: '#ef4444', filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))', transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)', animation: 'heartBeat 0.8s ease-in-out' }} />
                             ) : (
                               <FavoriteBorder sx={{ fontSize: 20, color: '#b0bec5' }} />
@@ -833,16 +852,16 @@ export default function ExhibitorDashboard() {
                           size="small"
                           sx={{
                             ml: 0.5,
-                            color: favoriteVisitorIds.has(rec.id) ? '#ef4444' : '#b0bec5',
+                            color: favoriteExhibitorIds.has(rec.id) ? '#ef4444' : '#b0bec5',
                             transition: 'all 0.2s ease',
                             '&:hover': { color: '#ff6b9d' },
                           }}
-                          onClick={() => handleFavoriteToggle(rec.id)}
+                          onClick={() => handleExhibitorFavoriteToggle(rec.id)}
                           disabled={loadingFavoriteId === rec.id}
                         >
                           {loadingFavoriteId === rec.id ? (
                             <Skeleton variant="circular" width={20} height={20} />
-                          ) : favoriteVisitorIds.has(rec.id) ? (
+                          ) : favoriteExhibitorIds.has(rec.id) ? (
                             <Favorite sx={{ fontSize: 20, color: '#ef4444', filter: 'drop-shadow(0 0 3px rgba(78, 12, 17, 0.15))', transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)', animation: 'heartBeat 0.8s ease-in-out' }} />
                           ) : (
                             <FavoriteBorder sx={{ fontSize: 20, color: '#b0bec5' }} />

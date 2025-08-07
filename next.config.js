@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Ensure environment variables are available
+  env: {
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    CONTACT_EMAIL: process.env.CONTACT_EMAIL,
+    NEXT_PUBLIC_ENABLE_DEMO_MODE: process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE,
+  },
   webpack: (config, { dev, isServer }) => {
     // Optimize MUI bundle
     if (!dev && !isServer) {

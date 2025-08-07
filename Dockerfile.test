@@ -44,6 +44,10 @@ COPY --from=builder /app/next.config.js* ./
 COPY --from=builder /app/.env.test ./
 COPY --from=builder /app/.env.production ./
 
+# Copy startup script
+COPY --from=builder /app/start.sh ./
+RUN chmod +x start.sh
+
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
 USER nextjs
@@ -54,5 +58,5 @@ EXPOSE 3000
 # Set environment to production for optimal runtime performance
 ENV NODE_ENV=production
 
-# Start the app with test environment variables (Next.js will use .env.production)
-CMD ["npm", "start"]
+# Start the app using the startup script
+CMD ["./start.sh"]

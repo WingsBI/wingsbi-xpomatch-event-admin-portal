@@ -12,7 +12,13 @@ RUN \
 # Copy source code
 COPY . .
 
-# Build the app (Next.js will automatically use .env.test when NODE_ENV=test)
+# Copy .env.test as .env.production for build time (Next.js uses .env.production when NODE_ENV=production during build)
+COPY .env.test .env.production
+
+# Set NODE_ENV to production for optimized build, but use test environment variables
+ENV NODE_ENV=production
+
+# Build the app with test environment variables
 RUN npm run build
 
 # 2. Production stage
@@ -34,8 +40,9 @@ COPY --from=builder /app/.next ./.next
 # Copy next config file
 COPY --from=builder /app/next.config.js* ./
 
-# Copy ONLY the .env.test file (keep files separate)
+# Copy environment files for runtime
 COPY --from=builder /app/.env.test ./
+COPY --from=builder /app/.env.production ./
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
@@ -44,8 +51,8 @@ USER nextjs
 # Expose port
 EXPOSE 3000
 
-# Set environment to use .env.test
-ENV NODE_ENV=test
+# Set environment to production for optimal runtime performance
+ENV NODE_ENV=production
 
-# Start the app with .env.test
-CMD ["sh", "-c", "cp .env.test .env && npm start"]
+# Start the app with test environment variables (Next.js will use .env.production)
+CMD ["npm", "start"]

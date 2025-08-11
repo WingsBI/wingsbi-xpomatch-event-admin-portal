@@ -7,13 +7,19 @@ if [ -z "$NODE_ENV" ]; then
     export NODE_ENV=production
 fi
 
-# Copy test environment to .env.local if it exists
+# Set up environment variables for the application
 if [ -f .env.test ]; then
-    cp .env.test .env.local
     echo "Using test environment variables"
+    # Export variables from .env.test
+    export $(cat .env.test | grep -v '^#' | xargs)
+elif [ -f .env ]; then
+    echo "Using development environment variables"
+    # Export variables from .env
+    export $(cat .env | grep -v '^#' | xargs)
 elif [ -f .env.production ]; then
-    cp .env.production .env.local
     echo "Using production environment variables"
+    # Export variables from .env.production
+    export $(cat .env.production | grep -v '^#' | xargs)
 else
     echo "No environment file found, using defaults"
 fi

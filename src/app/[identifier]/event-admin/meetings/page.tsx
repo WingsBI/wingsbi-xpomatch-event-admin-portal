@@ -63,6 +63,8 @@ import {
   Event,
   Close,
   Description,
+  LockClock,
+  PunchClock,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -160,8 +162,11 @@ export default function MeetingsPage() {
   const [eventLoading, setEventLoading] = useState(true);
   const [approvingMeetingId, setApprovingMeetingId] = useState<string | null>(null);
   const [rejectingMeetingId, setRejectingMeetingId] = useState<string | null>(null);
+  const [cancellingMeetingId, setCancellingMeetingId] = useState<string | null>(null);
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
   const [selectedMeetingForReschedule, setSelectedMeetingForReschedule] = useState<Meeting | null>(null);
+  const [selectedMeetingForCancel, setSelectedMeetingForCancel] = useState<Meeting | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({
     meetingId: '',
     agenda: '',
@@ -822,6 +827,74 @@ export default function MeetingsPage() {
       console.error('Error approving meeting:', error);
     } finally {
       setApprovingMeetingId(null);
+    }
+  };
+
+  // Handle cancel meeting confirmation dialog
+  const handleOpenCancelDialog = (meeting: Meeting) => {
+    setSelectedMeetingForCancel(meeting);
+    setShowCancelConfirmDialog(true);
+  };
+
+  const handleCloseCancelDialog = () => {
+    setShowCancelConfirmDialog(false);
+    setSelectedMeetingForCancel(null);
+  };
+
+  // Handle meeting cancellation
+  const handleCancelMeeting = async () => {
+    if (!selectedMeetingForCancel) {
+      console.error('No meeting selected for cancellation');
+      return;
+    }
+
+    try {
+      setCancellingMeetingId(selectedMeetingForCancel.id);
+      
+      if (!identifier) {
+        console.error('No identifier found');
+        return;
+      }
+
+      const meetingIdNumber = parseInt(selectedMeetingForCancel.id);
+      if (isNaN(meetingIdNumber)) {
+        console.error('Invalid meeting ID:', selectedMeetingForCancel.id);
+        return;
+      }
+
+      console.log('Cancelling meeting:', { 
+        meetingId: meetingIdNumber, 
+        identifier,
+        user: user
+      });
+      
+      const response = await apiService.cancelMeeting(identifier, meetingIdNumber);
+      
+      if (response.success) {
+        console.log('Meeting cancelled successfully:', response);
+        
+        // Update the local state immediately to show the change
+        setMeetings(prevMeetings => {
+          const updatedMeetings = prevMeetings.map(meeting => 
+            meeting.id === selectedMeetingForCancel.id 
+              ? { ...meeting, status: 'cancelled' as Meeting['status'], isCancelled: true }
+              : meeting
+          );
+          return updatedMeetings;
+        });
+        
+        // Also reload meetings to get the latest data from the server
+        await loadMeetings();
+        
+        // Close the dialog
+        handleCloseCancelDialog();
+      } else {
+        console.error('Failed to cancel meeting:', response);
+      }
+    } catch (error) {
+      console.error('Error cancelling meeting:', error);
+    } finally {
+      setCancellingMeetingId(null);
     }
   };
 
@@ -2070,7 +2143,7 @@ export default function MeetingsPage() {
                           {/* Meeting Date */}
                           <Grid item xs={12} sm={6} md={3} sx={{ mr: -2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <HourglassBottom fontSize="small" color="warning" />
+                              <CalendarMonth fontSize="small" color="warning" />
                               <Typography variant="body2">
                                 {formatMeetingDate(meeting.meetingDate || '')}
                               </Typography>
@@ -2080,7 +2153,7 @@ export default function MeetingsPage() {
                           {/* Start Time */}
                           <Grid item xs={12} sm={6} md={3} sx={{ mr: -2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <HourglassBottom fontSize="small" color="success" />
+                              <AccessTime fontSize="small" color="success" />
                               <Typography variant="body2">
                                 Start: {formatTime(meeting.startTime || '')}
                               </Typography>
@@ -2237,18 +2310,24 @@ export default function MeetingsPage() {
                                 <IconButton 
                                   size="small" 
                                   color="error"
-                                  onClick={() => handleRejectMeeting(meeting.id)}
+                                  disabled={cancellingMeetingId === meeting.id}
+                                  onClick={() => handleOpenCancelDialog(meeting)}
                                   sx={{ 
                                     bgcolor: 'error.light', 
                                     color: 'white',
-                                    '&:hover': { bgcolor: 'error.main' }
+                                    '&:hover': { bgcolor: 'error.main' },
+                                    '&:disabled': { bgcolor: 'grey.300', color: 'grey.500' }
                                   }}
                                   title="Cancel Meeting"
                                 >
-                                  <Cancel fontSize="small" />
+                                  {cancellingMeetingId === meeting.id ? (
+                                    <CircularProgress size={16} color="inherit" />
+                                  ) : (
+                                    <Cancel fontSize="small" />
+                                  )}
                                 </IconButton>
                                 <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                  Cancel
+                                  {cancellingMeetingId === meeting.id ? 'Cancelling...' : 'Cancel'}
                                 </Typography>
                               </Box>
                             </>
@@ -2565,6 +2644,83 @@ export default function MeetingsPage() {
               startIcon={isRescheduling ? <CircularProgress size={14} /> : <Event fontSize="small" />}
             >
               {isRescheduling ? 'Rescheduling...' : 'Reschedule'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Cancel Meeting Confirmation Dialog */}
+        <Dialog 
+          open={showCancelConfirmDialog} 
+          onClose={handleCloseCancelDialog}
+          maxWidth="sm" 
+          fullWidth
+          disableEscapeKeyDown={false}
+          PaperProps={{
+            sx: {
+              maxHeight: '80vh',
+              '& .MuiDialogContent-root': {
+                p: 3
+              }
+            }
+          }}
+        >
+          {/* <DialogTitle sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            gap: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            p: 2
+          }}> */}
+           
+            {/* <IconButton
+              onClick={handleCloseCancelDialog}
+              size="small"
+              sx={{
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'rotate(90deg)',
+                  backgroundColor: 'action.hover',
+                }
+              }}
+            >
+              
+            </IconButton> */}
+          {/* </Dialog></DialogTitle> */}
+          
+          <DialogContent>
+            <Box sx={{ mb: 1, }}>
+              <Typography variant="h6" sx={{ mb: 1,ml:0, color: 'text.secondary' }}>
+                Are you sure want to cancel this meeting?
+              </Typography>
+              
+              
+            </Box>
+          </DialogContent>
+
+          <DialogActions sx={{ 
+            p: 2, 
+            // borderTop: '1px solid',
+            // borderColor: 'divider',
+            gap: 1
+          }}>
+            <Button 
+              onClick={handleCloseCancelDialog} 
+              size="small"
+              variant="outlined"
+            >
+              Keep Meeting
+            </Button>
+            <Button 
+              variant="contained" 
+              color="error"
+              onClick={handleCancelMeeting}
+              size="small"
+              disabled={cancellingMeetingId === selectedMeetingForCancel?.id}
+              startIcon={cancellingMeetingId === selectedMeetingForCancel?.id ? <CircularProgress size={14} /> : <Cancel fontSize="small" />}
+            >
+              {cancellingMeetingId === selectedMeetingForCancel?.id ? 'Cancelling...' : 'Yes, Cancel Meeting'}
             </Button>
           </DialogActions>
         </Dialog>

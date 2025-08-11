@@ -675,6 +675,63 @@ class ApiService {
       };
     }
   }
+
+  public async cancelMeeting(identifier: string, meetingId: number): Promise<ApiResponse<any>> {
+    try {
+      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const apiUrl = `${azureApiUrl}/api/${identifier}/Meeting/cancelMeeting?meetingId=${meetingId}`;
+      
+      console.log('Cancelling meeting:', {
+        url: apiUrl,
+        meetingId,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+      });
+
+      console.log('Cancel meeting response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Cancel meeting response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { message: 'Invalid JSON response from server' };
+      }
+      
+      console.log('Cancel meeting response data:', data);
+
+      if (!response.ok) {
+        return {
+          data: null as any,
+          message: data.message || `HTTP ${response.status}: Failed to cancel meeting`,
+          status: response.status,
+          success: false
+        };
+      }
+
+      return {
+        data: data.data || data,
+        message: data.message || 'Meeting cancelled successfully',
+        status: response.status,
+        success: true
+      };
+    } catch (error) {
+      console.error('Error cancelling meeting:', error);
+      return {
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Network error',
+        status: 500,
+        success: false
+      };
+    }
+  }
 }
 
 // Create singleton instance

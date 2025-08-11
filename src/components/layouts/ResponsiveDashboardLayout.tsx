@@ -655,6 +655,13 @@ export default function ResponsiveDashboardLayout({
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }} {...swipeHandlers}>
+      {/* Prefetch likely navigations and iframe documents to speed up subsequent tab loads */}
+      {identifier && (
+        <>
+          <link rel="prefetch" href={`/${identifier}/visitors`} as="document" />
+          <link rel="prefetch" href={`/${identifier}/exhibitors`} as="document" />
+        </>
+      )}
       {/* Unified Header Bar - spans full width */}
       <AppBar
         position="fixed"

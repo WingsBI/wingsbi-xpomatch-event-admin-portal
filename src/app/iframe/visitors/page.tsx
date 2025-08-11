@@ -610,7 +610,8 @@ const RotatingIconButton = styled(IconButton)(({ theme }) => ({
 }));
 
 // Add VisitorDetailsDialog component
-function VisitorDetailsDialog({ open, onClose, visitorId, identifier }: { open: boolean; onClose: () => void; visitorId: string | null; identifier: string }) {
+// Deprecated: kept for backward-compat if any route still imports from iframe. Use components/participants/VisitorsListView instead.
+export function VisitorDetailsDialog({ open, onClose, visitorId, identifier }: { open: boolean; onClose: () => void; visitorId: string | null; identifier: string }) {
   const [visitor, setVisitor] = useState<TransformedVisitor | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -822,7 +823,8 @@ function VisitorDetailsDialog({ open, onClose, visitorId, identifier }: { open: 
   );
 }
 
-function VisitorListView({ identifier }: { identifier: string }) {
+// Deprecated: kept for backward-compat if any route still imports from iframe. Use components/participants/VisitorsListView instead.
+export function VisitorListView({ identifier }: { identifier: string }) {
   const theme = useTheme();
   const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -837,7 +839,27 @@ function VisitorListView({ identifier }: { identifier: string }) {
 
   useEffect(() => {
     setIsClient(true);
-    fetchVisitors(identifier);
+    if (identifier) {
+      fetchVisitors(identifier);
+    } else {
+      // Fallback to extracting identifier as before
+      const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean) : [];
+      let derived: string | null = null;
+      if (pathParts.length > 0 && pathParts[0] !== 'iframe') {
+        derived = pathParts[0];
+      } else {
+        try {
+          if (window.parent && window.parent !== window) {
+            const parentUrl = window.parent.location.pathname;
+            const parentParts = parentUrl.split('/').filter(Boolean);
+            if (parentParts.length > 0) {
+              derived = parentParts[0];
+            }
+          }
+        } catch {}
+      }
+      fetchVisitors(derived || '');
+    }
 
     // Listen for theme changes from localStorage
     const handleStorageChange = (e: StorageEvent) => {
@@ -891,6 +913,18 @@ function VisitorListView({ identifier }: { identifier: string }) {
     try {
       setLoading(true);
       setError(null);
+
+      // Try to serve from session cache first for instant paint
+      try {
+        const cached = sessionStorage.getItem(`visitors:${eventIdentifier}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            setVisitors(parsed);
+            setLoading(false);
+          }
+        }
+      } catch {}
 
       // Extract identifier from URL path only - no static fallbacks
       // let eventIdentifier: string | null = null; // REMOVED
@@ -965,6 +999,10 @@ function VisitorListView({ identifier }: { identifier: string }) {
       if (response.success && response.data?.result) {
         const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, eventIdentifier, index));
         setVisitors(transformedVisitors);
+        // Save to session cache
+        try {
+          sessionStorage.setItem(`visitors:${eventIdentifier}`, JSON.stringify(transformedVisitors));
+        } catch {}
 
         // Load favorites after visitors are loaded
         await loadFavorites(eventIdentifier);

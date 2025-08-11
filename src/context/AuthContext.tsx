@@ -150,8 +150,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
     
-    // If we reach here, there's no valid authentication data
-    throw new Error('No valid authentication data found');
+    // If we reach here, there's no valid authentication data; stay logged out without throwing
+    console.warn('AuthContext: No valid authentication data found. User is not logged in.');
+    setUser(null);
+    setToken(null);
+    return;
   };
 
   const updateUser = (userData: Partial<User>) => {

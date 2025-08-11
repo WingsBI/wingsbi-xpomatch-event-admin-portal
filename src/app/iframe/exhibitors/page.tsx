@@ -651,7 +651,8 @@ const urlWithProtocol = (url: string) => {
 };
 
 // Add ExhibitorDetailsDialog component
-function ExhibitorDetailsDialog({ open, onClose, exhibitor, loading }: { open: boolean; onClose: () => void; exhibitor: any; loading: boolean }) {
+// Deprecated: kept for backward-compat if any route still imports from iframe. Use components/participants/ExhibitorsListView instead.
+export function ExhibitorDetailsDialog({ open, onClose, exhibitor, loading }: { open: boolean; onClose: () => void; exhibitor: any; loading: boolean }) {
   if (!exhibitor) return null;
   const getInitials = (firstName: string, lastName: string, company: string) => company?.charAt(0).toUpperCase() || `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   const isMobile = useMediaQuery('(max-width:600px)');
@@ -808,7 +809,8 @@ function ExhibitorDetailsDialog({ open, onClose, exhibitor, loading }: { open: b
   );
 }
 
-function ExhibitorListView({ identifier }: { identifier: string }) {
+// Deprecated: kept for backward-compat if any route still imports from iframe. Use components/participants/ExhibitorsListView instead.
+export function ExhibitorListView({ identifier }: { identifier: string }) {
   const theme = useTheme();
   const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -828,8 +830,45 @@ function ExhibitorListView({ identifier }: { identifier: string }) {
   }, []);
 
   useEffect(() => {
-    fetchExhibitors();
-  }, []);
+    if (identifier) {
+      // If identifier is passed via prop (preferred), fetch immediately
+      (async () => {
+        try {
+          setLoading(true);
+          setError(null);
+
+          // Serve cached first
+          try {
+            const cached = sessionStorage.getItem(`exhibitors:${identifier}`);
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed)) {
+                setExhibitors(parsed);
+                setLoading(false);
+              }
+            }
+          } catch {}
+
+          const response = await fieldMappingApi.getAllExhibitors(identifier);
+          if (response.statusCode === 200 && response.result) {
+            const transformedExhibitors = response.result.map((exhibitor: Exhibitor, index: number) => transformExhibitorData(exhibitor, identifier!, index));
+            setExhibitors(transformedExhibitors);
+            try { sessionStorage.setItem(`exhibitors:${identifier}`, JSON.stringify(transformedExhibitors)); } catch {}
+            await loadFavoriteStatuses(identifier);
+          } else {
+            setError('Failed to fetch exhibitors data');
+          }
+        } catch (err: any) {
+          setError(err.message || 'Failed to fetch exhibitors data');
+        } finally {
+          setLoading(false);
+        }
+      })();
+    } else {
+      // Fallback to URL-derived identifier
+      fetchExhibitors();
+    }
+  }, [identifier]);
 
   // Load all favorite statuses in one API call
   const loadFavoriteStatuses = async (eventIdentifier: string) => {

@@ -669,36 +669,54 @@ export default function MeetingsPage() {
         return;
       }
 
-      // Find the meeting and get the current user's attendee ID
-      const meeting = meetings.find(m => m.id === meetingId);
-      if (!meeting) {
-        console.error('Meeting not found:', meetingId);
-        return;
+      // Get current user's attendee ID
+      let attendeeId: number | null = null;
+      
+      if (user?.role === 'visitor') {
+        attendeeId = getCurrentVisitorId();
+      } else if (user?.role === 'exhibitor') {
+        // Get user ID from JWT token for exhibitors
+        if (typeof localStorage !== 'undefined') {
+          try {
+            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+            if (token) {
+              const base64Url = token.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              
+              const tokenData = JSON.parse(jsonPayload);
+              attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
+            }
+          } catch (error) {
+            console.error('Error parsing JWT token for attendeeId:', error);
+          }
+        }
       }
 
-      // Find the current user's attendee record from the meeting data
-      const currentMeeting = meetings.find(m => m.id === meetingId);
-      if (!currentMeeting?.attendees) {
-        console.error('No attendees found in meeting data');
-        return;
-      }
-
-      const currentUserAttendee = currentMeeting.attendees.find(a => 
-        a.id === user?.id
-      );
-
-      if (!currentUserAttendee) {
-        console.error('Current user not found in attendees list');
+      if (!attendeeId) {
+        console.error('Could not determine attendee ID for user:', user);
+        console.error('User role:', user?.role);
+        console.error('User object:', user);
         return;
       }
 
       console.log('Rejecting meeting:', { 
         meetingId: meetingIdNumber, 
-        attendeeId: parseInt(currentUserAttendee.id),
-        identifier 
+        attendeeId: attendeeId,
+        identifier,
+        user: user
       });
       
-      const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, false);
+      console.log('Calling approveMeetingRequest with params:', {
+        identifier,
+        meetingIdNumber,
+        attendeeId,
+        isApproved: false
+      });
+      
+      const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, attendeeId, false);
       
       if (response && !response.isError) {
         console.log('Meeting rejected successfully:', response);
@@ -731,36 +749,54 @@ export default function MeetingsPage() {
         return;
       }
 
-      // Find the meeting and get the current user's attendee ID
-      const meeting = meetings.find(m => m.id === meetingId);
-      if (!meeting) {
-        console.error('Meeting not found:', meetingId);
-        return;
+      // Get current user's attendee ID
+      let attendeeId: number | null = null;
+      
+      if (user?.role === 'visitor') {
+        attendeeId = getCurrentVisitorId();
+      } else if (user?.role === 'exhibitor') {
+        // Get user ID from JWT token for exhibitors
+        if (typeof localStorage !== 'undefined') {
+          try {
+            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+            if (token) {
+              const base64Url = token.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              
+              const tokenData = JSON.parse(jsonPayload);
+              attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
+            }
+          } catch (error) {
+            console.error('Error parsing JWT token for attendeeId:', error);
+          }
+        }
       }
 
-      // Find the current user's attendee record from the meeting data
-      const currentMeeting = meetings.find(m => m.id === meetingId);
-      if (!currentMeeting?.attendees) {
-        console.error('No attendees found in meeting data');
-        return;
-      }
-
-      const currentUserAttendee = currentMeeting.attendees.find(a => 
-        a.id === user?.id
-      );
-
-      if (!currentUserAttendee) {
-        console.error('Current user not found in attendees list');
+      if (!attendeeId) {
+        console.error('Could not determine attendee ID for user:', user);
+        console.error('User role:', user?.role);
+        console.error('User object:', user);
         return;
       }
 
       console.log('Approving meeting:', { 
         meetingId: meetingIdNumber, 
-        attendeeId: parseInt(currentUserAttendee.id),
-        identifier 
+        attendeeId: attendeeId,
+        identifier,
+        user: user
       });
       
-      const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, true);
+      console.log('Calling approveMeetingRequest with params:', {
+        identifier,
+        meetingIdNumber,
+        attendeeId,
+        isApproved: true
+      });
+      
+      const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, attendeeId, true);
       
       if (response && !response.isError) {
         console.log('Meeting approved successfully:', response);

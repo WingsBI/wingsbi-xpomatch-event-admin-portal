@@ -1238,10 +1238,16 @@ export const MeetingDetailsApi = {
     }
   },
 
-  approveMeetingRequest: async (identifier: string, meetingId: number, isApproved: boolean) => {
+  approveMeetingRequest: async (identifier: string, meetingId: number, attendeeId: number, isApproved: boolean) => {
     // Use the Azure API base URL for external API calls
     const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Meeting/approveMeetingRequest`;
+ 
+    console.log('=== APPROVE MEETING REQUEST API CALL ===');
+    console.log('URL:', url);
+    console.log('Meeting ID:', meetingId);
+    console.log('Attendee ID:', attendeeId);
+    console.log('Is Approved:', isApproved);
  
     // Get token from cookies or localStorage
     let token = null;
@@ -1254,6 +1260,8 @@ export const MeetingDetailsApi = {
       token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
     }
  
+    console.log('Token found:', !!token);
+ 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -1263,19 +1271,42 @@ export const MeetingDetailsApi = {
 
     const requestBody = {
       meetingId: meetingId,
+      attendeeId: attendeeId,
       isApproved: isApproved
     };
  
+    console.log('Request body:', requestBody);
+    console.log('Headers:', headers);
+ 
     try {
+      console.log('Making fetch request...');
       const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
       });
-      const data = await response.json();
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { message: 'Invalid JSON response from server' };
+      }
+      
+      console.log('Parsed response data:', data);
+      console.log('=== END APPROVE MEETING REQUEST API CALL ===');
+      
       return data;
     } catch (error) {
       console.error('Error approving meeting request:', error);
+      console.log('=== END APPROVE MEETING REQUEST API CALL (ERROR) ===');
       return {
         version: null,
         statusCode: 500,

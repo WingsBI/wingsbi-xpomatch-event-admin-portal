@@ -1,21 +1,30 @@
 #!/bin/sh
 
-# Startup script for Next.js application
-echo "Starting XPO Match Event Admin Portal..."
+# Startup script for Next.js application in Docker container
 
-# Set environment variables
-export NODE_ENV=production
+# Set default environment if not provided
+if [ -z "$NODE_ENV" ]; then
+    export NODE_ENV=production
+fi
 
-# Copy environment file if it exists
+# Copy test environment to .env.local if it exists
 if [ -f .env.test ]; then
-    echo "Using .env.test configuration"
-    cp .env.test .env.production
+    cp .env.test .env.local
+    echo "Using test environment variables"
 elif [ -f .env.production ]; then
-    echo "Using .env.production configuration"
+    cp .env.production .env.local
+    echo "Using production environment variables"
 else
     echo "No environment file found, using defaults"
 fi
 
-# Start the application
+# Wait for any dependencies (if needed)
+# Example: wait for database
+# while ! nc -z $DB_HOST $DB_PORT; do
+#   echo "Waiting for database..."
+#   sleep 1
+# done
+
+# Start the Next.js application
 echo "Starting Next.js application..."
 exec npm start

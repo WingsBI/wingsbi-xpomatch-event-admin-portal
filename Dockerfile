@@ -27,7 +27,7 @@ COPY --from=builder /app/.next ./.next
 # Copy public directory if it exists (optional)
 COPY --from=builder /app/public* ./
 
-# Copy next config file
+# If you have a next.config.js or other config files, copy them too:
 COPY --from=builder /app/next.config.js* ./
 COPY --from=builder /app/.env* ./
 

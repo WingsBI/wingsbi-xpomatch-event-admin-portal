@@ -66,6 +66,7 @@ import { setIdentifier } from "@/store/slices/appSlice";
 import { eventsApi, MeetingDetailsApi } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
 import { getCurrentVisitorId } from '@/utils/authUtils';
+import { getAuthToken } from '@/utils/cookieManager';
 
 interface Meeting {
   id: string;
@@ -185,7 +186,7 @@ export default function MeetingsPage() {
         // If not found in user object, try to get from JWT token
         if (!exhibitorId && typeof localStorage !== 'undefined') {
           try {
-            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+            const token = getAuthToken();
             if (token) {
               const base64Url = token.split('.')[1];
               const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');

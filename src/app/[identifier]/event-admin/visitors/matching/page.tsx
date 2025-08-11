@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person, Settings, Palette, Add, Close, RestoreFromTrash } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -160,7 +161,7 @@ export default function VisitorsMatchingPage() {
       console.log('Uploading visitors file:', file.name);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       console.log('JWT Token check:', {
         hasToken: !!token,
         tokenLength: token?.length,

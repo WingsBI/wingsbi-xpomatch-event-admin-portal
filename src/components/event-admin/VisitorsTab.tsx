@@ -37,6 +37,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Event, Participant } from '@/types';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 
 interface VisitorsTabProps {
   visitors: Participant[];
@@ -142,7 +143,7 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
       console.log('Uploading visitors file:', file.name);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }

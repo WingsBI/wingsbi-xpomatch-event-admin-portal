@@ -30,6 +30,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Event, Participant } from '@/types';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 
 interface ExhibitorsTabProps {
   exhibitors: Participant[];
@@ -147,7 +148,7 @@ export default function ExhibitorsTab({ exhibitors, event, onDataUpdate }: Exhib
       console.log('Uploading exhibitors file:', file.name);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }

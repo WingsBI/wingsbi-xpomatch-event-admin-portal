@@ -101,9 +101,11 @@ export const getEventAdminThemeConfig = async (eventId: string): Promise<ThemeCo
   }
 };
 
+import { getAuthToken as getAuthTokenFromCookie } from '@/utils/cookieManager';
+
 // Helper function to get auth token (implement based on your auth system)
 function getAuthToken(): string {
   // Implement based on your authentication system
   // This could be from localStorage, cookies, or context
-  return localStorage.getItem('authToken') || '';
+  return getAuthTokenFromCookie() || '';
 } 

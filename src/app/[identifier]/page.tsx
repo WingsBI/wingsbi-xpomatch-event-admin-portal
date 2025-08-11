@@ -38,6 +38,7 @@ import { RootState, AppDispatch } from "@/store";
 import { loginUser, restoreAuthState, clearAuth } from "@/store/slices/authSlice";
 import { addNotification, setIdentifier } from "@/store/slices/appSlice";
 import { clearAllAuthData, isValidUserData, getAuthenticationStatus } from '@/utils/authUtils';
+import { getUserData } from '@/utils/cookieManager';
 
 // Define color themes
 const colorThemes = {
@@ -150,7 +151,7 @@ export default function EventLoginPage() {
           
           if (isMainPage && isExternalReferrer) {
             // User directly visited the main page, redirect to their dashboard
-            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userData = getUserData();
             if (userData && userData.role) {
               let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
               

@@ -1,213 +1,257 @@
-// Cookie management utilities for authentication
+import Cookies from 'js-cookie';
 
-export interface CookieOptions {
-  maxAge?: number;
-  expires?: Date;
-  path?: string;
-  domain?: string;
-  secure?: boolean;
-  sameSite?: 'strict' | 'lax' | 'none';
-  httpOnly?: boolean;
+// Cookie configuration
+const COOKIE_CONFIG = {
+  expires: 7, // 7 days
+  secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+  sameSite: 'strict' as const, // CSRF protection
+  path: '/', // Available across the site
+};
+
+// Cookie names
+export const COOKIE_NAMES = {
+  AUTH_TOKEN: 'auth-token',
+  REFRESH_TOKEN: 'refresh-token',
+  USER_DATA: 'user-data',
+  EVENT_IDENTIFIER: 'event-identifier',
+  USER_ROLE: 'user-role',
+  USER_EMAIL: 'user-email',
+} as const;
+
+/**
+ * Set a cookie with secure defaults
+ */
+export function setCookie(name: string, value: any, options?: any) {
+  try {
+    const cookieValue = typeof value === 'string' ? value : JSON.stringify(value);
+    Cookies.set(name, cookieValue, { ...COOKIE_CONFIG, ...options });
+  } catch (error) {
+    console.warn(`Failed to set cookie ${name}:`, error);
+  }
 }
 
-class CookieManager {
-  private isServer = typeof window === 'undefined';
-  
-  /**
-   * Set a cookie with proper options for cross-domain authentication
-   */
-  setCookie(name: string, value: string, options: CookieOptions = {}): void {
-    if (this.isServer) {
-      console.warn('CookieManager.setCookie called on server side');
-      return;
+/**
+ * Get a cookie value
+ */
+export function getCookie(name: string): any {
+  try {
+    const value = Cookies.get(name);
+    if (!value) return null;
+    
+    // Try to parse as JSON, fallback to string
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
     }
-
-    const defaults: CookieOptions = {
-      path: '/',
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60, // 24 hours
-    };
-
-    const finalOptions = { ...defaults, ...options };
-    
-    let cookieString = `${name}=${encodeURIComponent(value)}`;
-    
-    if (finalOptions.maxAge) {
-      cookieString += `; max-age=${finalOptions.maxAge}`;
-    }
-    
-    if (finalOptions.expires) {
-      cookieString += `; expires=${finalOptions.expires.toUTCString()}`;
-    }
-    
-    if (finalOptions.path) {
-      cookieString += `; path=${finalOptions.path}`;
-    }
-    
-    if (finalOptions.domain) {
-      cookieString += `; domain=${finalOptions.domain}`;
-    }
-    
-    if (finalOptions.secure) {
-      cookieString += '; secure';
-    }
-    
-    if (finalOptions.sameSite) {
-      cookieString += `; samesite=${finalOptions.sameSite}`;
-    }
-    
-    if (finalOptions.httpOnly) {
-      cookieString += '; httponly';
-    }
-    
-    document.cookie = cookieString;
-  }
-
-  /**
-   * Get a cookie value by name
-   */
-  getCookie(name: string): string | null {
-    if (this.isServer) {
-      return null;
-    }
-
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    
-    if (parts.length === 2) {
-      const cookieValue = parts.pop()?.split(';').shift();
-      return cookieValue ? decodeURIComponent(cookieValue) : null;
-    }
-    
+  } catch (error) {
+    console.warn(`Failed to get cookie ${name}:`, error);
     return null;
   }
+}
 
-  /**
-   * Delete a cookie by setting it to expire in the past
-   */
-  deleteCookie(name: string, options: Partial<CookieOptions> = {}): void {
-    if (this.isServer) {
-      console.warn('CookieManager.deleteCookie called on server side');
-      return;
-    }
-
-    this.setCookie(name, '', {
-      ...options,
-      maxAge: 0,
-      expires: new Date(0),
-    });
-  }
-
-  /**
-   * Check if a cookie exists
-   */
-  hasCookie(name: string): boolean {
-    return this.getCookie(name) !== null;
-  }
-
-  /**
-   * Get all cookies as an object
-   */
-  getAllCookies(): Record<string, string> {
-    if (this.isServer) {
-      return {};
-    }
-
-    const cookies: Record<string, string> = {};
-    
-    document.cookie.split(';').forEach(cookie => {
-      const [name, ...valueParts] = cookie.split('=');
-      const value = valueParts.join('=');
-      
-      if (name && value) {
-        cookies[name.trim()] = decodeURIComponent(value.trim());
-      }
-    });
-    
-    return cookies;
-  }
-
-  /**
-   * Clear all authentication related cookies
-   */
-  clearAuthCookies(): void {
-    const authCookies = ['auth-token', 'refresh-token', 'user-data'];
-    
-    authCookies.forEach(cookieName => {
-      this.deleteCookie(cookieName);
-    });
-  }
-
-  /**
-   * Set authentication cookies with proper security settings
-   */
-  setAuthCookies(token: string, refreshToken: string, userData: any): void {
-    const isProduction = process.env.NODE_ENV === 'production';
-    
-    // Set auth token (httpOnly should be set server-side)
-    this.setCookie('auth-token', token, {
-      maxAge: 24 * 60 * 60, // 24 hours
-      secure: isProduction,
-      sameSite: 'lax',
-    });
-    
-    // Set refresh token (httpOnly should be set server-side)
-    this.setCookie('refresh-token', refreshToken, {
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      secure: isProduction,
-      sameSite: 'lax',
-    });
-    
-    // Set user data (accessible to client)
-    this.setCookie('user-data', JSON.stringify(userData), {
-      maxAge: 24 * 60 * 60, // 24 hours
-      secure: isProduction,
-      sameSite: 'lax',
-      httpOnly: false, // Allow client access
-    });
-  }
-
-  /**
-   * Get user data from cookie
-   */
-  getUserData(): any | null {
-    const userDataStr = this.getCookie('user-data');
-    
-    if (!userDataStr) {
-      return null;
-    }
-    
-    try {
-      return JSON.parse(userDataStr);
-    } catch (error) {
-      console.error('Failed to parse user data from cookie:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Check if user is authenticated based on cookies
-   */
-  isAuthenticated(): boolean {
-    return this.hasCookie('auth-token') && this.hasCookie('user-data');
+/**
+ * Remove a cookie
+ */
+export function removeCookie(name: string, options?: any) {
+  try {
+    Cookies.remove(name, { ...COOKIE_CONFIG, ...options });
+  } catch (error) {
+    console.warn(`Failed to remove cookie ${name}:`, error);
   }
 }
 
-// Create singleton instance
-export const cookieManager = new CookieManager();
+/**
+ * Clear all authentication cookies
+ */
+export function clearAllAuthCookies() {
+  Object.values(COOKIE_NAMES).forEach(cookieName => {
+    removeCookie(cookieName);
+  });
+  console.log('All authentication cookies cleared');
+}
 
-// Export individual functions for convenience
-export const {
-  setCookie,
-  getCookie,
-  deleteCookie,
-  hasCookie,
-  getAllCookies,
-  clearAuthCookies,
-  setAuthCookies,
-  getUserData,
-  isAuthenticated,
-} = cookieManager;
+/**
+ * Set authentication token
+ */
+export function setAuthToken(token: string) {
+  setCookie(COOKIE_NAMES.AUTH_TOKEN, token);
+}
 
-export default cookieManager; 
+/**
+ * Get authentication token
+ */
+export function getAuthToken(): string | null {
+  return getCookie(COOKIE_NAMES.AUTH_TOKEN);
+}
+
+/**
+ * Set refresh token
+ */
+export function setRefreshToken(token: string) {
+  setCookie(COOKIE_NAMES.REFRESH_TOKEN, token);
+}
+
+/**
+ * Get refresh token
+ */
+export function getRefreshToken(): string | null {
+  return getCookie(COOKIE_NAMES.REFRESH_TOKEN);
+}
+
+/**
+ * Set user data
+ */
+export function setUserData(userData: any) {
+  setCookie(COOKIE_NAMES.USER_DATA, userData);
+}
+
+/**
+ * Get user data
+ */
+export function getUserData(): any {
+  return getCookie(COOKIE_NAMES.USER_DATA);
+}
+
+/**
+ * Set event identifier
+ */
+export function setEventIdentifier(identifier: string) {
+  setCookie(COOKIE_NAMES.EVENT_IDENTIFIER, identifier);
+}
+
+/**
+ * Get event identifier
+ */
+export function getEventIdentifier(): string | null {
+  return getCookie(COOKIE_NAMES.EVENT_IDENTIFIER);
+}
+
+/**
+ * Set user role
+ */
+export function setUserRole(role: string) {
+  setCookie(COOKIE_NAMES.USER_ROLE, role);
+}
+
+/**
+ * Get user role
+ */
+export function getUserRole(): string | null {
+  return getCookie(COOKIE_NAMES.USER_ROLE);
+}
+
+/**
+ * Set user email
+ */
+export function setUserEmail(email: string) {
+  setCookie(COOKIE_NAMES.USER_EMAIL, email);
+}
+
+/**
+ * Get user email
+ */
+export function getUserEmail(): string | null {
+  return getCookie(COOKIE_NAMES.USER_EMAIL);
+}
+
+/**
+ * Check if user is authenticated
+ */
+export function isAuthenticated(): boolean {
+  const token = getAuthToken();
+  const userData = getUserData();
+  return !!(token && userData);
+}
+
+/**
+ * Get current user ID
+ */
+export function getCurrentUserId(): number | null {
+  try {
+    const userData = getUserData();
+    if (!userData || !userData.id) return null;
+    
+    const userId = parseInt(userData.id, 10);
+    return isNaN(userId) ? null : userId;
+  } catch (error) {
+    console.error('Error getting current user ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Decode JWT token
+ */
+export function decodeJWTToken(): any | null {
+  try {
+    const token = getAuthToken();
+    if (!token) return null;
+
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT token:', error);
+    return null;
+  }
+}
+
+/**
+ * Get current exhibitor ID from JWT token
+ */
+export function getCurrentExhibitorId(): number | null {
+  try {
+    const tokenData = decodeJWTToken();
+    if (!tokenData || tokenData.roleName !== 'Exhibitor') return null;
+
+    const exhibitorId = tokenData.exhibitorId || tokenData.exhibitorid || tokenData.userId || tokenData.id || tokenData.sub;
+    if (!exhibitorId) return null;
+
+    const parsedId = parseInt(exhibitorId, 10);
+    return isNaN(parsedId) ? null : parsedId;
+  } catch (error) {
+    console.error('Error getting current exhibitor ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Get current visitor ID from JWT token
+ */
+export function getCurrentVisitorId(): number | null {
+  try {
+    const tokenData = decodeJWTToken();
+    if (!tokenData || tokenData.roleName !== 'Visitor') return null;
+
+    const visitorId = tokenData.visitorId || tokenData.visitorid || tokenData.userId || tokenData.id || tokenData.sub;
+    if (!visitorId) return null;
+
+    const parsedId = parseInt(visitorId, 10);
+    return isNaN(parsedId) ? null : parsedId;
+  } catch (error) {
+    console.error('Error getting current visitor ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if current user is an event-admin
+ */
+export function isEventAdmin(): boolean {
+  try {
+    const tokenData = decodeJWTToken();
+    if (!tokenData) return false;
+
+    return tokenData.roleName === 'event-admin' && tokenData.roleid === '1';
+  } catch (error) {
+    console.error('Error checking if user is event-admin:', error);
+    return false;
+  }
+} 

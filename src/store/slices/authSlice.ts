@@ -1,6 +1,19 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authApi, LoginCredentials } from '@/services/authApi';
 import { setIdentifier } from './appSlice';
+import { 
+  setAuthToken, 
+  getAuthToken, 
+  setRefreshToken, 
+  getRefreshToken, 
+  setUserData, 
+  getUserData, 
+  setEventIdentifier, 
+  getEventIdentifier,
+  clearAllAuthCookies,
+  decodeJWTToken,
+  isAuthenticated
+} from '@/utils/cookieManager';
 import { User } from '@/types/auth';
 
 interface AuthState {
@@ -21,19 +34,6 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Helper function to get cookie value
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    const cookieValue = parts.pop()?.split(';').shift();
-    return cookieValue || null;
-  }
-  return null;
-}
-
 // Get API base URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
@@ -52,28 +52,22 @@ export const loginUser = createAsyncThunk(
         return rejectWithValue('Invalid response from server');
       }
       
-      // Store tokens in both cookies (via API) and localStorage for compatibility
-      if (response.data.token && typeof localStorage !== 'undefined') {
-        localStorage.setItem('jwtToken', response.data.token);
-        localStorage.setItem('authToken', response.data.token);
+      // Store tokens in cookies
+      if (response.data.token) {
+        setAuthToken(response.data.token);
       }
-      if (response.data.refreshToken && typeof localStorage !== 'undefined') {
-        localStorage.setItem('refreshToken', response.data.refreshToken);
+      if (response.data.refreshToken) {
+        setRefreshToken(response.data.refreshToken);
       }
       
-      // Store user data in localStorage for validation
-      if (response.data.user && typeof localStorage !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Store user data in cookies
+      if (response.data.user) {
+        setUserData(response.data.user);
       }
       
       // Store the identifier for iframe components to use
       if (credentials.identifier) {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('currentEventIdentifier', credentials.identifier);
-        }
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem('currentEventIdentifier', credentials.identifier);
-        }
+        setEventIdentifier(credentials.identifier);
         
         // Update the Redux store identifier
         dispatch(setIdentifier(credentials.identifier));
@@ -98,33 +92,15 @@ export const logoutUser = createAsyncThunk(
       
       const success = response.ok;
       
-      // Clear tokens from localStorage
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('jwtToken');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('currentEventIdentifier');
-      }
-      
-      // Clear stored identifier
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem('currentEventIdentifier');
-      }
+      // Clear all authentication cookies
+      clearAllAuthCookies();
       
       return success;
     } catch (error) {
       console.error('Logout error:', error);
       
-      // Still clear tokens even if logout API fails
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('jwtToken');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('currentEventIdentifier');
-      }
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem('currentEventIdentifier');
-      }
+      // Still clear cookies even if logout API fails
+      clearAllAuthCookies();
       
       return false;
     }
@@ -145,13 +121,12 @@ export const refreshTokenAsync = createAsyncThunk(
         return rejectWithValue('Invalid response from server');
       }
       
-      // Store new tokens in localStorage for compatibility
-      if (response.data.token && typeof localStorage !== 'undefined') {
-        localStorage.setItem('jwtToken', response.data.token);
-        localStorage.setItem('authToken', response.data.token);
+      // Store new tokens in cookies
+      if (response.data.token) {
+        setAuthToken(response.data.token);
       }
-      if (response.data.refreshToken && typeof localStorage !== 'undefined') {
-        localStorage.setItem('refreshToken', response.data.refreshToken);
+      if (response.data.refreshToken) {
+        setRefreshToken(response.data.refreshToken);
       }
       
       return response.data;
@@ -161,7 +136,7 @@ export const refreshTokenAsync = createAsyncThunk(
   }
 );
 
-// Action to restore auth state from localStorage
+// Action to restore auth state from cookies
 // This should only be called when explicitly requested, not automatically
 export const restoreAuthState = createAsyncThunk(
   'auth/restoreAuthState',
@@ -170,53 +145,44 @@ export const restoreAuthState = createAsyncThunk(
       // Only restore if explicitly called - don't auto-restore on app start
       console.log("Explicit auth state restoration requested for identifier:", identifier);
       
-      // Try to restore from localStorage - this is compatible with the Azure API system
-      if (typeof localStorage !== 'undefined') {
-        const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-        const userStr = localStorage.getItem('user');
-        
-        if (token && userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            
-            // Validate that user data is complete
-            if (!user.id || !user.email) {
-              console.log("Incomplete user data in localStorage");
-              return rejectWithValue('Incomplete user data');
-            }
-            
-            // Basic token validation (check if it's a JWT)
-            const tokenParts = token.split('.');
-            if (tokenParts.length !== 3) {
-              console.log("Invalid token format in localStorage");
-              return rejectWithValue('Invalid token format');
-            }
-            
-            console.log("Valid authentication data found in localStorage");
-            console.log("Restored user data:", user);
-            console.log("User role:", user.role);
-            return {
-              user: user,
-              token: token,
-              refreshToken: localStorage.getItem('refreshToken'),
-            };
-          } catch (parseError) {
-            console.log("Failed to parse user data from localStorage");
-            return rejectWithValue('Failed to parse stored user data');
+      // Try to restore from cookies
+      const token = getAuthToken();
+      const user = getUserData();
+      
+      if (token && user) {
+        try {
+          // Validate that user data is complete
+          if (!user.id || !user.email) {
+            console.log("Incomplete user data in cookies");
+            return rejectWithValue('Incomplete user data');
           }
+          
+          // Basic token validation (check if it's a JWT)
+          const tokenParts = token.split('.');
+          if (tokenParts.length !== 3) {
+            console.log("Invalid token format in cookies");
+            return rejectWithValue('Invalid token format');
+          }
+          
+          console.log("Valid authentication data found in cookies");
+          console.log("Restored user data:", user);
+          console.log("User role:", user.role);
+          return {
+            user: user,
+            token: token,
+            refreshToken: getRefreshToken(),
+          };
+        } catch (parseError) {
+          console.log("Failed to parse user data from cookies");
+          return rejectWithValue('Failed to parse stored user data');
         }
       }
       
-      console.log("No valid authentication data found in localStorage");
+      console.log("No valid authentication data found in cookies");
       return rejectWithValue('No valid authentication data found');
     } catch (error) {
       // Clear any stored data on error
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('jwtToken');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('refreshToken');
-      }
+      clearAllAuthCookies();
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to restore auth state');
     }
   }

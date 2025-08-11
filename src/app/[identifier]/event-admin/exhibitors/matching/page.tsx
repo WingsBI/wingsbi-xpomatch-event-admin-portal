@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business, Settings, Add, Close, RestoreFromTrash } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 import type { ExhibitorRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -154,7 +155,7 @@ const FullPageLoader = () => (
       console.log('Uploading exhibitors file:', file.name);
 
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }

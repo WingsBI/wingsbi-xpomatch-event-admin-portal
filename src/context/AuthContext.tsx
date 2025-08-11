@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, LoginCredentials, AuthResponse, AuthContextType, UserRole } from '@/types/auth';
+import { setAuthToken, setUserData, clearAllAuthCookies, getAuthToken, getUserData } from '@/utils/cookieManager';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -18,25 +19,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Helper function to get cookie value
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    const cookieValue = parts.pop()?.split(';').shift();
-    return cookieValue || null;
-  }
-  return null;
-}
 
-// Helper function to delete cookie
-function deleteCookie(name: string) {
-  if (typeof document !== 'undefined') {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-  }
-}
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -55,9 +38,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error('Failed to initialize auth:', error);
         // Clear any invalid cookies
-        deleteCookie('auth-token');
-        deleteCookie('refresh-token');
-        deleteCookie('user-data');
+        clearAllAuthCookies();
         setToken(null);
         setUser(null);
       }
@@ -90,11 +71,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(data.user);
         setToken(data.token);
         
-        // Also store in localStorage as fallback for iframe scenarios
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('authToken', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-        }
+        // Store in cookies for persistence
+        setAuthToken(data.token);
+        setUserData(data.user);
 
         // Handle role-based redirection
         const userRole = data.user.role;
@@ -135,19 +114,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Logout API error:', error);
     }
 
-    // Clear client-side cookies manually as fallback
-    deleteCookie('auth-token');
-    deleteCookie('refresh-token');
-    deleteCookie('user-data');
-
-    // Clear localStorage as well
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('theme');
-      localStorage.removeItem('fontFamily');
-    }
+    // Clear all authentication cookies
+    clearAllAuthCookies();
 
     // Clear user state
     setUser(null);
@@ -155,33 +123,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const refreshAuth = async () => {
-    // Check localStorage for valid authentication data (compatible with Azure API system)
-    if (typeof localStorage !== 'undefined') {
-      const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-      const userStr = localStorage.getItem('user');
-      
-      console.log('AuthContext refreshAuth - Token:', token ? 'Found' : 'Not found');
-      console.log('AuthContext refreshAuth - User data:', userStr);
-      
-      if (token && userStr) {
-        try {
-          const userData = JSON.parse(userStr);
-          console.log('AuthContext refreshAuth - Parsed user data:', userData);
-          
-          // Validate that user data is complete
-          if (userData.id && userData.email) {
-            // Basic token validation (check if it's a JWT)
-            const tokenParts = token.split('.');
-            if (tokenParts.length === 3) {
-              console.log('AuthContext refreshAuth - Setting user with role:', userData.role);
-              setUser(userData);
-              setToken(token);
-              return; // Success
-            }
+    // Check cookies for valid authentication data
+    const token = getAuthToken();
+    const userData = getUserData();
+    
+    console.log('AuthContext refreshAuth - Token:', token ? 'Found' : 'Not found');
+    console.log('AuthContext refreshAuth - User data:', userData);
+    
+    if (token && userData) {
+      try {
+        console.log('AuthContext refreshAuth - Parsed user data:', userData);
+        
+        // Validate that user data is complete
+        if (userData.id && userData.email) {
+          // Basic token validation (check if it's a JWT)
+          const tokenParts = token.split('.');
+          if (tokenParts.length === 3) {
+            console.log('AuthContext refreshAuth - Setting user with role:', userData.role);
+            setUser(userData);
+            setToken(token);
+            return; // Success
           }
-        } catch (parseError) {
-          console.error('Failed to parse stored user data:', parseError);
         }
+      } catch (parseError) {
+        console.error('Failed to parse stored user data:', parseError);
       }
     }
     
@@ -194,17 +159,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       
-      // Update cookie by making API call or directly update document.cookie
-      if (typeof document !== 'undefined') {
-        const isProduction = process.env.NODE_ENV === 'production';
-        const cookieOptions = `path=/; ${isProduction ? 'secure;' : ''} samesite=lax; max-age=${24 * 60 * 60}`;
-        document.cookie = `user-data=${JSON.stringify(updatedUser)}; ${cookieOptions}`;
-      }
-      
-      // Update localStorage as fallback
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      }
+      // Update user data in cookies
+      setUserData(updatedUser);
     }
   };
 

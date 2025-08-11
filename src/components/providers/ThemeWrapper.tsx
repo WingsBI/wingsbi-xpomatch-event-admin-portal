@@ -15,6 +15,7 @@ function ThemeRefreshListener({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth();
   const { refreshTheme } = useApiTheme();
   const lastAuthState = useRef<{ isAuthenticated: boolean; userId?: string }>({ isAuthenticated: false });
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Check if authentication state has changed
@@ -33,17 +34,30 @@ function ThemeRefreshListener({ children }: { children: ReactNode }) {
       currentAuthState.userId !== previousAuthState.userId
     ) {
       console.log('🔄 Authentication state changed, refreshing theme');
-      // Add a minimal delay to ensure authentication state is fully settled
-      const timeoutId = setTimeout(() => {
+      
+      // Clear any existing timeout to prevent multiple refreshes
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      // Add a delay to ensure authentication state is fully settled and debounce multiple changes
+      refreshTimeoutRef.current = setTimeout(() => {
         console.log('🔄 Executing theme refresh...');
         refreshTheme();
-      }, 50);
+      }, 200); // Increased delay for better debouncing
       
       lastAuthState.current = currentAuthState;
-      
-      return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated, user?.id, refreshTheme]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return <>{children}</>;
 }

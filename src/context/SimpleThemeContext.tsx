@@ -5,6 +5,7 @@ import { createTheme, ThemeProvider as MuiThemeProvider, Theme } from '@mui/mate
 import { CssBaseline } from '@mui/material';
 import { getEventAdminThemeConfig } from '@/lib/themeApi';
 import { ThemeConfig, EventAdminThemeSettings } from '@/types';
+import { setCookie, getCookie } from '@/utils/cookieManager';
 
 // Font families available for selection - Nunito Sans as default
 export const fontFamilies = {
@@ -583,9 +584,9 @@ export function SimpleThemeProvider({ children, eventId, isEventAdmin = false }:
       // For Event Admin, fetch assigned theme as starting point
       fetchThemeConfig();
     } else {
-      // For other roles, load from localStorage
-      const savedTheme = localStorage.getItem('theme');
-      const savedFont = localStorage.getItem('fontFamily');
+      // For other roles, load from cookies
+      const savedTheme = getCookie('theme');
+      const savedFont = getCookie('fontFamily');
       
       if (savedTheme) {
         setCurrentThemeName(savedTheme);
@@ -608,17 +609,17 @@ export function SimpleThemeProvider({ children, eventId, isEventAdmin = false }:
   const setTheme = (themeName: string) => {
     setCurrentThemeName(themeName);
     
-    // For Event Admin, save to localStorage for session persistence
-    // For other users, also save to localStorage
-    localStorage.setItem('theme', themeName);
+    // For Event Admin, save to cookies for session persistence
+    // For other users, also save to cookies
+    setCookie('theme', themeName);
   };
 
   const setFontFamily = (fontFamily: string) => {
     setCurrentFontFamily(fontFamily);
     
-    // For Event Admin, save to localStorage for session persistence
-    // For other users, also save to localStorage
-    localStorage.setItem('fontFamily', fontFamily);
+    // For Event Admin, save to cookies for session persistence
+    // For other users, also save to cookies
+    setCookie('fontFamily', fontFamily);
   };
 
   const value: SimpleThemeContextType = {

@@ -53,6 +53,7 @@ import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 import { apiService } from '@/services/apiService';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
@@ -281,7 +282,7 @@ export default function EventAdminDashboard() {
       console.log('Uploading visitors file:', file.name);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }
@@ -347,7 +348,7 @@ export default function EventAdminDashboard() {
       console.log('Uploading exhibitors file:', file.name);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }

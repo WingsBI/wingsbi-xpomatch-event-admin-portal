@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { store } from '@/store';
 import { addNotification } from '@/store/slices/appSlice';
+import { getAuthToken, clearAllAuthCookies, getUserData } from '@/utils/cookieManager';
 
 interface ApiResponse<T = any> {
   data: T;
@@ -14,19 +15,6 @@ interface ApiError {
   status?: number;
   code?: string;
   details?: any;
-}
-
-// Helper function to get cookie value
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    const cookieValue = parts.pop()?.split(';').shift();
-    return cookieValue || null;
-  }
-  return null;
 }
 
 // Types for meeting creation
@@ -76,34 +64,17 @@ class ApiService {
   }
 
   private setupInterceptors() {
-    // Request interceptor to add identifier and auth token
+    // Request interceptor for adding auth token and identifier
     this.axiosInstance.interceptors.request.use(
-      (config) => {
-        const state = store.getState();
-        let identifier = state.app?.identifier;
-        let token = state.auth?.token;
-
-        // If no identifier in Redux, extract from current URL path
-        if (!identifier) {
-          if (typeof window !== 'undefined') {
-            const pathParts = window.location.pathname.split('/').filter(Boolean);
-            if (pathParts.length > 0 && pathParts[0] !== 'api') {
-              identifier = pathParts[0];
-              console.log('Using identifier from URL path:', identifier);
-            }
-          }
-        }
-
-        // If no token in Redux, try to get from cookies
-        if (!token && typeof document !== 'undefined') {
-          token = getCookie('auth-token');
+      async (config) => {
+        // Get identifier from URL or use default
+        let identifier = this.getIdentifierFromUrl();
+        
+        // Get token from cookies
+        let token = getAuthToken();
+        
+        if (token) {
           console.log('Using token from cookie:', !!token);
-        }
-
-        // Fallback to localStorage for iframe scenarios
-        if (!token && typeof localStorage !== 'undefined') {
-          token = localStorage.getItem('authToken') || localStorage.getItem('jwtToken');
-          console.log('Using token from localStorage:', !!token);
         }
 
         // Throw error if no identifier found
@@ -128,7 +99,7 @@ class ApiService {
           }
         }
 
-        // Add auth token to headers as fallback
+        // Add auth token to headers
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -164,56 +135,35 @@ class ApiService {
           originalRequest._retry = true;
           console.log('Handling 401 error - checking authentication status');
           
-          // Try to get fresh token from localStorage (compatible with Azure API system)
-          if (typeof localStorage !== 'undefined') {
-            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-            const userStr = localStorage.getItem('user');
-            
-            if (token && userStr) {
-              try {
-                const userData = JSON.parse(userStr);
-                
-                // Validate that we have valid data
-                if (userData.id && userData.email) {
-                  // Basic token validation (check if it's a JWT)
-                  const tokenParts = token.split('.');
-                  if (tokenParts.length === 3) {
-                    // Update the authorization header and retry
-                    originalRequest.headers.Authorization = `Bearer ${token}`;
-                    return this.axiosInstance(originalRequest);
-                  }
-                }
-              } catch (parseError) {
-                console.error('Failed to parse stored authentication data:', parseError);
-              }
+          // Try to get fresh token from cookies
+          const token = getAuthToken();
+          
+          if (token) {
+            // Basic token validation (check if it's a JWT)
+            const tokenParts = token.split('.');
+            if (tokenParts.length === 3) {
+              // Update the authorization header and retry
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return this.axiosInstance(originalRequest);
             }
           }
           
-          // If no valid token found, clear storage and redirect to login
-          if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem('jwtToken');
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            localStorage.removeItem('refreshToken');
-          }
+          // If no valid token found, clear cookies and redirect to login
+          clearAllAuthCookies();
           
-          // User needs to login again
+          // Redirect to login page
           if (typeof window !== 'undefined') {
-            window.location.href = window.location.pathname.replace(/\/[^\/]+\/dashboard.*/, '/auth/event-admin/login');
+            const currentPath = window.location.pathname;
+            const identifier = this.getIdentifierFromUrl();
+            if (identifier) {
+              window.location.href = `/${identifier}/auth/event-admin/login`;
+            } else {
+              window.location.href = '/auth/event-admin/login';
+            }
           }
-          
-          return Promise.reject(error);
         }
 
-        // Handle network errors with retry
-        if (!error.response && originalRequest._retryCount < this.retryAttempts) {
-          originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-          console.log(`Retrying request (${originalRequest._retryCount}/${this.retryAttempts})`);
-          await this.delay(this.retryDelay * originalRequest._retryCount);
-          return this.axiosInstance(originalRequest);
-        }
-
-        return Promise.reject(this.handleError(error));
+        return Promise.reject(error);
       }
     );
   }
@@ -261,24 +211,8 @@ class ApiService {
   }
 
   private getAuthToken(): string | null {
-    // Try different possible token keys
-    const possibleKeys = [
-      'jwtToken',
-      'authToken',
-      'token',
-      'accessToken'
-    ];
-    let token = null;
-    if (typeof localStorage !== 'undefined') {
-      for (const key of possibleKeys) {
-        token = localStorage.getItem(key);
-        if (token) break;
-      }
-    }
-    if (!token && typeof document !== 'undefined') {
-      token = getCookie('auth-token');
-    }
-    return token;
+    // Get token from cookies using the cookieManager
+    return getAuthToken();
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -409,20 +343,11 @@ class ApiService {
   // Visitors API methods
   async getAllVisitors(identifier: string, isIframe: boolean = false): Promise<ApiResponse<any>> {
     try {
-      // Get token from cookies first, then fallback to localStorage
-      let token = null;
-      
-      if (typeof document !== 'undefined') {
-        token = getCookie('auth-token');
-      }
-      
-      if (!token && typeof localStorage !== 'undefined') {
-        token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-        console.log('Got token from localStorage (fallback):', !!token);
-      }
+      // Get token from cookies
+      const token = getAuthToken();
       
       // Use the Azure API base URL for external API calls
-      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
       const url = `${azureApiUrl}/api/${identifier}/RegisterUsers/getAllVisitors`;
       
       const headers: Record<string, string> = {
@@ -465,7 +390,7 @@ class ApiService {
   public async createMeeting(identifier: string, meetingData: CreateMeetingRequest): Promise<ApiResponse<MeetingResponse>> {
     try {
       // Use the Azure API base URL for external API calls
-      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
       const apiUrl = `${azureApiUrl}/api/${identifier}/Meeting/createMeeting`;
       
       console.log('Meeting API Debug Info:', {
@@ -529,6 +454,16 @@ class ApiService {
       };
     }
   }
+
+  private getIdentifierFromUrl(): string | null {
+    if (typeof window !== 'undefined') {
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      if (pathParts.length > 0 && pathParts[0] !== 'api') {
+        return pathParts[0];
+      }
+    }
+    return null;
+  }
 }
 
 // Create singleton instance
@@ -553,10 +488,10 @@ export const eventsApi = {
   
   // New API methods for event details and theme management
   getEventDetails: async (identifier: string) => {
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Event/GetEventDetails`;
     
-    const token = localStorage.getItem('jwtToken');
+    const token = getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -627,10 +562,10 @@ export const eventsApi = {
   },
 
   updateEventDetails: async (identifier: string, eventData: any) => {
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Event/UpdateEventDetails`;
     
-    const token = localStorage.getItem('jwtToken');
+    const token = getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -654,18 +589,14 @@ export const eventsApi = {
   },
 
   getEventThemeDetails: async (identifier: string) => {
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Event/getEventThemeDetails`;
     
-    // Try multiple token sources
-    const token = localStorage.getItem('jwtToken') || 
-                  localStorage.getItem('authToken') || 
-                  (typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1] : null);
+    // Get token from cookies
+    const token = getAuthToken();
     
     console.log('🔍 Theme API - Token sources:', {
-      jwtToken: !!localStorage.getItem('jwtToken'),
-      authToken: !!localStorage.getItem('authToken'),
-      cookieToken: !!(typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1] : null),
+      cookieToken: !!token,
       finalToken: !!token
     });
     
@@ -719,10 +650,10 @@ export const eventsApi = {
   },
 
   updateEventTheme: async (identifier: string, themeData: any) => {
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Event/updateEventTheme`;
     
-    const token = localStorage.getItem('jwtToken');
+    const token = getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -776,7 +707,7 @@ export const fontsApi = {
 export const matchmakingApi = {
   getVisitorMatch: async (identifier: string, visitorId: number, fields: string | null = null) => {
     // Use the Azure API base URL for external API calls
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getVisitorMatch`;
 
     // Get token from cookies or localStorage
@@ -828,13 +759,13 @@ export const notificationsApi = {
       // Get token from cookies first, then fallback to localStorage
       let token = null;
       if (typeof document !== 'undefined') {
-        token = getCookie('auth-token');
+        token = getAuthToken();
       }
       if (!token && typeof localStorage !== 'undefined') {
         token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
       }
       // Use the Azure API base URL for external API calls
-      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
       const url = `${azureApiUrl}/api/${identifier}/Dashboard/getAllNotification`;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -898,10 +829,9 @@ if (typeof window !== 'undefined') {
     
     getAuthInfo: () => {
       return {
-        jwtToken: !!localStorage.getItem('jwtToken'),
-        authToken: !!localStorage.getItem('authToken'),
-        user: localStorage.getItem('user'),
-        tokenLength: localStorage.getItem('jwtToken')?.length || 0
+        cookieToken: !!getAuthToken(),
+        user: getUserData(),
+        tokenLength: getAuthToken()?.length || 0
       };
     }
   };
@@ -913,7 +843,7 @@ if (typeof window !== 'undefined') {
 export const ExhibitormatchmakingApi = {
   getExhibitortoExhibitorMatch: async (identifier: string, exhibitorId: number, fields: string | null = null) => {
     // Use the Azure API base URL for external API calls
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getExhibitortoExhibitorMatch`;
 
     // Get token from cookies or localStorage
@@ -959,7 +889,7 @@ export const ExhibitormatchmakingApi = {
 
   getExhibitorMatch: async (identifier: string, exhibitorid: number, fields: string | null = null) => {
     // Use the Azure API base URL for external API calls
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getExhibitorMatch`;
  
     // Get token from cookies or localStorage
@@ -1008,7 +938,7 @@ export const ExhibitormatchmakingApi = {
 export const MeetingDetailsApi = {
   getVisitorMeetingDetails: async (identifier: string, visitorId: number) => {
     // Use the Azure API base URL for external API calls
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Meeting/getVisitortorMeetingDetails?visitorId=${visitorId}`;
  
     // Get token from cookies or localStorage
@@ -1051,7 +981,7 @@ export const MeetingDetailsApi = {
 
   getExhibitorMeetingDetails: async (identifier: string, exhibitorId: number) => {
     // Use the Azure API base URL for external API calls
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Meeting/getExhibitorMeetingDetails?exhibitorId=${exhibitorId}`;
  
     // Get token from cookies or localStorage
@@ -1094,7 +1024,7 @@ export const MeetingDetailsApi = {
 
   approveMeetingRequest: async (identifier: string, meetingId: number, isApproved: boolean) => {
     // Use the Azure API base URL for external API calls
-    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Meeting/approveMeetingRequest`;
  
     // Get token from cookies or localStorage

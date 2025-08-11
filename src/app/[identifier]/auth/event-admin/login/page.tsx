@@ -20,6 +20,7 @@ import { useForm } from 'react-hook-form';
 import { setIdentifier } from '@/store/slices/appSlice';
 import { AppDispatch } from '@/store';
 import { authApi } from '@/services/authApi';
+import { setAuthToken, setRefreshToken, setUserData } from '@/utils/cookieManager';
 
 interface LoginForm {
   email: string;
@@ -55,12 +56,12 @@ export default function EventAdminLoginPage() {
       });
 
       if (response.success && response.data) {
-        // Store authentication data
-        localStorage.setItem('jwtToken', response.data.token);
+        // Store authentication data in cookies
+        setAuthToken(response.data.token);
         if (response.data.refreshToken) {
-          localStorage.setItem('refreshToken', response.data.refreshToken);
+          setRefreshToken(response.data.refreshToken);
         }
-        localStorage.setItem('userInfo', JSON.stringify(response.data.user));
+        setUserData(response.data.user);
         
         // Decode JWT token to get role information
         try {

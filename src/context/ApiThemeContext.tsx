@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { createTheme, ThemeProvider as MuiThemeProvider, Theme } from '@mui/material/styles';
 import { CssBaseline, Box, CircularProgress, Typography } from '@mui/material';
 import { eventsApi } from '@/services/apiService';
+import { setCookie, getCookie, removeCookie } from '@/utils/cookieManager';
 
 // API Theme Response Types
 interface ApiTheme {
@@ -19,7 +20,7 @@ interface ApiFont {
   className: string;
 }
 
-interface ApiEventThemeDetails {
+export interface ApiEventThemeDetails {
   id: number;
   eventId: number;
   theme: ApiTheme;
@@ -645,24 +646,33 @@ export function ApiThemeProvider({ children, identifier }: ApiThemeProviderProps
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme | null>(null);
+  const loadingRef = useRef(false); // Prevent multiple simultaneous API calls
 
   const loadThemeFromApi = async () => {
+    // Prevent multiple simultaneous API calls
+    if (loadingRef.current) {
+      console.log('🔍 Theme API call already in progress, skipping...');
+      return;
+    }
+    
     try {
+      loadingRef.current = true;
       setIsLoading(true);
       setError(null);
       
       console.log('🔍 Loading theme from API for identifier:', identifier);
-      console.log('🔍 Available tokens in localStorage:', {
-        jwtToken: !!localStorage.getItem('jwtToken'),
-        authToken: !!localStorage.getItem('authToken'),
-        user: !!localStorage.getItem('user')
-      });
       
       // Check if we have cached theme data for this identifier
       const cacheKey = `theme_${identifier}`;
-      const cachedTheme = localStorage.getItem(cacheKey);
+      const cacheTimestampKey = `theme_${identifier}_timestamp`;
+      const cachedTheme = getCookie(cacheKey);
+      const cacheTimestamp = getCookie(cacheTimestampKey);
       
-      if (cachedTheme) {
+      // Cache is valid for 5 minutes
+      const cacheValidDuration = 5 * 60 * 1000; // 5 minutes in milliseconds
+      const isCacheValid = cacheTimestamp && (Date.now() - parseInt(cacheTimestamp)) < cacheValidDuration;
+      
+      if (cachedTheme && isCacheValid) {
         try {
           const themeData = JSON.parse(cachedTheme);
           console.log('🔍 Using cached theme data:', themeData.theme.themeLabel);
@@ -686,7 +696,8 @@ export function ApiThemeProvider({ children, identifier }: ApiThemeProviderProps
         
         // Cache the theme data for faster subsequent loads
         try {
-          localStorage.setItem(cacheKey, JSON.stringify(themeData));
+          setCookie(cacheKey, JSON.stringify(themeData));
+          setCookie(cacheTimestampKey, Date.now().toString());
           console.log('🔍 Theme data cached for identifier:', identifier);
         } catch (cacheError) {
           console.log('🔍 Failed to cache theme data:', cacheError);
@@ -712,43 +723,29 @@ export function ApiThemeProvider({ children, identifier }: ApiThemeProviderProps
       setTheme(defaultTheme);
     } finally {
       setIsLoading(false);
+      loadingRef.current = false;
     }
   };
 
-  const refreshTheme = async () => {
+  // Debounced refresh function to prevent excessive API calls
+  const refreshTheme = useCallback(async () => {
+    // Clear any existing cache to force fresh data
+    if (identifier) {
+      const cacheKey = `theme_${identifier}`;
+      const cacheTimestampKey = `theme_${identifier}_timestamp`;
+      removeCookie(cacheKey);
+      removeCookie(cacheTimestampKey);
+    }
     await loadThemeFromApi();
-  };
+  }, [identifier, loadThemeFromApi]);
 
+  // Single useEffect for theme loading with proper dependency management
   useEffect(() => {
     if (identifier) {
-      // Load theme immediately when identifier is available
       console.log('🔍 Identifier available, loading theme immediately');
       loadThemeFromApi();
-      
-      // Also set up a more aggressive retry if the first load fails
-      const aggressiveRetry = setTimeout(() => {
-        if (!themeDetails && !isLoading) {
-          console.log('🔄 Aggressive retry for theme load');
-          loadThemeFromApi();
-        }
-      }, 1000); // Retry after 1 second if still no theme
-
-      return () => clearTimeout(aggressiveRetry);
     }
-  }, [identifier]);
-
-  // Add a retry mechanism for theme loading
-  useEffect(() => {
-    if (identifier && !themeDetails && !isLoading) {
-      // If we have an identifier but no theme details and we're not loading, try again after a delay
-      const retryTimeout = setTimeout(() => {
-        console.log('🔄 Retrying theme load for identifier:', identifier);
-        loadThemeFromApi();
-      }, 500); // Retry after 500ms for faster loading
-
-      return () => clearTimeout(retryTimeout);
-    }
-  }, [identifier, themeDetails, isLoading]);
+  }, [identifier]); // Only depend on identifier changes
 
   const value: ApiThemeContextType = {
     themeDetails,

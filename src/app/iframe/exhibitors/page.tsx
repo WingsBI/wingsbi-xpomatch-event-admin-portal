@@ -1242,7 +1242,13 @@ export default function ExhibitorListPage() {
         identifier = urlParams.get('eventId') || urlParams.get('identifier');
       }
       if (!identifier) {
-        identifier = localStorage.getItem('currentEventIdentifier');
+        // Try to get from cookies first, then fallback to localStorage for iframe compatibility
+        try {
+          const { getEventIdentifier } = await import('@/utils/cookieManager');
+          identifier = getEventIdentifier();
+        } catch {
+          identifier = localStorage.getItem('currentEventIdentifier');
+        }
       }
       if (!identifier) {
         identifier = sessionStorage.getItem('currentEventIdentifier');

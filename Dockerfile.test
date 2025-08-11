@@ -42,7 +42,7 @@ COPY --from=builder /app/next.config.js* ./
 
 # Copy environment files for runtime
 COPY --from=builder /app/.env.test ./
-COPY --from=builder /app/.env.production ./
+COPY --from=builder /app/.env ./
 
 # Copy startup script
 COPY --from=builder /app/start.sh ./

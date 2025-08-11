@@ -12,16 +12,21 @@ export function middleware(request: NextRequest) {
     const origin = request.headers.get('origin');
     const allowedOrigins = [
       'http://localhost:3000',
-      'https://xpomatch-dev-event-admin-portal.azurewebsites.net'
+      'https://xpomatch-dev-event-admin-portal.azurewebsites.net',
+      'https://xpomatch-test-event-admin-portal.azurewebsites.net'
     ];
 
-    if (origin && allowedOrigins.includes(origin)) {
+    // Allow all origins for test environment or if origin is in allowed list
+    if (process.env.NODE_ENV === 'production' && origin && allowedOrigins.includes(origin)) {
       response.headers.set('Access-Control-Allow-Origin', origin);
+    } else {
+      // For test and development environments, be more permissive
+      response.headers.set('Access-Control-Allow-Origin', '*');
     }
     
     response.headers.set('Access-Control-Allow-Credentials', 'true');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
 
     // Handle preflight requests
     if (request.method === 'OPTIONS') {

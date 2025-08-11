@@ -13,14 +13,13 @@ RUN \
 COPY . .
 
 # Copy .env.test as .env.production for build time (Next.js uses .env.production when NODE_ENV=production during build)
-# Use .env.test if it exists, otherwise fall back to .env
-RUN if [ -f .env.test ]; then cp .env.test .env.production; elif [ -f .env ]; then cp .env .env.production; else echo "NEXT_PUBLIC_API_BASE_URL=https://xpomatch-dev-event-admin-api.azurewebsites.net" > .env.production; fi
+COPY .env.test .env.production
 
 # Set NODE_ENV to production for optimized build, but use test environment variables
 ENV NODE_ENV=production
 
 # Build the app with test environment variables
-RUN npm run build || (echo "Build failed, checking for errors..." && exit 1)
+RUN npm run build
 
 # 2. Production stage
 FROM node:18-alpine AS runner
@@ -42,10 +41,8 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/next.config.js* ./
 
 # Copy environment files for runtime
-COPY --from=builder /app/.env.production ./
 COPY --from=builder /app/.env.test ./
 COPY --from=builder /app/.env ./
-# Note: start.sh will use the appropriate environment file
 
 # Copy startup script
 COPY --from=builder /app/start.sh ./

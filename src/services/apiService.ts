@@ -710,16 +710,8 @@ export const matchmakingApi = {
     const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getVisitorMatch`;
 
-    // Get token from cookies or localStorage
-    let token = null;
-    if (typeof document !== 'undefined') {
-      token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth-token='))?.split('=')[1];
-    }
-    if (!token && typeof localStorage !== 'undefined') {
-      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-    }
+      // Get token from cookies only (no localStorage)
+      const token = getAuthToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -756,14 +748,8 @@ export const matchmakingApi = {
 export const notificationsApi = {
   getAllNotification: async (identifier: string) => {
     try {
-      // Get token from cookies first, then fallback to localStorage
-      let token = null;
-      if (typeof document !== 'undefined') {
-        token = getAuthToken();
-      }
-      if (!token && typeof localStorage !== 'undefined') {
-        token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-      }
+      // Get token from cookies only (no localStorage)
+      const token = getAuthToken();
       // Use the Azure API base URL for external API calls
       const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
       const url = `${azureApiUrl}/api/${identifier}/Dashboard/getAllNotification`;
@@ -846,16 +832,8 @@ export const ExhibitormatchmakingApi = {
     const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getExhibitortoExhibitorMatch`;
 
-    // Get token from cookies or localStorage
-    let token = null;
-    if (typeof document !== 'undefined') {
-      token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth-token='))?.split('=')[1];
-    }
-    if (!token && typeof localStorage !== 'undefined') {
-      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-    }
+      // Get token from cookies only (no localStorage)
+      const token = getAuthToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -892,16 +870,8 @@ export const ExhibitormatchmakingApi = {
     const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/MatchMaking/getExhibitorMatch`;
  
-    // Get token from cookies or localStorage
-    let token = null;
-    if (typeof document !== 'undefined') {
-      token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth-token='))?.split('=')[1];
-    }
-    if (!token && typeof localStorage !== 'undefined') {
-      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-    }
+      // Get token from cookies only (no localStorage)
+      const token = getAuthToken();
  
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -941,16 +911,8 @@ export const MeetingDetailsApi = {
     const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Meeting/getVisitortorMeetingDetails?visitorId=${visitorId}`;
  
-    // Get token from cookies or localStorage
-    let token = null;
-    if (typeof document !== 'undefined') {
-      token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth-token='))?.split('=')[1];
-    }
-    if (!token && typeof localStorage !== 'undefined') {
-      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-    }
+      // Get token from cookies only (no localStorage)
+      const token = getAuthToken();
  
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -984,16 +946,8 @@ export const MeetingDetailsApi = {
     const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Meeting/getExhibitorMeetingDetails?exhibitorId=${exhibitorId}`;
  
-    // Get token from cookies or localStorage
-    let token = null;
-    if (typeof document !== 'undefined') {
-      token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth-token='))?.split('=')[1];
-    }
-    if (!token && typeof localStorage !== 'undefined') {
-      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-    }
+      // Get token from cookies only (no localStorage)
+      const token = getAuthToken();
  
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -1027,16 +981,8 @@ export const MeetingDetailsApi = {
     const azureApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
     const url = `${azureApiUrl}/api/${identifier}/Meeting/approveMeetingRequest`;
  
-    // Get token from cookies or localStorage
-    let token = null;
-    if (typeof document !== 'undefined') {
-      token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth-token='))?.split('=')[1];
-    }
-    if (!token && typeof localStorage !== 'undefined') {
-      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-    }
+      // Get token from cookies only (no localStorage)
+      const token = getAuthToken();
  
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

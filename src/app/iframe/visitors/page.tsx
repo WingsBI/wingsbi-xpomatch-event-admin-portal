@@ -49,6 +49,7 @@ import {
 import Link from 'next/link';
 
 import { apiService } from '@/services/apiService';
+import { getEventIdentifier } from '@/utils/cookieManager';
 import { fieldMappingApi, type FavoritesRequest } from '@/services/fieldMappingApi';
 import { ApiVisitorData, TransformedVisitor, VisitorsApiResponse } from '@/types';
 // REMOVE: import { SimpleThemeProvider, useSimpleTheme } from '@/context/SimpleThemeContext';
@@ -1209,16 +1210,10 @@ export default function VisitorListPage() {
       }
       if (!identifier) {
         // Try to get from cookies first, then fallback to localStorage for iframe compatibility
-        try {
-          const { getEventIdentifier } = await import('@/utils/cookieManager');
-          identifier = getEventIdentifier();
-        } catch {
-          identifier = localStorage.getItem('currentEventIdentifier');
-        }
+        const cookieIdentifier = getEventIdentifier();
+        identifier = cookieIdentifier || localStorage.getItem('currentEventIdentifier');
       }
-      if (!identifier) {
-        identifier = sessionStorage.getItem('currentEventIdentifier');
-      }
+      // Do not read from sessionStorage/localStorage anymore beyond fallback already handled
       if (!identifier) {
         const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];
         identifier = commonIdentifiers[0];

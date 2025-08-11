@@ -29,7 +29,7 @@ export default function RoleBasedRoute({
       if (!isLoading && !isAuthenticated) {
         // Store the current path so user can be redirected back after authentication
         const currentPath = window.location.pathname;
-        sessionStorage.setItem('intendedPath', currentPath);
+        // Avoid sessionStorage; rely on query param redirect via middleware
         console.log(`Storing intended path for redirect: ${currentPath}`);
         
         // Not authenticated - redirect to login
@@ -51,11 +51,11 @@ export default function RoleBasedRoute({
           
           if (!defaultRedirectPath) {
             if (userRole === 'visitor') {
-              defaultRedirectPath = `/${identifier}/event-admin/exhibitors/details`;
-            } else if (userRole === 'exhibitor') {
-              defaultRedirectPath = `/${identifier}/event-admin/dashboard/exhibitor_dashboard`;
-            } else if (userRole === 'event-admin') {
-              defaultRedirectPath = `/${identifier}/event-admin/dashboard`;
+                      defaultRedirectPath = `/${identifier}/exhibitors/details`;
+      } else if (userRole === 'exhibitor') {
+        defaultRedirectPath = `/${identifier}/dashboard/exhibitor_dashboard`;
+      } else if (userRole === 'event-admin') {
+        defaultRedirectPath = `/${identifier}/dashboard`;
             } else {
               defaultRedirectPath = `/${identifier}`;
             }

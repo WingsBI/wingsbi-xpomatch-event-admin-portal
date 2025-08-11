@@ -81,13 +81,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         if (userRole === 'visitor') {
           // Redirect visitor to exhibitors matching page
-          router.push(`/${eventId}/event-admin/dashboard/visitor_dashboard`);
+          router.push(`/${eventId}/dashboard/visitor_dashboard`);
         } else if (userRole === 'exhibitor') {
           // Redirect exhibitor to exhibitor dashboard
-          router.push(`/${eventId}/event-admin/dashboard/exhibitor_dashboard`);
+          router.push(`/${eventId}/dashboard/exhibitor_dashboard`);
         } else {
           // Default: event-admin goes to main dashboard
-          router.push(`/${eventId}/event-admin/dashboard`);
+          router.push(`/${eventId}/dashboard`);
         }
       }
 

@@ -188,7 +188,7 @@ export default function ExhibitorsTab({ exhibitors, event, onDataUpdate }: Exhib
         sessionStorage.setItem('mappingType', 'exhibitor');
         
         // Redirect to matching page
-        router.push(`/${identifier}/event-admin/exhibitors/matching`);
+        router.push(`/${identifier}/exhibitors/matching`);
       } else {
         // Handle API errors
         const errorMessage = suggestResponse.statusCode !== 200 

@@ -55,6 +55,15 @@ import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import ExhibitorsMatchingPage from '@/app/[identifier]/event-admin/exhibitors/matching/page';
 import { getCurrentUserId, getCurrentExhibitorId, isEventAdmin } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
+import { getEventIdentifier } from '@/utils/cookieManager';
+
+// Normalize asset URLs coming from API (which may be relative like "/logos/xyz.png")
+const normalizeAssetUrl = (path?: string | null): string | null => {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+  return `${base}/${path.replace(/^\/+/, '')}`;
+};
 
 interface ExhibitorCardProps {
   exhibitor: {
@@ -130,7 +139,7 @@ const transformExhibitorData = (apiExhibitor: Exhibitor, identifier: string, ind
       boothSize: '', // Not present in API
       website: apiExhibitor.webSite || getCustomField('officialwebsite') || '',
       companyType: apiExhibitor.companyType || '',
-      companyLogoPath: apiExhibitor.companyLogoPath || null,
+      companyLogoPath: normalizeAssetUrl(apiExhibitor.companyLogoPath || null),
       linkedIn: profile.linkedInLink || userMap.linkedInProfile || '',
       twitter: profile.twitterLink || userMap.twitterProfile || '',
       instagram: profile.instagramLink || userMap.instagramProfile || '',
@@ -1242,16 +1251,10 @@ export default function ExhibitorListPage() {
         identifier = urlParams.get('eventId') || urlParams.get('identifier');
       }
       if (!identifier) {
-        // Try to get from cookies first, then fallback to localStorage for iframe compatibility
+        // Try to get from cookies only
         try {
-          const { getEventIdentifier } = await import('@/utils/cookieManager');
           identifier = getEventIdentifier();
-        } catch {
-          identifier = localStorage.getItem('currentEventIdentifier');
-        }
-      }
-      if (!identifier) {
-        identifier = sessionStorage.getItem('currentEventIdentifier');
+        } catch {}
       }
       if (!identifier) {
         const commonIdentifiers = ['DEMO2024', 'STYLE2025', 'WIBI'];

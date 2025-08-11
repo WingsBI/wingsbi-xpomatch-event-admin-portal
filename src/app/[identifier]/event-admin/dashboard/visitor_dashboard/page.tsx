@@ -72,6 +72,14 @@ export default function VisitorDashboard() {
   const [exhibitorDialogOpen, setExhibitorDialogOpen] = useState(false);
   const [selectedExhibitorId, setSelectedExhibitorId] = useState<number | null>(null);
 
+  // Normalize asset URLs coming from API (which may be relative like "/logos/xyz.png")
+  const normalizeAssetUrl = (path?: string | null): string | null => {
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path)) return path;
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    return `${base}/${path.replace(/^\/+/, '')}`;
+  };
+
   const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
   const identifier = pathParts[1] || '';
 
@@ -576,7 +584,7 @@ export default function VisitorDashboard() {
                     </Box>
                     <CardContent sx={{ flexGrow: 1, p: 0.5, pb: '8px!important' }}>
                       <Box display="flex" alignItems="Start" gap={1} mb={1} mt={0.5}>
-                        <Avatar src={rec.companyLogoPath || undefined} sx={{ ml: 0, bgcolor: 'success.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: '0.9rem' }}>
+                        <Avatar src={normalizeAssetUrl(rec.companyLogoPath) || undefined} sx={{ ml: 0, bgcolor: 'success.main', color: 'white', width: 36, height: 36, fontWeight: 'bold', fontSize: '0.9rem' }}>
                           {!rec.companyLogoPath && rec.companyName?.charAt(0)}
                         </Avatar>
                         <Box flex={1} minWidth={0}>

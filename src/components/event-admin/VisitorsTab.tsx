@@ -181,7 +181,7 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
         sessionStorage.setItem('uploadType', 'visitors');
         
         // Redirect to matching page
-        router.push(`/${identifier}/event-admin/visitors/matching`);
+        router.push(`/${identifier}/visitors/matching`);
       } else {
         // Handle API errors
         const errorMessage = suggestResponse.statusCode !== 200 

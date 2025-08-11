@@ -93,24 +93,7 @@ export default function EventLoginPage() {
       dispatch(setIdentifier(identifier));
     }
     
-    // One-time cleanup of any persisted auth state for security
-    if (typeof localStorage !== 'undefined') {
-      const persistedState = localStorage.getItem('persist:root');
-      if (persistedState) {
-        try {
-          const parsed = JSON.parse(persistedState);
-          if (parsed.auth) {
-            console.log("Clearing old persisted auth state for security");
-            delete parsed.auth;
-            localStorage.setItem('persist:root', JSON.stringify(parsed));
-          }
-        } catch (error) {
-          // If parsing fails, remove the entire persisted state
-          console.log("Clearing corrupted persisted state");
-          localStorage.removeItem('persist:root');
-        }
-      }
-    }
+    // Remove any legacy persisted auth state (no localStorage persistence)
   }, [identifier, dispatch]);
 
   // Try to restore authentication state on page load
@@ -153,12 +136,12 @@ export default function EventLoginPage() {
             // User directly visited the main page, redirect to their dashboard
             const userData = getUserData();
             if (userData && userData.role) {
-              let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
+              let redirectPath = `/${identifier}/dashboard`; // Default
               
               if (userData.role === "visitor") {
-                redirectPath = `/${identifier}/event-admin/exhibitors`;
+                redirectPath = `/${identifier}/exhibitors`;
               } else if (userData.role === "exhibitor") {
-                redirectPath = `/${identifier}/event-admin/visitors`;
+                redirectPath = `/${identifier}/visitors`;
               }
               
               console.log("User directly visited main page, redirecting to dashboard:", redirectPath);
@@ -207,12 +190,12 @@ export default function EventLoginPage() {
     // This prevents automatic redirects when users visit the page directly
     if (isAuthenticated && user && isValidUserData(user) && hasJustLoggedIn && !isRedirecting) {
       const userRole = user.role;
-      let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
+      let redirectPath = `/${identifier}/dashboard`; // Default
       
       if (userRole === "visitor") {
-        redirectPath = `/${identifier}/event-admin/dashboard/visitor_dashboard`;
+        redirectPath = `/${identifier}/dashboard/visitor_dashboard`;
       } else if (userRole === "exhibitor") {
-        redirectPath = `/${identifier}/event-admin/dashboard/exhibitor_dashboard`;
+        redirectPath = `/${identifier}/dashboard/exhibitor_dashboard`;
       }
       
       console.log("User just logged in successfully, redirecting to:", redirectPath);
@@ -306,7 +289,7 @@ export default function EventLoginPage() {
       }));
 
       // Determine redirect path based on user role
-      let redirectPath = `/${identifier}/event-admin/dashboard`; // Default for event admin
+      let redirectPath = `/${identifier}/dashboard`; // Default for event admin
       
       if (result.user) {
         const userRole = result.user.role;
@@ -315,11 +298,9 @@ export default function EventLoginPage() {
         
         // Role-based routing
         if (userRole === "visitor") {
-          // Visitors should see the list of exhibitors
-          redirectPath = `/${identifier}/event-admin/dashboard/visitor_dashboard`;
+          redirectPath = `/${identifier}/dashboard/visitor_dashboard`;
         } else if (userRole === "exhibitor") {
-          // Exhibitors should see the list of visitors
-          redirectPath = `/${identifier}/event-admin/dashboard/exhibitor_dashboard`;
+          redirectPath = `/${identifier}/dashboard/exhibitor_dashboard`;
         }
         // Event admins and IT admins go to dashboard by default
       }

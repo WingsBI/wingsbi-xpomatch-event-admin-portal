@@ -93,52 +93,52 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
   if (userRole === 'visitor') {
     // Visitor-specific navigation
     baseItems = [
-      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/visitor_dashboard`, children: [] },
-      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard/visitor_dashboard`, children: [] },
+      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] },
       // { text: 'Exhibitor Details', icon: <Business />, href: `/${identifier}/event-admin/exhibitors/details`, children: [] },
      
       { text: 'Meetings', icon: <CalendarMonth />, children: [
-        { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
-        { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
+        { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
+        { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
       ] },
-      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
-        { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },
+        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
       ] },
     ];
   } else if (userRole === 'exhibitor') {
     // Exhibitor-specific navigation
     baseItems = [
-      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard`, children: [] },
-      { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
-      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard/exhibitor_dashboard`, children: [] },
+      { text: 'Visitors', icon: <Person />, href: `/${identifier}/visitors`, children: [] },
+      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] },
       // { text: 'Visitor Details', icon: <Person />, href: `/${identifier}/event-admin/visitors/details`, children: [] },
       { text: 'Meetings', icon: <CalendarMonth />, children: [
-        { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
-        { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
+        { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
+        { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
       ] },
-      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/event-admin/favourites`, children: [] },
+      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
-        { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },,
-        { text: 'Exhibitor Profile', href: `/${identifier}/event-admin/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },,
+        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },,
+        { text: 'Exhibitor Profile', href: `/${identifier}/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },,
       ] },
     ];
   } else {
     // Default for event-admin role - full navigation
     baseItems = [
-      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/event-admin/dashboard`, children: [] },
-      { text: 'Visitors', icon: <Person />, href: `/${identifier}/event-admin/visitors`, children: [] },
-      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/event-admin/exhibitors`, children: [] },
+      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard`, children: [] },
+      { text: 'Visitors', icon: <Person />, href: `/${identifier}/visitors`, children: [] },
+      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] },
       { text: 'Meetings', icon: <CalendarMonth />, children: [
-        { text: 'My Meetings', href: `/${identifier}/event-admin/meetings?view=calendar`, children: [] },
-        { text: 'My Invites', href: `/${identifier}/event-admin/meetings?view=list`, children: [] },
+        { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
+        { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
       ] },
       // { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
-        { text: 'User Profile', href: `/${identifier}/event-admin/profile`, children: [] },
+        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
         { text: 'Theme Settings', href: '#', children: [] },
-        { text: 'Visitors Onboarding', href: `/${identifier}/event-admin/visitors/matching`, children: [] },
-        { text: 'Exhibitors Onboarding', href: `/${identifier}/event-admin/exhibitors/matching`, children: [] },
+        { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
+        { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
       ] },
     ];
   }
@@ -167,42 +167,42 @@ export default function ResponsiveDashboardLayout({
   const searchablePages = [
     {
       title: 'Dashboard',
-      path: `/${identifier}/event-admin/dashboard`,
+      path: `/${identifier}/dashboard`,
       description: 'Main dashboard overview'
     },
     {
       title: 'Visitor Dashboard',
-      path: `/${identifier}/event-admin/dashboard/visitor_dashboard`,
+      path: `/${identifier}/dashboard/visitor_dashboard`,
       description: 'Visitor dashboard and exhibitor details'
     },
     {
       title: 'Exhibitor Dashboard',
-      path: `/${identifier}/event-admin/dashboard/exhibitor_dashboard`,
+      path: `/${identifier}/dashboard/exhibitor_dashboard`,
       description: 'Exhibitor dashboard'
     },
     {
       title: 'Exhibitors',
-      path: `/${identifier}/event-admin/exhibitors`,
+      path: `/${identifier}/exhibitors`,
       description: 'Manage exhibitors'
     },
     {
       title: 'Exhibitor Details',
-      path: `/${identifier}/event-admin/exhibitors/details`,
+      path: `/${identifier}/exhibitors/details`,
       description: 'View detailed exhibitor information'
     },
     {
       title: 'Exhibitors Onboarding',
-      path: `/${identifier}/event-admin/exhibitors/matching`,
+      path: `/${identifier}/exhibitors/matching`,
       description: 'Map exhibitor fields'
     },
     {
       title: 'Visitors',
-      path: `/${identifier}/event-admin/visitors`,
+      path: `/${identifier}/visitors`,
       description: 'Manage visitors'
     },
     {
       title: 'Visitors Onboarding',
-      path: `/${identifier}/event-admin/visitors/matching`,
+      path: `/${identifier}/visitors/matching`,
       description: 'Map visitor fields'
     }
   ];

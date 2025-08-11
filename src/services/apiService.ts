@@ -32,14 +32,44 @@ function getCookie(name: string): string | null {
 // Types for meeting creation
 export interface CreateMeetingRequest {
   agenda: string;
-  visitorId: number;
-  exhibitorId: number;
+  attendiesId: number[];
   meetingDate: string;
   startTime: string;
   endTime: string;
 }
 
 export interface MeetingResponse {
+  id: number;
+  agenda: string;
+  visitorId: number;
+  exhibitorId: number;
+  meetingDate: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Types for reschedule meeting
+export interface RescheduleMeetingRequest {
+  meetingId: number;
+  agenda: string;
+  meetingDate: string;
+  startTime: string;
+  endTime: string;
+}
+
+// Types for update meeting details
+export interface UpdateMeetingDetailsRequest {
+  meetingId: number;
+  agenda: string;
+  meetingDate: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface MeetingDetailsResponse {
   id: number;
   agenda: string;
   visitorId: number;
@@ -521,6 +551,122 @@ class ApiService {
       };
     } catch (error) {
       console.error('Error creating meeting:', error);
+      return {
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Network error',
+        status: 500,
+        success: false
+      };
+    }
+  }
+
+  public async getMeetingDetails(identifier: string, meetingId: number): Promise<ApiResponse<MeetingDetailsResponse>> {
+    try {
+      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const apiUrl = `${azureApiUrl}/api/${identifier}/Meeting/getMeetingById/${meetingId}`;
+      
+      console.log('Getting meeting details:', {
+        url: apiUrl,
+        meetingId,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      console.log('Get meeting details response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Get meeting details response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { message: 'Invalid JSON response from server' };
+      }
+      
+      console.log('Get meeting details response data:', data);
+
+      if (!response.ok) {
+        return {
+          data: null as any,
+          message: data.message || `HTTP ${response.status}: Failed to get meeting details`,
+          status: response.status,
+          success: false
+        };
+      }
+
+      return {
+        data: data.data || data,
+        message: '',
+        status: response.status,
+        success: true
+      };
+    } catch (error) {
+      console.error('Error getting meeting details:', error);
+      return {
+        data: null as any,
+        message: error instanceof Error ? error.message : 'Network error',
+        status: 500,
+        success: false
+      };
+    }
+  }
+
+
+  public async updateMeetingDetails(identifier: string, meetingData: UpdateMeetingDetailsRequest): Promise<ApiResponse<MeetingResponse>> {
+    try {
+      const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+      const apiUrl = `${azureApiUrl}/api/${identifier}/Meeting/updateMeetingDetails`;
+      
+      console.log('Updating meeting details:', {
+        url: apiUrl,
+        meetingData,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(meetingData),
+      });
+
+      console.log('Update meeting details response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Update meeting details response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { message: 'Invalid JSON response from server' };
+      }
+      
+      console.log('Update meeting details response data:', data);
+
+      if (!response.ok) {
+        return {
+          data: null as any,
+          message: data.message || `HTTP ${response.status}: Failed to update meeting details`,
+          status: response.status,
+          success: false
+        };
+      }
+
+      return {
+        data: data.data || data,
+        message: '',
+        status: response.status,
+        success: true
+      };
+    } catch (error) {
+      console.error('Error updating meeting details:', error);
       return {
         data: null as any,
         message: error instanceof Error ? error.message : 'Network error',
@@ -1130,6 +1276,92 @@ export const MeetingDetailsApi = {
       return data;
     } catch (error) {
       console.error('Error approving meeting request:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  getMeetingInitiatorDetails: async (identifier: string, initiatorId: number) => {
+    // Use the Azure API base URL for external API calls
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/Meeting/getMeetingInitiatorDetails?initiatorId=${initiatorId}`;
+
+    // Get token from cookies or localStorage
+    let token = null;
+    if (typeof document !== 'undefined') {
+      token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth-token='))?.split('=')[1];
+    }
+    if (!token && typeof localStorage !== 'undefined') {
+      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching meeting initiator details:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  getAllMeetingInvites: async (identifier: string, attendeeId: number) => {
+    // Use the Azure API base URL for external API calls
+    const azureApiUrl = 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
+    const url = `${azureApiUrl}/api/${identifier}/Meeting/getAllMeetingInvites?attendeeId=${attendeeId}`;
+
+    // Get token from cookies or localStorage
+    let token = null;
+    if (typeof document !== 'undefined') {
+      token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth-token='))?.split('=')[1];
+    }
+    if (!token && typeof localStorage !== 'undefined') {
+      token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching meeting invites:', error);
       return {
         version: null,
         statusCode: 500,

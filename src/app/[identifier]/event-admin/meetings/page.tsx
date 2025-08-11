@@ -33,6 +33,10 @@ import {
   Alert,
   CircularProgress,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -57,13 +61,15 @@ import {
   CancelOutlined,
   EventAvailable,
   Event,
+  Close,
+  Description,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
-import { eventsApi, MeetingDetailsApi } from '@/services/apiService';
+import { eventsApi, MeetingDetailsApi, apiService } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
 import { getCurrentVisitorId } from '@/utils/authUtils';
 
@@ -83,7 +89,7 @@ interface Meeting {
     type: 'visitor' | 'exhibitor';
     avatar: string;
   }[];
-  status: 'scheduled' | 'completed' | 'cancelled' | 'in-progress';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'in-progress' | 'Pending';
   organizer: {
     id: string;
     name: string;
@@ -99,12 +105,40 @@ interface Meeting {
   endTime?: string;
   // Additional fields for approval status
   isApproved?: boolean;
+  isCancelled?: boolean;
   approvalStatus?: string;
+  // Flag to indicate if current user is the meeting initiator
+  isInitiator?: boolean;
 }
 
 
 
-// Mock meetings data removed - now using real API data
+// Helper functions for role and relationship checks
+const isVisitor = (user: any) => user?.role === 'visitor';
+const isExhibitor = (user: any) => user?.role === 'exhibitor';
+const isEventAdmin = (user: any) => user?.role === 'event-admin';
+
+const canRescheduleMeeting = (meeting: Meeting, user: any) => {
+  return meeting.isInitiator === true;
+};
+
+const canCancelMeeting = (meeting: Meeting, user: any) => {
+  return meeting.isInitiator === true;
+};
+
+const canAcceptRejectMeeting = (meeting: Meeting, user: any) => {
+  return !meeting.isInitiator && meeting.status !== 'cancelled' && !meeting.isApproved;
+};
+
+const shouldShowAcceptReject = (meeting: Meeting, user: any) => {
+  // Show accept/reject buttons ONLY for attendees (not initiators) of non-cancelled and non-approved meetings
+  return !meeting.isInitiator && !meeting.isApproved && meeting.status !== 'cancelled';
+};
+
+const shouldShowRescheduleCancel = (meeting: Meeting, user: any) => {
+  // Show reschedule/cancel buttons ONLY for initiators of non-cancelled and non-completed meetings
+  return meeting.isInitiator === true && meeting.status !== 'cancelled' && meeting.status !== 'completed';
+};
 
 export default function MeetingsPage() {
   const params = useParams();
@@ -126,6 +160,16 @@ export default function MeetingsPage() {
   const [eventLoading, setEventLoading] = useState(true);
   const [approvingMeetingId, setApprovingMeetingId] = useState<string | null>(null);
   const [rejectingMeetingId, setRejectingMeetingId] = useState<string | null>(null);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [selectedMeetingForReschedule, setSelectedMeetingForReschedule] = useState<Meeting | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState({
+    meetingId: '',
+    agenda: '',
+    meetingDate: '',
+    startTime: '',
+    endTime: ''
+  });
+  const [isRescheduling, setIsRescheduling] = useState(false);
 
   const loadEventDetails = useCallback(async () => {
     try {
@@ -165,25 +209,87 @@ export default function MeetingsPage() {
       
       console.log('Loading meetings for user:', user);
       let response;
+      let initiatorResponse;
+      let invitesResponse;
+      let currentUserId: number | null = null;
       
-      if (user.role === 'visitor' || user.role === 'event-admin') {
-        // For visitors and event-admins, call visitor meeting details
-        // Get visitor ID from JWT token instead of hardcoding
+      if (user.role === 'visitor') {
         const visitorId = getCurrentVisitorId();
         if (!visitorId) {
-          console.warn('No visitor ID found for visitor/event-admin role');
+          console.warn('No visitor ID found for visitor role');
           return;
         }
-        console.log('Calling getVisitorMeetingDetails with visitorId:', visitorId);
-        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, visitorId);
-        console.log('API response received:', response);
-      } else if (user.role === 'exhibitor') {
-        // For exhibitors, call exhibitor meeting details
-        // Try to get exhibitorId from user object first, then fallback to JWT token
-        let exhibitorId = user.exhibitorid ? parseInt(user.exhibitorid) : null;
+        currentUserId = visitorId;
         
-        // If not found in user object, try to get from JWT token
-        if (!exhibitorId && typeof localStorage !== 'undefined') {
+        // Get meetings where visitor is the initiator
+        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, visitorId);
+        
+        // Get meetings where visitor is an attendee
+        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, visitorId);
+        
+        // Transform invites response to match meeting format
+        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
+          const meetingDetails = invite.meetingDetails?.[0];
+          if (!meetingDetails) return null;
+          
+          return {
+            id: meetingDetails.id.toString(),
+            agenda: meetingDetails.agenda,
+            initiatorId: meetingDetails.initiatorId,
+            initiatorName: meetingDetails.initiatorName,
+            companyName: meetingDetails.companyName,
+            meetingDate: meetingDetails.meetingDate,
+            startTime: meetingDetails.startTime,
+            endTime: meetingDetails.endTime,
+            status: meetingDetails.status,
+            createdBy: meetingDetails.createdBy,
+            createdDate: meetingDetails.createdDate,
+            modifiedBy: meetingDetails.modifiedBy,
+            modifiedDate: meetingDetails.modifiedDate,
+            isActive: meetingDetails.isActive,
+
+            // Add attendee information from the root level of invite response
+            attendees: [
+              // Add the attendee (current user)
+              {
+                id: invite.attendeesId.toString(),
+                name: invite.attendeeName,
+                email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                company: invite.companyName,
+                type: 'exhibitor',
+                avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
+              },
+              // Add the initiator
+              {
+                id: meetingDetails.initiatorId.toString(),
+                name: meetingDetails.initiatorName,
+                email: `${meetingDetails.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                company: meetingDetails.companyName,
+                type: 'visitor',
+                avatar: (meetingDetails.initiatorName?.charAt(0) || 'I').toUpperCase()
+              }
+            ],
+            // Add approval status from invite
+            isApproved: invite.isApproved,
+            isCancelled: invite.isCancelled,
+            approvalStatus: invite.status
+          };
+        }).filter(Boolean);
+        
+        // Combine both responses
+        response = {
+          ...initiatorResponse,
+          result: [
+            ...(initiatorResponse?.result || []),
+            ...transformedInvites
+          ]
+        };
+        
+      } else if (user.role === 'exhibitor') {
+        let userId = null;
+        
+        // Get user ID from JWT token
+        if (typeof localStorage !== 'undefined') {
           try {
             const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
             if (token) {
@@ -195,21 +301,109 @@ export default function MeetingsPage() {
               
               const tokenData = JSON.parse(jsonPayload);
               
-              if (tokenData.exhibitorid) {
-                exhibitorId = parseInt(tokenData.exhibitorid);
+              // Use id instead of exhibitorid
+              if (tokenData.id) {
+                userId = parseInt(tokenData.id);
               }
             }
           } catch (error) {
-            console.error('Error parsing JWT token for exhibitorId:', error);
+            console.error('Error parsing JWT token for userId:', error);
           }
         }
         
-        if (!exhibitorId) {
-          console.warn('No exhibitorId found for exhibitor role');
+        if (!userId) {
+          console.warn('No userId found for exhibitor role');
           return;
         }
         
-        response = await MeetingDetailsApi.getExhibitorMeetingDetails(identifier, exhibitorId);
+        currentUserId = userId;
+        console.log('Using userId for exhibitor:', userId);
+        
+        // Get meetings where exhibitor is the initiator
+        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, userId);
+        
+        // Get meetings where exhibitor is an attendee
+        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, userId);
+        
+        console.log('=== getAllMeetingInvites Response ===');
+        console.log('Full response:', invitesResponse);
+        console.log('Result array:', invitesResponse?.result);
+        console.log('Result length:', invitesResponse?.result?.length);
+        
+        // Transform invites response to match meeting format
+        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
+          const meetingDetails = invite.meetingDetails?.[0];
+          if (!meetingDetails) return null;
+          
+          return {
+            id: meetingDetails.id.toString(),
+            agenda: meetingDetails.agenda,
+            initiatorId: meetingDetails.initiatorId,
+            initiatorName: meetingDetails.initiatorName,
+            companyName: meetingDetails.companyName,
+            meetingDate: meetingDetails.meetingDate,
+            startTime: meetingDetails.startTime,
+            endTime: meetingDetails.endTime,
+            status: 'scheduled', // Set status to scheduled for invites
+            createdBy: meetingDetails.createdBy,
+            createdDate: meetingDetails.createdDate,
+            modifiedBy: meetingDetails.modifiedBy,
+            modifiedDate: meetingDetails.modifiedDate,
+            isActive: meetingDetails.isActive,
+
+            // Add attendee information from the root level of invite response
+            attendees: [
+              // Add the attendee (current user)
+              {
+                id: invite.attendeesId.toString(),
+                name: invite.attendeeName,
+                email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                company: invite.companyName,
+                type: 'exhibitor',
+                avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
+              },
+              // Add the initiator
+              {
+                id: meetingDetails.initiatorId.toString(),
+                name: meetingDetails.initiatorName,
+                email: `${meetingDetails.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                company: meetingDetails.companyName,
+                type: 'visitor',
+                avatar: (meetingDetails.initiatorName?.charAt(0) || 'I').toUpperCase()
+              }
+            ],
+            // Add approval status from invite
+            isApproved: invite.isApproved === true,
+            isCancelled: invite.isCancelled === true,
+            approvalStatus: invite.status
+          };
+        }).filter(Boolean);
+        
+        console.log('=== Transformed Invites ===');
+        console.log('Transformed invites count:', transformedInvites.length);
+        console.log('Transformed invites:', transformedInvites);
+        
+        // Combine both responses
+        response = {
+          ...initiatorResponse,
+          result: [
+            ...(initiatorResponse?.result || []),
+            ...transformedInvites
+          ]
+        };
+        
+        console.log('=== Combined Response ===');
+        console.log('Final response result length:', response.result.length);
+        console.log('Final response result:', response.result);
+      } else if (user.role === 'event-admin') {
+        // For event-admins, show all meetings
+        const visitorId = getCurrentVisitorId();
+        if (!visitorId) {
+          console.warn('No visitor ID found for event-admin role');
+          return;
+        }
+        currentUserId = visitorId;
+        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, visitorId);
       } else {
         console.warn('Unknown user role for meetings:', user.role);
         return;
@@ -219,11 +413,13 @@ export default function MeetingsPage() {
         console.log('=== RAW API RESPONSE ===');
         console.log('Response structure:', response);
         console.log('Result array length:', response.result.length);
+        console.log('Current User ID:', currentUserId);
         response.result.forEach((meeting: any, index: number) => {
           console.log(`Raw API meeting ${index + 1}:`, {
             id: meeting.id,
             status: meeting.status,
             isApproved: meeting.isApproved,
+            initiatorId: meeting.initiatorId,
             meetingDate: meeting.meetingDate,
             startTime: meeting.startTime,
             endTime: meeting.endTime,
@@ -235,6 +431,15 @@ export default function MeetingsPage() {
         // Transform API response to match our Meeting interface
         const transformedMeetings = response.result.map((apiMeeting: any) => {
           console.log('Processing API meeting:', apiMeeting);
+          
+          // Determine if current user is the initiator of this meeting
+          const isCurrentUserInitiator = currentUserId && apiMeeting.initiatorId === currentUserId;
+          console.log('Initiator check:', {
+            currentUserId,
+            apiInitiatorId: apiMeeting.initiatorId,
+            isCurrentUserInitiator,
+            meetingId: apiMeeting.id
+          });
           
           // Safely create dateTime with validation
           let dateTime: Date;
@@ -278,100 +483,55 @@ export default function MeetingsPage() {
             dateTime = new Date(); // Fallback to current date
           }
 
-          // Extract attendee information based on user role
+          // Extract attendee information from the API response
           let attendees: Meeting['attendees'] = [];
           
-          if (user.role === 'visitor' || user.role === 'event-admin') {
-            // For visitors, show exhibitor information
-            console.log('Visitor/Event-admin role - API meeting data:', apiMeeting);
-            console.log('exhibitor array:', apiMeeting.exhibitor);
+          if (apiMeeting.attendees && Array.isArray(apiMeeting.attendees)) {
+            console.log('Processing attendees array:', apiMeeting.attendees);
             
-            // Check if exhibitor array exists and has data
-            if (apiMeeting.exhibitor && apiMeeting.exhibitor.length > 0) {
-              const exhibitorData = apiMeeting.exhibitor[0];
-              console.log('First exhibitor data:', exhibitorData);
-              
-              // Check if exhibitorToUserMaps exists in the exhibitor data
-              if (exhibitorData.exhibitorToUserMaps && exhibitorData.exhibitorToUserMaps.length > 0) {
-                console.log('Using exhibitorToUserMaps path');
-                const exhibitorMap = exhibitorData.exhibitorToUserMaps[0]; // Get first exhibitor user
-                console.log('First exhibitor map:', exhibitorMap);
-                
-                const firstName = exhibitorMap.firstName || '';
-                const lastName = exhibitorMap.lastName || '';
-                const fullName = `${firstName} ${lastName}`.trim() || 'Exhibitor';
-                const companyName = exhibitorMap.companyName || exhibitorData.companyName || 'Exhibitor Company';
-                
-                console.log('Extracted values:', { firstName, lastName, fullName, companyName });
-                
+            // Process each attendee in the array
+            apiMeeting.attendees.forEach((attendee: any) => {
                 const attendeeData = {
-                  id: exhibitorMap.exhibitorId?.toString() || 'exhibitor-1',
-                  name: fullName,
-                  email: exhibitorMap.email || 'exhibitor@example.com',
-                  company: companyName,
-                  type: 'exhibitor' as const,
-                  avatar: fullName.charAt(0).toUpperCase()
-                };
-                console.log('Extracted attendee data from exhibitorToUserMaps:', attendeeData);
-                attendees.push(attendeeData);
-              } else {
-                console.log('Using exhibitor direct fields path');
-                // Fallback to exhibitor direct fields if exhibitorToUserMaps is not available
-                const attendeeData = {
-                  id: exhibitorData.id?.toString() || 'exhibitor-1',
-                  name: 'Exhibitor',
-                  email: 'exhibitor@example.com',
-                  company: exhibitorData.companyName || 'Exhibitor Company',
-                  type: 'exhibitor' as const,
-                  avatar: 'E'
-                };
-                console.log('Extracted attendee data from exhibitor direct fields:', attendeeData);
-                attendees.push(attendeeData);
-              }
-            } else if (apiMeeting.exhibitorName || apiMeeting.companyName || apiMeeting.exhibitorCompany) {
-              console.log('Using direct fields fallback path');
-              // Fallback to direct fields if exhibitor array is not available
-              const exhibitorData = {
-                id: apiMeeting.exhibitorId?.toString() || 'exhibitor-1',
-                name: apiMeeting.exhibitorName || 'Exhibitor',
-                email: apiMeeting.exhibitorEmail || 'exhibitor@example.com',
-                company: apiMeeting.companyName || apiMeeting.exhibitorCompany || 'Exhibitor Company',
-                type: 'exhibitor' as const,
-                avatar: (apiMeeting.exhibitorName || 'E').charAt(0).toUpperCase()
-              };
-              console.log('Extracted exhibitor data from direct fields:', exhibitorData);
-              attendees.push(exhibitorData);
-            } else {
-              console.log('No exhibitor data found in API response');
-            }
-          } else if (user.role === 'exhibitor') {
-            // For exhibitors, show visitor information
-            console.log('Exhibitor role - API meeting data:', apiMeeting);
-            if (apiMeeting.visitorName || apiMeeting.companyName || apiMeeting.visitorCompany) {
-              const visitorData = {
-                id: apiMeeting.visitorId?.toString() || 'visitor-1',
-                name: apiMeeting.visitorName || 'Visitor',
-                email: apiMeeting.visitorEmail || 'visitor@example.com',
-                company: apiMeeting.companyName || apiMeeting.visitorCompany || 'Visitor Company',
+                id: attendee.attendeesId?.toString() || `attendee-${Math.random()}`,
+                name: attendee.attendeeName || 'Attendee',
+                email: `${attendee.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
+                company: attendee.companyName || 'Company',
                 type: 'visitor' as const,
-                avatar: (apiMeeting.visitorName || 'V').charAt(0).toUpperCase()
+                avatar: (attendee.attendeeName?.charAt(0) || 'A').toUpperCase()
               };
-              console.log('Extracted visitor data:', visitorData);
-              attendees.push(visitorData);
-            }
+              
+              console.log('Processed attendee:', attendeeData);
+                attendees.push(attendeeData);
+            });
           }
 
-          // If no attendees found, add a fallback
+          // If no attendees found, add initiator as an attendee
+          if (attendees.length === 0 && apiMeeting.initiatorName) {
+            console.log('No attendees found, adding initiator');
+            attendees.push({
+              id: apiMeeting.initiatorId?.toString() || '1',
+              name: apiMeeting.initiatorName.trim() || 'Initiator',
+              email: `${apiMeeting.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@${apiMeeting.companyName?.toLowerCase().replace(/\s+/g, '')}.com` || 'initiator@example.com',
+              company: apiMeeting.companyName || 'Company',
+                type: 'exhibitor' as const,
+              avatar: (apiMeeting.initiatorName?.charAt(0) || 'I').toUpperCase()
+            });
+          }
+
+          // If still no attendees found, add a fallback
           if (attendees.length === 0) {
+            console.log('No attendees or initiator found, using fallback');
             attendees.push({
               id: '1',
               name: 'Attendee',
               email: 'attendee@example.com',
               company: 'Company',
-              type: user.role === 'exhibitor' ? 'visitor' as const : 'exhibitor' as const,
+              type: 'visitor',
               avatar: 'A'
             });
           }
+          
+          console.log('Final attendees list:', attendees);
 
           const transformedMeeting = {
             id: apiMeeting.id?.toString() || Math.random().toString(),
@@ -399,6 +559,8 @@ export default function MeetingsPage() {
             // Additional fields for approval status
             isApproved: apiMeeting.isApproved === true || apiMeeting.status?.toLowerCase() === 'approved' || apiMeeting.status?.toLowerCase() === 'upcoming' || false,
             approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
+            // Set isInitiator based on current user ID comparison
+            isInitiator: isCurrentUserInitiator,
           };
           
           console.log('Transformed meeting:', {
@@ -408,6 +570,9 @@ export default function MeetingsPage() {
             mappedStatus: transformedMeeting.status,
             isApproved: transformedMeeting.isApproved,
             apiIsApproved: apiMeeting.isApproved,
+            isInitiator: transformedMeeting.isInitiator,
+            apiInitiatorId: apiMeeting.initiatorId,
+            currentUserId: currentUserId,
             dateTime: transformedMeeting.dateTime.toISOString(),
             now: new Date().toISOString(),
             isFuture: transformedMeeting.dateTime > new Date(),
@@ -427,10 +592,13 @@ export default function MeetingsPage() {
             title: meeting.title,
             status: meeting.status,
             isApproved: meeting.isApproved,
+            isInitiator: meeting.isInitiator,
             dateTime: meeting.dateTime.toISOString(),
             isFuture: meeting.dateTime > new Date(),
             pendingTab: !meeting.isApproved,
-            upcomingTab: meeting.isApproved && meeting.dateTime > new Date()
+            upcomingTab: meeting.isApproved && meeting.dateTime > new Date(),
+            shouldShowAcceptReject: !meeting.isInitiator && !meeting.isApproved && meeting.status !== 'cancelled',
+            shouldShowRescheduleCancel: meeting.isInitiator === true && meeting.status !== 'cancelled' && meeting.status !== 'completed'
           });
         });
         console.log('=== END SUMMARY ===');
@@ -501,14 +669,40 @@ export default function MeetingsPage() {
         return;
       }
 
-      console.log('Rejecting meeting:', { meetingId: meetingIdNumber, identifier });
+      // Find the meeting and get the current user's attendee ID
+      const meeting = meetings.find(m => m.id === meetingId);
+      if (!meeting) {
+        console.error('Meeting not found:', meetingId);
+        return;
+      }
+
+      // Find the current user's attendee record from the meeting data
+      const currentMeeting = meetings.find(m => m.id === meetingId);
+      if (!currentMeeting?.attendees) {
+        console.error('No attendees found in meeting data');
+        return;
+      }
+
+      const currentUserAttendee = currentMeeting.attendees.find(a => 
+        a.id === user?.id
+      );
+
+      if (!currentUserAttendee) {
+        console.error('Current user not found in attendees list');
+        return;
+      }
+
+      console.log('Rejecting meeting:', { 
+        meetingId: meetingIdNumber, 
+        attendeeId: parseInt(currentUserAttendee.id),
+        identifier 
+      });
       
       const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, false);
       
       if (response && !response.isError) {
         console.log('Meeting rejected successfully:', response);
         
-        // Update the local state immediately to show the change
         // Reload meetings to get the latest data from the server
         await loadMeetings();
       } else {
@@ -537,7 +731,34 @@ export default function MeetingsPage() {
         return;
       }
 
-      console.log('Approving meeting:', { meetingId: meetingIdNumber, identifier });
+      // Find the meeting and get the current user's attendee ID
+      const meeting = meetings.find(m => m.id === meetingId);
+      if (!meeting) {
+        console.error('Meeting not found:', meetingId);
+        return;
+      }
+
+      // Find the current user's attendee record from the meeting data
+      const currentMeeting = meetings.find(m => m.id === meetingId);
+      if (!currentMeeting?.attendees) {
+        console.error('No attendees found in meeting data');
+        return;
+      }
+
+      const currentUserAttendee = currentMeeting.attendees.find(a => 
+        a.id === user?.id
+      );
+
+      if (!currentUserAttendee) {
+        console.error('Current user not found in attendees list');
+        return;
+      }
+
+      console.log('Approving meeting:', { 
+        meetingId: meetingIdNumber, 
+        attendeeId: parseInt(currentUserAttendee.id),
+        identifier 
+      });
       
       const response = await MeetingDetailsApi.approveMeetingRequest(identifier, meetingIdNumber, true);
       
@@ -641,6 +862,186 @@ export default function MeetingsPage() {
     router.push(`/${identifier}/event-admin/meetings/schedule-meeting`);
   };
 
+  const handleOpenRescheduleDialog = (meeting: Meeting) => {
+    console.log('Opening reschedule dialog for meeting:', {
+      id: meeting.id,
+      title: meeting.title,
+      meetingDate: meeting.meetingDate,
+      startTime: meeting.startTime,
+      endTime: meeting.endTime
+    });
+    setSelectedMeetingForReschedule(meeting);
+    
+    // Format date for the form (YYYY-MM-DD format for date input)
+    let formattedDate = '';
+    if (meeting.meetingDate) {
+      try {
+        const date = new Date(meeting.meetingDate);
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toISOString().split('T')[0];
+        }
+      } catch (error) {
+        console.error('Error parsing meeting date:', error);
+      }
+    }
+    
+    // Format time for the form (HH:MM format for time select)
+    let formattedStartTime = '';
+    let formattedEndTime = '';
+    
+    if (meeting.startTime) {
+      // Handle different time formats
+      if (meeting.startTime.includes(':')) {
+        // Already in HH:MM format
+        formattedStartTime = meeting.startTime;
+      } else if (meeting.startTime.includes('T')) {
+        // ISO format like "2024-01-01T10:30:00"
+        const timePart = meeting.startTime.split('T')[1];
+        formattedStartTime = timePart.substring(0, 5);
+      } else {
+        // Try to parse as a time string
+        try {
+          const startTime = new Date(`2000-01-01T${meeting.startTime}`);
+          if (!isNaN(startTime.getTime())) {
+            formattedStartTime = startTime.toTimeString().slice(0, 5);
+          }
+        } catch (error) {
+          console.error('Error parsing start time:', error);
+        }
+      }
+    }
+    
+    if (meeting.endTime) {
+      // Handle different time formats
+      if (meeting.endTime.includes(':')) {
+        // Already in HH:MM format
+        formattedEndTime = meeting.endTime;
+      } else if (meeting.endTime.includes('T')) {
+        // ISO format like "2024-01-01T11:30:00"
+        const timePart = meeting.endTime.split('T')[1];
+        formattedEndTime = timePart.substring(0, 5);
+      } else {
+        // Try to parse as a time string
+        try {
+          const endTime = new Date(`2000-01-01T${meeting.endTime}`);
+          if (!isNaN(endTime.getTime())) {
+            formattedEndTime = endTime.toTimeString().slice(0, 5);
+          }
+        } catch (error) {
+          console.error('Error parsing end time:', error);
+        }
+      }
+    }
+    
+    const formData = {
+      meetingId: meeting.id,
+      agenda: meeting.title || '',
+      meetingDate: formattedDate,
+      startTime: formattedStartTime,
+      endTime: formattedEndTime
+    };
+    
+    console.log('Setting reschedule form data:', formData);
+    
+    setRescheduleForm(formData);
+    setShowRescheduleDialog(true);
+  };
+
+  const handleCloseRescheduleDialog = () => {
+    setShowRescheduleDialog(false);
+    setSelectedMeetingForReschedule(null);
+    setIsRescheduling(false);
+    setRescheduleForm({
+      meetingId: '',
+      agenda: '',
+      meetingDate: '',
+      startTime: '',
+      endTime: ''
+    });
+  };
+
+  const handleRescheduleFormChange = (field: string, value: string) => {
+    console.log('Reschedule form change:', { field, value });
+    setRescheduleForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Debug useEffect to monitor reschedule form state
+  useEffect(() => {
+    if (showRescheduleDialog) {
+      console.log('Current reschedule form state:', rescheduleForm);
+    }
+  }, [rescheduleForm, showRescheduleDialog]);
+
+  // Handle reschedule submit
+  const handleRescheduleSubmit = async () => {
+    try {
+      setIsRescheduling(true);
+      
+      if (!identifier) {
+        console.error('No identifier found');
+        return;
+      }
+
+      // Validate form
+      if (!rescheduleForm.meetingId || !rescheduleForm.agenda || !rescheduleForm.meetingDate || !rescheduleForm.startTime || !rescheduleForm.endTime) {
+        console.error('Missing required fields:', rescheduleForm);
+        return;
+      }
+
+      // Convert date and times to ISO format as required by the API
+      const meetingDate = new Date(rescheduleForm.meetingDate);
+      
+      // Create ISO strings in local timezone (without timezone conversion)
+      // This assumes the API expects times in the local timezone
+      const startTimeISO = `${rescheduleForm.meetingDate}T${rescheduleForm.startTime}:00.000`;
+      const endTimeISO = `${rescheduleForm.meetingDate}T${rescheduleForm.endTime}:00.000`;
+
+      console.log('Time conversion debug:', {
+        originalStartTime: rescheduleForm.startTime,
+        originalEndTime: rescheduleForm.endTime,
+        startTimeISO,
+        endTimeISO,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+
+      const updateData = {
+        meetingId: parseInt(rescheduleForm.meetingId),
+        agenda: rescheduleForm.agenda,
+        meetingDate: meetingDate.toISOString(),
+        startTime: startTimeISO,
+        endTime: endTimeISO
+      };
+
+      console.log('Submitting update meeting details:', updateData);
+
+      const response = await apiService.updateMeetingDetails(identifier, updateData);
+      
+      if (response.success) {
+        console.log('Meeting updated successfully:', response);
+        
+        // Close the dialog
+        handleCloseRescheduleDialog();
+        
+        // Reload meetings to get updated data
+        await loadMeetings();
+        
+        // Show success message (you can add a toast notification here)
+        console.log('Meeting rescheduled successfully!');
+      } else {
+        console.error('Failed to update meeting:', response);
+        // You can add error handling here (show error message to user)
+      }
+    } catch (error) {
+      console.error('Error updating meeting:', error);
+      // You can add error handling here (show error message to user)
+    } finally {
+      setIsRescheduling(false);
+    }
+  };
+
   const getStatusColor = (status: Meeting['status']) => {
     switch (status) {
       case 'scheduled': return 'primary';
@@ -678,14 +1079,23 @@ export default function MeetingsPage() {
     
     switch (tabValue) {
       case 0: // Pending meetings - show meetings that are not yet approved and not cancelled
+        console.log('=== Total meetings before filtering ===');
+        console.log('Total meetings count:', meetings.length);
+        console.log('All meetings:', meetings.map(m => ({ id: m.id, title: m.title, isInitiator: m.isInitiator, status: m.status, approvalStatus: m.approvalStatus, isApproved: m.isApproved })));
+        
         const pendingMeetings = meetings.filter(m => {
+          // For all roles, show meetings that are not approved and not cancelled
+          // This includes both meetings where user is initiator and where user is attendee
           const shouldShow = !m.isApproved && m.status !== 'cancelled';
           console.log(`Meeting ${m.id} pending check:`, {
             id: m.id,
+            title: m.title,
+            isInitiator: m.isInitiator,
             isApproved: m.isApproved,
             shouldShow,
             status: m.status,
-            approvalStatus: m.approvalStatus
+            approvalStatus: m.approvalStatus,
+            userRole: user?.role
           });
           return shouldShow;
         });
@@ -1567,6 +1977,22 @@ export default function MeetingsPage() {
                       dateTime: meeting.dateTime.toISOString()
                     });
                     
+                    // Debug button visibility
+                    console.log('Button visibility check:', {
+                      meetingId: meeting.id,
+                      tabValue,
+                      meetingStatus: meeting.status,
+                      isInitiator: meeting.isInitiator,
+                      shouldShowAcceptReject: shouldShowAcceptReject(meeting, user),
+                      shouldShowRescheduleCancel: shouldShowRescheduleCancel(meeting, user),
+                      isApproved: meeting.isApproved,
+                      userRole: user?.role,
+                      buttonLogic: {
+                        acceptReject: `isInitiator: ${meeting.isInitiator}, isApproved: ${meeting.isApproved}, status: ${meeting.status}`,
+                        rescheduleCancel: `isInitiator: ${meeting.isInitiator}, status: ${meeting.status}`
+                      }
+                    });
+                    
                     return (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
@@ -1692,10 +2118,11 @@ export default function MeetingsPage() {
                       </Box>
 
                       {/* Action buttons in top right corner */}
-                      {(tabValue === 0 || tabValue === 1) && meeting.status !== 'cancelled' && (
+                      {(tabValue === 0 || tabValue === 1) && meeting.status !== 'cancelled' && meeting.status !== 'completed' && (
                         <Box sx={{ display: 'flex', gap: 1, ml: 1, flexWrap: 'wrap' }}>
-                          {/* Show approve button only for pending meetings */}
-                          {!meeting.isApproved && (
+                          {/* Show accept/reject buttons ONLY for attendees (not initiators) */}
+                          {shouldShowAcceptReject(meeting, user) && (
+                            <>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               <IconButton 
                                 size="small" 
@@ -1708,7 +2135,7 @@ export default function MeetingsPage() {
                                   '&:hover': { bgcolor: 'success.main' },
                                   '&:disabled': { bgcolor: 'grey.300', color: 'grey.500' }
                                 }}
-                                title="Approve Meeting"
+                                  title="Accept Meeting"
                               >
                                 {approvingMeetingId === meeting.id ? (
                                   <CircularProgress size={16} color="inherit" />
@@ -1717,23 +2144,9 @@ export default function MeetingsPage() {
                                 )}
                               </IconButton>
                               <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                {approvingMeetingId === meeting.id ? 'Approving...' : 'Approve'}
+                                  {approvingMeetingId === meeting.id ? 'Accepting...' : 'Accept'}
                               </Typography>
                             </Box>
-                          )}
-                          
-                          {/* Show approved status for approved meetings */}
-                          {meeting.isApproved && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Chip 
-                                label="Approved" 
-                                color="success"
-                                size="small"
-                                icon={<CheckCircleOutline />}
-                                sx={{ fontSize: '0.75rem' }}
-                              />
-                            </Box>
-                          )}
                           
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <IconButton 
@@ -1759,10 +2172,17 @@ export default function MeetingsPage() {
                               {rejectingMeetingId === meeting.id ? 'Rejecting...' : 'Reject'}
                             </Typography>
                           </Box>
+                            </>
+                          )}
+                          
+                          {/* Show reschedule/cancel buttons ONLY for initiators */}
+                          {shouldShowRescheduleCancel(meeting, user) && (
+                            <>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <IconButton 
                               size="small" 
                               color="warning"
+                              onClick={() => handleOpenRescheduleDialog(meeting)}
                               sx={{ 
                                 bgcolor: 'warning.light', 
                                 color: 'white',
@@ -1776,6 +2196,40 @@ export default function MeetingsPage() {
                               Reschedule
                             </Typography>
                           </Box>
+                              
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <IconButton 
+                                  size="small" 
+                                  color="error"
+                                  onClick={() => handleRejectMeeting(meeting.id)}
+                                  sx={{ 
+                                    bgcolor: 'error.light', 
+                                    color: 'white',
+                                    '&:hover': { bgcolor: 'error.main' }
+                                  }}
+                                  title="Cancel Meeting"
+                                >
+                                  <Cancel fontSize="small" />
+                                </IconButton>
+                                <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  Cancel
+                                </Typography>
+                              </Box>
+                            </>
+                          )}
+                          
+                          {/* Show approved status for approved meetings (for both initiators and attendees) */}
+                          {meeting.isApproved && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Chip 
+                                label="Approved" 
+                                color="success"
+                                size="small"
+                                icon={<CheckCircleOutline />}
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            </Box>
+                          )}
                         </Box>
                       )}
                     </Box>
@@ -1805,6 +2259,279 @@ export default function MeetingsPage() {
           )}
         </Container>
 
+        {/* Reschedule Meeting Dialog */}
+        <Dialog 
+          open={showRescheduleDialog} 
+          onClose={handleCloseRescheduleDialog}
+          maxWidth="sm" 
+          fullWidth
+          disableEscapeKeyDown={false}
+          PaperProps={{
+            sx: {
+              maxHeight: '80vh',
+              '& .MuiDialogContent-root': {
+                p: 3
+              }
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            gap: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            p: 2
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Event color="primary" fontSize="small" />
+              <Typography variant="subtitle1" component="div">
+                Reschedule Meeting
+              </Typography>
+            </Box>
+            <IconButton
+              onClick={handleCloseRescheduleDialog}
+              size="small"
+              sx={{
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'rotate(90deg)',
+                  backgroundColor: 'action.hover',
+                }
+              }}
+            >
+              <Close fontSize="small" />
+            </IconButton>
+          </DialogTitle>
+          
+          <DialogContent>
+            {/* Current Meeting Info */}
+            {/* {selectedMeetingForReschedule && (
+              <Box sx={{ mb: 3, p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Current Meeting Details
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Typography variant="body2">
+                    <strong>Title:</strong> {selectedMeetingForReschedule.title}
+                  </Typography>
+                  {selectedMeetingForReschedule.meetingDate && (
+                    <Typography variant="body2">
+                      <strong>Date:</strong> {formatMeetingDate(selectedMeetingForReschedule.meetingDate)}
+                    </Typography>
+                  )}
+                  {selectedMeetingForReschedule.startTime && selectedMeetingForReschedule.endTime && (
+                    <Typography variant="body2">
+                      <strong>Time:</strong> {formatTime(selectedMeetingForReschedule.startTime)} - {formatTime(selectedMeetingForReschedule.endTime)}
+                    </Typography>
+                  )}
+                  {selectedMeetingForReschedule.attendees && selectedMeetingForReschedule.attendees.length > 0 && (
+                    <Typography variant="body2">
+                      <strong>Attendees:</strong> {selectedMeetingForReschedule.attendees.map(a => a.name).join(', ')}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            )} */}
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+                  New Meeting Details
+                </Typography>
+              </Grid>
+              {/* Title Field */}
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
+                  <Box
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'primary.main',
+                      color: 'white',
+                      mt: 1,
+                      flexShrink: 0
+                    }}
+                  >
+                    <Description fontSize="small" />
+                  </Box>
+                  <TextField
+                    fullWidth
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          border: 'none',
+                        },
+                        '&:hover fieldset': {
+                          border: 'none',
+                        },
+                        '&.Mui-focused fieldset': {
+                          border: 'none',
+                        },
+                        '& input': {
+                          fontSize: '1.25rem',
+                          fontWeight: 500,
+                          padding: '0',
+                          mt:1,
+                          '&::placeholder': {
+                            color: 'text.primary',
+                            opacity: 1,
+                          },
+                        },
+                      },
+                    }}
+                    placeholder="Add a title"
+                    value={rescheduleForm.agenda}
+                    onChange={(e) => handleRescheduleFormChange('agenda', e.target.value)}
+                    variant="outlined"
+                  />
+                </Box>
+              </Grid>
+
+              {/* Meeting Date */}
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Meeting Date"
+                  type="date"
+                  value={rescheduleForm.meetingDate}
+                  onChange={(e) => handleRescheduleFormChange('meetingDate', e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <Event sx={{ mr: -1, color: 'text.secondary' }} />
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      height: '40px',
+                      width: '100%',
+                      '& input': {
+                        padding: '8px 12px',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+              </Grid>
+
+              {/* Start Time */}
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Start Time</InputLabel>
+                  <Select
+                    value={rescheduleForm.startTime}
+                    onChange={(e) => handleRescheduleFormChange('startTime', e.target.value)}
+                    label="Start Time"
+                    startAdornment={
+                      <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
+                    }
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        height: '40px',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '8px 12px',
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                      },
+                    }}
+                  >
+                    {Array.from({ length: 48 }, (_, i) => {
+                      const hour = Math.floor(i / 2);
+                      const minute = i % 2 === 0 ? '00' : '30';
+                      const ampm = hour < 12 ? 'AM' : 'PM';
+                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                      const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
+                      const displayTime = `${displayHour}:${minute} ${ampm}`;
+                      return (
+                        <MenuItem 
+                          key={timeValue} 
+                          value={timeValue}
+                        >
+                          {displayTime}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* End Time */}
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>End Time</InputLabel>
+                  <Select
+                    value={rescheduleForm.endTime}
+                    onChange={(e) => handleRescheduleFormChange('endTime', e.target.value)}
+                    label="End Time"
+                    startAdornment={
+                      <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
+                    }
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        height: '40px',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '8px 12px',
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                      },
+                    }}
+                  >
+                    {Array.from({ length: 48 }, (_, i) => {
+                      const hour = Math.floor(i / 2);
+                      const minute = i % 2 === 0 ? '00' : '30';
+                      const ampm = hour < 12 ? 'AM' : 'PM';
+                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                      const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
+                      const displayTime = `${displayHour}:${minute} ${ampm}`;
+                      return (
+                        <MenuItem key={timeValue} value={timeValue}>
+                          {displayTime}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </DialogContent>
+
+          <DialogActions sx={{ 
+            p: 2, 
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            gap: 1
+          }}>
+            <Button 
+              onClick={handleCloseRescheduleDialog} 
+              size="small"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={handleRescheduleSubmit}
+              size="small"
+              disabled={isRescheduling}
+              startIcon={isRescheduling ? <CircularProgress size={14} /> : <Event fontSize="small" />}
+            >
+              {isRescheduling ? 'Rescheduling...' : 'Reschedule'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
       </ResponsiveDashboardLayout>
     </RoleBasedRoute>

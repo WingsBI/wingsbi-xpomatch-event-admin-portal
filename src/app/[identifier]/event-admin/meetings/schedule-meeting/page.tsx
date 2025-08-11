@@ -59,8 +59,7 @@ import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface MeetingFormData {
   agenda: string;
-  visitorId: number | '';
-  exhibitorId: number | '';
+  attendiesId: number[];
   meetingDate: string;
   startTime: string;
   endTime: string;
@@ -94,8 +93,7 @@ export default function ScheduleMeetingPage() {
 
   const [meetingForm, setMeetingForm] = useState<MeetingFormData>({
     agenda: '',
-    visitorId: '',
-    exhibitorId: '',
+    attendiesId: [],
     meetingDate: '',
     startTime: '',
     endTime: ''
@@ -121,32 +119,27 @@ export default function ScheduleMeetingPage() {
   const [loadingVisitorDetails, setLoadingVisitorDetails] = useState(false);
   const [loadingExhibitorDetails, setLoadingExhibitorDetails] = useState(false);
   const [showAttendeesPopover, setShowAttendeesPopover] = useState(false);
-  const [manuallySelectedVisitors, setManuallySelectedVisitors] = useState<number[]>([]);
-  const [manuallySelectedExhibitor, setManuallySelectedExhibitor] = useState<number | null>(null);
 
   const getSelectedAttendeesDisplay = () => {
-    const names = [];
+    const names: string[] = [];
     
-    // Show manually selected visitors
-    if (manuallySelectedVisitors.length > 0) {
-      const selectedVisitorNames = manuallySelectedVisitors
-        .map(visitorId => {
-          const visitor = visitors.find(v => v.id === visitorId);
-          return visitor ? `${visitor.firstName} ${visitor.lastName}` : '';
-        })
-        .filter(name => name !== '');
-      names.push(...selectedVisitorNames);
-    }
-    
-    // Show manually selected exhibitor
-    if (manuallySelectedExhibitor) {
-      const selectedExhibitor = exhibitors.find(e => e.id === manuallySelectedExhibitor);
-      if (selectedExhibitor) {
-        names.push(selectedExhibitor.companyName || `${selectedExhibitor.firstName} ${selectedExhibitor.lastName}`);
+    // Show selected attendees from the form
+    meetingForm.attendiesId.forEach(attendeeId => {
+      // Check if it's a visitor
+      const visitor = visitors.find(v => v.id === attendeeId);
+      if (visitor) {
+        names.push(`${visitor.firstName} ${visitor.lastName}`);
+        return;
       }
-    }
+      
+      // Check if it's an exhibitor
+      const exhibitor = exhibitors.find(e => e.id === attendeeId);
+      if (exhibitor) {
+        names.push(exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`);
+      }
+    });
     
-    return names.join(', ');
+    return names.join(', ') || 'Select attendees';
   };
 
   // Initialize current user data
@@ -167,7 +160,7 @@ export default function ScheduleMeetingPage() {
         if (exhibitorId) {
           setMeetingForm(prev => ({
             ...prev,
-            exhibitorId: exhibitorId
+            attendiesId: [exhibitorId]
           }));
         }
       } else if (currentUser.role === 'visitor') {
@@ -178,7 +171,7 @@ export default function ScheduleMeetingPage() {
         if (visitorId) {
           setMeetingForm(prev => ({
             ...prev,
-            visitorId: visitorId
+            attendiesId: [visitorId]
           }));
         }
       }
@@ -349,7 +342,7 @@ export default function ScheduleMeetingPage() {
     }
   };
 
-  const handleFormChange = (field: keyof MeetingFormData, value: string | number) => {
+  const handleFormChange = (field: keyof MeetingFormData, value: string | number | number[]) => {
     console.log('🔍 handleFormChange called:', field, value, 'Type:', typeof value);
     
     setMeetingForm(prev => ({
@@ -357,13 +350,22 @@ export default function ScheduleMeetingPage() {
       [field]: value
     }));
 
-    // Fetch details when visitor or exhibitor is selected
-    if (field === 'visitorId' && value) {
-      console.log('🔍 Fetching visitor details for ID:', value);
-      fetchVisitorDetails(Number(value));
-    } else if (field === 'exhibitorId' && value) {
-      console.log('🔍 Fetching exhibitor details for ID:', value);
-      fetchExhibitorDetails(Number(value));
+    // Fetch details when attendees are selected
+    if (field === 'attendiesId' && Array.isArray(value) && value.length > 0) {
+      const lastSelectedId = value[value.length - 1];
+      // Check if it's a visitor
+      const visitor = visitors.find(v => v.id === lastSelectedId);
+      if (visitor) {
+        console.log('🔍 Fetching visitor details for ID:', lastSelectedId);
+        fetchVisitorDetails(lastSelectedId);
+      } else {
+        // Check if it's an exhibitor
+        const exhibitor = exhibitors.find(e => e.id === lastSelectedId);
+        if (exhibitor) {
+          console.log('🔍 Fetching exhibitor details for ID:', lastSelectedId);
+          fetchExhibitorDetails(lastSelectedId);
+        }
+      }
     }
 
     // Clear error for this field
@@ -383,12 +385,8 @@ export default function ScheduleMeetingPage() {
       errors.agenda = 'Meeting agenda is required';
     }
 
-    if (!meetingForm.visitorId) {
-      errors.visitorId = 'Please select a visitor';
-    }
-
-    if (!meetingForm.exhibitorId) {
-      errors.exhibitorId = 'Please select an exhibitor';
+    if (!meetingForm.attendiesId || meetingForm.attendiesId.length === 0) {
+      errors.attendiesId = 'Please select at least one attendee';
     }
 
     if (!meetingForm.meetingDate) {
@@ -425,8 +423,7 @@ export default function ScheduleMeetingPage() {
     try {
       const meetingData = {
         agenda: meetingForm.agenda,
-        visitorId: Number(meetingForm.visitorId),
-        exhibitorId: Number(meetingForm.exhibitorId),
+        attendiesId: meetingForm.attendiesId,
         meetingDate: meetingForm.meetingDate,
         startTime: meetingForm.startTime,
         endTime: meetingForm.endTime
@@ -655,86 +652,77 @@ export default function ScheduleMeetingPage() {
                   {/* Visitor Selection - Only show if not a visitor */}
                   {currentUserRole !== 'visitor' && (
                     <Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        
-                        {manuallySelectedVisitors.length > 0 && (
-                          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
-                            {manuallySelectedVisitors.length} selected
-                          </Typography>
-                        )}
-                      </Box>
+                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>
+                        Select Visitors
+                      </Typography>
                       {!loading && visitors.map((visitor) => {
-                        const isSelected = manuallySelectedVisitors.includes(visitor.id);
+                        const isSelected = meetingForm.attendiesId.includes(visitor.id);
                         return (
                           <Box
                             key={visitor.id}
-                                                         onClick={() => {
-                               if (isSelected) {
-                                 // Remove visitor from selection
-                                 const updatedVisitors = manuallySelectedVisitors.filter(id => id !== visitor.id);
-                                 setManuallySelectedVisitors(updatedVisitors);
-                                 // Update form with first visitor ID or empty string
-                                 handleFormChange('visitorId', updatedVisitors.length > 0 ? updatedVisitors[0] : '');
-                               } else {
-                                 // Add visitor to selection
-                                 const updatedVisitors = [...manuallySelectedVisitors, visitor.id];
-                                 setManuallySelectedVisitors(updatedVisitors);
-                                 // Update form with first visitor ID
-                                 handleFormChange('visitorId', updatedVisitors[0]);
-                               }
-                             }}
-                             sx={{
-                               display: 'flex',
-                               alignItems: 'center',
-                               gap: 2,
-                               p: 1,
-                               cursor: 'pointer',
-                               borderRadius: 1,
-                               bgcolor: isSelected ? 'primary.light' : 'transparent',
-                               '&:hover': {
-                                 bgcolor: isSelected ? 'grey.200' : 'action.hover'
-                               }
-                             }}
+                            onClick={() => {
+                              if (isSelected) {
+                                // Remove visitor from selection
+                                const updatedAttendees = meetingForm.attendiesId.filter(id => id !== visitor.id);
+                                handleFormChange('attendiesId', updatedAttendees);
+                              } else {
+                                // Add visitor to selection
+                                const updatedAttendees = [...meetingForm.attendiesId, visitor.id];
+                                handleFormChange('attendiesId', updatedAttendees);
+                              }
+                            }}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              p: 1,
+                              cursor: 'pointer',
+                              borderRadius: 1,
+                              bgcolor: isSelected ? 'primary.light' : 'transparent',
+                              '&:hover': {
+                                bgcolor: isSelected ? 'primary.main' : 'action.hover'
+                              }
+                            }}
                           >
-                                                         <Box sx={{ position: 'relative' }}>
-                               <Avatar 
-                                 sx={{ 
-                                   width: 32, 
-                                   height: 32,
-                                   bgcolor: `#${Math.floor(Math.random()*16777215).toString(16)}`
-                                 }}
-                               >
-                                 {visitor.firstName[0]}
-                               </Avatar>
-                               {isSelected && (
-                                 <Box
-                                   sx={{
-                                     position: 'absolute',
-                                     bottom: -2,
-                                     right: -2,
-                                     width: 16,
-                                     height: 16,
-                                     borderRadius: '50%',
-                                                                           bgcolor: '#00E676',
-                                     display: 'flex',
-                                     alignItems: 'center',
-                                     justifyContent: 'center',
-                                     border: '2px solid white',
-                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                                   }}
-                                 >
-                                   <CheckCircle sx={{ color: 'white', fontSize: 10 }} />
-                                 </Box>
-                               )}
-                             </Box>
-                                                         <Box sx={{ flex: 1 }}>
-                               <Typography variant="body2">
-                                 {visitor.firstName} {visitor.lastName}
-                               </Typography>
-                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                 {visitor.email}
-                               </Typography>
-                             </Box>
+                            <Box sx={{ position: 'relative' }}>
+                              <Avatar 
+                                sx={{ 
+                                  width: 32, 
+                                  height: 32,
+                                  bgcolor: isSelected ? 'white' : `#${Math.floor(Math.random()*16777215).toString(16)}`
+                                }}
+                              >
+                                {visitor.firstName[0]}
+                              </Avatar>
+                              {isSelected && (
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    bottom: -2,
+                                    right: -2,
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
+                                    bgcolor: '#00E676',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '2px solid white',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                  }}
+                                >
+                                  <CheckCircle sx={{ color: 'white', fontSize: 10 }} />
+                                </Box>
+                              )}
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" sx={{ color: isSelected ? 'white' : 'inherit' }}>
+                                {visitor.firstName} {visitor.lastName}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: isSelected ? 'white' : 'text.secondary' }}>
+                                {visitor.email}
+                              </Typography>
+                            </Box>
                           </Box>
                         );
                       })}
@@ -745,17 +733,23 @@ export default function ScheduleMeetingPage() {
                   {currentUserRole !== 'exhibitor' && (
                     <Box>
                       <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium', mt: 2 }}>
-                        Select Exhibitor
+                        Select Exhibitors
                       </Typography>
                       {!loading && exhibitors.map((exhibitor) => {
-                        const isSelected = manuallySelectedExhibitor === exhibitor.id;
+                        const isSelected = meetingForm.attendiesId.includes(exhibitor.id);
                         return (
                           <Box
                             key={exhibitor.id}
                             onClick={() => {
-                              handleFormChange('exhibitorId', exhibitor.id);
-                              setManuallySelectedExhibitor(exhibitor.id);
-                              setShowAttendeesPopover(false);
+                              if (isSelected) {
+                                // Remove exhibitor from selection
+                                const updatedAttendees = meetingForm.attendiesId.filter(id => id !== exhibitor.id);
+                                handleFormChange('attendiesId', updatedAttendees);
+                              } else {
+                                // Add exhibitor to selection
+                                const updatedAttendees = [...meetingForm.attendiesId, exhibitor.id];
+                                handleFormChange('attendiesId', updatedAttendees);
+                              }
                             }}
                             sx={{
                               display: 'flex',
@@ -798,9 +792,9 @@ export default function ScheduleMeetingPage() {
                 </Box>
               </Popover>
             </Box>
-            {(formErrors.visitorId || formErrors.exhibitorId) && (
+            {formErrors.attendiesId && (
               <FormHelperText error>
-                {formErrors.visitorId || formErrors.exhibitorId}
+                {formErrors.attendiesId}
               </FormHelperText>
             )}
           </Grid>

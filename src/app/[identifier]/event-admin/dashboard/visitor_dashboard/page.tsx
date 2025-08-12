@@ -46,7 +46,7 @@ import { theme } from '@/lib/theme';
 import { getCurrentVisitorId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { motion, AnimatePresence } from 'framer-motion';
-import ExhibitorDetailsDialog from '@/components/common/ExhibitorDetailsDialog';
+import dynamic from 'next/dynamic';
 
 export default function VisitorDashboard() {
   const searchParams = useSearchParams();
@@ -727,7 +727,7 @@ export default function VisitorDashboard() {
             </Box>
           </Box>
           {/* Place the dialog at the end so it is always present */}
-          <ExhibitorDetailsDialog
+          <LazyExhibitorDetailsDialog
             open={exhibitorDialogOpen}
             onClose={() => setExhibitorDialogOpen(false)}
             exhibitorId={selectedExhibitorId}
@@ -738,3 +738,8 @@ export default function VisitorDashboard() {
     );
   }
 }
+
+const LazyExhibitorDetailsDialog = dynamic(
+  () => import('@/components/common/ExhibitorDetailsDialog'),
+  { ssr: false }
+);

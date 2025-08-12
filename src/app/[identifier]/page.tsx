@@ -99,6 +99,12 @@ export default function EventLoginPage() {
   // Try to restore authentication state on page load
   useEffect(() => {
     const restoreAuth = async () => {
+      // Don't restore auth if user just logged in to prevent interference
+      if (hasJustLoggedIn) {
+        console.log("User just logged in, skipping auth restoration");
+        return;
+      }
+
       // First, check if we already have valid authentication
       if (isAuthenticated && user && isValidUserData(user)) {
         console.log("User already authenticated with valid data");
@@ -162,7 +168,7 @@ export default function EventLoginPage() {
     };
 
     restoreAuth();
-  }, [isAuthenticated, authLoading, identifier, dispatch, user]);
+  }, [isAuthenticated, authLoading, identifier, dispatch, user, hasJustLoggedIn]);
 
   // Cleanup redirecting state if navigation doesn't happen
   useEffect(() => {
@@ -171,7 +177,7 @@ export default function EventLoginPage() {
         console.log("Redirect timeout - resetting redirecting state");
         setIsRedirecting(false);
         setHasJustLoggedIn(false);
-      }, 3000); // Reset after 3 seconds if redirect doesn't complete
+      }, 5000); // Reset after 5 seconds if redirect doesn't complete
 
       return () => clearTimeout(timer);
     }
@@ -201,9 +207,10 @@ export default function EventLoginPage() {
       clearAllAuthData();
       // Force logout in Redux
       dispatch(clearAuth());
-      } else if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn) {
+    } else if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn && !isSubmitting) {
       // If user is authenticated but didn't just login, they might have valid session
       // But we should validate this session before redirecting
+      // Only validate if not currently submitting to prevent interference
       console.log("User appears authenticated from previous session, validating...");
       
         // Validate current session using cookie-based auth only
@@ -230,7 +237,7 @@ export default function EventLoginPage() {
           dispatch(clearAuth());
         }
     }
-  }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router, dispatch]);
+  }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router, dispatch, isSubmitting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +338,7 @@ export default function EventLoginPage() {
     setError("");
   };
 
-  if (authLoading || isSubmitting || isRedirecting) {
+  if (authLoading || isSubmitting || isRedirecting || (isAuthenticated && hasJustLoggedIn)) {
     return (
       <Box
         sx={{

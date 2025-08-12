@@ -47,7 +47,7 @@ src/
 │   ├── event-admin/       # Event Admin dashboard
 │   ├── visitor/           # Visitor portal
 │   ├── exhibitor/         # Exhibitor portal
-│   ├── iframe/            # SSR iframe pages
+│   ├── [identifier]/      # Dynamic event pages
 │   └── api/               # API routes
 ├── components/            # Reusable components
 ├── lib/                   # Utility functions
@@ -80,7 +80,7 @@ src/
 
 ## Key Features Implementation
 
-- **Server-Side Rendering**: All iframe content is server-side rendered for optimal performance
+- **Server-Side Rendering**: All content is server-side rendered for optimal performance
 - **Role-Based Access**: Separate dashboards for IT Admin, Event Admin, Visitors, and Exhibitors
 - **Dynamic Attributes**: Custom field management for events and participants
 - **Bulk Import**: Excel file upload and processing for participant data

@@ -1,11 +1,55 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
-import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
+import Cookies from 'js-cookie';
 import { authSlice } from './slices/authSlice';
 import { appSlice } from './slices/appSlice';
 import { apiSlice } from './slices/apiSlice';
 import { FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
+
+// Cookie-based storage implementation
+const createCookieStorage = () => {
+  return {
+    getItem(key: string) {
+      try {
+        if (typeof window === 'undefined') return Promise.resolve(null);
+        
+        const value = Cookies.get(key);
+        return Promise.resolve(value ? JSON.parse(value) : null);
+      } catch (error) {
+        console.warn('Failed to get cookie:', key, error);
+        return Promise.resolve(null);
+      }
+    },
+    setItem(key: string, value: any) {
+      try {
+        if (typeof window === 'undefined') return Promise.resolve(value);
+        
+        // Set cookie with 7 days expiration and secure options
+        Cookies.set(key, JSON.stringify(value), {
+          expires: 7, // 7 days
+          secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+          sameSite: 'strict', // CSRF protection
+          path: '/', // Available across the site
+        });
+        return Promise.resolve(value);
+      } catch (error) {
+        console.warn('Failed to set cookie:', key, error);
+        return Promise.resolve(value);
+      }
+    },
+    removeItem(key: string) {
+      try {
+        if (typeof window === 'undefined') return Promise.resolve();
+        
+        Cookies.remove(key, { path: '/' });
+        return Promise.resolve();
+      } catch (error) {
+        console.warn('Failed to remove cookie:', key, error);
+        return Promise.resolve();
+      }
+    },
+  };
+};
 
 // Create a noop storage for server-side rendering
 const createNoopStorage = () => {
@@ -22,9 +66,9 @@ const createNoopStorage = () => {
   };
 };
 
-// Use localStorage when available, otherwise use noop storage
+// Use cookie storage on client, noop on server
 const clientStorage = typeof window !== 'undefined' 
-  ? storage 
+  ? createCookieStorage() 
   : createNoopStorage();
 
 // Extract identifier from URL

@@ -1,33 +1,16 @@
+import { clearAllAuthCookies, getAuthToken, getUserData } from '@/utils/cookieManager';
+
 // Authentication utilities for cleaning up stored data
 
 /**
- * Clear all authentication data from both localStorage and cookies
+ * Clear all authentication data from cookies
  * This ensures that invalid/expired tokens don't cause automatic login
  */
 export function clearAllAuthData() {
-  // Clear localStorage
-  if (typeof localStorage !== 'undefined') {
-    localStorage.removeItem('jwtToken');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('currentEventIdentifier');
-  }
+  // Clear all authentication cookies
+  clearAllAuthCookies();
 
-  // Clear sessionStorage
-  if (typeof sessionStorage !== 'undefined') {
-    sessionStorage.removeItem('currentEventIdentifier');
-    sessionStorage.removeItem('userRole');
-    sessionStorage.removeItem('userEmail');
-  }
-
-  // Clear cookies by setting them to expire
-  if (typeof document !== 'undefined') {
-    const cookiesToClear = ['auth-token', 'refresh-token', 'user-data'];
-    cookiesToClear.forEach(cookieName => {
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    });
-  }
+  // No sessionStorage usage
 
   console.log('All authentication data cleared');
 }
@@ -96,7 +79,7 @@ export function isValidTokenFormat(token: string): boolean {
 }
 
 /**
- * Get authentication status from various sources
+ * Get authentication status from cookies
  */
 export function getAuthenticationStatus(): {
   hasLocalStorageToken: boolean;
@@ -104,54 +87,31 @@ export function getAuthenticationStatus(): {
   hasUserData: boolean;
   isValid: boolean;
 } {
-  const localStorageToken = typeof localStorage !== 'undefined' 
-    ? (localStorage.getItem('jwtToken') || localStorage.getItem('authToken'))
-    : null;
-  
-  const userDataStr = typeof localStorage !== 'undefined' 
-    ? localStorage.getItem('user')
-    : null;
+  const token = getAuthToken();
+  const userData = getUserData();
 
   let userDataValid = false;
-  if (userDataStr) {
-    try {
-      const userData = JSON.parse(userDataStr);
-      userDataValid = isValidUserData(userData);
-    } catch {
-      userDataValid = false;
-    }
+  if (userData) {
+    userDataValid = isValidUserData(userData);
   }
 
-  const hasCookie = typeof document !== 'undefined' 
-    ? document.cookie.includes('auth-token=')
-    : false;
-
-  const hasValidToken = localStorageToken ? isValidTokenFormat(localStorageToken) : false;
+  const hasValidToken = token ? isValidTokenFormat(token) : false;
 
   return {
-    hasLocalStorageToken: !!localStorageToken,
-    hasCookie,
-    hasUserData: !!userDataStr,
+    hasLocalStorageToken: !!token, // Keep for backward compatibility
+    hasCookie: !!token,
+    hasUserData: !!userData,
     isValid: hasValidToken && userDataValid
   };
 }
 
 /**
- * Get current user data from localStorage
+ * Get current user data from cookies
  */
 export function getCurrentUser(): { id: string; email: string; role: string } | null {
-  if (typeof localStorage === 'undefined') {
-    return null;
-  }
-
   try {
-    const userDataStr = localStorage.getItem('user');
-    if (!userDataStr) {
-      return null;
-    }
-
-    const userData = JSON.parse(userDataStr);
-    if (!isValidUserData(userData)) {
+    const userData = getUserData();
+    if (!userData || !isValidUserData(userData)) {
       return null;
     }
 
@@ -161,7 +121,7 @@ export function getCurrentUser(): { id: string; email: string; role: string } | 
       role: userData.role
     };
   } catch (error) {
-    console.error('Error parsing user data from localStorage:', error);
+    console.error('Error getting user data from cookies:', error);
     return null;
   }
 }
@@ -170,23 +130,18 @@ export function getCurrentUser(): { id: string; email: string; role: string } | 
  * Get current user ID as number for API calls
  */
 export function getCurrentUserId(): number | null {
-  if (typeof localStorage === 'undefined') {
-    return null;
-  }
-
   try {
-    const userDataStr = localStorage.getItem('user');
-    console.log('Raw user data from localStorage:', userDataStr);
+    const userData = getUserData();
+    console.log('Raw user data from cookies:', userData);
     
-    if (!userDataStr) {
-      console.log('No user data found in localStorage');
+    if (!userData) {
+      console.log('No user data found in cookies');
       return null;
     }
 
-    const userData = JSON.parse(userDataStr);
     console.log('Parsed user data:', userData);
     
-    if (!userData || !userData.id) {
+    if (!userData.id) {
       console.log('User data missing or no ID found');
       return null;
     }
@@ -205,14 +160,10 @@ export function getCurrentUserId(): number | null {
  * Decode JWT token to get token data
  */
 export function decodeJWTToken(): any | null {
-  if (typeof localStorage === 'undefined') {
-    return null;
-  }
-
   try {
-    const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
+    const token = getAuthToken();
     if (!token) {
-      console.log('No JWT token found in localStorage');
+      console.log('No JWT token found in cookies');
       return null;
     }
 

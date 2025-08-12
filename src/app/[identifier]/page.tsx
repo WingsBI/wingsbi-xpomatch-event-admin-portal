@@ -38,6 +38,7 @@ import { RootState, AppDispatch } from "@/store";
 import { loginUser, restoreAuthState, clearAuth } from "@/store/slices/authSlice";
 import { addNotification, setIdentifier } from "@/store/slices/appSlice";
 import { clearAllAuthData, isValidUserData, getAuthenticationStatus } from '@/utils/authUtils';
+import { getUserData, getAuthToken } from '@/utils/cookieManager';
 
 // Define color themes
 const colorThemes = {
@@ -92,24 +93,7 @@ export default function EventLoginPage() {
       dispatch(setIdentifier(identifier));
     }
     
-    // One-time cleanup of any persisted auth state for security
-    if (typeof localStorage !== 'undefined') {
-      const persistedState = localStorage.getItem('persist:root');
-      if (persistedState) {
-        try {
-          const parsed = JSON.parse(persistedState);
-          if (parsed.auth) {
-            console.log("Clearing old persisted auth state for security");
-            delete parsed.auth;
-            localStorage.setItem('persist:root', JSON.stringify(parsed));
-          }
-        } catch (error) {
-          // If parsing fails, remove the entire persisted state
-          console.log("Clearing corrupted persisted state");
-          localStorage.removeItem('persist:root');
-        }
-      }
-    }
+    // Remove any legacy persisted auth state (no localStorage persistence)
   }, [identifier, dispatch]);
 
   // Try to restore authentication state on page load
@@ -150,14 +134,14 @@ export default function EventLoginPage() {
           
           if (isMainPage && isExternalReferrer) {
             // User directly visited the main page, redirect to their dashboard
-            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userData = getUserData();
             if (userData && userData.role) {
-              let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
+              let redirectPath = `/${identifier}/dashboard`; // Default
               
               if (userData.role === "visitor") {
-                redirectPath = `/${identifier}/event-admin/exhibitors`;
+                redirectPath = `/${identifier}/exhibitors`;
               } else if (userData.role === "exhibitor") {
-                redirectPath = `/${identifier}/event-admin/visitors`;
+                redirectPath = `/${identifier}/visitors`;
               }
               
               console.log("User directly visited main page, redirecting to dashboard:", redirectPath);
@@ -167,14 +151,7 @@ export default function EventLoginPage() {
             }
           } else if (isMainPage && !isExternalReferrer) {
             // User was redirected here from another page in the app, redirect them back
-            const intendedPath = sessionStorage.getItem('intendedPath');
-            if (intendedPath && intendedPath !== currentPath) {
-              console.log("User was redirected here, sending back to intended path:", intendedPath);
-              sessionStorage.removeItem('intendedPath');
-              setIsRedirecting(true);
-              router.push(intendedPath);
-              return;
-            }
+            // No sessionStorage redirect logic; middleware handles intended path via query param
           }
           
         } catch (error) {
@@ -206,12 +183,12 @@ export default function EventLoginPage() {
     // This prevents automatic redirects when users visit the page directly
     if (isAuthenticated && user && isValidUserData(user) && hasJustLoggedIn && !isRedirecting) {
       const userRole = user.role;
-      let redirectPath = `/${identifier}/event-admin/dashboard`; // Default
+      let redirectPath = `/${identifier}/dashboard`; // Default
       
       if (userRole === "visitor") {
-        redirectPath = `/${identifier}/event-admin/dashboard/visitor_dashboard`;
+        redirectPath = `/${identifier}/dashboard/visitor_dashboard`;
       } else if (userRole === "exhibitor") {
-        redirectPath = `/${identifier}/event-admin/dashboard/exhibitor_dashboard`;
+        redirectPath = `/${identifier}/dashboard/exhibitor_dashboard`;
       }
       
       console.log("User just logged in successfully, redirecting to:", redirectPath);
@@ -224,46 +201,34 @@ export default function EventLoginPage() {
       clearAllAuthData();
       // Force logout in Redux
       dispatch(clearAuth());
-    } else if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn) {
+      } else if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn) {
       // If user is authenticated but didn't just login, they might have valid session
       // But we should validate this session before redirecting
       console.log("User appears authenticated from previous session, validating...");
       
-      // Validate current session using localStorage (compatible with Azure API system)
-      try {
-        const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-        const userStr = localStorage.getItem('user');
-        
-        if (token && userStr) {
-          const userData = JSON.parse(userStr);
-          
-          if (userData && userData.id && userData.email && isValidUserData(userData)) {
-            // Basic token validation (check if it's a JWT)
+        // Validate current session using cookie-based auth only
+        try {
+          const token = getAuthToken();
+          const userData = getUserData();
+          if (token && userData && isValidUserData(userData)) {
             const tokenParts = token.split('.');
             if (tokenParts.length === 3) {
-              console.log("Session validated, user can stay authenticated");
-              // Session is valid, user can continue to be authenticated
-              // But don't auto-redirect them - let them use the login form if they want
+              console.log('Session validated via cookies');
             } else {
-              console.log("Invalid token format, clearing authentication");
+              console.log('Invalid token format, clearing authentication');
               clearAllAuthData();
               dispatch(clearAuth());
             }
           } else {
-            console.log("Invalid user data, clearing authentication");
+            console.log('No valid authentication data found in cookies, clearing authentication');
             clearAllAuthData();
             dispatch(clearAuth());
           }
-        } else {
-          console.log("No valid authentication data found, clearing authentication");
+        } catch (error) {
+          console.error('Session validation error:', error);
           clearAllAuthData();
           dispatch(clearAuth());
         }
-      } catch (error) {
-        console.error("Session validation error:", error);
-        clearAllAuthData();
-        dispatch(clearAuth());
-      }
     }
   }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router, dispatch]);
 
@@ -305,7 +270,7 @@ export default function EventLoginPage() {
       }));
 
       // Determine redirect path based on user role
-      let redirectPath = `/${identifier}/event-admin/dashboard`; // Default for event admin
+      let redirectPath = `/${identifier}/dashboard`; // Default for event admin
       
       if (result.user) {
         const userRole = result.user.role;
@@ -314,11 +279,9 @@ export default function EventLoginPage() {
         
         // Role-based routing
         if (userRole === "visitor") {
-          // Visitors should see the list of exhibitors
-          redirectPath = `/${identifier}/event-admin/dashboard/visitor_dashboard`;
+          redirectPath = `/${identifier}/dashboard/visitor_dashboard`;
         } else if (userRole === "exhibitor") {
-          // Exhibitors should see the list of visitors
-          redirectPath = `/${identifier}/event-admin/dashboard/exhibitor_dashboard`;
+          redirectPath = `/${identifier}/dashboard/exhibitor_dashboard`;
         }
         // Event admins and IT admins go to dashboard by default
       }

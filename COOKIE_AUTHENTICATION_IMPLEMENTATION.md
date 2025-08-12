@@ -36,7 +36,7 @@ The new implementation uses:
 5. **No Auto-Restore**: Removed auth state from Redux Persist to prevent automatic login
 6. **Manual Login Required**: Users must explicitly login through the form
 7. **Cross-domain compatibility**: Proper cookie settings for subdomain sharing
-8. **Fallback mechanism**: localStorage as backup for iframe scenarios
+8. **Fallback mechanism**: localStorage as backup for compatibility
 9. **CORS configuration**: Proper headers for cross-origin requests
 
 ## Key Components
@@ -62,7 +62,7 @@ The new implementation uses:
 
 - **Cookie-first approach**: Checks cookies before localStorage
 - **Automatic refresh**: Calls `/api/auth/me` to validate authentication
-- **Graceful fallback**: Uses localStorage for iframe compatibility
+- **Graceful fallback**: Uses localStorage for compatibility
 - **Proper cleanup**: Clears both cookies and localStorage on logout
 
 ### 3. API Service (`/src/services/apiService.ts`)
@@ -250,7 +250,7 @@ The implementation maintains backward compatibility:
 
 1. **Automatic migration**: Existing localStorage tokens are validated before use
 2. **Gradual transition**: New logins use cookies, old sessions are validated
-3. **Iframe support**: localStorage fallback for embedded contexts
+3. **Compatibility support**: localStorage fallback for embedded contexts
 4. **Automatic cleanup**: Invalid data is cleared automatically
 
 ## Troubleshooting
@@ -261,7 +261,7 @@ The implementation maintains backward compatibility:
 2. **Cookies not set**: Check if domain and path are correct
 3. **CORS errors**: Verify origin is in allowed list
 4. **Authentication loops**: Clear all cookies and localStorage
-5. **iframe issues**: Ensure localStorage fallback is working
+5. **compatibility issues**: Ensure localStorage fallback is working
 
 ### Debug Steps
 

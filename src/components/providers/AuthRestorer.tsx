@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { useParams } from 'next/navigation';
 import { AppDispatch } from '@/store';
 import { restoreAuthState } from '@/store/slices/authSlice';
+import { getAuthToken, getUserData } from '@/utils/cookieManager';
 
 export default function AuthRestorer() {
   const dispatch = useDispatch<AppDispatch>();
@@ -14,18 +15,17 @@ export default function AuthRestorer() {
   useEffect(() => {
     if (identifier && typeof window !== 'undefined') {
       // Check if we have stored auth data
-      const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-      const userStr = localStorage.getItem('user');
+      const token = getAuthToken();
+      const userData = getUserData();
       
       console.log('AuthRestorer - Checking for stored auth data:', {
         hasToken: !!token,
-        hasUser: !!userStr,
+        hasUser: !!userData,
         identifier
       });
       
-      if (token && userStr) {
+      if (token && userData) {
         try {
-          const userData = JSON.parse(userStr);
           console.log('AuthRestorer - Found user data:', userData);
           
           // Only restore if we have valid data

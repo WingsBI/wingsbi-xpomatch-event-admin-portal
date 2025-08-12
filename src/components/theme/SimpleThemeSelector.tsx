@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Box,
@@ -22,8 +22,7 @@ import {
   Close,
   Save,
 } from '@mui/icons-material';
-import { eventsApi } from '@/services/apiService';
-import { ApiEventThemeDetails } from '@/types';
+import { ApiEventThemeDetails, useApiTheme } from '@/context/ApiThemeContext';
 
 interface SimpleThemeSelectorProps {
   variant?: 'icon' | 'button';
@@ -33,41 +32,18 @@ interface SimpleThemeSelectorProps {
 export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: SimpleThemeSelectorProps) {
   const params = useParams();
   const identifier = params?.identifier as string;
+  const { themeDetails, isLoading, error: contextError, refreshTheme } = useApiTheme();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [eventThemeDetails, setEventThemeDetails] = useState<ApiEventThemeDetails | null>(null);
+  
+  // Use context error if available, otherwise use local error
+  const displayError = contextError || error;
 
-  // Load event theme details when dialog opens
-  useEffect(() => {
-    if (open && identifier) {
-      loadEventThemeDetails();
-    }
-  }, [open, identifier]);
-
-  const loadEventThemeDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('Loading event theme details for identifier:', identifier);
-      const response = await eventsApi.getEventThemeDetails(identifier);
-      
-      if (response.success && response.data?.result) {
-        setEventThemeDetails(response.data.result);
-        console.log('Event theme details loaded:', response.data.result);
-      } else {
-        setError('Failed to load event theme details');
-      }
-    } catch (err: any) {
-      console.error('Error loading event theme details:', err);
-      setError(err.message || 'Failed to load event theme details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use theme details from context instead of making separate API call
+  const eventThemeDetails = themeDetails;
+  const loading = isLoading;
 
   const saveThemeSettings = async () => {
     try {
@@ -75,8 +51,8 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
       setSuccess(null);
       setError(null);
       
-      // For now, just reload the theme details
-      await loadEventThemeDetails();
+      // Use the context's refresh function instead of making a separate API call
+      await refreshTheme();
       setSuccess('Theme settings refreshed successfully!');
     } catch (err: any) {
       console.error('Error saving theme settings:', err);
@@ -167,12 +143,12 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
         <DialogContent sx={{ pt: 3 }}>
         
 
-          {/* Error Messages */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
+                  {/* Error Messages */}
+        {displayError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {displayError}
+          </Alert>
+        )}
           
           {success && (
             <Alert severity="success" sx={{ mb: 3 }}>

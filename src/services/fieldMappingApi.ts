@@ -1,3 +1,5 @@
+import { getAuthToken } from '@/utils/cookieManager';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net';
 
 export interface FieldMappingResponse {
@@ -544,23 +546,10 @@ class FieldMappingApiService {
   }
 
   /**
-   * Get JWT token from localStorage or Redux store
+   * Get JWT token from cookies
    */
   private getAuthToken(): string | null {
-    // Try different possible token keys
-    const possibleKeys = ['jwtToken', 'authToken', 'token', 'accessToken'];
-    
-    for (const key of possibleKeys) {
-      const token = localStorage.getItem(key);
-      if (token) {
-        console.log(`🔑 Found token with key: ${key}`);
-        return token;
-      }
-    }
-
-    console.log('🔑 No authentication token found in localStorage');
-    console.log('🔑 Available localStorage keys:', Object.keys(localStorage));
-    return null;
+    return getAuthToken();
   }
 
   /**

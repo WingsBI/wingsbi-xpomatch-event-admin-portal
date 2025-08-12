@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { Box, Container } from '@mui/material';
+import { ExhibitorListView } from '@/components/participants/ExhibitorsListView';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { setIdentifier } from '@/store/slices/appSlice';
@@ -26,31 +27,8 @@ export default function ExhibitorsPage() {
       
       >
         <Container maxWidth={false} disableGutters sx={{ px: 0, height: '100%' }}>
-          <Box sx={{
-              height: 'calc(100vh - 120px)',
-              width: '100%',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            m: 0,
-            p: 0,
-            // Hide scrollbar but allow scroll
-            '&::-webkit-scrollbar': { display: 'none' },
-            '-ms-overflow-style': 'none', // IE and Edge
-            'scrollbarWidth': 'none', // Firefox
-          }}>
-            <iframe
-              src={`/iframe/exhibitors?identifier=${identifier}`}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                borderRadius: 0,
-                left: 0,
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              title="Exhibitors List"
-            />
+          <Box sx={{ height: 'calc(100vh - 120px)', width: '100%', overflowY: 'auto', overflowX: 'hidden', m: 0, p: 0 }}>
+            <ExhibitorListView identifier={identifier} />
           </Box>
         </Container>
       </ResponsiveDashboardLayout>

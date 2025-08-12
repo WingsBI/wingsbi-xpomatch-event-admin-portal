@@ -37,6 +37,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Event, Participant } from '@/types';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 
 interface VisitorsTabProps {
   visitors: Participant[];
@@ -142,7 +143,7 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
       console.log('Uploading visitors file:', file.name);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }
@@ -174,13 +175,10 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // Store both data sets in session storage for the matching page
-        sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('uploadType', 'visitors');
+        // No sessionStorage persistence; pass via route/state if needed
         
         // Redirect to matching page
-        router.push(`/${identifier}/event-admin/visitors/matching`);
+        router.push(`/${identifier}/visitors/matching`);
       } else {
         // Handle API errors
         const errorMessage = suggestResponse.statusCode !== 200 

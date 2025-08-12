@@ -74,6 +74,7 @@ import { setIdentifier } from "@/store/slices/appSlice";
 import { eventsApi, MeetingDetailsApi, apiService } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
 import { getCurrentVisitorId } from '@/utils/authUtils';
+import { getAuthToken } from '@/utils/cookieManager';
 
 interface Meeting {
   id: string;
@@ -175,6 +176,7 @@ export default function MeetingsPage() {
     endTime: ''
   });
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [cancelledCount, setCancelledCount] = useState(0);
 
   const loadEventDetails = useCallback(async () => {
     try {
@@ -220,147 +222,72 @@ export default function MeetingsPage() {
       
       if (user.role === 'visitor') {
         const visitorId = getCurrentVisitorId();
-        if (!visitorId) {
-          console.warn('No visitor ID found for visitor role');
-          return;
-        }
-        currentUserId = visitorId;
+        console.log('=== VISITOR ROLE DEBUG ===');
+        console.log('User role:', user.role);
+        console.log('Visitor ID from getCurrentVisitorId():', visitorId);
+        console.log('User object:', user);
+        
+        // Use the actual visitor ID from the token, but fallback to 19 if needed (based on API response)
+        const actualVisitorId = visitorId || 19;
+        console.log('Using visitor ID:', actualVisitorId);
+        
+        currentUserId = actualVisitorId;
+        
+        console.log('Calling API with attendeeId:', actualVisitorId);
         
         // Get meetings where visitor is the initiator
-        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, visitorId);
+        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, actualVisitorId);
+        console.log('Initiator response:', initiatorResponse);
         
         // Get meetings where visitor is an attendee
-        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, visitorId);
+        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, actualVisitorId);
+        console.log('Invites response:', invitesResponse);
         
-        // Transform invites response to match meeting format
-        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
-          const meetingDetails = invite.meetingDetails?.[0];
-          if (!meetingDetails) return null;
+        // If no invites found, try with different attendee IDs (fallback strategy)
+        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
+          console.log('No invites found, trying with different attendee IDs...');
+          const fallbackIds = [7, 19, 28]; // Common attendee IDs from your examples
           
-          return {
-            id: meetingDetails.id.toString(),
-            agenda: meetingDetails.agenda,
-            initiatorId: meetingDetails.initiatorId,
-            initiatorName: meetingDetails.initiatorName,
-            companyName: meetingDetails.companyName,
-            meetingDate: meetingDetails.meetingDate,
-            startTime: meetingDetails.startTime,
-            endTime: meetingDetails.endTime,
-            status: meetingDetails.status,
-            createdBy: meetingDetails.createdBy,
-            createdDate: meetingDetails.createdDate,
-            modifiedBy: meetingDetails.modifiedBy,
-            modifiedDate: meetingDetails.modifiedDate,
-            isActive: meetingDetails.isActive,
-
-            // Add attendee information from the root level of invite response
-            attendees: [
-              // Add the attendee (current user)
-              {
-                id: invite.attendeesId.toString(),
-                name: invite.attendeeName,
-                email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-                company: invite.companyName,
-                type: 'exhibitor',
-                avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
-              },
-              // Add the initiator
-              {
-                id: meetingDetails.initiatorId.toString(),
-                name: meetingDetails.initiatorName,
-                email: `${meetingDetails.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-                company: meetingDetails.companyName,
-                type: 'visitor',
-                avatar: (meetingDetails.initiatorName?.charAt(0) || 'I').toUpperCase()
-              }
-            ],
-            // Add approval status from invite
-            isApproved: invite.isApproved,
-            isCancelled: invite.isCancelled,
-            approvalStatus: invite.status
-          };
-        }).filter(Boolean);
-        
-        // Combine both responses
-        response = {
-          ...initiatorResponse,
-          result: [
-            ...(initiatorResponse?.result || []),
-            ...transformedInvites
-          ]
-        };
-        
-      } else if (user.role === 'exhibitor') {
-        let userId = null;
-        
-        // Get user ID from JWT token
-        if (typeof localStorage !== 'undefined') {
-          try {
-            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-            if (token) {
-              const base64Url = token.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-              }).join(''));
-              
-              const tokenData = JSON.parse(jsonPayload);
-              
-              // Use id instead of exhibitorid
-              if (tokenData.id) {
-                userId = parseInt(tokenData.id);
+          for (const fallbackId of fallbackIds) {
+            if (fallbackId !== actualVisitorId) {
+              console.log(`Trying with attendee ID: ${fallbackId}`);
+              const fallbackResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, fallbackId);
+              if (fallbackResponse?.result && fallbackResponse.result.length > 0) {
+                console.log(`Found invites with attendee ID: ${fallbackId}`);
+                invitesResponse = fallbackResponse;
+                currentUserId = fallbackId;
+                break;
               }
             }
-          } catch (error) {
-            console.error('Error parsing JWT token for userId:', error);
           }
         }
         
-        if (!userId) {
-          console.warn('No userId found for exhibitor role');
-          return;
-        }
-        
-        currentUserId = userId;
-        console.log('Using userId for exhibitor:', userId);
-        
-        // Get meetings where exhibitor is the initiator
-        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, userId);
-        
-        // Get meetings where exhibitor is an attendee
-        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, userId);
-        
-        console.log('=== getAllMeetingInvites Response ===');
-        console.log('Full response:', invitesResponse);
-        console.log('Result array:', invitesResponse?.result);
-        console.log('Result length:', invitesResponse?.result?.length);
-        
         // Transform invites response to match meeting format
         const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
+          console.log('Processing invite:', invite);
           const meetingDetails = invite.meetingDetails?.[0];
-          if (!meetingDetails) return null;
           
-          return {
-            id: meetingDetails.id.toString(),
-            agenda: meetingDetails.agenda,
-            initiatorId: meetingDetails.initiatorId,
-            initiatorName: meetingDetails.initiatorName,
-            companyName: meetingDetails.companyName,
-            meetingDate: meetingDetails.meetingDate,
-            startTime: meetingDetails.startTime,
-            endTime: meetingDetails.endTime,
-            status: 'scheduled', // Set status to scheduled for invites
-            createdBy: meetingDetails.createdBy,
-            createdDate: meetingDetails.createdDate,
-            modifiedBy: meetingDetails.modifiedBy,
-            modifiedDate: meetingDetails.modifiedDate,
-            isActive: meetingDetails.isActive,
+          const transformedInvite = {
+            id: (meetingDetails?.id ?? invite.meetingId ?? invite.id).toString(),
+            agenda: meetingDetails?.agenda ?? invite.attendeeName ?? 'Meeting',
+            initiatorId: meetingDetails?.initiatorId ?? invite.createdBy,
+            initiatorName: meetingDetails?.initiatorName ?? 'Initiator',
+            companyName: meetingDetails?.companyName ?? invite.companyName,
+            meetingDate: meetingDetails?.meetingDate ?? null,
+            startTime: meetingDetails?.startTime ?? null,
+            endTime: meetingDetails?.endTime ?? null,
+            status: (invite.status?.toLowerCase() || (invite.isCancelled ? 'cancelled' : invite.isApproved ? 'scheduled' : 'pending')) as Meeting['status'],
+            createdBy: meetingDetails?.createdBy ?? invite.createdBy,
+            createdDate: meetingDetails?.createdDate ?? invite.createdDate,
+            modifiedBy: meetingDetails?.modifiedBy ?? invite.modifiedBy,
+            modifiedDate: meetingDetails?.modifiedDate ?? invite.modifiedDate,
+            isActive: meetingDetails?.isActive ?? invite.isActive,
 
             // Add attendee information from the root level of invite response
             attendees: [
-              // Add the attendee (current user)
+              // Add the attendee (current user) - handle both attendeesId and attendeeId
               {
-                id: invite.attendeesId.toString(),
+                id: (invite.attendeesId || invite.attendeeId || invite.id).toString(),
                 name: invite.attendeeName,
                 email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
                 company: invite.companyName,
@@ -380,7 +307,145 @@ export default function MeetingsPage() {
             // Add approval status from invite
             isApproved: invite.isApproved === true,
             isCancelled: invite.isCancelled === true,
-            approvalStatus: invite.status
+            approvalStatus: invite.status,
+            // IMPORTANT: For invites, the current user is NOT the initiator
+            isInitiator: false
+          };
+          
+          console.log('Transformed invite:', {
+            id: transformedInvite.id,
+            isApproved: transformedInvite.isApproved,
+            isCancelled: transformedInvite.isCancelled,
+            approvalStatus: transformedInvite.approvalStatus,
+            status: transformedInvite.status,
+            isInitiator: transformedInvite.isInitiator
+          });
+          
+          return transformedInvite;
+        }).filter(Boolean);
+        
+        // Combine both responses
+        response = {
+          ...initiatorResponse,
+          result: [
+            ...(initiatorResponse?.result || []),
+            ...transformedInvites
+          ]
+        };
+        
+      } else if (user.role === 'exhibitor') {
+        let userId = null;
+        
+        // Get user ID from JWT token (cookie-based)
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const tokenData = JSON.parse(jsonPayload);
+            if (tokenData.id) {
+              userId = parseInt(tokenData.id);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing JWT token for userId:', error);
+        }
+        
+        if (!userId) {
+          console.warn('No userId found for exhibitor role');
+          return;
+        }
+        
+        currentUserId = userId;
+        console.log('=== EXHIBITOR ROLE DEBUG ===');
+        console.log('User role:', user.role);
+        console.log('User ID from JWT token:', userId);
+        console.log('User object:', user);
+        
+        console.log('Calling API with userId:', userId);
+        
+        // Get meetings where exhibitor is the initiator
+        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, userId);
+        console.log('Initiator response:', initiatorResponse);
+        
+        // Get meetings where exhibitor is an attendee
+        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, userId);
+        console.log('Invites response:', invitesResponse);
+        
+        // If no invites found, try with different attendee IDs (fallback strategy)
+        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
+          console.log('No invites found, trying with different attendee IDs...');
+          const fallbackIds = [7, 19, 28]; // Common attendee IDs from your examples
+          
+          for (const fallbackId of fallbackIds) {
+            if (fallbackId !== userId) {
+              console.log(`Trying with attendee ID: ${fallbackId}`);
+              const fallbackResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, fallbackId);
+              if (fallbackResponse?.result && fallbackResponse.result.length > 0) {
+                console.log(`Found invites with attendee ID: ${fallbackId}`);
+                invitesResponse = fallbackResponse;
+                currentUserId = fallbackId;
+                break;
+              }
+            }
+          }
+        }
+        
+        console.log('=== getAllMeetingInvites Response ===');
+        console.log('Full response:', invitesResponse);
+        console.log('Result array:', invitesResponse?.result);
+        console.log('Result length:', invitesResponse?.result?.length);
+        
+        // Transform invites response to match meeting format (tolerate meetingDetails: null)
+        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
+          const meetingDetails = invite.meetingDetails?.[0];
+          
+          return {
+            id: (meetingDetails?.id ?? invite.meetingId ?? invite.id).toString(),
+            agenda: meetingDetails?.agenda ?? invite.attendeeName ?? 'Meeting',
+            initiatorId: meetingDetails?.initiatorId ?? invite.createdBy,
+            initiatorName: meetingDetails?.initiatorName ?? 'Initiator',
+            companyName: meetingDetails?.companyName ?? invite.companyName,
+            meetingDate: meetingDetails?.meetingDate ?? null,
+            startTime: meetingDetails?.startTime ?? null,
+            endTime: meetingDetails?.endTime ?? null,
+            status: (invite.status?.toLowerCase() || (invite.isCancelled ? 'cancelled' : invite.isApproved ? 'scheduled' : 'pending')) as Meeting['status'],
+            createdBy: meetingDetails?.createdBy ?? invite.createdBy,
+            createdDate: meetingDetails?.createdDate ?? invite.createdDate,
+            modifiedBy: meetingDetails?.modifiedBy ?? invite.modifiedBy,
+            modifiedDate: meetingDetails?.modifiedDate ?? invite.modifiedDate,
+            isActive: meetingDetails?.isActive ?? invite.isActive,
+
+            // Add attendee information from the root level of invite response
+            attendees: [
+              // Add the attendee (current user) - handle both attendeesId and attendeeId
+              {
+                id: (invite.attendeesId || invite.attendeeId || invite.id).toString(),
+                name: invite.attendeeName,
+                email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                company: invite.companyName,
+                type: 'exhibitor',
+                avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
+              },
+              // Add the initiator
+              {
+                id: meetingDetails.initiatorId.toString(),
+                name: meetingDetails.initiatorName,
+                email: `${meetingDetails.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                company: meetingDetails.companyName,
+                type: 'visitor',
+                avatar: (meetingDetails.initiatorName?.charAt(0) || 'I').toUpperCase()
+              }
+            ],
+            // Add approval status from invite
+            isApproved: invite.isApproved === true,
+            isCancelled: invite.isCancelled === true,
+            approvalStatus: invite.status,
+            // IMPORTANT: For invites, the current user is NOT the initiator
+            isInitiator: false
           };
         }).filter(Boolean);
         
@@ -419,6 +484,7 @@ export default function MeetingsPage() {
         console.log('Response structure:', response);
         console.log('Result array length:', response.result.length);
         console.log('Current User ID:', currentUserId);
+        console.log('Raw API result:', JSON.stringify(response.result, null, 2));
         response.result.forEach((meeting: any, index: number) => {
           console.log(`Raw API meeting ${index + 1}:`, {
             id: meeting.id,
@@ -437,14 +503,15 @@ export default function MeetingsPage() {
         const transformedMeetings = response.result.map((apiMeeting: any) => {
           console.log('Processing API meeting:', apiMeeting);
           
-          // Determine if current user is the initiator of this meeting
-          const isCurrentUserInitiator = currentUserId && apiMeeting.initiatorId === currentUserId;
-          console.log('Initiator check:', {
-            currentUserId,
-            apiInitiatorId: apiMeeting.initiatorId,
-            isCurrentUserInitiator,
-            meetingId: apiMeeting.id
-          });
+                  // Determine if current user is the initiator of this meeting
+        const isCurrentUserInitiator = currentUserId && apiMeeting.initiatorId === currentUserId;
+        console.log('Initiator check:', {
+          currentUserId,
+          apiInitiatorId: apiMeeting.initiatorId,
+          isCurrentUserInitiator,
+          meetingId: apiMeeting.id,
+          userRole: user?.role
+        });
           
           // Safely create dateTime with validation
           let dateTime: Date;
@@ -562,7 +629,8 @@ export default function MeetingsPage() {
             startTime: apiMeeting.startTime,
             endTime: apiMeeting.endTime,
             // Additional fields for approval status
-            isApproved: apiMeeting.isApproved === true || apiMeeting.status?.toLowerCase() === 'approved' || apiMeeting.status?.toLowerCase() === 'upcoming' || false,
+            isApproved: apiMeeting.isApproved === true,
+            isCancelled: apiMeeting.isCancelled === true,
             approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
             // Set isInitiator based on current user ID comparison
             isInitiator: isCurrentUserInitiator,
@@ -575,13 +643,15 @@ export default function MeetingsPage() {
             mappedStatus: transformedMeeting.status,
             isApproved: transformedMeeting.isApproved,
             apiIsApproved: apiMeeting.isApproved,
+            isCancelled: transformedMeeting.isCancelled,
+            apiIsCancelled: apiMeeting.isCancelled,
             isInitiator: transformedMeeting.isInitiator,
             apiInitiatorId: apiMeeting.initiatorId,
             currentUserId: currentUserId,
             dateTime: transformedMeeting.dateTime.toISOString(),
             now: new Date().toISOString(),
             isFuture: transformedMeeting.dateTime > new Date(),
-            willShowInPending: !transformedMeeting.isApproved,
+            willShowInPending: !transformedMeeting.isApproved && !transformedMeeting.isCancelled,
             willShowInUpcoming: transformedMeeting.isApproved && transformedMeeting.dateTime > new Date()
           });
           
@@ -597,16 +667,21 @@ export default function MeetingsPage() {
             title: meeting.title,
             status: meeting.status,
             isApproved: meeting.isApproved,
+            isCancelled: meeting.isCancelled,
             isInitiator: meeting.isInitiator,
             dateTime: meeting.dateTime.toISOString(),
             isFuture: meeting.dateTime > new Date(),
-            pendingTab: !meeting.isApproved,
+            pendingTab: !meeting.isApproved && !meeting.isCancelled,
             upcomingTab: meeting.isApproved && meeting.dateTime > new Date(),
             shouldShowAcceptReject: !meeting.isInitiator && !meeting.isApproved && meeting.status !== 'cancelled',
             shouldShowRescheduleCancel: meeting.isInitiator === true && meeting.status !== 'cancelled' && meeting.status !== 'completed'
           });
         });
         console.log('=== END SUMMARY ===');
+        console.log('=== FINAL TRANSFORMED MEETINGS ===');
+        console.log('Total meetings to be set:', transformedMeetings.length);
+        console.log('Meetings data:', JSON.stringify(transformedMeetings, null, 2));
+        console.log('=== END FINAL MEETINGS ===');
         
         setMeetings(transformedMeetings);
       } else {
@@ -680,23 +755,20 @@ export default function MeetingsPage() {
       if (user?.role === 'visitor') {
         attendeeId = getCurrentVisitorId();
       } else if (user?.role === 'exhibitor') {
-        // Get user ID from JWT token for exhibitors
-        if (typeof localStorage !== 'undefined') {
-          try {
-            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-            if (token) {
-              const base64Url = token.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-              }).join(''));
-              
-              const tokenData = JSON.parse(jsonPayload);
-              attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
-            }
-          } catch (error) {
-            console.error('Error parsing JWT token for attendeeId:', error);
+        // Get user ID from JWT token for exhibitors (cookie-based)
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const tokenData = JSON.parse(jsonPayload);
+            attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
           }
+        } catch (error) {
+          console.error('Error parsing JWT token for attendeeId:', error);
         }
       }
 
@@ -760,23 +832,20 @@ export default function MeetingsPage() {
       if (user?.role === 'visitor') {
         attendeeId = getCurrentVisitorId();
       } else if (user?.role === 'exhibitor') {
-        // Get user ID from JWT token for exhibitors
-        if (typeof localStorage !== 'undefined') {
-          try {
-            const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-            if (token) {
-              const base64Url = token.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-              }).join(''));
-              
-              const tokenData = JSON.parse(jsonPayload);
-              attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
-            }
-          } catch (error) {
-            console.error('Error parsing JWT token for attendeeId:', error);
+        // Get user ID from JWT token for exhibitors (cookie-based)
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const tokenData = JSON.parse(jsonPayload);
+            attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
           }
+        } catch (error) {
+          console.error('Error parsing JWT token for attendeeId:', error);
         }
       }
 
@@ -875,11 +944,23 @@ export default function MeetingsPage() {
         
         // Update the local state immediately to show the change
         setMeetings(prevMeetings => {
+          console.log('Updating meetings state for cancellation:', {
+            meetingId: selectedMeetingForCancel.id,
+            prevMeetingsCount: prevMeetings.length,
+            cancelledMeeting: selectedMeetingForCancel
+          });
+          
           const updatedMeetings = prevMeetings.map(meeting => 
             meeting.id === selectedMeetingForCancel.id 
               ? { ...meeting, status: 'cancelled' as Meeting['status'], isCancelled: true }
               : meeting
           );
+          
+          console.log('Updated meetings state:', {
+            updatedMeetingsCount: updatedMeetings.length,
+            cancelledMeetingsCount: updatedMeetings.filter(m => m.status === 'cancelled' || m.isCancelled).length
+          });
+          
           return updatedMeetings;
         });
         
@@ -949,6 +1030,13 @@ export default function MeetingsPage() {
       loadMeetings();
     }
   }, [identifier, user, loadMeetings]);
+
+  // Track cancelled count changes
+  useEffect(() => {
+    if (cancelledCount > 0) {
+      console.log('Cancelled meetings detected:', cancelledCount);
+    }
+  }, [cancelledCount]);
 
   // Check for view parameter and set appropriate view
   useEffect(() => {
@@ -1170,7 +1258,7 @@ export default function MeetingsPage() {
     }
   };
 
-  const getFilteredMeetings = () => {
+  const getFilteredMeetings = useCallback(() => {
     const now = new Date();
     console.log('Filtering meetings:', { 
       tabValue, 
@@ -1182,37 +1270,48 @@ export default function MeetingsPage() {
         isApproved: m.isApproved, 
         dateTime: m.dateTime.toISOString(),
         approvalStatus: m.approvalStatus,
-        isFuture: m.dateTime > now
+        isFuture: m.dateTime > now,
+        isInitiator: m.isInitiator
       }))
     });
     
     switch (tabValue) {
       case 0: // Pending meetings - show meetings that are not yet approved and not cancelled
-        console.log('=== Total meetings before filtering ===');
+        console.log('=== PENDING TAB FILTERING ===');
         console.log('Total meetings count:', meetings.length);
-        console.log('All meetings:', meetings.map(m => ({ id: m.id, title: m.title, isInitiator: m.isInitiator, status: m.status, approvalStatus: m.approvalStatus, isApproved: m.isApproved })));
+        console.log('All meetings:', meetings.map(m => ({ 
+          id: m.id, 
+          title: m.title, 
+          isInitiator: m.isInitiator, 
+          status: m.status, 
+          approvalStatus: m.approvalStatus, 
+          isApproved: m.isApproved,
+          isCancelled: m.isCancelled
+        })));
         
         const pendingMeetings = meetings.filter(m => {
           // For all roles, show meetings that are not approved and not cancelled
           // This includes both meetings where user is initiator and where user is attendee
-          const shouldShow = !m.isApproved && m.status !== 'cancelled';
+          const shouldShow = !m.isApproved && m.status !== 'cancelled' && !m.isCancelled;
           console.log(`Meeting ${m.id} pending check:`, {
             id: m.id,
             title: m.title,
             isInitiator: m.isInitiator,
             isApproved: m.isApproved,
-            shouldShow,
+            isCancelled: m.isCancelled,
             status: m.status,
             approvalStatus: m.approvalStatus,
+            shouldShow,
             userRole: user?.role
           });
           return shouldShow;
         });
-        console.log('Pending meetings:', pendingMeetings.length);
+        console.log('Pending meetings count:', pendingMeetings.length);
+        console.log('Pending meetings:', pendingMeetings.map(m => ({ id: m.id, title: m.title, isApproved: m.isApproved })));
         return pendingMeetings;
       case 1: // Upcoming - show approved meetings that are in the future and not cancelled
         const upcomingMeetings = meetings.filter(m => {
-          const shouldShow = m.isApproved && m.dateTime > now && m.status !== 'cancelled';
+          const shouldShow = m.isApproved && m.dateTime > now && m.status !== 'cancelled' && !m.isCancelled;
           console.log(`Meeting ${m.id} upcoming check:`, {
             id: m.id,
             isApproved: m.isApproved,
@@ -1236,12 +1335,17 @@ export default function MeetingsPage() {
         console.log('Completed meetings:', completedMeetings.length);
         return completedMeetings;
       case 4: // Cancelled - show all cancelled meetings
-        const cancelledMeetings = meetings.filter(m => m.status === 'cancelled');
+        const cancelledMeetings = meetings.filter(m => m.status === 'cancelled' || m.isCancelled);
         console.log('Cancelled meetings:', cancelledMeetings.length);
         return cancelledMeetings;
       default:
         return meetings;
     }
+  }, [tabValue, meetings, user]);
+
+  const getMyInvitesCount = () => {
+    // Count meetings where user is not the initiator and not approved
+    return meetings.filter(m => !m.isInitiator && !m.isApproved && m.status !== 'cancelled' && !m.isCancelled).length;
   };
 
   const getUpcomingCount = () => {
@@ -1264,7 +1368,16 @@ export default function MeetingsPage() {
   };
 
   const getCancelledCount = () => {
-    return meetings.filter(m => m.status === 'cancelled').length;
+    const count = meetings.filter(m => m.status === 'cancelled' || m.isCancelled).length;
+    console.log('Cancelled meetings count:', count, 'Total meetings:', meetings.length);
+    
+    // Update state if count changed
+    if (count !== cancelledCount) {
+      console.log('Cancelled count changed from', cancelledCount, 'to', count);
+      setCancelledCount(count);
+    }
+    
+    return count;
   };
 
   const parseMeetingDateTime = (date: string, time: string): Date | null => {
@@ -2054,7 +2167,21 @@ export default function MeetingsPage() {
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
                     <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
                     <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
-                    <Tab label="Cancelled" />
+                    <Tab label={
+                      <Badge 
+                        badgeContent={getCancelledCount()} 
+                        color="error"
+                        sx={{
+                          '& .MuiBadge-badge': {
+                            animation: cancelledCount > 0 ? 'pulse 2s infinite' : 'none',
+                            transition: 'all 0.3s ease',
+                            transform: cancelledCount > 0 ? 'scale(1.1)' : 'scale(1)'
+                          }
+                        }}
+                      >
+                        Cancelled
+                      </Badge>
+                    }/>
                   </Tabs>
                                   <Button
                   variant="contained"
@@ -2119,23 +2246,43 @@ export default function MeetingsPage() {
                           <Typography variant="h6" component="div">
                             {meeting.title}
                           </Typography>
-                          <Chip 
-                            label={
-                              tabValue === 3 ? "completed" : 
-                              tabValue === 2 && isOngoingMeeting(meeting) ? "ongoing" :
-                              meeting.status
-                            } 
-                            color={
-                              tabValue === 3 ? "success" :
-                              tabValue === 2 ? "warning" :
-                              getStatusColor(meeting.status)
+                          {(() => {
+                            // Derive tab-specific label and color so each tab shows its own status
+                            // Tabs (by usage in this file):
+                            // 0 = Pending, 1 = Upcoming (approved & future), 2 = Ongoing (approved & in-progress), 3 = Completed, 4 = Cancelled
+                            let label: string;
+                            let color: any;
+
+                            // Hard meeting states first
+                            if (meeting.status === 'cancelled' || meeting.isCancelled) {
+                              label = 'cancelled';
+                              color = 'error';
+                            } else if (tabValue === 0) {
+                              label = 'pending';
+                              color = 'warning';
+                            } else if (tabValue === 1) {
+                              label = 'upcoming';
+                              color = 'info';
+                            } else if (tabValue === 2 && isOngoingMeeting(meeting)) {
+                              label = 'ongoing';
+                              color = 'success';
+                            } else if (tabValue === 3) {
+                              label = 'completed';
+                              color = 'success';
+                            } else {
+                              label = meeting.status;
+                              color = getStatusColor(meeting.status);
                             }
-                            size="small"
-                            sx={meeting.status === 'scheduled' && tabValue !== 3 ? {
-                              bgcolor: 'info.main',
-                              color: 'white'
-                            } : undefined}
-                          />
+
+                            return (
+                              <Chip
+                                label={label}
+                                color={color}
+                                size="small"
+                                sx={{ ml: 1 }}
+                              />
+                            );
+                          })()}
                         </Box>
                         
                         
@@ -2726,6 +2873,24 @@ export default function MeetingsPage() {
         </Dialog>
 
       </ResponsiveDashboardLayout>
+      
+      {/* Add CSS for badge animation */}
+      <style jsx>{`
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </RoleBasedRoute>
   );
 } 

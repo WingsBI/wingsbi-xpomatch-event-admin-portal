@@ -1,9 +1,11 @@
 'use client';
 
-import { ReactNode, useEffect, useState, useRef } from 'react';
+import { ReactNode, useEffect, useRef, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
+  import { useSelector } from 'react-redux';
 import { ApiThemeProvider, useApiTheme } from '@/context/ApiThemeContext';
-import { useAuth } from '@/context/AuthContext';
+import { RootState } from '@/store';
+import { getEventIdentifier } from '@/utils/cookieManager';
 
 interface ThemeWrapperProps {
   children: ReactNode;
@@ -12,9 +14,11 @@ interface ThemeWrapperProps {
 
 // Component that listens for auth changes and refreshes theme
 function ThemeRefreshListener({ children }: { children: ReactNode }) {
-  const { isAuthenticated, user } = useAuth();
+  // Use Redux auth state to detect changes
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { refreshTheme } = useApiTheme();
   const lastAuthState = useRef<{ isAuthenticated: boolean; userId?: string }>({ isAuthenticated: false });
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Check if authentication state has changed
@@ -33,42 +37,56 @@ function ThemeRefreshListener({ children }: { children: ReactNode }) {
       currentAuthState.userId !== previousAuthState.userId
     ) {
       console.log('🔄 Authentication state changed, refreshing theme');
-      // Add a minimal delay to ensure authentication state is fully settled
-      const timeoutId = setTimeout(() => {
+      
+      // Clear any existing timeout to prevent multiple refreshes
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      // Add a delay to ensure authentication state is fully settled and debounce multiple changes
+      refreshTimeoutRef.current = setTimeout(() => {
         console.log('🔄 Executing theme refresh...');
         refreshTheme();
-      }, 50);
+      }, 200); // Increased delay for better debouncing
       
       lastAuthState.current = currentAuthState;
-      
-      return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated, user?.id, refreshTheme]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return <>{children}</>;
 }
 
 export default function ThemeWrapper({ children, identifier: propIdentifier }: ThemeWrapperProps) {
   const pathname = usePathname();
-  const [identifier, setIdentifier] = useState<string | null>(propIdentifier || null);
 
-  useEffect(() => {
-    if (propIdentifier) {
-      setIdentifier(propIdentifier);
-      return;
+  // Resolve identifier synchronously to ensure ApiThemeProvider is present on first render
+  const identifier = useMemo(() => {
+    if (propIdentifier) return propIdentifier;
+    const parts = (pathname || '').split('/').filter(Boolean);
+    if (parts.length > 0) {
+      return parts[0];
     }
-    // Extract identifier from URL path
-    const pathParts = pathname.split('/').filter(Boolean);
-    if (pathParts.length > 0) {
-      setIdentifier(pathParts[0]);
+    try {
+      return getEventIdentifier() || null;
+    } catch {
+      return null;
     }
   }, [pathname, propIdentifier]);
 
   console.log('🔍 ThemeWrapper - Current pathname:', pathname, 'Identifier:', identifier);
 
   if (!identifier) {
-    console.log('🔍 ThemeWrapper - No identifier found, rendering without theme provider');
-    return <>{children}</>;
+    console.log('🔍 ThemeWrapper - No identifier found yet, delaying children render');
+    return null;
   }
 
   console.log('🔍 ThemeWrapper - Rendering with ApiThemeProvider for identifier:', identifier);

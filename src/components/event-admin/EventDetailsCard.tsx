@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { eventsApi } from '@/services/apiService';
 import { ApiEventDetails, UpdateEventPayload } from '@/types';
+import { getAuthToken } from '@/utils/cookieManager';
 
 interface EventDetailsCardProps {
   onEventUpdate?: () => void;
@@ -272,9 +273,9 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
               <Typography variant="body2" component="pre" sx={{ fontSize: '0.75rem', overflow: 'auto' }}>
                 {JSON.stringify({
                   identifier,
-                  url: `https://xpomatch-dev-event-admin-api.azurewebsites.net/api/${identifier}/Event/GetEventDetails`,
-                  hasToken: !!localStorage.getItem('jwtToken'),
-                  tokenLength: localStorage.getItem('jwtToken')?.length || 0,
+                  url: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Event/GetEventDetails`,
+                  hasToken: !!getAuthToken(),
+                  tokenLength: getAuthToken()?.length || 0,
                   timestamp: new Date().toISOString()
                 }, null, 2)}
               </Typography>

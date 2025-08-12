@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Save, Refresh, Upload, CheckCircle, Person, Settings, Palette, Add, Close, RestoreFromTrash } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 import type { UserRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -108,9 +109,9 @@ export default function VisitorsMatchingPage() {
       setError(null);
 
       // Get data from session storage first - using visitors-specific keys
-      const mappingData = sessionStorage.getItem('visitors_fieldMappingData');
-      const standardFieldsData = sessionStorage.getItem('visitors_standardFieldsData');
-      const storedFileStorageId = sessionStorage.getItem('visitors_fileStorageId');
+      const mappingData = null;
+      const standardFieldsData = null;
+      const storedFileStorageId = null;
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
@@ -160,7 +161,7 @@ export default function VisitorsMatchingPage() {
       console.log('Uploading visitors file:', file.name);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       console.log('JWT Token check:', {
         hasToken: !!token,
         tokenLength: token?.length,
@@ -188,11 +189,10 @@ export default function VisitorsMatchingPage() {
         console.error('401 Authentication Error Details:', {
           suggestResponse: suggestResponse.statusCode === 401 ? suggestResponse : 'OK',
           standardFieldsResponse: standardFieldsResponse.statusCode === 401 ? standardFieldsResponse : 'OK',
-          currentToken: localStorage.getItem('jwtToken')?.substring(0, 20) + '...'
+          currentToken: token?.substring(0, 20) + '...'
         });
         
-        // Clear invalid token
-        localStorage.removeItem('jwtToken');
+        // No localStorage usage; just surface the error
         throw new Error('Authentication failed. Your session has expired. Please log in again.');
       }
       
@@ -225,10 +225,7 @@ export default function VisitorsMatchingPage() {
         setSelectedMappings(defaultMappings);
         
         // Also store in session storage for future use - using visitors-specific keys
-        sessionStorage.setItem('visitors_fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('visitors_standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('visitors_fileStorageId', responseFileStorageId.toString());
-        sessionStorage.setItem('visitors_uploadType', 'visitors');
+        // No sessionStorage persistence
         
       } else {
         // Handle API errors
@@ -413,10 +410,7 @@ export default function VisitorsMatchingPage() {
     setRemovedFields(new Set());
     
     // Clear session storage - using visitors-specific keys
-    sessionStorage.removeItem('visitors_fieldMappingData');
-    sessionStorage.removeItem('visitors_standardFieldsData');
-    sessionStorage.removeItem('visitors_fileStorageId');
-    sessionStorage.removeItem('visitors_uploadType');
+    // No sessionStorage persistence
   };
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {

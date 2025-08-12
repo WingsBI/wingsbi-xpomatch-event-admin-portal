@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Save, Refresh, Upload, CheckCircle, Business, Settings, Add, Close, RestoreFromTrash } from '@mui/icons-material';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { getAuthToken } from '@/utils/cookieManager';
 import type { ExhibitorRegistrationResponse } from '@/services/fieldMappingApi';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -102,9 +103,9 @@ const FullPageLoader = () => (
       setError(null);
 
       // Get data from session storage first - using exhibitors-specific keys
-      const mappingData = sessionStorage.getItem('exhibitors_fieldMappingData');
-      const standardFieldsData = sessionStorage.getItem('exhibitors_standardFieldsData');
-      const storedFileStorageId = sessionStorage.getItem('exhibitors_fileStorageId');
+      const mappingData = null;
+      const standardFieldsData = null;
+      const storedFileStorageId = null;
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
@@ -154,7 +155,7 @@ const FullPageLoader = () => (
       console.log('Uploading exhibitors file:', file.name);
 
       // Check if user is authenticated
-      const token = localStorage.getItem('jwtToken');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in first.');
       }
@@ -205,10 +206,7 @@ const FullPageLoader = () => (
         setSelectedMappings(defaultMappings);
 
         // Also store in session storage for future use - using exhibitors-specific keys
-        sessionStorage.setItem('exhibitors_fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('exhibitors_standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('exhibitors_fileStorageId', responseFileStorageId.toString());
-        sessionStorage.setItem('exhibitors_uploadType', 'exhibitors');
+        // No sessionStorage persistence
 
       } else {
         // Handle API errors
@@ -430,10 +428,7 @@ const FullPageLoader = () => (
     setDuplicateFields(new Set()); // Reset duplicate fields on reset
 
     // Clear session storage - using exhibitors-specific keys
-    sessionStorage.removeItem('exhibitors_fieldMappingData');
-    sessionStorage.removeItem('exhibitors_standardFieldsData');
-    sessionStorage.removeItem('exhibitors_fileStorageId');
-    sessionStorage.removeItem('exhibitors_uploadType');
+    // No sessionStorage persistence
   };
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {

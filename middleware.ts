@@ -40,20 +40,22 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = pathname.includes('/dashboard') || 
                           pathname.includes('/exhibitors') || 
                           pathname.includes('/visitors') ||
-                          pathname.includes('/profile');
+                          pathname.includes('/profile') ||
+                          pathname.includes('/favourites') ||
+                          pathname.includes('/meetings');
 
   if (isProtectedRoute) {
     const authToken = request.cookies.get('auth-token');
     
-    // If no auth token and not already on login page, redirect to login
+    // If no auth token and not already on login page, redirect to the single base login page
     if (!authToken && !pathname.includes('/login')) {
       const identifier = pathname.split('/')[1]; // Extract identifier from path
-      const loginUrl = new URL(`/${identifier}/auth/event-admin/login`, request.url);
+      const loginUrl = new URL(`/${identifier}`, request.url);
       
       // Add redirect parameter to return user to original page after login
       loginUrl.searchParams.set('redirect', pathname);
       
-      console.log(`No auth token found for protected route ${pathname}, redirecting to login`);
+      console.log(`No auth token found for protected route ${pathname}, redirecting to /${identifier}`);
       return NextResponse.redirect(loginUrl);
     }
 

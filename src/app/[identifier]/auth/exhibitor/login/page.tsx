@@ -22,6 +22,15 @@ import {
   Email,
 } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
+import { authApi } from '@/services/authApi';
+import { 
+  setAuthToken, 
+  setRefreshToken, 
+  setUserData, 
+  setEventIdentifier,
+  setUserRole,
+  setUserEmail
+} from '@/utils/cookieManager';
 
 interface ExhibitorLoginForm {
   email: string;
@@ -47,17 +56,30 @@ export default function ExhibitorLoginPage() {
     setError('');
 
     try {
-      // For demo purposes, accept any email and access code
-      if (data.email && data.accessCode) {
-        // Store exhibitor session (in real app, handle JWT tokens)
-        sessionStorage.setItem('userRole', 'exhibitor');
-        sessionStorage.setItem('userEmail', data.email);
-        
-        // Redirect to exhibitor dashboard
-        router.push(`/${identifier}/event-admin/dashboard/exhibitor_dashboard`);
-      } else {
-        setError('Please enter valid credentials');
+      // Call Azure auth API
+      const result = await authApi.login({
+        email: data.email,
+        password: data.accessCode,
+        identifier,
+        role: 'exhibitor'
+      });
+
+      if (!result.success || !result.data) {
+        setError(result.message || result.error || 'Invalid credentials');
+        setIsLoading(false);
+        return;
       }
+
+      // Persist session via cookies
+      setAuthToken(result.data.token);
+      if (result.data.refreshToken) setRefreshToken(result.data.refreshToken);
+      setUserData(result.data.user);
+      setEventIdentifier(identifier);
+      setUserRole(result.data.user.role);
+      setUserEmail(result.data.user.email);
+
+      // Redirect to exhibitor dashboard
+      router.push(`/${identifier}/dashboard/exhibitor_dashboard`);
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {

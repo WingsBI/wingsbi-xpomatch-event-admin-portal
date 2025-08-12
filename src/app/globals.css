@@ -113,8 +113,8 @@ a {
   animation: fadeIn 0.3s ease-in-out;
 }
 
-/* Iframe specific styles */
-.iframe-container {
+/* Container styles */
+.container {
   width: 100%;
   height: 100%;
   border: none;

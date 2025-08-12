@@ -69,7 +69,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
     const potentialIdentifier = pathParts[1]; // e.g., /AIE987654/event-admin/dashboard -> AIE987654
     
     // If the first path segment looks like an identifier (not a standard route)
-    if (potentialIdentifier && !['auth', 'dashboard', 'event-admin', 'exhibitor', 'iframe'].includes(potentialIdentifier)) {
+    if (potentialIdentifier && !['auth', 'dashboard', 'event-admin', 'exhibitor'].includes(potentialIdentifier)) {
       // Redirect to the identifier login page
       router.push(`/${potentialIdentifier}`);
     } else {

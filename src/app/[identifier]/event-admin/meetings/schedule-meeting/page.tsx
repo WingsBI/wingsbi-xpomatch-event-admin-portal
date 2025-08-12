@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import {
@@ -56,6 +56,7 @@ import { apiService, eventsApi } from '@/services/apiService';
 import { addNotification } from '@/store/slices/appSlice';
 import { getCurrentUser, getCurrentExhibitorId, getCurrentVisitorId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
+import { AutoSizer, List as VirtualList } from 'react-virtualized';
 
 interface MeetingFormData {
   agenda: string;
@@ -254,15 +255,26 @@ export default function ScheduleMeetingPage() {
       try {
         setLoading(true);
         
-        // Load both visitors and exhibitors data from APIs
-        const [visitorsResponse, exhibitorsResponse] = await Promise.all([
-          apiService.getAllVisitors(identifier),
-          fieldMappingApi.getAllExhibitors(identifier)
-        ]);
+        // Load data based on user role to reduce initial load time
+        let visitorsResponse, exhibitorsResponse;
+        
+        if (currentUserRole === 'visitor') {
+          // Visitors only need exhibitors data
+          exhibitorsResponse = await fieldMappingApi.getAllExhibitors(identifier);
+        } else if (currentUserRole === 'exhibitor') {
+          // Exhibitors only need visitors data
+          visitorsResponse = await apiService.getAllVisitors(identifier);
+        } else {
+          // Event admins need both - load in parallel
+          [visitorsResponse, exhibitorsResponse] = await Promise.all([
+            apiService.getAllVisitors(identifier),
+            fieldMappingApi.getAllExhibitors(identifier)
+          ]);
+        }
 
         // Process visitors data
         let transformedVisitors: Visitor[] = [];
-        if (visitorsResponse.success && visitorsResponse.data?.result) {
+        if (visitorsResponse && visitorsResponse.success && visitorsResponse.data?.result) {
           transformedVisitors = visitorsResponse.data.result.map((visitor: any) => ({
             id: visitor.id,
             firstName: visitor.firstName || '',
@@ -279,7 +291,7 @@ export default function ScheduleMeetingPage() {
 
         // Process exhibitors data
         let transformedExhibitors: Exhibitor[] = [];
-        if (exhibitorsResponse.statusCode === 200 && exhibitorsResponse.result) {
+        if (exhibitorsResponse && exhibitorsResponse.statusCode === 200 && exhibitorsResponse.result) {
           console.log('Raw exhibitors data:', exhibitorsResponse.result);
           transformedExhibitors = exhibitorsResponse.result.map((exhibitor: any) => {
             console.log('Processing exhibitor:', exhibitor);
@@ -304,7 +316,7 @@ export default function ScheduleMeetingPage() {
           console.log('Transformed exhibitors:', transformedExhibitors);
           setExhibitors(transformedExhibitors);
         } else {
-          console.error('Failed to load exhibitors:', exhibitorsResponse);
+          console.error('Failed to load exhibitors:', exhibitorsResponse || 'No response');
           setExhibitors([]);
         }
 
@@ -318,10 +330,12 @@ export default function ScheduleMeetingPage() {
       }
     };
 
-  // Load participants data when component mounts
+  // Load participants data when component mounts - only when user role is available
   useEffect(() => {
+    if (currentUserRole) {
       loadParticipantsData();
-  }, [identifier]);
+    }
+  }, [identifier, currentUserRole]);
 
   // Load event details
   const loadEventDetails = async () => {
@@ -861,31 +875,32 @@ export default function ScheduleMeetingPage() {
         
         {/* Meeting Organizer Information */}
         <Box sx={{ 
-          mb: 3, 
-          p: 2, 
-          borderRadius: 2, 
+          mb: 2, 
+          p: 1.5, 
+          borderRadius: 1.5, 
           bgcolor: 'primary.50', 
           border: '1px solid',
           borderColor: 'primary.200'
         }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, color: 'primary.main', fontWeight: 600 }}>
+          <Typography variant="body2" sx={{ mb: 0.5, color: 'primary.main', fontWeight: 600 }}>
             Meeting Organizer
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Avatar 
               sx={{ 
-                width: 40, 
-                height: 40,
-                bgcolor: 'primary.main'
+                width: 32, 
+                height: 32,
+                bgcolor: 'primary.main',
+                fontSize: '0.875rem'
               }}
             >
               {currentUserName ? currentUserName.charAt(0).toUpperCase() : 'U'}
             </Avatar>
             <Box>
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
                 {currentUserName || 'Loading...'}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize', lineHeight: 1.2 }}>
                 {currentUserRole} • You are scheduling this meeting
               </Typography>
             </Box>
@@ -1046,30 +1061,34 @@ export default function ScheduleMeetingPage() {
                 anchorEl={attendeeAnchorEl}
                 anchorOrigin={{
                   vertical: 'bottom',
-                  horizontal: 'left',
+                  horizontal: 'center',
                 }}
                 transformOrigin={{
                   vertical: 'top',
-                  horizontal: 'left',
+                  horizontal: 'center',
                 }}
                 PaperProps={{
                   sx: {
                     width: '100%',
-                    maxWidth: 600,
+                    maxWidth: 650,
                     mt: 1,
-                    maxHeight: 600,
-                    minHeight: 400,
-                    overflow: 'auto'
+                    maxHeight: 650,
+                    minHeight: 450,
+                    overflow: 'hidden',
+                    borderRadius: 3,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    border: '1px solid',
+                    borderColor: 'grey.200'
                   }
                 }}
               >
-                <Box sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ p: 2.5, maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
                     <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.25, fontSize: '1.1rem' }}>
                         Select Meeting Attendees
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                         {currentUserRole === 'exhibitor' ? 'Choose visitors to invite to your meeting' :
                          currentUserRole === 'visitor' ? 'Choose exhibitors to invite to your meeting' :
                          'Choose participants to invite to your meeting'}
@@ -1082,14 +1101,14 @@ export default function ScheduleMeetingPage() {
                         setShowAttendeesPopover(false);
                         setAttendeeAnchorEl(null);
                       }}
-                      sx={{ minWidth: 80 }}
+                      sx={{ minWidth: 70, height: 32, fontSize: '0.8rem' }}
                     >
                       Done
                     </Button>
                   </Box>
 
                   {/* Search Bar */}
-                  <Box sx={{ mb: 3 }}>
+                  <Box sx={{ mb: 2, flexShrink: 0 }}>
                     <TextField
                       fullWidth
                       placeholder="Search attendees by name, company, or job title..."
@@ -1110,62 +1129,67 @@ export default function ScheduleMeetingPage() {
                     />
                   </Box>
                   
+                  {/* Scrollable attendee lists container */}
+                  <Box sx={{ flex: 1, overflow: 'auto', pr: 1 }}>
+                  
                   {/* Visitor Selection - Only show if not a visitor */}
                   {currentUserRole !== 'visitor' && (
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: 1, 
-                        mb: 2,
-                        p: 1.5,
+                        gap: 0.75, 
+                        mb: 1.5,
+                        p: 1,
                         borderRadius: 1,
                         bgcolor: 'info.50',
                         border: '1px solid',
                         borderColor: 'info.200'
                       }}>
-                        <Person sx={{ color: 'info.main', fontSize: 20 }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                        <Person sx={{ color: 'info.main', fontSize: 16 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.875rem' }}>
                           Visitors ({getFilteredVisitors().length} available)
                         </Typography>
                       </Box>
                       {!loading && getFilteredVisitors().length > 0 ? (
-                        getFilteredVisitors().map((visitor) => {
+                        <Box sx={{ height: 260 }}>
+                          <AutoSizer>
+                            {({ width, height }) => {
+                              const filtered = getFilteredVisitors();
+                              const rowHeight = 76;
+                              const rowRenderer = ({ index, key, style }: any) => {
+                                const visitor = filtered[index];
                         const isSelected = meetingForm.attendiesId.includes(visitor.id);
                         return (
+                                  <div key={key} style={style}>
                           <Box
-                            key={visitor.id}
                             onClick={() => {
-                                console.log('🔍 Clicked visitor:', visitor);
-                                console.log('🔍 Current selected attendees:', meetingForm.attendiesId);
-                                
                               if (isSelected) {
-                                // Remove visitor from selection
-                                const updatedAttendees = meetingForm.attendiesId.filter(id => id !== visitor.id);
-                                  console.log('🔍 Removing visitor, new list:', updatedAttendees);
-                                handleFormChange('attendiesId', updatedAttendees);
+                                          handleFormChange('attendiesId', meetingForm.attendiesId.filter(id => id !== visitor.id));
                               } else {
-                                // Add visitor to selection
-                                const updatedAttendees = [...meetingForm.attendiesId, visitor.id];
-                                  console.log('🔍 Adding visitor, new list:', updatedAttendees);
-                                handleFormChange('attendiesId', updatedAttendees);
+                                          handleFormChange('attendiesId', [...meetingForm.attendiesId, visitor.id]);
                               }
                             }}
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
                               gap: 2,
-                              p: 2,
+                              px: 2,
+                              py: 1.5,
                               cursor: 'pointer',
                               borderRadius: 2,
                               bgcolor: isSelected ? 'primary.50' : 'transparent',
                               border: '1px solid',
-                              borderColor: isSelected ? 'primary.200' : 'transparent',
+                              borderColor: isSelected ? 'primary.200' : 'grey.200',
+                              mb: 1,
                               '&:hover': {
                                 bgcolor: isSelected ? 'primary.100' : 'grey.50',
-                                borderColor: isSelected ? 'primary.300' : 'grey.300'
+                                borderColor: isSelected ? 'primary.300' : 'primary.200',
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                               },
-                              transition: 'all 0.2s ease'
+                              transition: 'all 0.2s ease',
+                              position: 'relative'
                             }}
                           >
                             <Box sx={{ position: 'relative' }}>
@@ -1173,7 +1197,7 @@ export default function ScheduleMeetingPage() {
                                 sx={{ 
                                   width: 40, 
                                   height: 40,
-                                  bgcolor: isSelected ? 'primary.main' : `#${Math.floor(Math.random()*16777215).toString(16)}`
+                                            bgcolor: isSelected ? 'primary.main' : 'grey.400'
                                 }}
                               >
                                 {visitor.firstName[0]}
@@ -1198,22 +1222,35 @@ export default function ScheduleMeetingPage() {
                                 </Box>
                               )}
                             </Box>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            <Box sx={{ flex: 1, px: 0.5 }}>
+                              <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '0.9rem', lineHeight: 1.3 }}>
                                 {visitor.firstName} {visitor.lastName}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.2, mt: 0.25 }}>
                                 {visitor.company || 'No company'}
                               </Typography>
                               {visitor.jobTitle && (
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.1 }}>
                                   {visitor.jobTitle}
                                 </Typography>
                               )}
                             </Box>
                           </Box>
-                        );
-                        })
+                                  </div>
+                                );
+                              };
+                              return (
+                                <VirtualList
+                                  width={width}
+                                  height={height}
+                                  rowCount={filtered.length}
+                                  rowHeight={rowHeight}
+                                  rowRenderer={rowRenderer}
+                                />
+                              );
+                            }}
+                          </AutoSizer>
+                        </Box>
                       ) : (
                         <Box sx={{ 
                           p: 3, 
@@ -1237,56 +1274,58 @@ export default function ScheduleMeetingPage() {
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: 1, 
-                        mb: 2,
-                        p: 1.5,
+                        gap: 0.75, 
+                        mb: 1.5,
+                        p: 1,
                         borderRadius: 1,
                         bgcolor: 'success.50',
                         border: '1px solid',
                         borderColor: 'success.200'
                       }}>
-                        <Business sx={{ color: 'success.main', fontSize: 20 }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                        <Business sx={{ color: 'success.main', fontSize: 16 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.875rem' }}>
                           Exhibitors ({getFilteredExhibitors().length} available)
                         </Typography>
                       </Box>
                       {!loading && getFilteredExhibitors().length > 0 ? (
-                        getFilteredExhibitors().map((exhibitor) => {
+                        <Box sx={{ height: 260 }}>
+                          <AutoSizer>
+                            {({ width, height }) => {
+                              const filtered = getFilteredExhibitors();
+                              const rowHeight = 76;
+                              const rowRenderer = ({ index, key, style }: any) => {
+                                const exhibitor = filtered[index];
                         const isSelected = meetingForm.attendiesId.includes(exhibitor.id);
                         return (
+                                  <div key={key} style={style}>
                           <Box
-                            key={exhibitor.id}
                             onClick={() => {
-                                console.log('🔍 Clicked exhibitor:', exhibitor);
-                                console.log('🔍 Current selected attendees:', meetingForm.attendiesId);
-                                
                               if (isSelected) {
-                                // Remove exhibitor from selection
-                                const updatedAttendees = meetingForm.attendiesId.filter(id => id !== exhibitor.id);
-                                  console.log('🔍 Removing exhibitor, new list:', updatedAttendees);
-                                handleFormChange('attendiesId', updatedAttendees);
+                                          handleFormChange('attendiesId', meetingForm.attendiesId.filter(id => id !== exhibitor.id));
                               } else {
-                                // Add exhibitor to selection
-                                const updatedAttendees = [...meetingForm.attendiesId, exhibitor.id];
-                                  console.log('🔍 Adding exhibitor, new list:', updatedAttendees);
-                                handleFormChange('attendiesId', updatedAttendees);
+                                          handleFormChange('attendiesId', [...meetingForm.attendiesId, exhibitor.id]);
                               }
                             }}
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
                               gap: 2,
-                              p: 2,
+                              px: 2,
+                              py: 1.5,
                               cursor: 'pointer',
                               borderRadius: 2,
                               bgcolor: isSelected ? 'success.50' : 'transparent',
                               border: '1px solid',
-                              borderColor: isSelected ? 'success.200' : 'transparent',
+                              borderColor: isSelected ? 'success.200' : 'grey.200',
+                              mb: 1,
                               '&:hover': {
                                 bgcolor: isSelected ? 'success.100' : 'grey.50',
-                                borderColor: isSelected ? 'success.300' : 'grey.300'
+                                borderColor: isSelected ? 'success.300' : 'success.200',
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                               },
-                              transition: 'all 0.2s ease'
+                              transition: 'all 0.2s ease',
+                              position: 'relative'
                             }}
                           >
                             <Box sx={{ position: 'relative' }}>
@@ -1294,9 +1333,9 @@ export default function ScheduleMeetingPage() {
                                 sx={{ 
                                   width: 40, 
                                   height: 40,
-                                  bgcolor: isSelected ? 'success.main' : `#${Math.floor(Math.random()*16777215).toString(16)}`
+                                            bgcolor: isSelected ? 'success.main' : 'grey.400'
                                 }}
-                                  {...(exhibitor.companyLogo && { src: exhibitor.companyLogo })}
+                                          src={exhibitor.companyLogo ? (exhibitor.companyLogo.startsWith('http') ? exhibitor.companyLogo : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/${exhibitor.companyLogo.replace(/^\/+/, '')}`) : undefined}
                               >
                                 {exhibitor.companyName?.[0] || exhibitor.firstName?.[0]}
                               </Avatar>
@@ -1320,21 +1359,34 @@ export default function ScheduleMeetingPage() {
                                 </Box>
                               )}
                             </Box>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            <Box sx={{ flex: 1, px: 0.5 }}>
+                              <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '0.9rem', lineHeight: 1.3 }}>
                                   {exhibitor.companyName}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.2, mt: 0.25 }}>
                                 {exhibitor.companyType || 'Exhibitor'}
                               </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.1 }}>
                                   Contact: {exhibitor.firstName} {exhibitor.lastName}
                                   {exhibitor.jobTitle && ` • ${exhibitor.jobTitle}`}
                                 </Typography>
                             </Box>
                           </Box>
-                        );
-                        })
+                                  </div>
+                                );
+                              };
+                              return (
+                                <VirtualList
+                                  width={width}
+                                  height={height}
+                                  rowCount={filtered.length}
+                                  rowHeight={rowHeight}
+                                  rowRenderer={rowRenderer}
+                                />
+                              );
+                            }}
+                          </AutoSizer>
+                        </Box>
                       ) : (
                         <Box sx={{ 
                           p: 3, 
@@ -1351,7 +1403,9 @@ export default function ScheduleMeetingPage() {
                       )}
                     </Box>
                   )}
-                </Box>
+                  
+                  </Box>
+                  </Box>
               </Popover>
             </Box>
             {formErrors.attendiesId && (

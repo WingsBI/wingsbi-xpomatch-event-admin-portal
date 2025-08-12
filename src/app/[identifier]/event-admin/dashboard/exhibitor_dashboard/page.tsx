@@ -58,7 +58,7 @@ import ConnectIcon from '@mui/icons-material/ConnectWithoutContact';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { TransformedVisitor } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
-import VisitorDetailsDialog from '@/components/common/VisitorDetailsDialog';
+import dynamic from 'next/dynamic';
 
 
 export default function ExhibitorDashboard() {
@@ -528,7 +528,7 @@ export default function ExhibitorDashboard() {
                </Grid>
              </Grid>
            </Container>
-           <VisitorDetailsDialog
+            <LazyVisitorDetailsDialog
              open={dialogOpen}
              onClose={() => setDialogOpen(false)}
              visitorId={selectedVisitorId}
@@ -545,7 +545,7 @@ export default function ExhibitorDashboard() {
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
               <Alert severity="error">{error}</Alert>
             </Container>
-            <VisitorDetailsDialog
+            <LazyVisitorDetailsDialog
               open={dialogOpen}
               onClose={() => setDialogOpen(false)}
               visitorId={selectedVisitorId}
@@ -1050,7 +1050,7 @@ export default function ExhibitorDashboard() {
                 </Typography>
               </Box>
           <Divider sx={{ mt: 2 }} />
-           <VisitorDetailsDialog
+           <LazyVisitorDetailsDialog
              open={dialogOpen}
              onClose={() => setDialogOpen(false)}
              visitorId={selectedVisitorId}
@@ -1061,5 +1061,10 @@ export default function ExhibitorDashboard() {
     );
   }
 }
+
+const LazyVisitorDetailsDialog = dynamic(
+  () => import('@/components/common/VisitorDetailsDialog'),
+  { ssr: false }
+);
 
       

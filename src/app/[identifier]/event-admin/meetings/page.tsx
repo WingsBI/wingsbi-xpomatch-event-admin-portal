@@ -76,6 +76,8 @@ import { ApiEventDetails } from '@/types';
 import { getCurrentVisitorId } from '@/utils/authUtils';
 import { getAuthToken } from '@/utils/cookieManager';
 
+// Note: Calendar and dialog components are inline in this file, no separate components to lazy load
+
 interface Meeting {
   id: string;
   title: string;
@@ -207,12 +209,23 @@ export default function MeetingsPage() {
   const loadMeetings = useCallback(async () => {
     try {
       console.log('loadMeetings function called');
-      setMeetingsLoading(true);
       
       if (!identifier || !user) {
         console.log('Missing identifier or user:', { identifier, user });
         return;
       }
+
+      // Check cache first
+      const cacheKey = `${identifier}-${user.id || user.email}-${user.role}`;
+      const cached = meetingsCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+        console.log('Using cached meetings data');
+        setMeetings(cached.data);
+        setMeetingsLoading(false);
+        return;
+      }
+
+      setMeetingsLoading(true);
       
       console.log('Loading meetings for user:', user);
       let response;
@@ -263,7 +276,7 @@ export default function MeetingsPage() {
         }
         
         // Transform invites response to match meeting format
-        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
+        const transformedInvites = (finalInvitesResponse?.result || []).map((invite: any) => {
           console.log('Processing invite:', invite);
           const meetingDetails = invite.meetingDetails?.[0];
           
@@ -684,6 +697,13 @@ export default function MeetingsPage() {
         console.log('=== END FINAL MEETINGS ===');
         
         setMeetings(transformedMeetings);
+        
+        // Cache the data
+        const cacheKey = `${identifier}-${user.id || user.email}-${user.role}`;
+        meetingsCache.set(cacheKey, {
+          data: transformedMeetings,
+          timestamp: Date.now()
+        });
       } else {
         setMeetings([]);
       }

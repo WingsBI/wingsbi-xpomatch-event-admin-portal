@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { Box, Container } from '@mui/material';
-import { ExhibitorListView } from '@/components/participants/ExhibitorsListView';
+import dynamic from 'next/dynamic';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { setIdentifier } from '@/store/slices/appSlice';
@@ -28,10 +28,15 @@ export default function ExhibitorsPage() {
       >
         <Container maxWidth={false} disableGutters sx={{ px: 0, height: '100%' }}>
           <Box sx={{ height: 'calc(100vh - 120px)', width: '100%', overflowY: 'auto', overflowX: 'hidden', m: 0, p: 0 }}>
-            <ExhibitorListView identifier={identifier} />
+            <LazyExhibitorListView identifier={identifier} />
           </Box>
         </Container>
       </ResponsiveDashboardLayout>
     </RoleBasedRoute>
   );
 } 
+
+const LazyExhibitorListView = dynamic(
+  () => import('@/components/participants/ExhibitorsListView').then(m => m.ExhibitorListView),
+  { ssr: false, loading: () => null }
+);

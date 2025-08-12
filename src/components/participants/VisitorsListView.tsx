@@ -39,6 +39,7 @@ import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { ApiVisitorData, TransformedVisitor } from '@/types';
 import { getCurrentExhibitorId, decodeJWTToken, isEventAdmin } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
+import { AutoSizer, Grid as VirtualGrid } from 'react-virtualized';
 
 // Transform API visitor data to UI format - only use actual API data
 const transformVisitorData = (apiVisitor: any, identifier: string, index: number): TransformedVisitor => {
@@ -148,18 +149,18 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
 
   return (
     <Card sx={{ height: '100%', borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e8eaed', bgcolor: 'background.paper', transition: 'all 0.3s ease-in-out', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-      <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
-          <Avatar sx={{ bgcolor: 'success.main', width: 36, height: 36, mr: 1.5, fontSize: '0.9rem', fontWeight: 'bold', flexShrink: 0, color: 'white', alignSelf: 'top', mt: 2 }}>
+             <CardContent sx={{ p: 1.5, pb: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '45px' }}>
+          <Avatar sx={{ bgcolor: 'success.main', width: 36, height: 36, mr: 1.2, fontSize: '0.9rem', fontWeight: 'bold', flexShrink: 0, color: 'white', alignSelf: 'flex-start' }}>
             {getInitials(visitor.firstName, visitor.lastName)}
           </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0, mt: 2 }}>
-            <Typography variant="body2" component="div" fontWeight="600" sx={{ ml: 0, minHeight: '1.2rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" component="div" fontWeight="600" sx={{ minHeight: '1.1rem', display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
               <Box sx={{ wordBreak: 'break-word', lineHeight: 1.2 }}>
                 <span>{visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}</span>
               </Box>
             </Typography>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+                         <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
               {visitor.jobTitle}
             </Typography>
           </Box>
@@ -177,18 +178,18 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
           )}
         </Box>
 
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {visitor.customData?.location && (
-            <Box display="flex" alignItems="center" mb={1}>
-              <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
-              <Typography variant="subtitle2" color="text.secondary">{visitor.customData.location}</Typography>
-            </Box>
-          )}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                     {visitor.customData?.location && (
+             <Box display="flex" alignItems="flex-start" mb={1}>
+               <LocationOn sx={{ fontSize: 14, mr: 0.8, color: 'text.secondary', flexShrink: 0, mt: 0.1 }} />
+               <Typography variant="subtitle2" color="text.secondary" sx={{ lineHeight: 1.3, fontSize: '0.75rem', wordBreak: 'break-word' }}>{visitor.customData.location}</Typography>
+             </Box>
+           )}
         </Box>
 
-        <Divider sx={{ mb: 2 }} />
-        <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mt: -1, mb: -2 }}>
-          <Button variant="contained" size="small" startIcon={<ConnectIcon />} sx={{ bgcolor: 'primary.main', borderRadius: 2, textTransform: 'none', fontWeight: 500, ml: 10, px: 1, '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.02)' } }}>
+                 <Divider sx={{ mb: 1.2 }} />
+        <Box display="flex" alignItems="center" justifyContent="center" sx={{ mt: 'auto' }}>
+          <Button variant="contained" size="small" startIcon={<ConnectIcon />} sx={{ bgcolor: 'primary.main', borderRadius: 2, textTransform: 'none', fontWeight: 500, px: 1.5, py: 0.4, fontSize: '0.8rem', '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.02)' } }}>
             Connect
           </Button>
         </Box>
@@ -373,7 +374,7 @@ export function VisitorListView({ identifier }: { identifier: string }) {
   });
 
   return (
-    <Container maxWidth="xl" sx={{ py: 1, p: 0 }}>
+    <Container maxWidth="xl" sx={{ py: 1, p: 0, height: '100%' }}>
       <Box mb={1}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Box>
@@ -418,9 +419,24 @@ export function VisitorListView({ identifier }: { identifier: string }) {
       )}
 
       {!loading && !error && (
-        <Grid container spacing={1.5}>
-          {filteredVisitors.map((visitor) => (
-            <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={visitor.id}>
+        <Box sx={{ height: 'calc(100vh - 200px)', minHeight: 400 }}>
+          <AutoSizer>
+            {({ width, height }) => {
+              const gutter = 12; // spacing=1.5 => 12px like before
+              // Match original Grid: xs=12 (1 col) / sm=6 (2 cols) / md=2.4 (5 cols)
+              const columnCount = width < 600 ? 1 : width < 900 ? 2 : 5;
+              const columnWidth = Math.floor((width - gutter * (columnCount - 1)) / columnCount) + 8;
+                             const rowHeight = 220; // increased to prevent text overlapping
+              const rowCount = Math.ceil(filteredVisitors.length / columnCount);
+
+              const cellRenderer = ({ columnIndex, rowIndex, key, style }: any) => {
+                const index = rowIndex * columnCount + columnIndex;
+                if (index >= filteredVisitors.length) {
+                  return <div key={key} style={style} />;
+                }
+                const visitor = filteredVisitors[index];
+                return (
+                  <div key={key} style={{ ...style, paddingRight: columnIndex < columnCount - 1 ? gutter : 0, paddingBottom: gutter }}>
               <Suspense fallback={<VisitorCardSkeleton />}>
                 <VisitorCard
                   visitor={visitor}
@@ -439,9 +455,24 @@ export function VisitorListView({ identifier }: { identifier: string }) {
                   onNameClick={(v) => { setSelectedVisitor(v); setDialogOpen(true); }}
                 />
               </Suspense>
-            </Grid>
-          ))}
-        </Grid>
+                  </div>
+                );
+              };
+
+              return (
+                <VirtualGrid
+                  cellRenderer={cellRenderer}
+                  columnCount={columnCount}
+                  columnWidth={columnWidth}
+                  height={height}
+                  rowCount={rowCount}
+                  rowHeight={rowHeight}
+                  width={width}
+                />
+              );
+            }}
+          </AutoSizer>
+        </Box>
       )}
 
       {!loading && !error && filteredVisitors.length === 0 && visitors.length > 0 && (

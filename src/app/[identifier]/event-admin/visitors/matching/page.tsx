@@ -189,11 +189,10 @@ export default function VisitorsMatchingPage() {
         console.error('401 Authentication Error Details:', {
           suggestResponse: suggestResponse.statusCode === 401 ? suggestResponse : 'OK',
           standardFieldsResponse: standardFieldsResponse.statusCode === 401 ? standardFieldsResponse : 'OK',
-          currentToken: localStorage.getItem('jwtToken')?.substring(0, 20) + '...'
+          currentToken: token?.substring(0, 20) + '...'
         });
         
-        // Clear invalid token
-        localStorage.removeItem('jwtToken');
+        // No localStorage usage; just surface the error
         throw new Error('Authentication failed. Your session has expired. Please log in again.');
       }
       

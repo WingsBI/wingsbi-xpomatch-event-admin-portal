@@ -347,21 +347,12 @@ export function VisitorListView({ identifier }: { identifier: string }) {
     try {
       setLoading(true);
       setError(null);
-      try {
-        const cached = sessionStorage.getItem(`visitors:${eventIdentifier}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) {
-            setVisitors(parsed);
-            setLoading(false);
-          }
-        }
-      } catch {}
+      // No sessionStorage cache
       const response = await apiService.getAllVisitors(eventIdentifier, true);
       if (response.success && response.data?.result) {
         const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, eventIdentifier, index));
         setVisitors(transformedVisitors);
-        try { sessionStorage.setItem(`visitors:${eventIdentifier}`, JSON.stringify(transformedVisitors)); } catch {}
+        // No sessionStorage persistence
         await loadFavorites(eventIdentifier);
       } else {
         setError('Failed to fetch visitors data');

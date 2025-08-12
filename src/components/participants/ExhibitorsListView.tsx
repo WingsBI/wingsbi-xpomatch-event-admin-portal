@@ -270,22 +270,13 @@ export function ExhibitorListView({ identifier }: { identifier: string }) {
     try {
       setLoading(true);
       setError(null);
-      try {
-        const cached = sessionStorage.getItem(`exhibitors:${identifier}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) {
-            setExhibitors(parsed);
-            setLoading(false);
-          }
-        }
-      } catch {}
+      // No sessionStorage cache
 
       const response = await fieldMappingApi.getAllExhibitors(identifier);
       if (response.statusCode === 200 && response.result) {
         const transformedExhibitors = response.result.map((exhibitor: Exhibitor, index: number) => transformExhibitorData(exhibitor, identifier, index));
         setExhibitors(transformedExhibitors);
-        try { sessionStorage.setItem(`exhibitors:${identifier}`, JSON.stringify(transformedExhibitors)); } catch {}
+        // No sessionStorage persistence
         await loadFavoriteStatuses(identifier);
       } else {
         setError('Failed to fetch exhibitors data');

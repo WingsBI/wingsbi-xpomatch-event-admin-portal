@@ -180,12 +180,7 @@ export default function ExhibitorsTab({ exhibitors, event, onDataUpdate }: Exhib
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // Store both data sets in session storage for the matching page
-        sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('uploadType', 'exhibitors');
-        sessionStorage.setItem('apiEndpoint', 'getAllExhibitorStandardFields');
-        sessionStorage.setItem('mappingType', 'exhibitor');
+        // No sessionStorage persistence; pass via route/state if needed
         
         // Redirect to matching page
         router.push(`/${identifier}/exhibitors/matching`);

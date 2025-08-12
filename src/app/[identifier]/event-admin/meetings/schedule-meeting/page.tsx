@@ -52,15 +52,15 @@ import {
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
-import { apiService } from '@/services/apiService';
+import { apiService, eventsApi } from '@/services/apiService';
 import { addNotification } from '@/store/slices/appSlice';
 import { getCurrentUser, getCurrentExhibitorId, getCurrentVisitorId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 
 interface MeetingFormData {
   agenda: string;
-  visitorId: number | '';
-  exhibitorId: number | '';
+  description: string;
+  attendiesId: number[];
   meetingDate: string;
   startTime: string;
   endTime: string;
@@ -84,6 +84,8 @@ interface Exhibitor {
   companyName?: string;
   companyType?: string;
   jobTitle?: string;
+  companyLogo?: string;
+  fullData?: any;
 }
 
 export default function ScheduleMeetingPage() {
@@ -94,8 +96,8 @@ export default function ScheduleMeetingPage() {
 
   const [meetingForm, setMeetingForm] = useState<MeetingFormData>({
     agenda: '',
-    visitorId: '',
-    exhibitorId: '',
+    description: '',
+    attendiesId: [],
     meetingDate: '',
     startTime: '',
     endTime: ''
@@ -121,32 +123,101 @@ export default function ScheduleMeetingPage() {
   const [loadingVisitorDetails, setLoadingVisitorDetails] = useState(false);
   const [loadingExhibitorDetails, setLoadingExhibitorDetails] = useState(false);
   const [showAttendeesPopover, setShowAttendeesPopover] = useState(false);
-  const [manuallySelectedVisitors, setManuallySelectedVisitors] = useState<number[]>([]);
-  const [manuallySelectedExhibitor, setManuallySelectedExhibitor] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
+  const [currentUserDetails, setCurrentUserDetails] = useState<any>(null);
+  const [attendeeAnchorEl, setAttendeeAnchorEl] = useState<HTMLElement | null>(null);
+  const [eventDetails, setEventDetails] = useState<any>(null);
+  const [datePickerAnchorEl, setDatePickerAnchorEl] = useState<HTMLElement | null>(null);
 
   const getSelectedAttendeesDisplay = () => {
-    const names = [];
+    const names: string[] = [];
     
-    // Show manually selected visitors
-    if (manuallySelectedVisitors.length > 0) {
-      const selectedVisitorNames = manuallySelectedVisitors
-        .map(visitorId => {
-          const visitor = visitors.find(v => v.id === visitorId);
-          return visitor ? `${visitor.firstName} ${visitor.lastName}` : '';
-        })
-        .filter(name => name !== '');
-      names.push(...selectedVisitorNames);
-    }
+    console.log('🔍 getSelectedAttendeesDisplay - Selected IDs:', meetingForm.attendiesId);
+    console.log('🔍 Available visitors count:', visitors.length);
+    console.log('🔍 Available exhibitors count:', exhibitors.length);
     
-    // Show manually selected exhibitor
-    if (manuallySelectedExhibitor) {
-      const selectedExhibitor = exhibitors.find(e => e.id === manuallySelectedExhibitor);
-      if (selectedExhibitor) {
-        names.push(selectedExhibitor.companyName || `${selectedExhibitor.firstName} ${selectedExhibitor.lastName}`);
+    // Show selected attendees from the form
+    meetingForm.attendiesId.forEach(attendeeId => {
+      console.log('🔍 Looking for attendee ID:', attendeeId, 'Type:', typeof attendeeId);
+      
+      // Since we're in visitor role, we should only be selecting exhibitors
+      // Check exhibitors first to avoid ID collision
+      const exhibitor = exhibitors.find(e => e.id === attendeeId);
+      if (exhibitor) {
+        console.log('🔍 Found exhibitor:', exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`);
+        
+        // Format: "Company Name (Contact Name)"
+        const contactName = `${exhibitor.firstName} ${exhibitor.lastName}`.trim();
+        const companyName = exhibitor.companyName || 'Unknown Company';
+        const displayName = contactName ? `${companyName} (${contactName})` : companyName;
+        
+        names.push(displayName);
+        return;
       }
-    }
+      
+      // Only check visitors if we're in exhibitor role
+      if (currentUserRole === 'exhibitor') {
+      const visitor = visitors.find(v => v.id === attendeeId);
+      if (visitor) {
+          console.log('🔍 Found visitor:', visitor.firstName, visitor.lastName);
+        names.push(`${visitor.firstName} ${visitor.lastName}`);
+        return;
+      }
+      }
+      
+      console.log('🔍 No attendee found for ID:', attendeeId);
+    });
     
-    return names.join(', ');
+    console.log('🔍 Final names array:', names);
+    return names.join(', ') || 'Select attendees';
+  };
+
+  // Filter attendees based on search query and exclude current user
+  const getFilteredVisitors = () => {
+    return visitors.filter(visitor => {
+      // Exclude current user if they are a visitor
+      if (currentUserRole === 'visitor' && visitor.id === currentUserId) {
+        return false;
+      }
+      
+      // Apply search filter
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        const fullName = `${visitor.firstName} ${visitor.lastName}`.toLowerCase();
+        const company = (visitor.company || '').toLowerCase();
+        const jobTitle = (visitor.jobTitle || '').toLowerCase();
+        
+        return fullName.includes(searchLower) || 
+               company.includes(searchLower) || 
+               jobTitle.includes(searchLower);
+      }
+      
+      return true;
+    });
+  };
+
+  const getFilteredExhibitors = () => {
+    return exhibitors.filter(exhibitor => {
+      // Exclude current user if they are an exhibitor
+      if (currentUserRole === 'exhibitor' && exhibitor.id === currentUserId) {
+        return false;
+      }
+      
+      // Apply search filter
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        const fullName = `${exhibitor.firstName} ${exhibitor.lastName}`.toLowerCase();
+        const companyName = (exhibitor.companyName || '').toLowerCase();
+        const jobTitle = (exhibitor.jobTitle || '').toLowerCase();
+        
+        return fullName.includes(searchLower) || 
+               companyName.includes(searchLower) || 
+               jobTitle.includes(searchLower);
+      }
+      
+      return true;
+    });
   };
 
   // Initialize current user data
@@ -156,31 +227,24 @@ export default function ScheduleMeetingPage() {
     
     if (currentUser) {
       setCurrentUserRole(currentUser.role);
+      // Use email as display name or extract name from email
+      const displayName = currentUser.email ? currentUser.email.split('@')[0] : 'User';
+      setCurrentUserName(displayName);
       console.log('ScheduleMeeting - User role:', currentUser.role);
+      console.log('ScheduleMeeting - User email:', currentUser.email);
+      console.log('ScheduleMeeting - Display name:', displayName);
       
       // Set the appropriate ID based on user role
       if (currentUser.role === 'exhibitor') {
         const exhibitorId = getCurrentExhibitorId();
         console.log('ScheduleMeeting - Exhibitor ID:', exhibitorId);
         setCurrentUserId(exhibitorId);
-        // Auto-set exhibitor ID in form
-        if (exhibitorId) {
-          setMeetingForm(prev => ({
-            ...prev,
-            exhibitorId: exhibitorId
-          }));
-        }
+        // Don't auto-add current user to attendees - they are the organizer
       } else if (currentUser.role === 'visitor') {
         const visitorId = getCurrentVisitorId();
         console.log('ScheduleMeeting - Visitor ID:', visitorId);
         setCurrentUserId(visitorId);
-        // Auto-set visitor ID in form
-        if (visitorId) {
-          setMeetingForm(prev => ({
-            ...prev,
-            visitorId: visitorId
-          }));
-        }
+        // Don't auto-add current user to attendees - they are the organizer
       }
     }
   }, []);
@@ -197,8 +261,9 @@ export default function ScheduleMeetingPage() {
         ]);
 
         // Process visitors data
+        let transformedVisitors: Visitor[] = [];
         if (visitorsResponse.success && visitorsResponse.data?.result) {
-          const transformedVisitors: Visitor[] = visitorsResponse.data.result.map((visitor: any) => ({
+          transformedVisitors = visitorsResponse.data.result.map((visitor: any) => ({
             id: visitor.id,
             firstName: visitor.firstName || '',
             lastName: visitor.lastName || '',
@@ -213,18 +278,27 @@ export default function ScheduleMeetingPage() {
         }
 
         // Process exhibitors data
+        let transformedExhibitors: Exhibitor[] = [];
         if (exhibitorsResponse.statusCode === 200 && exhibitorsResponse.result) {
           console.log('Raw exhibitors data:', exhibitorsResponse.result);
-          const transformedExhibitors: Exhibitor[] = exhibitorsResponse.result.map((exhibitor: any) => {
+          transformedExhibitors = exhibitorsResponse.result.map((exhibitor: any) => {
             console.log('Processing exhibitor:', exhibitor);
+            
+            // Get the primary contact from exhibitorToUserMaps
+            const primaryContact = exhibitor.exhibitorToUserMaps?.find((user: any) => user.isPrimaryContact) || 
+                                   exhibitor.exhibitorToUserMaps?.[0];
+            
             return {
               id: exhibitor.id,
-              firstName: exhibitor.firstName || exhibitor.exhibitorToUserMaps?.[0]?.firstName || '',
-              lastName: exhibitor.lastName || exhibitor.exhibitorToUserMaps?.[0]?.lastName || '',
-              email: exhibitor.email || exhibitor.exhibitorToUserMaps?.[0]?.email || '',
+              firstName: primaryContact?.firstName || '',
+              lastName: primaryContact?.lastName || '',
+              email: primaryContact?.email || '',
               companyName: exhibitor.companyName,
               companyType: exhibitor.companyType,
-              jobTitle: exhibitor.jobTitle || exhibitor.exhibitorToUserMaps?.[0]?.jobTitle
+              jobTitle: primaryContact?.designation || primaryContact?.jobTitle || '',
+              companyLogo: exhibitor.companyLogoPath,
+              // Store the full exhibitor data for display purposes
+              fullData: exhibitor
             };
           });
           console.log('Transformed exhibitors:', transformedExhibitors);
@@ -233,6 +307,8 @@ export default function ScheduleMeetingPage() {
           console.error('Failed to load exhibitors:', exhibitorsResponse);
           setExhibitors([]);
         }
+
+
       } catch (error) {
         console.error('Error loading participants data:', error);
         setVisitors([]);
@@ -246,6 +322,254 @@ export default function ScheduleMeetingPage() {
   useEffect(() => {
       loadParticipantsData();
   }, [identifier]);
+
+  // Load event details
+  const loadEventDetails = async () => {
+    try {
+      console.log('🔍 Loading event details for identifier:', identifier);
+      const response = await eventsApi.getEventDetails(identifier);
+      console.log('🔍 Raw event details response:', response);
+      
+      if (response.success && response.data) {
+        setEventDetails(response.data);
+        console.log('🔍 Event details loaded:', response.data);
+        console.log('🔍 Event start date:', response.data.startDateTime);
+        console.log('🔍 Event end date:', response.data.endDateTime);
+        console.log('🔍 Event business hours:', response.data.businessHours);
+        
+        // Validate the dates
+        if (response.data.startDateTime) {
+          const startDate = new Date(response.data.startDateTime);
+          console.log('🔍 Parsed start date:', startDate, 'Valid:', !isNaN(startDate.getTime()));
+        }
+        if (response.data.endDateTime) {
+          const endDate = new Date(response.data.endDateTime);
+          console.log('🔍 Parsed end date:', endDate, 'Valid:', !isNaN(endDate.getTime()));
+        }
+      } else {
+        console.error('Failed to load event details:', response);
+        // Set default event details for testing
+        const defaultEventDetails = {
+          startDateTime: '2025-08-11T09:00:00',
+          endDateTime: '2025-08-13T18:00:00',
+          businessHours: { start: 9, end: 18 }
+        };
+        setEventDetails(defaultEventDetails);
+        console.log('🔍 Using default event details for testing:', defaultEventDetails);
+      }
+    } catch (error) {
+      console.error('Error loading event details:', error);
+      // Set default event details for testing
+      const defaultEventDetails = {
+        startDateTime: '2025-08-11T09:00:00',
+        endDateTime: '2025-08-13T18:00:00',
+        businessHours: { start: 9, end: 18 }
+      };
+      setEventDetails(defaultEventDetails);
+      console.log('🔍 Using default event details due to error:', defaultEventDetails);
+    }
+  };
+
+  // Load event details when component mounts
+  useEffect(() => {
+    loadEventDetails();
+  }, [identifier]);
+
+  // Set current user details after participants are loaded
+  useEffect(() => {
+    if (currentUserId && currentUserRole && (visitors.length > 0 || exhibitors.length > 0)) {
+      let userDetails = null;
+      if (currentUserRole === 'visitor') {
+        userDetails = visitors.find(v => v.id === currentUserId);
+      } else if (currentUserRole === 'exhibitor') {
+        userDetails = exhibitors.find(e => e.id === currentUserId);
+      }
+      
+      if (userDetails) {
+        setCurrentUserDetails(userDetails);
+        const displayName = currentUserRole === 'exhibitor' 
+          ? (userDetails as Exhibitor).companyName || `${userDetails.firstName} ${userDetails.lastName}`
+          : `${userDetails.firstName} ${userDetails.lastName}`;
+        setCurrentUserName(displayName);
+        console.log('Found current user details:', userDetails);
+        console.log('Set display name:', displayName);
+      }
+    }
+  }, [currentUserId, currentUserRole, visitors, exhibitors]);
+
+  // Helper functions for event date and time restrictions
+  const getEventDays = () => {
+    if (!eventDetails) return [];
+    
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    const days = [];
+    
+    // Set start to beginning of day
+    const startDate = new Date(eventStart);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Set end to end of day
+    const endDate = new Date(eventEnd);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      days.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return days;
+  };
+
+  const getEventTimeSlots = () => {
+    if (!eventDetails) return [];
+    
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    const slots = [];
+    
+    // Try to get business hours from event details if available
+    let startHour = 9; // Default business hours
+    let endHour = 18;
+    
+    if (eventDetails.businessHours) {
+      startHour = eventDetails.businessHours.start || 9;
+      endHour = eventDetails.businessHours.end || 18;
+      console.log('🔍 Using business hours from event details:', { startHour, endHour });
+    } else {
+      // Use event start/end times if available
+      if (!isNaN(eventStart.getTime()) && !isNaN(eventEnd.getTime())) {
+        startHour = eventStart.getHours();
+        endHour = eventEnd.getHours();
+        console.log('🔍 Using event start/end hours:', { startHour, endHour });
+        
+        // If the hours don't make sense (e.g., 0:00), use default business hours
+        if (startHour === 0 && endHour === 0) {
+          startHour = 9;
+          endHour = 18;
+          console.log('🔍 Using default business hours due to 0:00 times');
+        }
+      } else {
+        console.log('🔍 Invalid event dates, using default business hours');
+        startHour = 9;
+        endHour = 18;
+      }
+    }
+    
+    console.log('🔍 Final time range:', { startHour, endHour });
+    
+    // Generate time slots from start to end hour
+    for (let hour = startHour; hour <= endHour; hour++) {
+      slots.push(hour);
+    }
+    
+    console.log('🔍 Generated time slots:', slots);
+    return slots;
+  };
+
+  const getAvailableEndTimes = (startTime: string) => {
+    if (!startTime) return [];
+    
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const eventTimeSlots = getEventTimeSlots();
+    const endTimes = [];
+    
+    // If we have event details, use event time range, otherwise use full day
+    const startHourLimit = eventTimeSlots.length > 0 ? Math.min(...eventTimeSlots) : 0;
+    const endHourLimit = eventTimeSlots.length > 0 ? Math.max(...eventTimeSlots) : 23;
+    
+    for (let hour = startHour; hour <= endHourLimit; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        // Skip if this time is before or equal to start time
+        if (hour === startHour && minute <= startMinute) {
+          continue;
+        }
+        
+        const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        endTimes.push(timeValue);
+      }
+    }
+    
+    return endTimes;
+  };
+
+  const isDateInEventRange = (date: string) => {
+    if (!eventDetails) return true; // Allow all dates if no event details
+    
+    const selectedDate = new Date(date);
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    
+    // Set times to beginning and end of day for comparison
+    selectedDate.setHours(0, 0, 0, 0);
+    eventStart.setHours(0, 0, 0, 0);
+    eventEnd.setHours(23, 59, 59, 999);
+    
+    return selectedDate >= eventStart && selectedDate <= eventEnd;
+  };
+
+  const getEventDateOptions = () => {
+    if (!eventDetails) return [];
+    
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    const dates = [];
+    
+    console.log('🔍 Event date range:', { eventStart, eventEnd });
+    console.log('🔍 Start date valid:', !isNaN(eventStart.getTime()));
+    console.log('🔍 End date valid:', !isNaN(eventEnd.getTime()));
+    
+    // Check if dates are valid
+    if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+      console.log('🔍 Invalid dates detected, using fallback dates');
+      // Use fallback dates for testing
+      const fallbackStart = new Date('2025-08-11T00:00:00');
+      const fallbackEnd = new Date('2025-08-13T23:59:59');
+      
+      const currentDate = new Date(fallbackStart);
+      while (currentDate <= fallbackEnd) {
+        const dateStr = new Date(currentDate).toISOString().split('T')[0];
+        dates.push(dateStr);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      console.log('🔍 Generated fallback event dates:', dates);
+      return dates;
+    }
+    
+    // Set start to beginning of day
+    const startDate = new Date(eventStart);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Set end to end of day
+    const endDate = new Date(eventEnd);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const dateStr = new Date(currentDate).toISOString().split('T')[0];
+      dates.push(dateStr);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log('🔍 Generated event dates:', dates);
+    return dates;
+  };
+
+  const isTimeInEventRange = (time: string) => {
+    if (!eventDetails) return true; // Allow all times if no event details
+    
+    const [hours, minutes] = time.split(':').map(Number);
+    const eventStart = new Date(eventDetails.startDateTime);
+    const eventEnd = new Date(eventDetails.endDateTime);
+    
+    const eventStartHour = eventStart.getHours();
+    const eventEndHour = eventEnd.getHours();
+    
+    return hours >= eventStartHour && hours <= eventEndHour;
+  };
 
   // Function to load favorites
   const loadFavorites = async () => {
@@ -349,7 +673,7 @@ export default function ScheduleMeetingPage() {
     }
   };
 
-  const handleFormChange = (field: keyof MeetingFormData, value: string | number) => {
+  const handleFormChange = (field: keyof MeetingFormData, value: string | number | number[]) => {
     console.log('🔍 handleFormChange called:', field, value, 'Type:', typeof value);
     
     setMeetingForm(prev => ({
@@ -357,13 +681,31 @@ export default function ScheduleMeetingPage() {
       [field]: value
     }));
 
-    // Fetch details when visitor or exhibitor is selected
-    if (field === 'visitorId' && value) {
-      console.log('🔍 Fetching visitor details for ID:', value);
-      fetchVisitorDetails(Number(value));
-    } else if (field === 'exhibitorId' && value) {
-      console.log('🔍 Fetching exhibitor details for ID:', value);
-      fetchExhibitorDetails(Number(value));
+    // Reset end time if start time changes and end time is now invalid
+    if (field === 'startTime' && typeof value === 'string') {
+      const currentEndTime = meetingForm.endTime;
+      if (currentEndTime && value >= currentEndTime) {
+        setMeetingForm(prev => ({ ...prev, endTime: '' }));
+        console.log('🔍 Reset end time because start time changed to:', value);
+      }
+    }
+
+    // Fetch details when attendees are selected
+    if (field === 'attendiesId' && Array.isArray(value) && value.length > 0) {
+      const lastSelectedId = value[value.length - 1];
+      // Check if it's a visitor
+      const visitor = visitors.find(v => v.id === lastSelectedId);
+      if (visitor) {
+        console.log('🔍 Fetching visitor details for ID:', lastSelectedId);
+        fetchVisitorDetails(lastSelectedId);
+      } else {
+        // Check if it's an exhibitor
+        const exhibitor = exhibitors.find(e => e.id === lastSelectedId);
+        if (exhibitor) {
+          console.log('🔍 Fetching exhibitor details for ID:', lastSelectedId);
+          fetchExhibitorDetails(lastSelectedId);
+        }
+      }
     }
 
     // Clear error for this field
@@ -383,12 +725,10 @@ export default function ScheduleMeetingPage() {
       errors.agenda = 'Meeting agenda is required';
     }
 
-    if (!meetingForm.visitorId) {
-      errors.visitorId = 'Please select a visitor';
-    }
+    // Description is optional, so no validation needed
 
-    if (!meetingForm.exhibitorId) {
-      errors.exhibitorId = 'Please select an exhibitor';
+    if (!meetingForm.attendiesId || meetingForm.attendiesId.length === 0) {
+      errors.attendiesId = 'Please select at least one attendee';
     }
 
     if (!meetingForm.meetingDate) {
@@ -425,8 +765,8 @@ export default function ScheduleMeetingPage() {
     try {
       const meetingData = {
         agenda: meetingForm.agenda,
-        visitorId: Number(meetingForm.visitorId),
-        exhibitorId: Number(meetingForm.exhibitorId),
+        description: meetingForm.description,
+        attendiesId: meetingForm.attendiesId,
         meetingDate: meetingForm.meetingDate,
         startTime: meetingForm.startTime,
         endTime: meetingForm.endTime
@@ -468,12 +808,13 @@ export default function ScheduleMeetingPage() {
     <Dialog 
       open={openDialog} 
       onClose={() => {}} // Prevent closing on outside click
-      maxWidth="sm" 
+      maxWidth="md" 
       fullWidth
       disableEscapeKeyDown={false}
       PaperProps={{
         sx: {
-          maxHeight: '80vh',
+          maxHeight: '90vh',
+          minHeight: '600px',
           '& .MuiDialogContent-root': {
             p: 3
           }
@@ -487,12 +828,12 @@ export default function ScheduleMeetingPage() {
         gap: 2,
         borderBottom: '1px solid',
         borderColor: 'divider',
-        p: 2
+        p: 3
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ScheduleSend color="primary" fontSize="small" />
-          <Typography variant="subtitle1" component="div">
-            New meeting
+          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+            Schedule New Meeting
           </Typography>
         </Box>
         <IconButton
@@ -518,6 +859,39 @@ export default function ScheduleMeetingPage() {
           </Alert>
         )}
         
+        {/* Meeting Organizer Information */}
+        <Box sx={{ 
+          mb: 3, 
+          p: 2, 
+          borderRadius: 2, 
+          bgcolor: 'primary.50', 
+          border: '1px solid',
+          borderColor: 'primary.200'
+        }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, color: 'primary.main', fontWeight: 600 }}>
+            Meeting Organizer
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar 
+              sx={{ 
+                width: 40, 
+                height: 40,
+                bgcolor: 'primary.main'
+              }}
+            >
+              {currentUserName ? currentUserName.charAt(0).toUpperCase() : 'U'}
+            </Avatar>
+            <Box>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                {currentUserName || 'Loading...'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                {currentUserRole} • You are scheduling this meeting
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+        
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 2 }}>
             <CircularProgress size={20} />
@@ -535,7 +909,7 @@ export default function ScheduleMeetingPage() {
             </Alert>
           )}
 
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
           {/* Title Field */}
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
@@ -591,17 +965,65 @@ export default function ScheduleMeetingPage() {
             </Box>
           </Grid>
 
+          {/* Description Field */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Add a description for the meeting (Optional)"
+              value={meetingForm.description}
+              onChange={(e) => handleFormChange('description', e.target.value)}
+              variant="outlined"
+              error={!!formErrors.description}
+              helperText={formErrors.description}
+              disabled={loading}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+          </Grid>
+
           {/* Attendees Selection */}
           <Grid item xs={12}>
             <Box sx={{ position: 'relative' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
+                Meeting Attendees
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                {currentUserRole === 'exhibitor' ? 'Select visitors to invite to this meeting' :
+                 currentUserRole === 'visitor' ? 'Select exhibitors to invite to this meeting' :
+                 'Select participants to invite to this meeting'}
+              </Typography>
               <TextField
                 fullWidth
                 placeholder="Invite attendees"
-                onClick={() => setShowAttendeesPopover(true)}
+                onClick={(e) => {
+                  setAttendeeAnchorEl(e.currentTarget);
+                  setShowAttendeesPopover(true);
+                }}
                 value={getSelectedAttendeesDisplay()}
                 InputProps={{
                   startAdornment: (
                     <Person sx={{ mr: 1, color: 'text.secondary' }} />
+                  ),
+                  endAdornment: (
+                    <Box sx={{ 
+                      transform: showAttendeesPopover ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease'
+                    }}>
+                      ▼
+                    </Box>
                   ),
                   readOnly: true,
                   sx: {
@@ -617,8 +1039,11 @@ export default function ScheduleMeetingPage() {
               />
               <Popover
                 open={showAttendeesPopover}
-                onClose={() => setShowAttendeesPopover(false)}
-                anchorEl={document.activeElement}
+                onClose={() => {
+                  setShowAttendeesPopover(false);
+                  setAttendeeAnchorEl(null);
+                }}
+                anchorEl={attendeeAnchorEl}
                 anchorOrigin={{
                   vertical: 'bottom',
                   horizontal: 'left',
@@ -630,213 +1055,488 @@ export default function ScheduleMeetingPage() {
                 PaperProps={{
                   sx: {
                     width: '100%',
-                    maxWidth: 500,
+                    maxWidth: 600,
                     mt: 1,
-                    maxHeight: 500,
-                    minHeight: 300,
+                    maxHeight: 600,
+                    minHeight: 400,
                     overflow: 'auto'
                   }
                 }}
               >
-                <Box sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="subtitle2">
-                      Select Attendees
-                    </Typography>
+                <Box sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        Select Meeting Attendees
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {currentUserRole === 'exhibitor' ? 'Choose visitors to invite to your meeting' :
+                         currentUserRole === 'visitor' ? 'Choose exhibitors to invite to your meeting' :
+                         'Choose participants to invite to your meeting'}
+                      </Typography>
+                    </Box>
                     <Button
                       variant="contained"
                       size="small"
-                      onClick={() => setShowAttendeesPopover(false)}
+                      onClick={() => {
+                        setShowAttendeesPopover(false);
+                        setAttendeeAnchorEl(null);
+                      }}
+                      sx={{ minWidth: 80 }}
                     >
                       Done
                     </Button>
                   </Box>
+
+                  {/* Search Bar */}
+                  <Box sx={{ mb: 3 }}>
+                    <TextField
+                      fullWidth
+                      placeholder="Search attendees by name, company, or job title..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      variant="outlined"
+                      size="small"
+                      InputProps={{
+                        startAdornment: (
+                          <Person sx={{ mr: 1, color: 'text.secondary' }} />
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Box>
                   
                   {/* Visitor Selection - Only show if not a visitor */}
                   {currentUserRole !== 'visitor' && (
-                    <Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        
-                        {manuallySelectedVisitors.length > 0 && (
-                          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
-                            {manuallySelectedVisitors.length} selected
-                          </Typography>
-                        )}
+                    <Box sx={{ mb: 3 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1, 
+                        mb: 2,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: 'info.50',
+                        border: '1px solid',
+                        borderColor: 'info.200'
+                      }}>
+                        <Person sx={{ color: 'info.main', fontSize: 20 }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                          Visitors ({getFilteredVisitors().length} available)
+                        </Typography>
                       </Box>
-                      {!loading && visitors.map((visitor) => {
-                        const isSelected = manuallySelectedVisitors.includes(visitor.id);
+                      {!loading && getFilteredVisitors().length > 0 ? (
+                        getFilteredVisitors().map((visitor) => {
+                        const isSelected = meetingForm.attendiesId.includes(visitor.id);
                         return (
                           <Box
                             key={visitor.id}
-                                                         onClick={() => {
-                               if (isSelected) {
-                                 // Remove visitor from selection
-                                 const updatedVisitors = manuallySelectedVisitors.filter(id => id !== visitor.id);
-                                 setManuallySelectedVisitors(updatedVisitors);
-                                 // Update form with first visitor ID or empty string
-                                 handleFormChange('visitorId', updatedVisitors.length > 0 ? updatedVisitors[0] : '');
-                               } else {
-                                 // Add visitor to selection
-                                 const updatedVisitors = [...manuallySelectedVisitors, visitor.id];
-                                 setManuallySelectedVisitors(updatedVisitors);
-                                 // Update form with first visitor ID
-                                 handleFormChange('visitorId', updatedVisitors[0]);
-                               }
-                             }}
-                             sx={{
-                               display: 'flex',
-                               alignItems: 'center',
-                               gap: 2,
-                               p: 1,
-                               cursor: 'pointer',
-                               borderRadius: 1,
-                               bgcolor: isSelected ? 'primary.light' : 'transparent',
-                               '&:hover': {
-                                 bgcolor: isSelected ? 'grey.200' : 'action.hover'
-                               }
-                             }}
-                          >
-                                                         <Box sx={{ position: 'relative' }}>
-                               <Avatar 
-                                 sx={{ 
-                                   width: 32, 
-                                   height: 32,
-                                   bgcolor: `#${Math.floor(Math.random()*16777215).toString(16)}`
-                                 }}
-                               >
-                                 {visitor.firstName[0]}
-                               </Avatar>
-                               {isSelected && (
-                                 <Box
-                                   sx={{
-                                     position: 'absolute',
-                                     bottom: -2,
-                                     right: -2,
-                                     width: 16,
-                                     height: 16,
-                                     borderRadius: '50%',
-                                                                           bgcolor: '#00E676',
-                                     display: 'flex',
-                                     alignItems: 'center',
-                                     justifyContent: 'center',
-                                     border: '2px solid white',
-                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                                   }}
-                                 >
-                                   <CheckCircle sx={{ color: 'white', fontSize: 10 }} />
-                                 </Box>
-                               )}
-                             </Box>
-                                                         <Box sx={{ flex: 1 }}>
-                               <Typography variant="body2">
-                                 {visitor.firstName} {visitor.lastName}
-                               </Typography>
-                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                 {visitor.email}
-                               </Typography>
-                             </Box>
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
-
-                  {/* Exhibitor Selection - Only show if not an exhibitor */}
-                  {currentUserRole !== 'exhibitor' && (
-                    <Box>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium', mt: 2 }}>
-                        Select Exhibitor
-                      </Typography>
-                      {!loading && exhibitors.map((exhibitor) => {
-                        const isSelected = manuallySelectedExhibitor === exhibitor.id;
-                        return (
-                          <Box
-                            key={exhibitor.id}
                             onClick={() => {
-                              handleFormChange('exhibitorId', exhibitor.id);
-                              setManuallySelectedExhibitor(exhibitor.id);
-                              setShowAttendeesPopover(false);
+                                console.log('🔍 Clicked visitor:', visitor);
+                                console.log('🔍 Current selected attendees:', meetingForm.attendiesId);
+                                
+                              if (isSelected) {
+                                // Remove visitor from selection
+                                const updatedAttendees = meetingForm.attendiesId.filter(id => id !== visitor.id);
+                                  console.log('🔍 Removing visitor, new list:', updatedAttendees);
+                                handleFormChange('attendiesId', updatedAttendees);
+                              } else {
+                                // Add visitor to selection
+                                const updatedAttendees = [...meetingForm.attendiesId, visitor.id];
+                                  console.log('🔍 Adding visitor, new list:', updatedAttendees);
+                                handleFormChange('attendiesId', updatedAttendees);
+                              }
                             }}
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
                               gap: 2,
-                              p: 1,
+                              p: 2,
                               cursor: 'pointer',
-                              borderRadius: 1,
-                              bgcolor: isSelected ? 'primary.light' : 'transparent',
+                              borderRadius: 2,
+                              bgcolor: isSelected ? 'primary.50' : 'transparent',
+                              border: '1px solid',
+                              borderColor: isSelected ? 'primary.200' : 'transparent',
                               '&:hover': {
-                                bgcolor: isSelected ? 'primary.main' : 'action.hover'
-                              }
+                                bgcolor: isSelected ? 'primary.100' : 'grey.50',
+                                borderColor: isSelected ? 'primary.300' : 'grey.300'
+                              },
+                              transition: 'all 0.2s ease'
                             }}
                           >
-                            <Avatar 
-                              sx={{ 
-                                width: 32, 
-                                height: 32,
-                                bgcolor: isSelected ? 'white' : `#${Math.floor(Math.random()*16777215).toString(16)}`
-                              }}
-                            >
-                              {exhibitor.companyName?.[0] || exhibitor.firstName?.[0]}
-                            </Avatar>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body2" sx={{ color: isSelected ? 'white' : 'inherit' }}>
-                                {exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`}
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: isSelected ? 'white' : 'text.secondary' }}>
-                                {exhibitor.email}
-                              </Typography>
+                            <Box sx={{ position: 'relative' }}>
+                              <Avatar 
+                                sx={{ 
+                                  width: 40, 
+                                  height: 40,
+                                  bgcolor: isSelected ? 'primary.main' : `#${Math.floor(Math.random()*16777215).toString(16)}`
+                                }}
+                              >
+                                {visitor.firstName[0]}
+                              </Avatar>
+                              {isSelected && (
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    bottom: -2,
+                                    right: -2,
+                                    width: 18,
+                                    height: 18,
+                                    borderRadius: '50%',
+                                    bgcolor: '#00E676',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '2px solid white'
+                                  }}
+                                >
+                                  <CheckCircle sx={{ fontSize: 12, color: 'white' }} />
+                                </Box>
+                              )}
                             </Box>
-                            {isSelected && (
-                              <CheckCircle sx={{ color: 'white', fontSize: 20 }} />
-                            )}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {visitor.firstName} {visitor.lastName}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {visitor.company || 'No company'}
+                              </Typography>
+                              {visitor.jobTitle && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {visitor.jobTitle}
+                                </Typography>
+                              )}
+                            </Box>
                           </Box>
                         );
-                      })}
+                        })
+                      ) : (
+                        <Box sx={{ 
+                          p: 3, 
+                          textAlign: 'center', 
+                          color: 'text.secondary',
+                          border: '1px dashed',
+                          borderColor: 'grey.300',
+                          borderRadius: 2
+                        }}>
+                          <Typography variant="body2">
+                            {searchQuery ? 'No visitors found matching your search.' : 'No visitors available.'}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Exhibitor Selection - Only show if not an exhibitor */}
+                  {currentUserRole !== 'exhibitor' && (
+                    <Box sx={{ mb: 3 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1, 
+                        mb: 2,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: 'success.50',
+                        border: '1px solid',
+                        borderColor: 'success.200'
+                      }}>
+                        <Business sx={{ color: 'success.main', fontSize: 20 }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                          Exhibitors ({getFilteredExhibitors().length} available)
+                        </Typography>
+                      </Box>
+                      {!loading && getFilteredExhibitors().length > 0 ? (
+                        getFilteredExhibitors().map((exhibitor) => {
+                        const isSelected = meetingForm.attendiesId.includes(exhibitor.id);
+                        return (
+                          <Box
+                            key={exhibitor.id}
+                            onClick={() => {
+                                console.log('🔍 Clicked exhibitor:', exhibitor);
+                                console.log('🔍 Current selected attendees:', meetingForm.attendiesId);
+                                
+                              if (isSelected) {
+                                // Remove exhibitor from selection
+                                const updatedAttendees = meetingForm.attendiesId.filter(id => id !== exhibitor.id);
+                                  console.log('🔍 Removing exhibitor, new list:', updatedAttendees);
+                                handleFormChange('attendiesId', updatedAttendees);
+                              } else {
+                                // Add exhibitor to selection
+                                const updatedAttendees = [...meetingForm.attendiesId, exhibitor.id];
+                                  console.log('🔍 Adding exhibitor, new list:', updatedAttendees);
+                                handleFormChange('attendiesId', updatedAttendees);
+                              }
+                            }}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              p: 2,
+                              cursor: 'pointer',
+                              borderRadius: 2,
+                              bgcolor: isSelected ? 'success.50' : 'transparent',
+                              border: '1px solid',
+                              borderColor: isSelected ? 'success.200' : 'transparent',
+                              '&:hover': {
+                                bgcolor: isSelected ? 'success.100' : 'grey.50',
+                                borderColor: isSelected ? 'success.300' : 'grey.300'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <Box sx={{ position: 'relative' }}>
+                              <Avatar 
+                                sx={{ 
+                                  width: 40, 
+                                  height: 40,
+                                  bgcolor: isSelected ? 'success.main' : `#${Math.floor(Math.random()*16777215).toString(16)}`
+                                }}
+                                  {...(exhibitor.companyLogo && { src: exhibitor.companyLogo })}
+                              >
+                                {exhibitor.companyName?.[0] || exhibitor.firstName?.[0]}
+                              </Avatar>
+                              {isSelected && (
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    bottom: -2,
+                                    right: -2,
+                                    width: 18,
+                                    height: 18,
+                                    borderRadius: '50%',
+                                    bgcolor: '#00E676',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '2px solid white'
+                                  }}
+                                >
+                                  <CheckCircle sx={{ fontSize: 12, color: 'white' }} />
+                                </Box>
+                              )}
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  {exhibitor.companyName}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {exhibitor.companyType || 'Exhibitor'}
+                              </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Contact: {exhibitor.firstName} {exhibitor.lastName}
+                                  {exhibitor.jobTitle && ` • ${exhibitor.jobTitle}`}
+                                </Typography>
+                            </Box>
+                          </Box>
+                        );
+                        })
+                      ) : (
+                        <Box sx={{ 
+                          p: 3, 
+                          textAlign: 'center', 
+                          color: 'text.secondary',
+                          border: '1px dashed',
+                          borderColor: 'grey.300',
+                          borderRadius: 2
+                        }}>
+                          <Typography variant="body2">
+                            {searchQuery ? 'No exhibitors found matching your search.' : 'No exhibitors available.'}
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
                   )}
                 </Box>
               </Popover>
             </Box>
-            {(formErrors.visitorId || formErrors.exhibitorId) && (
+            {formErrors.attendiesId && (
               <FormHelperText error>
-                {formErrors.visitorId || formErrors.exhibitorId}
+                {formErrors.attendiesId}
               </FormHelperText>
             )}
           </Grid>
 
           {/* Meeting Date */}
           <Grid item xs={12} md={4}>
+            <Box>
+              {/* <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
+                Meeting Date
+              </Typography> */}
             <TextField
               fullWidth
+               // placeholder="Select meeting date"
               label="Meeting Date"
-              type="date"
-              value={meetingForm.meetingDate}
-              onChange={(e) => handleFormChange('meetingDate', e.target.value)}
-              error={!!formErrors.meetingDate}
-              helperText={formErrors.meetingDate}
-              disabled={loading}
-              InputLabelProps={{
-                shrink: true,
+                value={meetingForm.meetingDate ? new Date(meetingForm.meetingDate).toLocaleDateString('en-US', { 
+                  weekday: 'short', 
+                  month: 'short', 
+                  day: 'numeric' 
+                }) : ''}
+                onClick={(e) => {
+                  setDatePickerAnchorEl(e.currentTarget);
               }}
               InputProps={{
                 startAdornment: (
                   <Event sx={{ mr: 1, color: 'text.secondary' }} />
                 ),
+                  endAdornment: (
+                    <Box sx={{ 
+                      transform: datePickerAnchorEl ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease'
+                    }}>
+                      ▼
+                    </Box>
+                  ),
+                  readOnly: true,
+                  sx: {
+                    cursor: 'pointer',
+                    '& fieldset': {
+                      borderColor: formErrors.meetingDate ? 'error.main' : 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                    
+                    
+                  }
+                }}
+                disabled={loading}
+              />
+              {formErrors.meetingDate && (
+                <FormHelperText error>{formErrors.meetingDate}</FormHelperText>
+              )}
+              {!formErrors.meetingDate && eventDetails && (
+                <FormHelperText>
+                  Event runs from {new Date(eventDetails.startDateTime).toLocaleDateString()} to {new Date(eventDetails.endDateTime).toLocaleDateString()}
+                </FormHelperText>
+              )}
+            </Box>
+            
+            {/* Calendar Popup */}
+            <Popover
+              open={Boolean(datePickerAnchorEl)}
+              onClose={() => setDatePickerAnchorEl(null)}
+              anchorEl={datePickerAnchorEl}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
               }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  height: '40px',
-                  width: '100%',
-                  '& input': {
-                    padding: '8px 12px',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  fontSize: '0.875rem',
-                },
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'left',
               }}
-            />
+              PaperProps={{
+                sx: {
+                  width: 320,
+                  p: 2,
+                  borderRadius: 2,
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)'
+                }
+              }}
+            >
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, textAlign: 'center' }}>
+                  Select Date
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                  Only event dates are available
+                </Typography>
+              </Box>
+              
+              <Box sx={{ 
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                p: 2,
+                bgcolor: 'background.paper',
+                minHeight: 280,
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                {(() => {
+                  const eventDates = getEventDateOptions();
+                  const currentDate = new Date();
+                  const currentMonth = currentDate.getMonth();
+                  const currentYear = currentDate.getFullYear();
+                  
+                  // Get the first day of the month
+                  const firstDay = new Date(currentYear, currentMonth, 1);
+                  const lastDay = new Date(currentYear, currentMonth + 1, 0);
+                  const startDate = new Date(firstDay);
+                  startDate.setDate(startDate.getDate() - firstDay.getDay());
+                  
+                  const days = [];
+                  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                  
+                  // Add day headers
+                  days.push(
+                    <Box key="headers" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 1 }}>
+                      {dayNames.map(day => (
+                        <Typography key={day} variant="caption" sx={{ textAlign: 'center', fontWeight: 600, color: 'text.secondary' }}>
+                          {day}
+                        </Typography>
+                      ))}
+                    </Box>
+                  );
+                  
+                  // Generate calendar days
+                  const calendarDays = [];
+                  for (let i = 0; i < 42; i++) {
+                    const date = new Date(startDate);
+                    date.setDate(startDate.getDate() + i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    const isCurrentMonth = date.getMonth() === currentMonth;
+                    const isEventDate = eventDates.includes(dateStr);
+                    const isSelected = meetingForm.meetingDate === dateStr;
+                    const isDisabled = !isEventDate || !isCurrentMonth;
+                    
+                    calendarDays.push(
+                      <Box
+                        key={i}
+                        onClick={() => {
+                          if (!isDisabled) {
+                            handleFormChange('meetingDate', dateStr);
+                            setDatePickerAnchorEl(null);
+                          }
+                        }}
+                        sx={{
+                          aspectRatio: '1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: isDisabled ? 'default' : 'pointer',
+                          borderRadius: 1,
+                          fontSize: '0.875rem',
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isDisabled ? 'text.disabled' : isSelected ? 'white' : 'text.primary',
+                          backgroundColor: isSelected ? 'primary.main' : isEventDate ? 'success.50' : 'transparent',
+                          border: isEventDate ? '1px solid' : 'none',
+                          borderColor: 'success.200',
+                          '&:hover': !isDisabled ? {
+                            backgroundColor: isSelected ? 'primary.dark' : 'grey.100',
+                          } : {},
+                          opacity: isCurrentMonth ? 1 : 0.3,
+                        }}
+                      >
+                        {date.getDate()}
+                      </Box>
+                    );
+                  }
+                  
+                  days.push(
+                    <Box key="calendar" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
+                      {calendarDays}
+                    </Box>
+                  );
+                  
+                  return days;
+                })()}
+              </Box>
+            </Popover>
           </Grid>
 
           {/* Start Time */}
@@ -862,22 +1562,39 @@ export default function ScheduleMeetingPage() {
                   },
                 }}
               >
-                {Array.from({ length: 48 }, (_, i) => {
-                  const hour = Math.floor(i / 2);
-                  const minute = i % 2 === 0 ? '00' : '30';
+                {(() => {
+                  const timeSlots = [];
+                  const eventTimeSlots = getEventTimeSlots();
+                  
+                  // If we have event details, use event time range, otherwise use full day
+                  const startHour = eventTimeSlots.length > 0 ? Math.min(...eventTimeSlots) : 0;
+                  const endHour = eventTimeSlots.length > 0 ? Math.max(...eventTimeSlots) : 23;
+                  
+                  for (let hour = startHour; hour <= endHour; hour++) {
+                    for (let minute = 0; minute < 60; minute += 30) {
+                      const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                   const ampm = hour < 12 ? 'AM' : 'PM';
                   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                  const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
-                  const displayTime = `${displayHour}:${minute} ${ampm}`;
-                  return (
+                      const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+                      
+                      timeSlots.push(
                     <MenuItem key={timeValue} value={timeValue}>
                       {displayTime}
                     </MenuItem>
                   );
-                })}
+                    }
+                  }
+                  
+                  return timeSlots;
+                })()}
               </Select>
               {formErrors.startTime && (
                 <FormHelperText>{formErrors.startTime}</FormHelperText>
+              )}
+              {!formErrors.startTime && eventDetails && (
+                <FormHelperText>
+                  Event hours: {new Date(eventDetails.startDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(eventDetails.endDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </FormHelperText>
               )}
             </FormControl>
           </Grid>
@@ -905,26 +1622,30 @@ export default function ScheduleMeetingPage() {
                   },
                 }}
               >
-                {Array.from({ length: 48 }, (_, i) => {
-                  const hour = Math.floor(i / 2);
-                  const minute = i % 2 === 0 ? '00' : '30';
+                {(() => {
+                  const availableEndTimes = getAvailableEndTimes(meetingForm.startTime);
+                  
+                  return availableEndTimes.map(timeValue => {
+                    const [hour, minute] = timeValue.split(':').map(Number);
                   const ampm = hour < 12 ? 'AM' : 'PM';
                   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                  const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
-                  const displayTime = `${displayHour}:${minute} ${ampm}`;
+                    const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+                    
                   return (
-                    <MenuItem 
-                      key={timeValue} 
-                      value={timeValue}
-                      disabled={timeValue <= meetingForm.startTime}
-                    >
+                      <MenuItem key={timeValue} value={timeValue}>
                       {displayTime}
                     </MenuItem>
                   );
-                })}
+                  });
+                })()}
               </Select>
               {formErrors.endTime && (
                 <FormHelperText>{formErrors.endTime}</FormHelperText>
+              )}
+              {!formErrors.endTime && eventDetails && (
+                <FormHelperText>
+                  Event hours: {new Date(eventDetails.startDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(eventDetails.endDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </FormHelperText>
               )}
             </FormControl>
           </Grid>
@@ -937,26 +1658,50 @@ export default function ScheduleMeetingPage() {
       </DialogContent>
 
       <DialogActions sx={{ 
-        p: 2, 
+        p: 3, 
         borderTop: '1px solid',
         borderColor: 'divider',
-        gap: 1
+        gap: 2,
+        bgcolor: 'grey.50'
       }}>
         <Button 
           onClick={handleCloseDialog} 
-          size="small"
+          size="large"
           disabled={isSubmitting}
+          sx={{
+            px: 3,
+            py: 1.5,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 500
+          }}
         >
           Cancel
         </Button>
         <Button 
           variant="contained" 
           onClick={handleSubmit} 
-          size="small"
+          size="large"
           disabled={isSubmitting}
-          startIcon={isSubmitting ? <CircularProgress size={14} /> : <ScheduleSend fontSize="small" />}
+          startIcon={isSubmitting ? <CircularProgress size={16} /> : <ScheduleSend />}
+          sx={{
+            px: 4,
+            py: 1.5,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '1rem',
+            background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+            boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+              boxShadow: '0 6px 16px rgba(25, 118, 210, 0.4)',
+              transform: 'translateY(-1px)'
+            },
+            transition: 'all 0.3s ease'
+          }}
         >
-          {isSubmitting ? 'Scheduling...' : 'Send'}
+          {isSubmitting ? 'Scheduling Meeting...' : 'Schedule Meeting'}
         </Button>
       </DialogActions>
     </Dialog>

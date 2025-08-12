@@ -10,12 +10,7 @@ export function clearAllAuthData() {
   // Clear all authentication cookies
   clearAllAuthCookies();
 
-  // Clear sessionStorage
-  if (typeof sessionStorage !== 'undefined') {
-    sessionStorage.removeItem('currentEventIdentifier');
-    sessionStorage.removeItem('userRole');
-    sessionStorage.removeItem('userEmail');
-  }
+  // No sessionStorage usage
 
   console.log('All authentication data cleared');
 }

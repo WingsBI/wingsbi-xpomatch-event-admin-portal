@@ -914,17 +914,7 @@ export function VisitorListView({ identifier }: { identifier: string }) {
       setLoading(true);
       setError(null);
 
-      // Try to serve from session cache first for instant paint
-      try {
-        const cached = sessionStorage.getItem(`visitors:${eventIdentifier}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) {
-            setVisitors(parsed);
-            setLoading(false);
-          }
-        }
-      } catch {}
+      // Try to serve from in-memory state only (no sessionStorage)
 
       // Extract identifier from URL path only - no static fallbacks
       // let eventIdentifier: string | null = null; // REMOVED
@@ -999,10 +989,7 @@ export function VisitorListView({ identifier }: { identifier: string }) {
       if (response.success && response.data?.result) {
         const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, eventIdentifier, index));
         setVisitors(transformedVisitors);
-        // Save to session cache
-        try {
-          sessionStorage.setItem(`visitors:${eventIdentifier}`, JSON.stringify(transformedVisitors));
-        } catch {}
+        // No sessionStorage persistence
 
         // Load favorites after visitors are loaded
         await loadFavorites(eventIdentifier);

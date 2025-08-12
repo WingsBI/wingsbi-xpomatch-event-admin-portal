@@ -175,10 +175,7 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // Store both data sets in session storage for the matching page
-        sessionStorage.setItem('fieldMappingData', JSON.stringify(mappingsData));
-        sessionStorage.setItem('standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('uploadType', 'visitors');
+        // No sessionStorage persistence; pass via route/state if needed
         
         // Redirect to matching page
         router.push(`/${identifier}/visitors/matching`);

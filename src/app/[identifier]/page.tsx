@@ -38,7 +38,7 @@ import { RootState, AppDispatch } from "@/store";
 import { loginUser, restoreAuthState, clearAuth } from "@/store/slices/authSlice";
 import { addNotification, setIdentifier } from "@/store/slices/appSlice";
 import { clearAllAuthData, isValidUserData, getAuthenticationStatus } from '@/utils/authUtils';
-import { getUserData } from '@/utils/cookieManager';
+import { getUserData, getAuthToken } from '@/utils/cookieManager';
 
 // Define color themes
 const colorThemes = {
@@ -151,14 +151,7 @@ export default function EventLoginPage() {
             }
           } else if (isMainPage && !isExternalReferrer) {
             // User was redirected here from another page in the app, redirect them back
-            const intendedPath = sessionStorage.getItem('intendedPath');
-            if (intendedPath && intendedPath !== currentPath) {
-              console.log("User was redirected here, sending back to intended path:", intendedPath);
-              sessionStorage.removeItem('intendedPath');
-              setIsRedirecting(true);
-              router.push(intendedPath);
-              return;
-            }
+            // No sessionStorage redirect logic; middleware handles intended path via query param
           }
           
         } catch (error) {
@@ -208,46 +201,34 @@ export default function EventLoginPage() {
       clearAllAuthData();
       // Force logout in Redux
       dispatch(clearAuth());
-    } else if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn) {
+      } else if (isAuthenticated && user && isValidUserData(user) && !hasJustLoggedIn) {
       // If user is authenticated but didn't just login, they might have valid session
       // But we should validate this session before redirecting
       console.log("User appears authenticated from previous session, validating...");
       
-      // Validate current session using localStorage (compatible with Azure API system)
-      try {
-        const token = localStorage.getItem('jwtToken') || localStorage.getItem('authToken');
-        const userStr = localStorage.getItem('user');
-        
-        if (token && userStr) {
-          const userData = JSON.parse(userStr);
-          
-          if (userData && userData.id && userData.email && isValidUserData(userData)) {
-            // Basic token validation (check if it's a JWT)
+        // Validate current session using cookie-based auth only
+        try {
+          const token = getAuthToken();
+          const userData = getUserData();
+          if (token && userData && isValidUserData(userData)) {
             const tokenParts = token.split('.');
             if (tokenParts.length === 3) {
-              console.log("Session validated, user can stay authenticated");
-              // Session is valid, user can continue to be authenticated
-              // But don't auto-redirect them - let them use the login form if they want
+              console.log('Session validated via cookies');
             } else {
-              console.log("Invalid token format, clearing authentication");
+              console.log('Invalid token format, clearing authentication');
               clearAllAuthData();
               dispatch(clearAuth());
             }
           } else {
-            console.log("Invalid user data, clearing authentication");
+            console.log('No valid authentication data found in cookies, clearing authentication');
             clearAllAuthData();
             dispatch(clearAuth());
           }
-        } else {
-          console.log("No valid authentication data found, clearing authentication");
+        } catch (error) {
+          console.error('Session validation error:', error);
           clearAllAuthData();
           dispatch(clearAuth());
         }
-      } catch (error) {
-        console.error("Session validation error:", error);
-        clearAllAuthData();
-        dispatch(clearAuth());
-      }
     }
   }, [isAuthenticated, user, hasJustLoggedIn, isRedirecting, identifier, router, dispatch]);
 

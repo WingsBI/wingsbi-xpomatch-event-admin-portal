@@ -312,16 +312,11 @@ export default function EventAdminDashboard() {
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // Store both data sets in session storage for the matching page - using visitors-specific keys
-        sessionStorage.setItem('visitors_fieldMappingData', JSON.stringify(suggestResponse.result));
-        sessionStorage.setItem('visitors_standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('visitors_uploadType', 'visitors');
+        // No sessionStorage persistence; pass via route/state if needed
         
         // Extract and store fileStorageId if available
         const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId;
-        if (responseFileStorageId) {
-          sessionStorage.setItem('visitors_fileStorageId', responseFileStorageId.toString());
-        }
+        // responseFileStorageId can be passed via route/state if needed
         
         // Redirect to matching page
         router.push(`/${identifier}/event-admin/visitors/matching`);
@@ -378,16 +373,11 @@ export default function EventAdminDashboard() {
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // Store both data sets in session storage for the matching page - using exhibitors-specific keys
-        sessionStorage.setItem('exhibitors_fieldMappingData', JSON.stringify(suggestResponse.result));
-        sessionStorage.setItem('exhibitors_standardFieldsData', JSON.stringify(standardFieldsResponse.result));
-        sessionStorage.setItem('exhibitors_uploadType', 'exhibitors');
+        // No sessionStorage persistence; pass via route/state if needed
         
         // Extract and store fileStorageId if available
         const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId;
-        if (responseFileStorageId) {
-          sessionStorage.setItem('exhibitors_fileStorageId', responseFileStorageId.toString());
-        }
+        // responseFileStorageId can be passed via route/state if needed
         
         // Redirect to matching page
         router.push(`/${identifier}/event-admin/exhibitors/matching`);

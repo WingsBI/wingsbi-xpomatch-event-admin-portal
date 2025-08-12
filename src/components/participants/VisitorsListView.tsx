@@ -160,7 +160,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 <span>{visitor.customData?.salutation} {visitor.firstName} {visitor.customData?.middleName} {visitor.lastName}</span>
               </Box>
             </Typography>
-                         <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
               {visitor.jobTitle}
             </Typography>
           </Box>
@@ -179,12 +179,12 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
         </Box>
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                     {visitor.customData?.location && (
+          {visitor.customData?.location && (
              <Box display="flex" alignItems="flex-start" mb={1}>
                <LocationOn sx={{ fontSize: 14, mr: 0.8, color: 'text.secondary', flexShrink: 0, mt: 0.1 }} />
                <Typography variant="subtitle2" color="text.secondary" sx={{ lineHeight: 1.3, fontSize: '0.75rem', wordBreak: 'break-word' }}>{visitor.customData.location}</Typography>
-             </Box>
-           )}
+            </Box>
+          )}
         </Box>
 
                  <Divider sx={{ mb: 1.2 }} />

@@ -76,6 +76,10 @@ import { ApiEventDetails } from '@/types';
 import { getCurrentVisitorId } from '@/utils/authUtils';
 import { getAuthToken } from '@/utils/cookieManager';
 
+// Cache for meetings data
+const meetingsCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 // Note: Calendar and dialog components are inline in this file, no separate components to lazy load
 
 interface Meeting {
@@ -276,7 +280,7 @@ export default function MeetingsPage() {
         }
         
         // Transform invites response to match meeting format
-        const transformedInvites = (finalInvitesResponse?.result || []).map((invite: any) => {
+        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
           console.log('Processing invite:', invite);
           const meetingDetails = invite.meetingDetails?.[0];
           

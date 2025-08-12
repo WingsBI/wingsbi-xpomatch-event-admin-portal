@@ -267,9 +267,9 @@ export default function ScheduleMeetingPage() {
         } else {
           // Event admins need both - load in parallel
           [visitorsResponse, exhibitorsResponse] = await Promise.all([
-            apiService.getAllVisitors(identifier),
-            fieldMappingApi.getAllExhibitors(identifier)
-          ]);
+          apiService.getAllVisitors(identifier),
+          fieldMappingApi.getAllExhibitors(identifier)
+        ]);
         }
 
         // Process visitors data
@@ -1405,7 +1405,7 @@ export default function ScheduleMeetingPage() {
                   )}
                   
                   </Box>
-                  </Box>
+                </Box>
               </Popover>
             </Box>
             {formErrors.attendiesId && (

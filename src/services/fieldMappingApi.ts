@@ -37,6 +37,27 @@ export interface StandardFieldsResponse {
   result: StandardField[];
 }
 
+export interface MatchingConfigField {
+  id: number;
+  fieldName: string;
+  weight: number;
+  algorithm: string;
+  isActive: boolean;
+  createdBy: number;
+  createdDate: string;
+  modifiedBy: number | null;
+  modifiedDate: string | null;
+}
+
+export interface MatchingConfigResponse {
+  version: string | null;
+  statusCode: number;
+  message: string | null;
+  isError: boolean | null;
+  responseException: any;
+  result: MatchingConfigField[];
+}
+
 export interface UserRegistrationMapping {
   standardFieldIndex: number | null;
   standardField: string;
@@ -724,7 +745,7 @@ class FieldMappingApiService {
   ): Promise<UserRegistrationResponse> {
     try {
       // Call external backend API directly
-      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/register-from-excel`;
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/register-from-excel-bulk`;
       
       console.log('Calling register users API:', {
         url: apiUrl,
@@ -888,13 +909,13 @@ class FieldMappingApiService {
   /**
    * Register exhibitors from Excel file with field mappings
    */
-  async registerExhibitors(
+  async registerExhibitor(
     identifier: string, 
     payload: UserRegistrationPayload
   ): Promise<ExhibitorRegistrationResponse> {
     try {
       // Call external backend API directly
-      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/registerExhibitor`;
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/registerExhibitorBulk`;
       
       console.log('Calling register exhibitors API:', {
         url: apiUrl,
@@ -1715,7 +1736,7 @@ class FieldMappingApiService {
   /**
    * Get all visitor matching configuration fields
    */
-  async getAllVisitorMatchingConfig(identifier: string): Promise<StandardFieldsResponse> {
+  async getAllVisitorMatchingConfig(identifier: string): Promise<MatchingConfigResponse> {
     try {
       // Call external backend API directly
       const apiUrl = `${this.baseURL}/api/${identifier}/Event/getAllVisitorMatchingConfig`;
@@ -1766,7 +1787,7 @@ class FieldMappingApiService {
   /**
    * Get all exhibitor matching configuration fields
    */
-  async getAllExhibitorMatchingConfig(identifier: string): Promise<StandardFieldsResponse> {
+  async getAllExhibitorMatchingConfig(identifier: string): Promise<MatchingConfigResponse> {
     try {
       // Call external backend API directly
       const apiUrl = `${this.baseURL}/api/${identifier}/Event/getAllExhibitorMatchingCongig`;

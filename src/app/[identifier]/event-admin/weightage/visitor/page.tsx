@@ -31,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
-import { fieldMappingApi } from '@/services/fieldMappingApi';
+import { fieldMappingApi, MatchingConfigField } from '@/services/fieldMappingApi';
 
 interface FieldWeightage {
   id: string;
@@ -39,15 +39,7 @@ interface FieldWeightage {
   weightage: number;
 }
 
-interface StandardField {
-  id: number;
-  fieldName: string;
-  isActive: boolean;
-  createdBy: number;
-  createdDate: string;
-  modifiedBy: number | null;
-  modifiedDate: string | null;
-}
+
 
 export default function VisitorWeightagePage() {
   const params = useParams();
@@ -70,21 +62,16 @@ export default function VisitorWeightagePage() {
         const response = await fieldMappingApi.getAllVisitorMatchingConfig(identifier);
         
         if (response.result && Array.isArray(response.result)) {
-          const matchingConfigFields: FieldWeightage[] = response.result.map((field: StandardField) => ({
+          // Sort fields by ID to maintain consistent order
+          const sortedFields = response.result.sort((a, b) => a.id - b.id);
+          
+          const matchingConfigFields: FieldWeightage[] = sortedFields.map((field: MatchingConfigField) => ({
             id: field.fieldName,
             name: field.fieldName.charAt(0).toUpperCase() + field.fieldName.slice(1).replace(/([A-Z])/g, ' $1'),
-            weightage: 0
+            weightage: Math.round(field.weight * 100) // Convert decimal to percentage (0.25 -> 25)
           }));
           
-          // Set default weightage for first few fields to make total 100
-          const fieldsWithWeightage = matchingConfigFields.map((field, index) => {
-            if (index < 4) {
-              return { ...field, weightage: 25 };
-            }
-            return field;
-          });
-          
-          setFields(fieldsWithWeightage);
+          setFields(matchingConfigFields);
         }
       } catch (error) {
         console.error('Error fetching visitor matching config:', error);
@@ -103,19 +90,8 @@ export default function VisitorWeightagePage() {
 
   const handleWeightageChange = (fieldId: string, newValue: number) => {
     setFields(prevFields => {
-      // Calculate current total excluding the field being changed
-      const currentTotal = prevFields.reduce((sum, field) => 
-        field.id === fieldId ? sum : sum + field.weightage, 0
-      );
-      
-      // Calculate the maximum allowed value for this field
-      const maxAllowed = 100 - currentTotal;
-      
-      // Ensure the new value doesn't exceed the maximum allowed
-      const validatedValue = Math.min(newValue, maxAllowed);
-      
       return prevFields.map(field => 
-        field.id === fieldId ? { ...field, weightage: validatedValue } : field
+        field.id === fieldId ? { ...field, weightage: newValue } : field
       );
     });
   };
@@ -127,12 +103,15 @@ export default function VisitorWeightagePage() {
     }
   };
 
+  // Check if total weightage exceeds 100%
+  const isTotalExceeding100 = totalWeightage > 100;
+
   const handleSubmit = async () => {
     try {
       // Prepare the payload for the API
       const configData = fields.map(field => ({
         fieldName: field.id,
-        weight: field.weightage
+        weight: field.weightage // Send as integer percentage (25 -> 25)
       }));
 
       console.log('Saving visitor weightage configuration:', {
@@ -203,21 +182,9 @@ export default function VisitorWeightagePage() {
               <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                   <Typography variant="h6" fontWeight="600">
-                    Visitor Weightage ({isContentScoreEnabled ? 'Enabled' : 'Disabled'})
+                    Visitor Weightage 
                   </Typography>
-                  <Switch
-                    checked={isContentScoreEnabled}
-                    onChange={(e) => setIsContentScoreEnabled(e.target.checked)}
-                    color="primary"
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: '#4caf50',
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: '#4caf50',
-                      },
-                    }}
-                  />
+                 
                 </Box>
               </Box>
 
@@ -235,17 +202,13 @@ export default function VisitorWeightagePage() {
                       <Typography variant="h6" fontWeight="600">
                         Fields
                       </Typography>
-                      <Tooltip title="Configure which fields to include in content scoring">
-                        <Info fontSize="small" sx={{ color: 'text.secondary' }} />
-                      </Tooltip>
+                      
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="h6" fontWeight="600">
                         Weightage (%)
                       </Typography>
-                      <Tooltip title="Set the percentage weight for each field">
-                        <Info fontSize="small" sx={{ color: 'text.secondary' }} />
-                      </Tooltip>
+                     
                     </Box>
                   </Box>
 
@@ -254,12 +217,6 @@ export default function VisitorWeightagePage() {
                   {/* Fields List */}
                   <Box sx={{ mb: 3 }}>
                     {fields.map((field, index) => {
-                      // Calculate current total excluding this field
-                      const currentTotal = fields.reduce((sum, f) => 
-                        f.id === field.id ? sum : sum + f.weightage, 0
-                      );
-                      const maxAllowed = 100 - currentTotal;
-                      
                       return (
                         <Box key={field.id} sx={{ mb: 3 }}>
                           <Grid container spacing={3} alignItems="center">
@@ -271,19 +228,19 @@ export default function VisitorWeightagePage() {
                             <Grid item xs={12} md={6}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                 <Box sx={{ flex: 1, px: 1 }}>
-                                                                     <Slider
-                                     value={field.weightage}
-                                     onChange={(_, value) => handleWeightageChange(field.id, value as number)}
-                                     min={0}
-                                     max={Math.min(100, maxAllowed + field.weightage)}
-                                     step={1}
-                                     marks={[
-                                       { value: 0, label: '0' },
-                                       { value: Math.round(Math.min(100, maxAllowed + field.weightage) / 4), label: Math.round(Math.min(100, maxAllowed + field.weightage) / 4) },
-                                       { value: Math.round(Math.min(100, maxAllowed + field.weightage) / 2), label: Math.round(Math.min(100, maxAllowed + field.weightage) / 2) },
-                                       { value: Math.round(Math.min(100, maxAllowed + field.weightage) * 3 / 4), label: Math.round(Math.min(100, maxAllowed + field.weightage) * 3 / 4) },
-                                       { value: Math.min(100, maxAllowed + field.weightage), label: Math.min(100, maxAllowed + field.weightage) }
-                                     ].filter(mark => mark.value <= Math.min(100, maxAllowed + field.weightage))}
+                                  <Slider
+                                    value={field.weightage}
+                                    onChange={(_, value) => handleWeightageChange(field.id, value as number)}
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                    marks={[
+                                      { value: 0, label: '0' },
+                                      { value: 25, label: '25' },
+                                      { value: 50, label: '50' },
+                                      { value: 75, label: '75' },
+                                      { value: 100, label: '100' }
+                                    ]}
                                     sx={{
                                       '& .MuiSlider-thumb': {
                                         backgroundColor: '#4caf50',
@@ -337,38 +294,33 @@ export default function VisitorWeightagePage() {
 
                   {/* Total Weightage */}
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-                    <Typography variant="h6" fontWeight="600" color="primary">
+                    <Typography 
+                      variant="h6" 
+                      fontWeight="600" 
+                      color={isTotalExceeding100 ? 'error' : 'primary'}
+                    >
                       Total {totalWeightage}
                     </Typography>
                   </Box>
 
-                  {/* Add/Remove Fields Link */}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 3 }}>
-                    <Link
-                      href="#"
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        color: 'primary.main',
-                        textDecoration: 'none',
-                        fontWeight: 500,
-                        '&:hover': {
-                          textDecoration: 'underline',
-                        },
-                      }}
-                    >
-                      <Info fontSize="small" />
-                      ADD OR REMOVE FIELDS
-                    </Link>
-                  </Box>
+                  {/* Error Message for exceeding 100% */}
+                  {isTotalExceeding100 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Alert severity="error" sx={{ borderRadius: 2 }}>
+                        Total weightage should not exceed 100%. Current total: {totalWeightage}%
+                      </Alert>
+                    </Box>
+                  )}
+
+                 
+                  
 
                   {/* Submit Button */}
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <Button
                       variant="contained"
                       onClick={handleSubmit}
-                      disabled={!isContentScoreEnabled || totalWeightage !== 100}
+                      disabled={!isContentScoreEnabled || isTotalExceeding100}
                       sx={{
                         backgroundColor: '#4caf50',
                         color: 'white',

@@ -56,7 +56,14 @@ const nextConfig = {
         source: '/:identifier/weightage',
         destination: '/:identifier/event-admin/weightage',
       },
-
+      {
+        source: '/:identifier/exhibitor_visitor_settings',
+        destination: '/:identifier/event-admin/exhibitor_visitor_settings',
+      },
+      {
+        source: '/:identifier/exhibitor_visitor_settings',
+        destination: '/:identifier/event-admin/exhibitor_visitor_settings',
+      },
       // Dashboard sub-routes
       {
         source: '/:identifier/dashboard/exhibitor_dashboard',
@@ -70,6 +77,7 @@ const nextConfig = {
         source: '/:identifier/dashboard/visitor_dashboard',
         destination: '/:identifier/event-admin/dashboard/visitor_dashboard',
       },
+      
       // weightage subroutes
        {
         source: '/:identifier/weightage/exhibitor',
@@ -79,6 +87,7 @@ const nextConfig = {
         source: '/:identifier/weightage/visitor',
         destination: '/:identifier/event-admin/weightage/visitor',
       },
+      
     ];
   },
 };

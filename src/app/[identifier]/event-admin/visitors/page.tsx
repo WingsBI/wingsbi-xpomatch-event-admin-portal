@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { Box, Container } from '@mui/material';
-import { VisitorListView } from '@/components/participants/VisitorsListView';
+import dynamic from 'next/dynamic';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { setIdentifier } from '@/store/slices/appSlice';
@@ -26,10 +26,15 @@ export default function VisitorsPage() {
       <ResponsiveDashboardLayout title="Visitors" >
         <Container maxWidth={false} disableGutters sx={{ px: 0, height: '100%' }}>
           <Box sx={{ height: 'calc(100vh - 120px)', width: '100%', overflowY: 'auto', overflowX: 'hidden', m: 0, p: 0 }}>
-            <VisitorListView identifier={identifier} />
+            <LazyVisitorListView identifier={identifier} />
           </Box>
         </Container>
       </ResponsiveDashboardLayout>
     </RoleBasedRoute>
   );
 } 
+
+const LazyVisitorListView = dynamic(
+  () => import('@/components/participants/VisitorsListView').then(m => m.VisitorListView),
+  { ssr: false, loading: () => null }
+);

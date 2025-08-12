@@ -371,7 +371,7 @@ class ApiService {
   }
 
   // Visitors API methods
-  async getAllVisitors(identifier: string, isIframe: boolean = false): Promise<ApiResponse<any>> {
+  async getAllVisitors(identifier: string): Promise<ApiResponse<any>> {
     try {
       // Get token from cookies
       const token = getAuthToken();
@@ -389,7 +389,7 @@ class ApiService {
       }
       
       console.log('Making API call to:', url);
-      console.log('Is iframe context:', isIframe);
+              console.log('Getting all visitors for identifier:', identifier);
       console.log('Has token:', !!token);
       console.log('With headers:', headers);
       
@@ -407,9 +407,9 @@ class ApiService {
       };
     } catch (error) {
       console.error('API Error details:', error);
-      // If 401 and we're in iframe context, try a different approach
-      if ((error as any).response?.status === 401 && isIframe) {
-        console.log('401 in iframe context - this might be expected, check if API requires auth for iframes');
+              // Handle 401 errors
+        if ((error as any).response?.status === 401) {
+          console.log('401 error - authentication required');
       }
       throw error;
     }

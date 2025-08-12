@@ -655,7 +655,7 @@ export default function ResponsiveDashboardLayout({
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }} {...swipeHandlers}>
-      {/* Prefetch likely navigations and iframe documents to speed up subsequent tab loads */}
+              {/* Prefetch likely navigations to speed up subsequent tab loads */}
       {identifier && (
         <>
           <link rel="prefetch" href={`/${identifier}/visitors`} as="document" />

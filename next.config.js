@@ -2,19 +2,7 @@
 const nextConfig = {
   async headers() {
     return [
-      {
-        source: '/iframe/:path*',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' *",
-          },
-        ],
-      },
+      // Headers configuration can be added here if needed
     ];
   },
   async rewrites() {

@@ -348,7 +348,7 @@ export function VisitorListView({ identifier }: { identifier: string }) {
       setLoading(true);
       setError(null);
       // No sessionStorage cache
-      const response = await apiService.getAllVisitors(eventIdentifier, true);
+      const response = await apiService.getAllVisitors(eventIdentifier);
       if (response.success && response.data?.result) {
         const transformedVisitors = response.data.result.map((visitor: ApiVisitorData, index: number) => transformVisitorData(visitor, eventIdentifier, index));
         setVisitors(transformedVisitors);

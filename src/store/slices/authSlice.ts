@@ -65,7 +65,7 @@ export const loginUser = createAsyncThunk(
         setUserData(response.data.user);
       }
       
-      // Store the identifier for iframe components to use
+      // Store the identifier for components to use
       if (credentials.identifier) {
         setEventIdentifier(credentials.identifier);
         

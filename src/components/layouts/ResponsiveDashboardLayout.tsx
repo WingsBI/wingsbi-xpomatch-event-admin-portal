@@ -119,8 +119,8 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       ] },
       { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
-        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },,
-        { text: 'Exhibitor Profile', href: `/${identifier}/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },,
+         { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
+         { text: 'Exhibitor Profile', href: `/${identifier}/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },
       ] },
     ];
   } else {
@@ -139,6 +139,8 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'Theme Settings', href: '#', children: [] },
         { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
+        { text: 'Exhibitor Weightage', href: `/${identifier}/weightage/exhibitor`, children: [] },
+        { text: 'Visitor Weightage', href: `/${identifier}/weightage/visitor`, children: [] },
       ] },
     ];
   }
@@ -204,6 +206,16 @@ export default function ResponsiveDashboardLayout({
       title: 'Visitors Onboarding',
       path: `/${identifier}/visitors/matching`,
       description: 'Map visitor fields'
+    },
+    {
+      title: 'Exhibitor Weightage',
+      path: `/${identifier}/weightage/exhibitor`,
+      description: 'Configure exhibitor content score weightage'
+    },
+    {
+      title: 'Visitor Weightage',
+      path: `/${identifier}/weightage/visitor`,
+      description: 'Configure visitor content score weightage'
     }
   ];
 
@@ -538,6 +550,7 @@ export default function ResponsiveDashboardLayout({
             } else if (item.children && item.children.length > 0) {
               handleExpandClick(item.text);
             } else {
+              console.log('Navigating to:', item.href);
               router.push(item.href);
               if (isMobile) {
                 dispatch(setSidebarOpen(false));

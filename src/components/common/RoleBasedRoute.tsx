@@ -51,11 +51,11 @@ export default function RoleBasedRoute({
           
           if (!defaultRedirectPath) {
             if (userRole === 'visitor') {
-                      defaultRedirectPath = `/${identifier}/exhibitors/details`;
-      } else if (userRole === 'exhibitor') {
-        defaultRedirectPath = `/${identifier}/dashboard/exhibitor_dashboard`;
-      } else if (userRole === 'event-admin') {
-        defaultRedirectPath = `/${identifier}/dashboard`;
+              defaultRedirectPath = `/${identifier}/exhibitors/details`;
+            } else if (userRole === 'exhibitor') {
+              defaultRedirectPath = `/${identifier}/dashboard/exhibitor_dashboard`;
+            } else if (userRole === 'event-admin' || userRole === 'event_admin') {
+              defaultRedirectPath = `/${identifier}/dashboard`;
             } else {
               defaultRedirectPath = `/${identifier}`;
             }

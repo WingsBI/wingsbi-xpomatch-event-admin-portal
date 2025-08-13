@@ -80,6 +80,7 @@ import {
   setNotifications
 } from '@/store/slices/appSlice';
 import { logoutUser } from '@/store/slices/authSlice';
+import { useRoleAccess } from '@/context/RoleAccessContext';
 
 interface ResponsiveDashboardLayoutProps {
   children: ReactNode;
@@ -87,44 +88,101 @@ interface ResponsiveDashboardLayoutProps {
   breadcrumbs?: Array<{ label: string; href?: string }>;
 }
 
-const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier: string) => {
-  let baseItems;
+interface NavigationItem {
+  text: string;
+  icon?: React.ReactNode;
+  href?: string;
+  children: NavigationItem[];
+}
+
+const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier: string, permissions: any): NavigationItem[] => {
+  let baseItems: NavigationItem[] = [];
   
   if (userRole === 'visitor') {
-    // Visitor-specific navigation
+    // Visitor-specific navigation with role-based permissions
     baseItems = [
       { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard/visitor_dashboard`, children: [] },
-      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] },
-      // { text: 'Exhibitor Details', icon: <Business />, href: `/${identifier}/event-admin/exhibitors/details`, children: [] },
-     
-      { text: 'Meetings', icon: <CalendarMonth />, children: [
-        { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
-        { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
-      ] },
-      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] },
-      { text: 'Settings', icon: <Settings />, children: [
-        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
-      ] },
     ];
+    
+    // Show Visitors tab only if visitor permission is true
+    if (permissions?.visitor) {
+      baseItems.push({ text: 'Visitors', icon: <Person />, href: `/${identifier}/visitors`, children: [] });
+    }
+    
+    // Show Exhibitors tab only if exhibitor permission is true
+    if (permissions?.exhibitor) {
+      baseItems.push({ text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] });
+    }
+    
+    // Show Meetings tab only if setMeeting permission is true
+    if (permissions?.setMeeting) {
+      baseItems.push({
+        text: 'Meetings', 
+        icon: <CalendarMonth />, 
+        children: [
+          { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
+          { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
+        ]
+      });
+    }
+    
+    // Show Favourites tab only if isFavorite permission is true
+    if (permissions?.isFavorite) {
+      baseItems.push({ text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] });
+    }
+    
+    baseItems.push({
+      text: 'Settings', 
+      icon: <Settings />, 
+      children: [
+        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
+      ]
+    });
+    
   } else if (userRole === 'exhibitor') {
-    // Exhibitor-specific navigation
+    // Exhibitor-specific navigation with role-based permissions
     baseItems = [
       { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard/exhibitor_dashboard`, children: [] },
-      { text: 'Visitors', icon: <Person />, href: `/${identifier}/visitors`, children: [] },
-      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] },
-      // { text: 'Visitor Details', icon: <Person />, href: `/${identifier}/event-admin/visitors/details`, children: [] },
-      { text: 'Meetings', icon: <CalendarMonth />, children: [
-        { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
-        { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
-      ] },
-      { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] },
-      { text: 'Settings', icon: <Settings />, children: [
+    ];
+    
+    // Show Visitors tab only if visitor permission is true
+    if (permissions?.visitor) {
+      baseItems.push({ text: 'Visitors', icon: <Person />, href: `/${identifier}/visitors`, children: [] });
+    }
+    
+    // Show Exhibitors tab only if exhibitor permission is true
+    if (permissions?.exhibitor) {
+      baseItems.push({ text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] });
+    }
+    
+    // Show Meetings tab only if setMeeting permission is true
+    if (permissions?.setMeeting) {
+      baseItems.push({
+        text: 'Meetings', 
+        icon: <CalendarMonth />, 
+        children: [
+          { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
+          { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
+        ]
+      });
+    }
+    
+    // Show Favourites tab only if isFavorite permission is true
+    if (permissions?.isFavorite) {
+      baseItems.push({ text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] });
+    }
+    
+    baseItems.push({
+      text: 'Settings', 
+      icon: <Settings />, 
+      children: [
          { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
          { text: 'Exhibitor Profile', href: `/${identifier}/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },
-      ] },
-    ];
+      ]
+    });
+    
   } else {
-    // Default for event-admin role - full navigation
+    // Default for event-admin role - full navigation (event-admin has all permissions)
     baseItems = [
       { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard`, children: [] },
       { text: 'Visitors', icon: <Person />, href: `/${identifier}/visitors`, children: [] },
@@ -133,16 +191,13 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
       ] },
-      // { text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/event-admin/favourites`, children: [] },
       { text: 'Settings', icon: <Settings />, children: [
         { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
         { text: 'Theme Settings', href: '#', children: [] },
         { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
         { text: 'Content Matchmaking Settings', href: `/${identifier}/weightage`, children: [] },
-      
         { text: 'Role Based settings', href: `/${identifier}/exhibitor_visitor_settings`, children: [] },
-       
       ] },
     ];
   }
@@ -166,6 +221,9 @@ export default function ResponsiveDashboardLayout({
     ui
   } = useSelector((state: RootState) => state.app);
   const { user, isAuthenticated, token } = useSelector((state: RootState) => state.auth);
+  
+  // Role-based access permissions
+  const { permissions } = useRoleAccess();
 
   // Define searchable pages
   const searchablePages = [
@@ -532,8 +590,8 @@ export default function ResponsiveDashboardLayout({
 
   // Memoize navigation items to prevent recalculation on every render
   const navigationItems = useMemo(() => {
-    return getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier);
-  }, [user?.role, responsive.deviceType, identifier]);
+    return getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier, permissions);
+  }, [user?.role, responsive.deviceType, identifier, permissions]);
 
   // Optimized navigation item renderer - defined before drawerContent
   const renderNavigationItem = useCallback((item: any, level = 0) => (

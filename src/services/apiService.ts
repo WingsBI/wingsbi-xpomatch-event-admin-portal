@@ -1070,6 +1070,38 @@ export const roleBasedDirectoryApi = {
     }
   },
 
+  getAllRolebaseDirectoryAccessDetails: async (identifier: string, roleId: number) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Event/getAllRolebaseDirectoryAccessDetails?roleId=${roleId}`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching role-based directory access details:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
   updateRolebaseDirectoryAccess: async (identifier: string, accessData: any[]) => {
     const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Event/updateRolebaseDirectoryAccess`;
     

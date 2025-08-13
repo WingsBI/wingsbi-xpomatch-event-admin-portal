@@ -139,8 +139,8 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'Theme Settings', href: '#', children: [] },
         { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
-        { text: 'Exhibitor Weightage', href: `/${identifier}/weightage/exhibitor`, children: [] },
-        { text: 'Visitor Weightage', href: `/${identifier}/weightage/visitor`, children: [] },
+        { text: 'Content Matchmaking Settings', href: `/${identifier}/weightage`, children: [] },
+      
         { text: 'Role Based settings', href: `/${identifier}/exhibitor_visitor_settings`, children: [] },
        
       ] },

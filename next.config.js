@@ -75,15 +75,7 @@ const nextConfig = {
         destination: '/:identifier/event-admin/dashboard/visitor_dashboard',
       },
       
-      // weightage subroutes
-       {
-        source: '/:identifier/weightage/exhibitor',
-        destination: '/:identifier/event-admin/weightage/exhibitor',
-      },
-       {
-        source: '/:identifier/weightage/visitor',
-        destination: '/:identifier/event-admin/weightage/visitor',
-      },
+      
       
     ];
   },

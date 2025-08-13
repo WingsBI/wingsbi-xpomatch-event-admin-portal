@@ -779,7 +779,7 @@ export default function ScheduleMeetingPage() {
     try {
       const meetingData = {
         agenda: meetingForm.agenda,
-        description: meetingForm.description,
+        // description: meetingForm.description, // Commented out as requested
         attendiesId: meetingForm.attendiesId,
         meetingDate: meetingForm.meetingDate,
         startTime: meetingForm.startTime,
@@ -811,8 +811,8 @@ export default function ScheduleMeetingPage() {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    // Navigate back to meetings page
-    router.push(`/${identifier}/event-admin/meetings`);
+    // Navigate back to meetings page with refresh parameter
+    router.push(`/${identifier}/event-admin/meetings?refresh=true`);
   };
 
   return (

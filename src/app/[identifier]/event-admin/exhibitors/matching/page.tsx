@@ -396,7 +396,7 @@ const FullPageLoader = () => (
       console.log('Registering exhibitors with payload:', payload);
 
       // Call the registration API
-      const response = await fieldMappingApi.registerExhibitors(identifier, payload);
+      const response = await fieldMappingApi.registerExhibitor(identifier, payload);
       
       console.log('Registration response:', response);
 

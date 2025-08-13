@@ -37,6 +37,27 @@ export interface StandardFieldsResponse {
   result: StandardField[];
 }
 
+export interface MatchingConfigField {
+  id: number;
+  fieldName: string;
+  weight: number;
+  algorithm: string;
+  isActive: boolean;
+  createdBy: number;
+  createdDate: string;
+  modifiedBy: number | null;
+  modifiedDate: string | null;
+}
+
+export interface MatchingConfigResponse {
+  version: string | null;
+  statusCode: number;
+  message: string | null;
+  isError: boolean | null;
+  responseException: any;
+  result: MatchingConfigField[];
+}
+
 export interface UserRegistrationMapping {
   standardFieldIndex: number | null;
   standardField: string;
@@ -724,7 +745,7 @@ class FieldMappingApiService {
   ): Promise<UserRegistrationResponse> {
     try {
       // Call external backend API directly
-      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/register-from-excel`;
+      const apiUrl = `${this.baseURL}/api/${identifier}/RegisterUsers/register-from-excel-bulk`;
       
       console.log('Calling register users API:', {
         url: apiUrl,
@@ -888,13 +909,13 @@ class FieldMappingApiService {
   /**
    * Register exhibitors from Excel file with field mappings
    */
-  async registerExhibitors(
+  async registerExhibitor(
     identifier: string, 
     payload: UserRegistrationPayload
   ): Promise<ExhibitorRegistrationResponse> {
     try {
       // Call external backend API directly
-      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/registerExhibitor`;
+      const apiUrl = `${this.baseURL}/api/${identifier}/ExhibitorOnboarding/registerExhibitorBulk`;
       
       console.log('Calling register exhibitors API:', {
         url: apiUrl,
@@ -1702,6 +1723,208 @@ class FieldMappingApiService {
       }
       return data;
     } catch (error) {
+      return {
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: null
+      };
+    }
+  }
+
+  /**
+   * Get all visitor matching configuration fields
+   */
+  async getAllVisitorMatchingConfig(identifier: string): Promise<MatchingConfigResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/Event/getAllVisitorMatchingConfig`;
+      
+      console.log('Calling get all visitor matching config API:', {
+        url: apiUrl,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Get visitor matching config response status:', response.status);
+      
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: `HTTP ${response.status}: Failed to fetch visitor matching config`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+      
+      const data = await response.json();
+      console.log('Get visitor matching config response data:', data);
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching visitor matching config:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Get all exhibitor matching configuration fields
+   */
+  async getAllExhibitorMatchingConfig(identifier: string): Promise<MatchingConfigResponse> {
+    try {
+      // Call external backend API directly
+      const apiUrl = `${this.baseURL}/api/${identifier}/Event/getAllExhibitorMatchingCongig`;
+      
+      console.log('Calling get all exhibitor matching config API:', {
+        url: apiUrl,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Get exhibitor matching config response status:', response.status);
+      
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: `HTTP ${response.status}: Failed to fetch exhibitor matching config`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+      
+      const data = await response.json();
+      console.log('Get exhibitor matching config response data:', data);
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching exhibitor matching config:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  }
+
+  /**
+   * Update visitor matching configuration
+   */
+  async updateVisitorMatchingConfig(identifier: string, configData: Array<{ fieldName: string; weight: number }>): Promise<any> {
+    try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/Event/updateVisitorMatchingConfig`;
+      
+      console.log('Calling update visitor matching config API:', {
+        url: apiUrl,
+        configData,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData),
+      });
+
+      console.log('Update visitor matching config response status:', response.status);
+      
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          message: `HTTP ${response.status}: Failed to update visitor matching config`,
+          isError: true,
+          responseException: null,
+          result: null
+        };
+      }
+      
+      const data = await response.json();
+      console.log('Update visitor matching config response data:', data);
+
+      return data;
+    } catch (error) {
+      console.error('Error updating visitor matching config:', error);
+      return {
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: null
+      };
+    }
+  }
+
+  /**
+   * Update exhibitor matching configuration
+   */
+  async updateExhibitorMatchingConfig(identifier: string, configData: Array<{ fieldName: string; weight: number }>): Promise<any> {
+    try {
+      const apiUrl = `${this.baseURL}/api/${identifier}/Event/updateExhibitorMatchingConfig`;
+      
+      console.log('Calling update exhibitor matching config API:', {
+        url: apiUrl,
+        configData,
+        hasToken: !!this.getAuthToken()
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData),
+      });
+
+      console.log('Update exhibitor matching config response status:', response.status);
+      
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          message: `HTTP ${response.status}: Failed to update exhibitor matching config`,
+          isError: true,
+          responseException: null,
+          result: null
+        };
+      }
+      
+      const data = await response.json();
+      console.log('Update exhibitor matching config response data:', data);
+
+      return data;
+    } catch (error) {
+      console.error('Error updating exhibitor matching config:', error);
       return {
         statusCode: 500,
         message: error instanceof Error ? error.message : 'Network error',

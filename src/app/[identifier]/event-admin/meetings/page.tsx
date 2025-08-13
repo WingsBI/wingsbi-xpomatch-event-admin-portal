@@ -238,51 +238,101 @@ export default function MeetingsPage() {
       let currentUserId: number | null = null;
       
       if (user.role === 'visitor') {
-        const visitorId = getCurrentVisitorId();
+        let visitorId = null;
+        
+        // Get user ID from JWT token (cookie-based) - same logic as exhibitor
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const tokenData = JSON.parse(jsonPayload);
+            if (tokenData.id) {
+              visitorId = parseInt(tokenData.id);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing JWT token for visitorId:', error);
+        }
+        
+        // Fallback to getCurrentVisitorId() if JWT parsing fails
+        if (!visitorId) {
+          visitorId = getCurrentVisitorId();
+        }
+        
         console.log('=== VISITOR ROLE DEBUG ===');
         console.log('User role:', user.role);
-        console.log('Visitor ID from getCurrentVisitorId():', visitorId);
+        console.log('Visitor ID from JWT token:', visitorId);
         console.log('User object:', user);
         
-        // Use the actual visitor ID from the token, but fallback to 19 if needed (based on API response)
-        const actualVisitorId = visitorId || 19;
-        console.log('Using visitor ID:', actualVisitorId);
+        if (!visitorId) {
+          console.warn('No visitorId found for visitor role');
+          return;
+        }
         
-        currentUserId = actualVisitorId;
+        currentUserId = visitorId;
         
-        console.log('Calling API with attendeeId:', actualVisitorId);
+        console.log('Calling API with attendeeId:', visitorId);
         
         // Get meetings where visitor is the initiator
-        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, actualVisitorId);
+        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, visitorId);
         console.log('Initiator response:', initiatorResponse);
         
-        // Get meetings where visitor is an attendee
-        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, actualVisitorId);
+        // Get meetings where visitor is an attendee with retry logic
+        let invitesResponse = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries && !invitesResponse?.result) {
+          try {
+            console.log(`Attempt ${retryCount + 1} to get meeting invites for attendee ID: ${visitorId}`);
+            invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, visitorId);
         console.log('Invites response:', invitesResponse);
         
-        // If no invites found, try with different attendee IDs (fallback strategy)
-        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
-          console.log('No invites found, trying with different attendee IDs...');
-          const fallbackIds = [7, 19, 28]; // Common attendee IDs from your examples
-          
-          for (const fallbackId of fallbackIds) {
-            if (fallbackId !== actualVisitorId) {
-              console.log(`Trying with attendee ID: ${fallbackId}`);
-              const fallbackResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, fallbackId);
-              if (fallbackResponse?.result && fallbackResponse.result.length > 0) {
-                console.log(`Found invites with attendee ID: ${fallbackId}`);
-                invitesResponse = fallbackResponse;
-                currentUserId = fallbackId;
+            if (invitesResponse?.result && invitesResponse.result.length > 0) {
+              console.log(`Successfully got ${invitesResponse.result.length} invites`);
                 break;
               }
+          } catch (error) {
+            console.error(`Attempt ${retryCount + 1} failed:`, error);
             }
+          
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`Waiting 1 second before retry ${retryCount + 1}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
         
+        // No fallback logic needed since we now have the correct user ID from JWT token
+        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
+          console.log('No invites found with the correct user ID from JWT token');
+        }
+        
         // Transform invites response to match meeting format
-        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
-          console.log('Processing invite:', invite);
+        console.log('=== TRANSFORMING INVITES ===');
+        console.log('Raw invites response:', invitesResponse);
+        console.log('Invites result array:', invitesResponse?.result);
+        console.log('Number of invites to transform:', invitesResponse?.result?.length || 0);
+        
+        const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
+          console.log(`Processing invite ${index + 1}:`, invite);
           const meetingDetails = invite.meetingDetails?.[0];
+          console.log(`Meeting details for invite ${index + 1}:`, meetingDetails);
+          
+          // Determine if current user is the initiator of this meeting
+          // Use the original user ID (visitorId) for initiator check, not the fallback ID
+          const isCurrentUserInitiator = visitorId && (meetingDetails?.initiatorId === visitorId);
+          console.log(`Invite ${index + 1} initiator check:`, {
+            currentUserId,
+            visitorId,
+            meetingInitiatorId: meetingDetails?.initiatorId,
+            isCurrentUserInitiator,
+            meetingId: meetingDetails?.id || invite.meetingId || invite.id
+          });
           
           const transformedInvite = {
             id: (meetingDetails?.id ?? invite.meetingId ?? invite.id).toString(),
@@ -308,25 +358,25 @@ export default function MeetingsPage() {
                 name: invite.attendeeName,
                 email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
                 company: invite.companyName,
-                type: 'exhibitor',
+                type: 'visitor', // Current user is visitor
                 avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
               },
               // Add the initiator
               {
-                id: meetingDetails.initiatorId.toString(),
-                name: meetingDetails.initiatorName,
-                email: `${meetingDetails.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-                company: meetingDetails.companyName,
-                type: 'visitor',
-                avatar: (meetingDetails.initiatorName?.charAt(0) || 'I').toUpperCase()
+                id: meetingDetails?.initiatorId?.toString() || '1',
+                name: meetingDetails?.initiatorName || 'Initiator',
+                email: `${meetingDetails?.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'initiator@example.com',
+                company: meetingDetails?.companyName || 'Company',
+                type: 'exhibitor', // Initiator is exhibitor (opposite of current user)
+                avatar: (meetingDetails?.initiatorName?.charAt(0) || 'I').toUpperCase()
               }
             ],
             // Add approval status from invite
             isApproved: invite.isApproved === true,
             isCancelled: invite.isCancelled === true,
             approvalStatus: invite.status,
-            // IMPORTANT: For invites, the current user is NOT the initiator
-            isInitiator: false
+            // Set isInitiator based on current user ID comparison
+            isInitiator: isCurrentUserInitiator
           };
           
           console.log('Transformed invite:', {
@@ -342,13 +392,25 @@ export default function MeetingsPage() {
         }).filter(Boolean);
         
         // Combine both responses
+        console.log('=== COMBINING VISITOR RESPONSES ===');
+        console.log('Initiator response result count:', initiatorResponse?.result?.length || 0);
+        console.log('Transformed invites count:', transformedInvites.length);
+        
+        // Create a proper response object with the transformed data
         response = {
-          ...initiatorResponse,
+          version: '1.0.0.0',
+          statusCode: 200,
+          message: 'Meetings retrieved successfully',
+          responseException: null,
+          isError: false,
           result: [
             ...(initiatorResponse?.result || []),
             ...transformedInvites
           ]
         };
+        
+        console.log('Final combined visitor response result count:', response.result.length);
+        console.log('Final combined visitor response:', response);
         
       } else if (user.role === 'exhibitor') {
         let userId = null;
@@ -388,27 +450,35 @@ export default function MeetingsPage() {
         initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, userId);
         console.log('Initiator response:', initiatorResponse);
         
-        // Get meetings where exhibitor is an attendee
+        // Get meetings where exhibitor is an attendee with retry logic
+        let invitesResponse = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries && !invitesResponse?.result) {
+          try {
+            console.log(`Attempt ${retryCount + 1} to get meeting invites for attendee ID: ${userId}`);
         invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, userId);
         console.log('Invites response:', invitesResponse);
         
-        // If no invites found, try with different attendee IDs (fallback strategy)
-        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
-          console.log('No invites found, trying with different attendee IDs...');
-          const fallbackIds = [7, 19, 28]; // Common attendee IDs from your examples
-          
-          for (const fallbackId of fallbackIds) {
-            if (fallbackId !== userId) {
-              console.log(`Trying with attendee ID: ${fallbackId}`);
-              const fallbackResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, fallbackId);
-              if (fallbackResponse?.result && fallbackResponse.result.length > 0) {
-                console.log(`Found invites with attendee ID: ${fallbackId}`);
-                invitesResponse = fallbackResponse;
-                currentUserId = fallbackId;
+            if (invitesResponse?.result && invitesResponse.result.length > 0) {
+              console.log(`Successfully got ${invitesResponse.result.length} invites`);
                 break;
               }
+          } catch (error) {
+            console.error(`Attempt ${retryCount + 1} failed:`, error);
             }
+          
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`Waiting 1 second before retry ${retryCount + 1}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
+        }
+        
+        // No fallback logic needed since we now have the correct user ID from JWT token
+        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
+          console.log('No invites found with the correct user ID from JWT token');
         }
         
         console.log('=== getAllMeetingInvites Response ===');
@@ -417,8 +487,26 @@ export default function MeetingsPage() {
         console.log('Result length:', invitesResponse?.result?.length);
         
         // Transform invites response to match meeting format (tolerate meetingDetails: null)
-        const transformedInvites = (invitesResponse?.result || []).map((invite: any) => {
+        console.log('=== TRANSFORMING EXHIBITOR INVITES ===');
+        console.log('Raw exhibitor invites response:', invitesResponse);
+        console.log('Exhibitor invites result array:', invitesResponse?.result);
+        console.log('Number of exhibitor invites to transform:', invitesResponse?.result?.length || 0);
+        
+        const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
+          console.log(`Processing exhibitor invite ${index + 1}:`, invite);
           const meetingDetails = invite.meetingDetails?.[0];
+          console.log(`Meeting details for exhibitor invite ${index + 1}:`, meetingDetails);
+          
+          // Determine if current user is the initiator of this meeting
+          // Use the original user ID (userId) for initiator check, not the fallback ID
+          const isCurrentUserInitiator = userId && (meetingDetails?.initiatorId === userId);
+          console.log(`Exhibitor invite ${index + 1} initiator check:`, {
+            currentUserId,
+            originalUserId: userId,
+            meetingInitiatorId: meetingDetails?.initiatorId,
+            isCurrentUserInitiator,
+            meetingId: meetingDetails?.id || invite.meetingId || invite.id
+          });
           
           return {
             id: (meetingDetails?.id ?? invite.meetingId ?? invite.id).toString(),
@@ -444,25 +532,25 @@ export default function MeetingsPage() {
                 name: invite.attendeeName,
                 email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
                 company: invite.companyName,
-                type: 'exhibitor',
+                type: 'exhibitor', // Current user is exhibitor
                 avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
               },
               // Add the initiator
               {
-                id: meetingDetails.initiatorId.toString(),
-                name: meetingDetails.initiatorName,
-                email: `${meetingDetails.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-                company: meetingDetails.companyName,
-                type: 'visitor',
-                avatar: (meetingDetails.initiatorName?.charAt(0) || 'I').toUpperCase()
+                id: meetingDetails?.initiatorId?.toString() || '1',
+                name: meetingDetails?.initiatorName || 'Initiator',
+                email: `${meetingDetails?.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'initiator@example.com',
+                company: meetingDetails?.companyName || 'Company',
+                type: 'visitor', // Initiator is visitor (opposite of current user)
+                avatar: (meetingDetails?.initiatorName?.charAt(0) || 'I').toUpperCase()
               }
             ],
             // Add approval status from invite
             isApproved: invite.isApproved === true,
             isCancelled: invite.isCancelled === true,
             approvalStatus: invite.status,
-            // IMPORTANT: For invites, the current user is NOT the initiator
-            isInitiator: false
+            // Set isInitiator based on current user ID comparison
+            isInitiator: isCurrentUserInitiator
           };
         }).filter(Boolean);
         
@@ -471,17 +559,25 @@ export default function MeetingsPage() {
         console.log('Transformed invites:', transformedInvites);
         
         // Combine both responses
+        console.log('=== COMBINING EXHIBITOR RESPONSES ===');
+        console.log('Initiator response result count:', initiatorResponse?.result?.length || 0);
+        console.log('Transformed invites count:', transformedInvites.length);
+        
+        // Create a proper response object with the transformed data
         response = {
-          ...initiatorResponse,
+          version: '1.0.0.0',
+          statusCode: 200,
+          message: 'Meetings retrieved successfully',
+          responseException: null,
+          isError: false,
           result: [
             ...(initiatorResponse?.result || []),
             ...transformedInvites
           ]
         };
         
-        console.log('=== Combined Response ===');
-        console.log('Final response result length:', response.result.length);
-        console.log('Final response result:', response.result);
+        console.log('Final combined exhibitor response result count:', response.result.length);
+        console.log('Final combined exhibitor response:', response);
       } else if (user.role === 'event-admin') {
         // For event-admins, show all meetings
         const visitorId = getCurrentVisitorId();
@@ -777,7 +873,26 @@ export default function MeetingsPage() {
       let attendeeId: number | null = null;
       
       if (user?.role === 'visitor') {
-        attendeeId = getCurrentVisitorId();
+        // Get user ID from JWT token (cookie-based) - same logic as loadMeetings
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const tokenData = JSON.parse(jsonPayload);
+            attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
+          }
+        } catch (error) {
+          console.error('Error parsing JWT token for attendeeId:', error);
+        }
+        
+        // Fallback to getCurrentVisitorId() if JWT parsing fails
+        if (!attendeeId) {
+          attendeeId = getCurrentVisitorId();
+        }
       } else if (user?.role === 'exhibitor') {
         // Get user ID from JWT token for exhibitors (cookie-based)
         try {
@@ -822,6 +937,18 @@ export default function MeetingsPage() {
       if (response && !response.isError) {
         console.log('Meeting rejected successfully:', response);
         
+        // Update the local state immediately to show the change
+        setMeetings(prevMeetings => {
+          console.log('Updating meetings state for rejection:', { meetingId, prevMeetings });
+          const updatedMeetings = prevMeetings.map(meeting => 
+            meeting.id === meetingId 
+              ? { ...meeting, isApproved: false, status: 'rejected' as Meeting['status'] }
+              : meeting
+          );
+          console.log('Updated meetings after rejection:', updatedMeetings);
+          return updatedMeetings;
+        });
+        
         // Reload meetings to get the latest data from the server
         await loadMeetings();
       } else {
@@ -854,7 +981,26 @@ export default function MeetingsPage() {
       let attendeeId: number | null = null;
       
       if (user?.role === 'visitor') {
-        attendeeId = getCurrentVisitorId();
+        // Get user ID from JWT token (cookie-based) - same logic as loadMeetings
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const tokenData = JSON.parse(jsonPayload);
+            attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
+          }
+        } catch (error) {
+          console.error('Error parsing JWT token for attendeeId:', error);
+        }
+        
+        // Fallback to getCurrentVisitorId() if JWT parsing fails
+        if (!attendeeId) {
+          attendeeId = getCurrentVisitorId();
+        }
       } else if (user?.role === 'exhibitor') {
         // Get user ID from JWT token for exhibitors (cookie-based)
         try {
@@ -904,7 +1050,7 @@ export default function MeetingsPage() {
           console.log('Updating meetings state for approval:', { meetingId, prevMeetings });
           const updatedMeetings = prevMeetings.map(meeting => 
             meeting.id === meetingId 
-              ? { ...meeting, isApproved: true }
+              ? { ...meeting, isApproved: true, status: 'scheduled' as Meeting['status'] }
               : meeting
           );
           console.log('Updated meetings:', updatedMeetings);
@@ -1054,6 +1200,19 @@ export default function MeetingsPage() {
       loadMeetings();
     }
   }, [identifier, user, loadMeetings]);
+
+  // Refresh meetings when returning from schedule page
+  useEffect(() => {
+    const refreshParam = searchParams.get('refresh');
+    if (refreshParam === 'true' && identifier && user) {
+      console.log('Refreshing meetings due to URL parameter');
+      loadMeetings();
+      // Remove the refresh parameter from URL without triggering page reload
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('refresh');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [searchParams, identifier, user, loadMeetings]);
 
   // Track cancelled count changes
   useEffect(() => {

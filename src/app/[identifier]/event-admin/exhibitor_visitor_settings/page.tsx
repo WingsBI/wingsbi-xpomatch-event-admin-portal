@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Box,
@@ -17,15 +17,26 @@ import {
   Button,
   Alert,
   Snackbar,
+  CircularProgress,
 } from '@mui/material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
+import { roleBasedDirectoryApi } from '@/services/apiService';
 
 interface ModuleAccess {
   id: string;
   name: string;
   exhibitor: boolean;
   visitor: boolean;
+}
+
+interface RoleBasedAccess {
+  roleId: number;
+  roleName: string | null;
+  visitor: boolean;
+  exhibitor: boolean;
+  setMeeting: boolean;
+  isFavorite: boolean;
 }
 
 export default function ExhibitorVisitorSettingsPage() {
@@ -40,6 +51,9 @@ export default function ExhibitorVisitorSettingsPage() {
   ]);
 
   const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAccessChange = (moduleId: string, role: 'exhibitor' | 'visitor', checked: boolean) => {
     setModules(prev => 
@@ -51,10 +65,108 @@ export default function ExhibitorVisitorSettingsPage() {
     );
   };
 
-  const handleSave = () => {
-    // TODO: Implement API call to save settings
-    console.log('Saving module access settings:', modules);
-    setShowSuccess(true);
+  // Fetch role-based access data on component mount
+  useEffect(() => {
+    const fetchRoleBasedAccess = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await roleBasedDirectoryApi.getAllRoleBaseDirectoryAccess(identifier);
+        
+        if (response.isError) {
+          throw new Error(response.message || 'Failed to fetch role-based access data');
+        }
+        
+        const roleData: RoleBasedAccess[] = response.result || [];
+        
+        // Map API response to UI modules
+        const updatedModules = modules.map(module => {
+          let exhibitorAccess = false;
+          let visitorAccess = false;
+          
+          // Find exhibitor role (roleId = 3)
+          const exhibitorRole = roleData.find(role => role.roleId === 3);
+          // Find visitor role (roleId = 4)
+          const visitorRole = roleData.find(role => role.roleId === 4);
+          
+          switch (module.id) {
+            case 'visitor-directory':
+              exhibitorAccess = exhibitorRole?.visitor || false;
+              visitorAccess = visitorRole?.visitor || false;
+              break;
+            case 'exhibitor-directory':
+              exhibitorAccess = exhibitorRole?.exhibitor || false;
+              visitorAccess = visitorRole?.exhibitor || false;
+              break;
+            case 'my-favorite':
+              exhibitorAccess = exhibitorRole?.isFavorite || false;
+              visitorAccess = visitorRole?.isFavorite || false;
+              break;
+            case 'meetings':
+              exhibitorAccess = exhibitorRole?.setMeeting || false;
+              visitorAccess = visitorRole?.setMeeting || false;
+              break;
+          }
+          
+          return {
+            ...module,
+            exhibitor: exhibitorAccess,
+            visitor: visitorAccess
+          };
+        });
+        
+        setModules(updatedModules);
+      } catch (err) {
+        console.error('Error fetching role-based access:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (identifier) {
+      fetchRoleBasedAccess();
+    }
+  }, [identifier]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      // Prepare payload for API
+      const payload = [
+        {
+          roleId: 3, // Exhibitor role
+          visitor: modules.find(m => m.id === 'visitor-directory')?.exhibitor || false,
+          exhibitor: modules.find(m => m.id === 'exhibitor-directory')?.exhibitor || false,
+          setMeeting: modules.find(m => m.id === 'meetings')?.exhibitor || false,
+          isFavorite: modules.find(m => m.id === 'my-favorite')?.exhibitor || false,
+        },
+        {
+          roleId: 4, // Visitor role
+          visitor: modules.find(m => m.id === 'visitor-directory')?.visitor || false,
+          exhibitor: modules.find(m => m.id === 'exhibitor-directory')?.visitor || false,
+          setMeeting: modules.find(m => m.id === 'meetings')?.visitor || false,
+          isFavorite: modules.find(m => m.id === 'my-favorite')?.visitor || false,
+        }
+      ];
+      
+      const response = await roleBasedDirectoryApi.updateRolebaseDirectoryAccess(identifier, payload);
+      
+      if (response.isError) {
+        throw new Error(response.message || 'Failed to update role-based access');
+      }
+      
+      setShowSuccess(true);
+      console.log('Role-based access updated successfully:', response);
+    } catch (err) {
+      console.error('Error updating role-based access:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update settings');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCloseSnackbar = () => {
@@ -73,18 +185,26 @@ export default function ExhibitorVisitorSettingsPage() {
         }
       >
         <Container maxWidth="lg" sx={{ py: 3 }}>
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 3,mt:-4 }}>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
               Configure module access for different user roles
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Use the checkboxes below to control which modules are accessible to Exhibitors and Visitors.
-            </Typography>
+            
           </Box>
 
-          <Paper sx={{ width: '100%', overflow: 'hidden', mb: 3 }}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          ) : (
+            <>
+              <Paper sx={{ width: '50%', overflow: 'hidden', mb: 3 }}>
             <TableContainer>
-              <Table sx={{ minWidth: 400 }}>
+              <Table sx={{ minWidth: 200 }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: 'grey.50' }}>
                     <TableCell sx={{ fontWeight: 'bold', borderRight: 1, borderColor: 'grey.300' }}>
@@ -136,15 +256,18 @@ export default function ExhibitorVisitorSettingsPage() {
             </TableContainer>
           </Paper>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button 
-              variant="contained" 
-              onClick={handleSave}
-              sx={{ minWidth: 120 }}
-            >
-              Save Settings
-            </Button>
-          </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+                <Button 
+                  variant="contained" 
+                  onClick={handleSave}
+                  disabled={saving}
+                  sx={{ minWidth: 120 }}
+                >
+                  {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Settings'}
+                </Button>
+              </Box>
+            </>
+          )}
 
           <Snackbar
             open={showSuccess}

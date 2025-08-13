@@ -2623,7 +2623,7 @@ export default function MeetingsPage() {
                               color="warning"
                               onClick={() => handleOpenRescheduleDialog(meeting)}
                               sx={{ 
-                                bgcolor: 'warning.light', 
+                                bgcolor: 'gray.light', 
                                 color: 'white',
                                 '&:hover': { bgcolor: 'warning.main' }
                               }}
@@ -2631,7 +2631,7 @@ export default function MeetingsPage() {
                             >
                               <EventAvailable fontSize="small" />
                             </IconButton>
-                            <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            <Typography variant="caption" sx={{ color: 'gray', fontWeight: 600, whiteSpace: 'nowrap' }}>
                               Reschedule
                             </Typography>
                           </Box>

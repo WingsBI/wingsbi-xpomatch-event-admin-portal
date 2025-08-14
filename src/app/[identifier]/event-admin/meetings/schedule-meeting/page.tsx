@@ -1470,127 +1470,199 @@ export default function ScheduleMeetingPage() {
               )}
             </Box>
             
-            {/* Calendar Popup */}
-            <Popover
-              open={Boolean(datePickerAnchorEl)}
-              onClose={() => setDatePickerAnchorEl(null)}
-              anchorEl={datePickerAnchorEl}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'left',
-              }}
-              PaperProps={{
-                sx: {
-                  width: 320,
-                  p: 2,
-                  borderRadius: 2,
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)'
-                }
-              }}
-            >
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, textAlign: 'center' }}>
-                  Select Date
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                  Only event dates are available
-                </Typography>
-              </Box>
-              
-              <Box sx={{ 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                p: 2,
-                bgcolor: 'background.paper',
-                minHeight: 280,
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                {(() => {
-                  const eventDates = getEventDateOptions();
-                  const currentDate = new Date();
-                  const currentMonth = currentDate.getMonth();
-                  const currentYear = currentDate.getFullYear();
-                  
-                  // Get the first day of the month
-                  const firstDay = new Date(currentYear, currentMonth, 1);
-                  const lastDay = new Date(currentYear, currentMonth + 1, 0);
-                  const startDate = new Date(firstDay);
-                  startDate.setDate(startDate.getDate() - firstDay.getDay());
-                  
-                  const days = [];
-                  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                  
-                  // Add day headers
-                  days.push(
-                    <Box key="headers" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 1 }}>
-                      {dayNames.map(day => (
-                        <Typography key={day} variant="caption" sx={{ textAlign: 'center', fontWeight: 600, color: 'text.secondary' }}>
-                          {day}
-                        </Typography>
-                      ))}
-                    </Box>
-                  );
-                  
-                  // Generate calendar days
-                  const calendarDays = [];
-                  for (let i = 0; i < 42; i++) {
-                    const date = new Date(startDate);
-                    date.setDate(startDate.getDate() + i);
-                    const dateStr = date.toISOString().split('T')[0];
-                    const isCurrentMonth = date.getMonth() === currentMonth;
-                    const isEventDate = eventDates.includes(dateStr);
-                    const isSelected = meetingForm.meetingDate === dateStr;
-                    const isDisabled = !isEventDate || !isCurrentMonth;
-                    
-                    calendarDays.push(
-                      <Box
-                        key={i}
-                        onClick={() => {
-                          if (!isDisabled) {
-                            handleFormChange('meetingDate', dateStr);
-                            setDatePickerAnchorEl(null);
-                          }
-                        }}
-                        sx={{
-                          aspectRatio: '1',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: isDisabled ? 'default' : 'pointer',
-                          borderRadius: 1,
-                          fontSize: '0.875rem',
-                          fontWeight: isSelected ? 600 : 400,
-                          color: isDisabled ? 'text.disabled' : isSelected ? 'white' : 'text.primary',
-                          backgroundColor: isSelected ? 'primary.main' : isEventDate ? 'success.50' : 'transparent',
-                          border: isEventDate ? '1px solid' : 'none',
-                          borderColor: 'success.200',
-                          '&:hover': !isDisabled ? {
-                            backgroundColor: isSelected ? 'primary.dark' : 'grey.100',
-                          } : {},
-                          opacity: isCurrentMonth ? 1 : 0.3,
-                        }}
-                      >
-                        {date.getDate()}
-                      </Box>
-                    );
-                  }
-                  
-                  days.push(
-                    <Box key="calendar" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
-                      {calendarDays}
-                    </Box>
-                  );
-                  
-                  return days;
-                })()}
-              </Box>
-            </Popover>
+                         {/* Calendar Popup */}
+             <Popover
+               open={Boolean(datePickerAnchorEl)}
+               onClose={() => setDatePickerAnchorEl(null)}
+               anchorEl={datePickerAnchorEl}
+               anchorOrigin={{
+                 vertical: 'bottom',
+                 horizontal: 'left',
+               }}
+               transformOrigin={{
+                 vertical: 'top',
+                 horizontal: 'left',
+               }}
+               PaperProps={{
+                 sx: {
+                   width: 320,
+                   p: 2,
+                   borderRadius: 2,
+                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)'
+                 }
+               }}
+             >
+               <Box sx={{ mb: 2 }}>
+                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                     <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                       {(() => {
+                         // Show event month if available, otherwise show current month
+                         if (eventDetails && eventDetails.startDateTime) {
+                           const eventDate = new Date(eventDetails.startDateTime);
+                           const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                           return `${monthNames[eventDate.getMonth()]} ${eventDate.getFullYear()}`;
+                         } else {
+                           const currentDate = new Date();
+                           const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                           return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+                         }
+                       })()}
+                     </Typography>
+                     <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', cursor: 'pointer' }}>▼</Box>
+                   </Box>
+                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                     <IconButton size="small" sx={{ p: 0.5, height: 20, width: 20 }}>
+                       <Box sx={{ fontSize: '0.75rem', lineHeight: 1 }}>▲</Box>
+                     </IconButton>
+                     <IconButton size="small" sx={{ p: 0.5, height: 20, width: 20 }}>
+                       <Box sx={{ fontSize: '0.75rem', lineHeight: 1 }}>▼</Box>
+                     </IconButton>
+                   </Box>
+                 </Box>
+               </Box>
+               
+               <Box sx={{ 
+                 border: '1px solid',
+                 borderColor: 'divider',
+                 borderRadius: 1,
+                 p: 2,
+                 bgcolor: 'background.paper',
+                 minHeight: 280,
+                 display: 'flex',
+                 flexDirection: 'column'
+               }}>
+                 {(() => {
+                   // Use event month and year if available, otherwise use current month
+                   let displayMonth, displayYear;
+                   if (eventDetails && eventDetails.startDateTime) {
+                     const eventDate = new Date(eventDetails.startDateTime);
+                     displayMonth = eventDate.getMonth();
+                     displayYear = eventDate.getFullYear();
+                   } else {
+                     const currentDate = new Date();
+                     displayMonth = currentDate.getMonth();
+                     displayYear = currentDate.getFullYear();
+                   }
+                   
+                   // Get the first day of the month
+                   const firstDay = new Date(displayYear, displayMonth, 1);
+                   const lastDay = new Date(displayYear, displayMonth + 1, 0);
+                   const startDate = new Date(firstDay);
+                   startDate.setDate(startDate.getDate() - firstDay.getDay());
+                   
+                   const days = [];
+                   const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+                   
+                   // Add day headers
+                   days.push(
+                     <Box key="headers" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 1 }}>
+                       {dayNames.map(day => (
+                         <Typography key={day} variant="caption" sx={{ textAlign: 'center', fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>
+                           {day}
+                         </Typography>
+                       ))}
+                     </Box>
+                   );
+                   
+                   // Generate calendar days
+                   const calendarDays = [];
+                   for (let i = 0; i < 42; i++) {
+                     const date = new Date(startDate);
+                     date.setDate(startDate.getDate() + i);
+                     const dateStr = date.toISOString().split('T')[0];
+                     const isCurrentMonth = date.getMonth() === displayMonth;
+                     const isSelected = meetingForm.meetingDate === dateStr;
+                     const isToday = dateStr === new Date().toISOString().split('T')[0];
+                     // Allow all dates to be selectable - no event restrictions
+                     
+                     calendarDays.push(
+                       <Box
+                         key={i}
+                         onClick={() => {
+                           // Allow selection of any date - no restrictions
+                           handleFormChange('meetingDate', dateStr);
+                           setDatePickerAnchorEl(null);
+                         }}
+                         sx={{
+                           aspectRatio: '1',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           cursor: 'pointer',
+                           borderRadius: 1,
+                           fontSize: '0.875rem',
+                           fontWeight: isSelected ? 600 : (isToday ? 600 : 400),
+                           color: isSelected ? 'white' : isCurrentMonth ? 'text.primary' : 'text.secondary',
+                           backgroundColor: isSelected ? 'primary.main' : (isToday ? 'primary.50' : 'transparent'),
+                           border: isToday ? '2px solid' : 'none',
+                           borderColor: isToday ? 'primary.main' : 'transparent',
+                           '&:hover': {
+                             backgroundColor: isSelected ? 'primary.dark' : 'grey.100',
+                           },
+                           opacity: isCurrentMonth ? 1 : 0.5,
+                         }}
+                       >
+                         {date.getDate()}
+                       </Box>
+                     );
+                   }
+                   
+                   days.push(
+                     <Box key="calendar" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
+                       {calendarDays}
+                     </Box>
+                   );
+                   
+                   // Add footer buttons
+                   days.push(
+                     <Box key="footer" sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                       <Button
+                         size="small"
+                         onClick={() => {
+                           handleFormChange('meetingDate', '');
+                           setDatePickerAnchorEl(null);
+                         }}
+                         sx={{
+                           textTransform: 'none',
+                           fontSize: '0.8rem',
+                           px: 2,
+                           py: 0.5,
+                           color: 'text.secondary',
+                           '&:hover': {
+                             backgroundColor: 'grey.100'
+                           }
+                         }}
+                       >
+                         Clear
+                       </Button>
+                       <Button
+                         size="small"
+                         onClick={() => {
+                           const today = new Date().toISOString().split('T')[0];
+                           handleFormChange('meetingDate', today);
+                           setDatePickerAnchorEl(null);
+                         }}
+                         sx={{
+                           textTransform: 'none',
+                           fontSize: '0.8rem',
+                           px: 2,
+                           py: 0.5,
+                           color: 'primary.main',
+                           '&:hover': {
+                             backgroundColor: 'primary.50'
+                           }
+                         }}
+                       >
+                         Today
+                       </Button>
+                     </Box>
+                   );
+                   
+                   return days;
+                 })()}
+               </Box>
+             </Popover>
           </Grid>
 
           {/* Start Time */}

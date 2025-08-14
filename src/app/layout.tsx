@@ -3,6 +3,7 @@ import { Inter, Roboto, Poppins, Montserrat, Open_Sans, Lato } from 'next/font/g
 import './globals.css';
 import { ApiThemeProvider } from '@/context/ApiThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { RoleAccessProvider } from '@/context/RoleAccessContext';
 import ReduxProvider from '@/providers/ReduxProvider';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import FavoritesCleanupProvider from '@/components/providers/FavoritesCleanupProvider';
@@ -80,11 +81,13 @@ export default function RootLayout({
       <body className={`${inter.variable} ${roboto.variable} ${poppins.variable} ${montserrat.variable} ${openSans.variable} ${lato.variable}`}>
         <ReduxProvider>
           <AuthProvider>
-            <ThemeWrapper>
-              <FavoritesCleanupProvider>
-                {children}
-              </FavoritesCleanupProvider>
-            </ThemeWrapper>
+            <RoleAccessProvider>
+              <ThemeWrapper>
+                <FavoritesCleanupProvider>
+                  {children}
+                </FavoritesCleanupProvider>
+              </ThemeWrapper>
+            </RoleAccessProvider>
           </AuthProvider>
         </ReduxProvider>
       </body>

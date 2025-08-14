@@ -61,6 +61,7 @@ export default function EventLoginPage() {
     email: "",
     password: "",
   });
+  const [selectedRole, setSelectedRole] = useState<'event-admin' | 'visitor' | 'exhibitor'>('event-admin');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

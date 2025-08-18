@@ -13,6 +13,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Card,
   Checkbox,
   Button,
   Alert,
@@ -184,12 +185,11 @@ export default function ExhibitorVisitorSettingsPage() {
           </Box>
         }
       >
-        <Container maxWidth="lg" sx={{ py: 3 }}>
-          <Box sx={{ mb: 3,mt:-4 }}>
+        <Container maxWidth="lg" sx={{ py: 3, overflow: 'hidden' }}>
+          <Box sx={{ mb: 3, mt: -3 }}>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
               Configure module access for different user roles
             </Typography>
-            
           </Box>
 
           {loading ? (
@@ -202,66 +202,118 @@ export default function ExhibitorVisitorSettingsPage() {
             </Alert>
           ) : (
             <>
-              <Paper sx={{ width: '50%', overflow: 'hidden', mb: 3 }}>
-            <TableContainer>
-              <Table sx={{ minWidth: 200 }}>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 'bold', borderRight: 1, borderColor: 'grey.300' }}>
-                      Modules
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'bold', borderRight: 1, borderColor: 'grey.300' }}>
-                      Exhibitor
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                      Visitor
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {modules.map((module) => (
-                    <TableRow key={module.id} sx={{ '&:hover': { backgroundColor: 'grey.50' } }}>
-                      <TableCell 
-                        component="th" 
-                        scope="row" 
-                        sx={{ 
-                          fontWeight: '500',
-                          borderRight: 1, 
-                          borderColor: 'grey.300' 
-                        }}
-                      >
-                        {module.name}
-                      </TableCell>
-                      <TableCell 
-                        align="center" 
-                        sx={{ borderRight: 1, borderColor: 'grey.300' }}
-                      >
-                        <Checkbox
-                          checked={module.exhibitor}
-                          onChange={(e) => handleAccessChange(module.id, 'exhibitor', e.target.checked)}
-                          color="primary"
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Checkbox
-                          checked={module.visitor}
-                          onChange={(e) => handleAccessChange(module.id, 'visitor', e.target.checked)}
-                          color="primary"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
+              {/* Mobile View */}
+              <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                <Paper sx={{ overflow: 'hidden', mb: 3 }}>
+                  <Box sx={{ p: 2 }}>
+                    <Typography variant="h6" sx={{ mb: 2, textAlign: 'center', fontWeight: 'bold' }}>
+                      Module Access Settings
+                    </Typography>
+                    {modules.map((module) => (
+                      <Card key={module.id} sx={{ mb: 2, p: 2 }}>
+                        <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 2 }}>
+                          {module.name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Exhibitor:
+                            </Typography>
+                            <Checkbox
+                              checked={module.exhibitor}
+                              onChange={(e) => handleAccessChange(module.id, 'exhibitor', e.target.checked)}
+                              color="primary"
+                            />
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Visitor:
+                            </Typography>
+                            <Checkbox
+                              checked={module.visitor}
+                              onChange={(e) => handleAccessChange(module.id, 'visitor', e.target.checked)}
+                              color="primary"
+                            />
+                          </Box>
+                        </Box>
+                      </Card>
+                    ))}
+                  </Box>
+                </Paper>
+              </Box>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+              {/* Desktop View */}
+              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                <Paper sx={{ width: '50%', overflow: 'hidden', mb: 3 }}>
+                  <TableContainer>
+                    <Table sx={{ minWidth: 200 }}>
+                      <TableHead>
+                        <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                          <TableCell sx={{ fontWeight: 'bold', borderRight: 1, borderColor: 'grey.300' }}>
+                            Modules
+                          </TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 'bold', borderRight: 1, borderColor: 'grey.300' }}>
+                            Exhibitor
+                          </TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                            Visitor
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {modules.map((module) => (
+                          <TableRow key={module.id} sx={{ '&:hover': { backgroundColor: 'grey.50' } }}>
+                            <TableCell 
+                              component="th" 
+                              scope="row" 
+                              sx={{ 
+                                fontWeight: '500',
+                                borderRight: 1, 
+                                borderColor: 'grey.300' 
+                              }}
+                            >
+                              {module.name}
+                            </TableCell>
+                            <TableCell 
+                              align="center" 
+                              sx={{ borderRight: 1, borderColor: 'grey.300' }}
+                            >
+                              <Checkbox
+                                checked={module.exhibitor}
+                                onChange={(e) => handleAccessChange(module.id, 'exhibitor', e.target.checked)}
+                                color="primary"
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Checkbox
+                                checked={module.visitor}
+                                onChange={(e) => handleAccessChange(module.id, 'visitor', e.target.checked)}
+                                color="primary"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              </Box>
+
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: { xs: 'center', md: 'flex-start' },
+                gap: 1, 
+                mt: 2,
+                ml: { xs: 0, md: 48 }
+              }}>
                 <Button 
                   variant="contained" 
                   onClick={handleSave}
                   disabled={saving}
-                  sx={{ minWidth: 120 }}
+                  sx={{ 
+                    minWidth: { xs: '200px', md: 120 },
+                    width: { xs: '100%', md: 'auto' }
+                  }}
                 >
                   {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Settings'}
                 </Button>

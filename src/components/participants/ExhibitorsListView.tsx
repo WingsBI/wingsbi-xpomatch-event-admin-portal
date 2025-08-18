@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Box,
   Card,
@@ -136,6 +137,7 @@ function ExhibitorCard({
   identifier: string;
   isClient: boolean;
 }) {
+  const router = useRouter();
   const theme = useTheme();
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
@@ -358,6 +360,11 @@ function ExhibitorCard({
             variant="contained"
             size="small"
             startIcon={<ConnectIcon />}
+            onClick={() => {
+              const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+              const identifier = pathParts[1] || '';
+              router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${exhibitor.id}`);
+            }}
             sx={{
               bgcolor: theme.palette.primary.main,
               borderRadius: 2,

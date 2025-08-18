@@ -65,12 +65,13 @@ import {
   Description,
   LockClock,
   PunchClock,
+  Refresh,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState, AppDispatch } from "@/store";
-import { setIdentifier } from "@/store/slices/appSlice";
+import { setIdentifier, addNotification } from "@/store/slices/appSlice";
 import { eventsApi, MeetingDetailsApi, apiService } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
 import { getCurrentVisitorId } from '@/utils/authUtils';
@@ -79,6 +80,12 @@ import { getAuthToken } from '@/utils/cookieManager';
 // Cache for meetings data
 const meetingsCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Function to clear meetings cache
+const clearMeetingsCache = () => {
+  meetingsCache.clear();
+  console.log('Meetings cache cleared');
+};
 
 // Note: Calendar and dialog components are inline in this file, no separate components to lazy load
 
@@ -182,7 +189,10 @@ export default function MeetingsPage() {
     endTime: ''
   });
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancelledCount, setCancelledCount] = useState(0);
+  const [meetingsError, setMeetingsError] = useState<string | null>(null);
+  const [noMeetingsMessage, setNoMeetingsMessage] = useState<string | null>(null);
 
   const loadEventDetails = useCallback(async () => {
     try {
@@ -214,8 +224,13 @@ export default function MeetingsPage() {
     try {
       console.log('loadMeetings function called');
       
+      // Clear previous error states
+      setMeetingsError(null);
+      setNoMeetingsMessage(null);
+      
       if (!identifier || !user) {
         console.log('Missing identifier or user:', { identifier, user });
+        setMeetingsError('Unable to load meetings: Missing event identifier or user information');
         return;
       }
 
@@ -270,6 +285,7 @@ export default function MeetingsPage() {
         
         if (!visitorId) {
           console.warn('No visitorId found for visitor role');
+          setMeetingsError('Unable to load meetings: Visitor ID not found. Please try refreshing the page.');
           return;
         }
         
@@ -278,8 +294,22 @@ export default function MeetingsPage() {
         console.log('Calling API with attendeeId:', visitorId);
         
         // Get meetings where visitor is the initiator
+        try {
         initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, visitorId);
         console.log('Initiator response:', initiatorResponse);
+          
+          // Handle API errors and null responses
+          if (initiatorResponse?.isError) {
+            console.warn('API error for initiator meetings:', initiatorResponse.message);
+            if (initiatorResponse.statusCode === 404) {
+              console.log('404 error - initiator endpoint may not exist, treating as no meetings found');
+              initiatorResponse = { result: [] };
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching initiator meetings:', error);
+          initiatorResponse = { result: [] };
+        }
         
         // Get meetings where visitor is an attendee with retry logic
         let invitesResponse = null;
@@ -291,6 +321,16 @@ export default function MeetingsPage() {
             console.log(`Attempt ${retryCount + 1} to get meeting invites for attendee ID: ${visitorId}`);
             invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, visitorId);
         console.log('Invites response:', invitesResponse);
+            
+            // Handle API errors and null responses
+            if (invitesResponse?.isError) {
+              console.warn(`API error on attempt ${retryCount + 1}:`, invitesResponse.message);
+              if (invitesResponse.statusCode === 404) {
+                console.log('404 error - endpoint may not exist, treating as no meetings found');
+                invitesResponse = { result: [] };
+                break;
+              }
+            }
         
             if (invitesResponse?.result && invitesResponse.result.length > 0) {
               console.log(`Successfully got ${invitesResponse.result.length} invites`);
@@ -307,8 +347,13 @@ export default function MeetingsPage() {
           }
         }
         
-        // No fallback logic needed since we now have the correct user ID from JWT token
-        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
+        // Ensure invitesResponse is not null and has a result property
+        if (!invitesResponse) {
+          console.log('No response received, treating as no meetings found');
+          invitesResponse = { result: [] };
+        }
+        
+        if (!invitesResponse.result || invitesResponse.result.length === 0) {
           console.log('No invites found with the correct user ID from JWT token');
         }
         
@@ -435,6 +480,7 @@ export default function MeetingsPage() {
         
         if (!userId) {
           console.warn('No userId found for exhibitor role');
+          setMeetingsError('Unable to load meetings: Exhibitor ID not found. Please try refreshing the page.');
           return;
         }
         
@@ -447,8 +493,22 @@ export default function MeetingsPage() {
         console.log('Calling API with userId:', userId);
         
         // Get meetings where exhibitor is the initiator
+        try {
         initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, userId);
         console.log('Initiator response:', initiatorResponse);
+          
+          // Handle API errors and null responses
+          if (initiatorResponse?.isError) {
+            console.warn('API error for initiator meetings:', initiatorResponse.message);
+            if (initiatorResponse.statusCode === 404) {
+              console.log('404 error - initiator endpoint may not exist, treating as no meetings found');
+              initiatorResponse = { result: [] };
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching initiator meetings:', error);
+          initiatorResponse = { result: [] };
+        }
         
         // Get meetings where exhibitor is an attendee with retry logic
         let invitesResponse = null;
@@ -460,6 +520,16 @@ export default function MeetingsPage() {
             console.log(`Attempt ${retryCount + 1} to get meeting invites for attendee ID: ${userId}`);
         invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, userId);
         console.log('Invites response:', invitesResponse);
+            
+            // Handle API errors and null responses
+            if (invitesResponse?.isError) {
+              console.warn(`API error on attempt ${retryCount + 1}:`, invitesResponse.message);
+              if (invitesResponse.statusCode === 404) {
+                console.log('404 error - endpoint may not exist, treating as no meetings found');
+                invitesResponse = { result: [] };
+                break;
+              }
+            }
         
             if (invitesResponse?.result && invitesResponse.result.length > 0) {
               console.log(`Successfully got ${invitesResponse.result.length} invites`);
@@ -476,8 +546,13 @@ export default function MeetingsPage() {
           }
         }
         
-        // No fallback logic needed since we now have the correct user ID from JWT token
-        if (!invitesResponse?.result || invitesResponse.result.length === 0) {
+        // Ensure invitesResponse is not null and has a result property
+        if (!invitesResponse) {
+          console.log('No response received, treating as no meetings found');
+          invitesResponse = { result: [] };
+        }
+        
+        if (!invitesResponse.result || invitesResponse.result.length === 0) {
           console.log('No invites found with the correct user ID from JWT token');
         }
         
@@ -583,16 +658,23 @@ export default function MeetingsPage() {
         const visitorId = getCurrentVisitorId();
         if (!visitorId) {
           console.warn('No visitor ID found for event-admin role');
+          setMeetingsError('Unable to load meetings: Event admin ID not found. Please try refreshing the page.');
           return;
         }
         currentUserId = visitorId;
+        try {
         response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, visitorId);
+        } catch (error) {
+          console.error('Error fetching event admin meetings:', error);
+          response = { result: [] };
+        }
       } else {
         console.warn('Unknown user role for meetings:', user.role);
+        setMeetingsError(`Unable to load meetings: Unknown user role '${user.role}'. Please contact support.`);
         return;
       }
       
-      if (response && !response.isError && response.result) {
+      if (response && !response.isError && response.result && response.result.length > 0) {
         console.log('=== RAW API RESPONSE ===');
         console.log('Response structure:', response);
         console.log('Result array length:', response.result.length);
@@ -804,12 +886,23 @@ export default function MeetingsPage() {
           data: transformedMeetings,
           timestamp: Date.now()
         });
+      } else if (response && !response.isError && response.result && response.result.length === 0) {
+        // No meetings found - set appropriate message
+        setMeetings([]);
+        const roleMessages = {
+          'visitor': 'No meetings found. You haven\'t scheduled any meetings or received any invitations yet.',
+          'exhibitor': 'No meetings found. You haven\'t scheduled any meetings or received any invitations yet.',
+          'event-admin': 'No meetings found for this event.'
+        };
+        setNoMeetingsMessage(roleMessages[user.role as keyof typeof roleMessages] || 'No meetings found.');
       } else {
         setMeetings([]);
+        setMeetingsError('Unable to load meetings. Please try refreshing the page.');
       }
     } catch (error: any) {
       console.error('Error loading meetings:', error);
       setMeetings([]);
+      setMeetingsError('An error occurred while loading meetings. Please try refreshing the page.');
     } finally {
       setMeetingsLoading(false);
     }
@@ -949,7 +1042,8 @@ export default function MeetingsPage() {
           return updatedMeetings;
         });
         
-        // Reload meetings to get the latest data from the server
+        // Clear cache and reload meetings to get the latest data from the server
+        clearMeetingsCache();
         await loadMeetings();
       } else {
         console.error('Failed to reject meeting:', response);
@@ -1057,7 +1151,8 @@ export default function MeetingsPage() {
           return updatedMeetings;
         });
         
-        // Also reload meetings to get the latest data from the server
+        // Clear cache and reload meetings to get the latest data from the server
+        clearMeetingsCache();
         await loadMeetings();
       } else {
         console.error('Failed to approve meeting:', response);
@@ -1134,7 +1229,8 @@ export default function MeetingsPage() {
           return updatedMeetings;
         });
         
-        // Also reload meetings to get the latest data from the server
+        // Clear cache and reload meetings to get the latest data from the server
+        clearMeetingsCache();
         await loadMeetings();
         
         // Close the dialog
@@ -1206,13 +1302,32 @@ export default function MeetingsPage() {
     const refreshParam = searchParams.get('refresh');
     if (refreshParam === 'true' && identifier && user) {
       console.log('Refreshing meetings due to URL parameter');
-      loadMeetings();
+      setIsRefreshing(true); // Show loading state
+      
+      // Show notification that meetings are being refreshed
+      // dispatch(addNotification({
+      //   type: 'info',
+      //   message: 'Refreshing Meetings: Loading your newly scheduled meeting...'
+      // }));
+      
+      clearMeetingsCache();
+      loadMeetings().then(() => {
+        // Show success notification after refresh is complete
+        // setTimeout(() => {
+        //   dispatch(addNotification({
+        //     type: 'success',
+        //     message: 'Meetings Updated: Your meetings have been refreshed successfully.'
+        //   }));
+        // }, 1000); // Small delay to ensure API calls are complete
+      }).finally(() => {
+        setIsRefreshing(false); // Hide loading state
+      });
       // Remove the refresh parameter from URL without triggering page reload
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('refresh');
       window.history.replaceState({}, '', newUrl.toString());
     }
-  }, [searchParams, identifier, user, loadMeetings]);
+  }, [searchParams, identifier, user, loadMeetings, dispatch]);
 
   // Track cancelled count changes
   useEffect(() => {
@@ -1240,6 +1355,19 @@ export default function MeetingsPage() {
 
   const handleScheduleMeeting = () => {
     router.push(`/${identifier}/event-admin/meetings/schedule-meeting`);
+  };
+
+  const handleRefreshMeetings = async () => {
+    try {
+      console.log('Manual refresh requested');
+      setIsRefreshing(true);
+      clearMeetingsCache();
+      await loadMeetings();
+    } catch (error) {
+      console.error('Error refreshing meetings:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleOpenRescheduleDialog = (meeting: Meeting) => {
@@ -1405,7 +1533,8 @@ export default function MeetingsPage() {
         // Close the dialog
         handleCloseRescheduleDialog();
         
-        // Reload meetings to get updated data
+        // Clear cache and reload meetings to get updated data
+        clearMeetingsCache();
         await loadMeetings();
         
         // Show success message (you can add a toast notification here)
@@ -2023,7 +2152,15 @@ export default function MeetingsPage() {
           {/* Action buttons */}
           {/* Only show top-right button in calendar view */}
           {showCalendar && (
-            <Box sx={{ mb: 2, mt: -1, display: 'flex', justifyContent: 'flex-end' }}>
+            <Box sx={{ mb: 2, mt: -1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+              <Button
+                variant="outlined"
+                startIcon={isRefreshing ? <CircularProgress size={16} /> : <Refresh />}
+                onClick={handleRefreshMeetings}
+                disabled={meetingsLoading || isRefreshing}
+              >
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
               <Button
                 variant="contained"
                 startIcon={<Add />}
@@ -2156,6 +2293,38 @@ export default function MeetingsPage() {
                     <Typography variant="body2" color="text.secondary">
                       Loading meetings...
                     </Typography>
+                  </Box>
+                ) : meetingsError ? (
+                  // Show error state for meetings in calendar view
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%',
+                    flexDirection: 'column',
+                    gap: 2
+                  }}>
+                    <Alert severity="error" sx={{ maxWidth: '80%' }}>
+                      <Typography variant="body2">
+                        {meetingsError}
+                      </Typography>
+                    </Alert>
+                  </Box>
+                ) : noMeetingsMessage ? (
+                  // Show no meetings message in calendar view
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%',
+                    flexDirection: 'column',
+                    gap: 2
+                  }}>
+                    <Alert severity="info" sx={{ maxWidth: '80%' }}>
+                      <Typography variant="body2">
+                        {noMeetingsMessage}
+                      </Typography>
+                    </Alert>
                   </Box>
                 ) : getEventDays().map((day, dayIndex) => {
                   const isToday = day.toDateString() === new Date().toDateString();
@@ -2350,32 +2519,45 @@ export default function MeetingsPage() {
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
                     <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
                     <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
-                    <Tab label={
-                      <Badge 
-                        badgeContent={getCancelledCount()} 
-                        color="error"
-                        sx={{
-                          '& .MuiBadge-badge': {
-                            animation: cancelledCount > 0 ? 'pulse 2s infinite' : 'none',
-                            transition: 'all 0.3s ease',
-                            transform: cancelledCount > 0 ? 'scale(1.1)' : 'scale(1)'
-                          }
-                        }}
-                      >
-                        Cancelled
-                      </Badge>
-                    }/>
+                    <Tab label="Cancelled" />
                   </Tabs>
+                                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={isRefreshing ? <CircularProgress size={16} /> : <Refresh />}
+                      onClick={handleRefreshMeetings}
+                      disabled={meetingsLoading || isRefreshing}
+                    >
+                      {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                    </Button>
                                   <Button
                   variant="contained"
                   startIcon={<Add />}
                   onClick={handleScheduleMeeting}
-                  sx={{ ml: 2 }}
                 >
                   Schedule Meeting
                 </Button>
+                  </Box>
                 </Box>
               </Paper>
+
+              {/* Error Message */}
+              {meetingsError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    {meetingsError}
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* No Meetings Message */}
+              {noMeetingsMessage && !meetingsError && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    {noMeetingsMessage}
+                  </Typography>
+                </Alert>
+              )}
 
               {/* Meetings list */}
               {meetingsLoading ? (
@@ -2620,12 +2802,13 @@ export default function MeetingsPage() {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <IconButton 
                               size="small" 
-                              color="warning"
+                              color="default"
                               onClick={() => handleOpenRescheduleDialog(meeting)}
                               sx={{ 
-                                bgcolor: 'gray.light', 
+                                bgcolor: 'grey.400', 
                                 color: 'white',
-                                '&:hover': { bgcolor: 'warning.main' }
+                                '&:hover': { bgcolor: 'grey.600' },
+                                '&:disabled': { bgcolor: 'grey.300', color: 'grey.500' }
                               }}
                               title="Reschedule Meeting"
                             >
@@ -2639,13 +2822,13 @@ export default function MeetingsPage() {
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                 <IconButton 
                                   size="small" 
-                                  color="error"
+                                  color="default"
                                   disabled={cancellingMeetingId === meeting.id}
                                   onClick={() => handleOpenCancelDialog(meeting)}
                                   sx={{ 
-                                    bgcolor: 'error.light', 
+                                    bgcolor: 'grey.400', 
                                     color: 'white',
-                                    '&:hover': { bgcolor: 'error.main' },
+                                    '&:hover': { bgcolor: 'grey.600' },
                                     '&:disabled': { bgcolor: 'grey.300', color: 'grey.500' }
                                   }}
                                   title="Cancel Meeting"
@@ -2656,7 +2839,7 @@ export default function MeetingsPage() {
                                     <Cancel fontSize="small" />
                                   )}
                                 </IconButton>
-                                <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                <Typography variant="caption" sx={{ color: 'gray', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   {cancellingMeetingId === meeting.id ? 'Cancelling...' : 'Cancel'}
                                 </Typography>
                               </Box>
@@ -2686,7 +2869,7 @@ export default function MeetingsPage() {
                 </Grid>
               )}
 
-              {!meetingsLoading && getFilteredMeetings().length === 0 && (
+              {!meetingsLoading && !meetingsError && !noMeetingsMessage && getFilteredMeetings().length === 0 && (
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
                   <CalendarMonth sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">
@@ -2695,6 +2878,14 @@ export default function MeetingsPage() {
                   <Typography variant="body2" color="text.secondary">
                     {tabValue === 0 
                       ? "No pending meetings found"
+                      : tabValue === 1
+                      ? "No upcoming meetings found"
+                      : tabValue === 2
+                      ? "No ongoing meetings found"
+                      : tabValue === 3
+                      ? "No completed meetings found"
+                      : tabValue === 4
+                      ? "No cancelled meetings found"
                       : "No meetings in this category"
                     }
                   </Typography>
@@ -2752,33 +2943,142 @@ export default function MeetingsPage() {
           
           <DialogContent>
             {/* Current Meeting Info */}
-            {/* {selectedMeetingForReschedule && (
-              <Box sx={{ mb: 3, p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+            {selectedMeetingForReschedule && (
+              <Box sx={{ mb: 3, p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Event fontSize="small" />
                   Current Meeting Details
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Typography variant="body2">
-                    <strong>Title:</strong> {selectedMeetingForReschedule.title}
-                  </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                    <Description fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        Title
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {selectedMeetingForReschedule.title}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
                   {selectedMeetingForReschedule.meetingDate && (
-                    <Typography variant="body2">
-                      <strong>Date:</strong> {formatMeetingDate(selectedMeetingForReschedule.meetingDate)}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <CalendarMonth fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Date
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {formatMeetingDate(selectedMeetingForReschedule.meetingDate)}
+                        </Typography>
+                      </Box>
+                    </Box>
                   )}
+                  
                   {selectedMeetingForReschedule.startTime && selectedMeetingForReschedule.endTime && (
-                    <Typography variant="body2">
-                      <strong>Time:</strong> {formatTime(selectedMeetingForReschedule.startTime)} - {formatTime(selectedMeetingForReschedule.endTime)}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <AccessTime fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Time
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {formatTime(selectedMeetingForReschedule.startTime)} - {formatTime(selectedMeetingForReschedule.endTime)}
+                        </Typography>
+                      </Box>
+                    </Box>
                   )}
+                  
+                  {/* Current User as Organizer */}
+                  {user && (
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <Person fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Organizer (You)
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', minWidth: '60px' }}>
+                              Name:
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {user.firstName} {user.lastName}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', minWidth: '60px' }}>
+                              Role:
+                            </Typography>
+                            <Chip
+                              label={user.role === 'event-admin' ? 'Event Admin' : user.role === 'exhibitor' ? 'Exhibitor' : 'Visitor'}
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              sx={{
+                                fontSize: '0.7rem',
+                                height: '20px',
+                                '& .MuiChip-label': {
+                                  px: 0.5,
+                                },
+                              }}
+                            />
+                          </Box>
+                          {user.email && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', minWidth: '60px' }}>
+                                Email:
+                              </Typography>
+                              <Chip
+                                label={user.email}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  fontSize: '0.7rem',
+                                  height: '20px',
+                                  '& .MuiChip-label': {
+                                    px: 0.5,
+                                  },
+                                }}
+                              />
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    </Box>
+                  )}
+                  
                   {selectedMeetingForReschedule.attendees && selectedMeetingForReschedule.attendees.length > 0 && (
-                    <Typography variant="body2">
-                      <strong>Attendees:</strong> {selectedMeetingForReschedule.attendees.map(a => a.name).join(', ')}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <Business fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 0.5 }}>
+                          Attendees ({selectedMeetingForReschedule.attendees.length})
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selectedMeetingForReschedule.attendees.map((attendee, index) => (
+                            <Chip
+                              key={attendee.id}
+                              label={attendee.name}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                fontSize: '0.75rem',
+                                height: '24px',
+                                '& .MuiChip-label': {
+                                  px: 1,
+                                },
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    </Box>
                   )}
                 </Box>
               </Box>
-            )} */}
+            )}
             
             <Grid container spacing={2}>
               <Grid item xs={12}>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Card,
@@ -101,6 +102,7 @@ interface VisitorCardProps {
 }
 
 function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, identifier, initialFavoriteState = false, onFavoriteChange, onNameClick }: VisitorCardProps) {
+  const router = useRouter();
   const theme = useTheme();
   const [isFavorite, setIsFavorite] = useState(initialFavoriteState);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
@@ -189,7 +191,29 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
 
                  <Divider sx={{ mb: 1.2 }} />
         <Box display="flex" alignItems="center" justifyContent="center" sx={{ mt: 'auto' }}>
-          <Button variant="contained" size="small" startIcon={<ConnectIcon />} sx={{ bgcolor: 'primary.main', borderRadius: 2, textTransform: 'none', fontWeight: 500, px: 1.5, py: 0.4, fontSize: '0.8rem', '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.02)' } }}>
+          <Button 
+            variant="contained" 
+            size="small" 
+            startIcon={<ConnectIcon />} 
+            onClick={() => {
+              const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
+              const identifier = pathParts[1] || '';
+              router.push(`/${identifier}/event-admin/meetings/schedule-meeting?visitorId=${visitor.id}`);
+            }}
+            sx={{ 
+              bgcolor: 'primary.main', 
+              borderRadius: 2, 
+              textTransform: 'none', 
+              fontWeight: 500, 
+              px: 1.5, 
+              py: 0.4, 
+              fontSize: '0.8rem', 
+              '&:hover': { 
+                bgcolor: 'primary.dark', 
+                transform: 'scale(1.02)' 
+              } 
+            }}
+          >
             Connect
           </Button>
         </Box>

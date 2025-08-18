@@ -1421,6 +1421,20 @@ export const MeetingDetailsApi = {
         method: 'GET',
         headers,
       });
+      
+      // Handle HTTP error status codes
+      if (!response.ok) {
+        console.warn(`HTTP ${response.status} error for getMeetingInitiatorDetails: ${response.statusText}`);
+        return {
+          version: null,
+          statusCode: response.status,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+      
       const data = await response.json();
       return data;
     } catch (error) {
@@ -1456,6 +1470,20 @@ export const MeetingDetailsApi = {
         method: 'GET',
         headers,
       });
+      
+      // Handle HTTP error status codes
+      if (!response.ok) {
+        console.warn(`HTTP ${response.status} error for getAllMeetingInvites: ${response.statusText}`);
+        return {
+          version: null,
+          statusCode: response.status,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+      
       const data = await response.json();
       return data;
     } catch (error) {

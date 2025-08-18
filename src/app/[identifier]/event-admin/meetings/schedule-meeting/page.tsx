@@ -57,6 +57,8 @@ import { addNotification } from '@/store/slices/appSlice';
 import { getCurrentUser, getCurrentExhibitorId, getCurrentVisitorId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { AutoSizer, List as VirtualList } from 'react-virtualized';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+
 
 interface MeetingFormData {
   agenda: string;
@@ -130,6 +132,7 @@ export default function ScheduleMeetingPage() {
   const [attendeeAnchorEl, setAttendeeAnchorEl] = useState<HTMLElement | null>(null);
   const [eventDetails, setEventDetails] = useState<any>(null);
   const [datePickerAnchorEl, setDatePickerAnchorEl] = useState<HTMLElement | null>(null);
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
 
   const getSelectedAttendeesDisplay = () => {
     const names: string[] = [];
@@ -171,7 +174,7 @@ export default function ScheduleMeetingPage() {
     });
     
     console.log('🔍 Final names array:', names);
-    return names.join(', ') || 'Select attendees';
+    return names.join(', ') || 'Invite attendees';
   };
 
   // Filter attendees based on search query and exclude current user
@@ -438,11 +441,20 @@ export default function ScheduleMeetingPage() {
   };
 
   const getEventTimeSlots = () => {
-    if (!eventDetails) return [];
+    if (!eventDetails || !eventDetails.startDateTime || !eventDetails.endDateTime) {
+      console.log('🔍 No event details or invalid dates, using default business hours');
+      return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; // Default business hours
+    }
     
     const eventStart = new Date(eventDetails.startDateTime);
     const eventEnd = new Date(eventDetails.endDateTime);
     const slots = [];
+    
+    // Check if dates are valid
+    if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+      console.log('🔍 Invalid event dates, using default business hours');
+      return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; // Default business hours
+    }
     
     // Try to get business hours from event details if available
     let startHour = 9; // Default business hours
@@ -454,21 +466,15 @@ export default function ScheduleMeetingPage() {
       console.log('🔍 Using business hours from event details:', { startHour, endHour });
     } else {
       // Use event start/end times if available
-      if (!isNaN(eventStart.getTime()) && !isNaN(eventEnd.getTime())) {
-        startHour = eventStart.getHours();
-        endHour = eventEnd.getHours();
-        console.log('🔍 Using event start/end hours:', { startHour, endHour });
-        
-        // If the hours don't make sense (e.g., 0:00), use default business hours
-        if (startHour === 0 && endHour === 0) {
-          startHour = 9;
-          endHour = 18;
-          console.log('🔍 Using default business hours due to 0:00 times');
-        }
-      } else {
-        console.log('🔍 Invalid event dates, using default business hours');
+      startHour = eventStart.getHours();
+      endHour = eventEnd.getHours();
+      console.log('🔍 Using event start/end hours:', { startHour, endHour });
+      
+      // If the hours don't make sense (e.g., 0:00), use default business hours
+      if (startHour === 0 && endHour === 0) {
         startHour = 9;
         endHour = 18;
+        console.log('🔍 Using default business hours due to 0:00 times');
       }
     }
     
@@ -779,7 +785,7 @@ export default function ScheduleMeetingPage() {
     try {
       const meetingData = {
         agenda: meetingForm.agenda,
-        // description: meetingForm.description, // Commented out as requested
+        description: meetingForm.description, // Commented out as requested
         attendiesId: meetingForm.attendiesId,
         meetingDate: meetingForm.meetingDate,
         startTime: meetingForm.startTime,
@@ -791,6 +797,12 @@ export default function ScheduleMeetingPage() {
       // Call the createMeeting API
       const response = await apiService.createMeeting(identifier, meetingData);
       if (response.success) {
+        // Show success notification
+        dispatch(addNotification({
+          type: 'success',
+          message: `Meeting Scheduled Successfully! Your meeting "${meetingForm.agenda}" has been scheduled for ${meetingForm.meetingDate} at ${meetingForm.startTime}.`
+        }));
+        
         // Show confirmation dialog with meeting details
         setConfirmationDetails({
           date: meetingForm.meetingDate,
@@ -815,23 +827,62 @@ export default function ScheduleMeetingPage() {
     router.push(`/${identifier}/event-admin/meetings?refresh=true`);
   };
 
+  // Calendar navigation functions
+  const handlePreviousMonth = () => {
+    setCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() + 1);
+      return newDate;
+    });
+  };
+
+  const handlePreviousYear = () => {
+    setCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setFullYear(prev.getFullYear() - 1);
+      return newDate;
+    });
+  };
+
+  const handleNextYear = () => {
+    setCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setFullYear(prev.getFullYear() + 1);
+      return newDate;
+    });
+  };
+
+  const handleToday = () => {
+    setCurrentCalendarDate(new Date());
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    handleFormChange('meetingDate', todayStr);
+    setDatePickerAnchorEl(null);
+  };
+
   return (
     <RoleBasedRoute allowedRoles={['visitor', 'event-admin', 'exhibitor']}>
     <ResponsiveDashboardLayout 
       title="Meetings">
     <Dialog 
-      open={openDialog} 
-      onClose={() => {}} // Prevent closing on outside click
-      maxWidth="md" 
+      open={openDialog}
+      onClose={handleCloseDialog}
+      maxWidth="lg"
       fullWidth
-      disableEscapeKeyDown={false}
       PaperProps={{
         sx: {
-          maxHeight: '90vh',
-          minHeight: '600px',
-          '& .MuiDialogContent-root': {
-            p: 3
-          }
+          maxWidth: 800,
+          borderRadius: 3,
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+          overflow: 'hidden'
         }
       }}
     >
@@ -866,7 +917,12 @@ export default function ScheduleMeetingPage() {
         </IconButton>
       </DialogTitle>
       
-      <DialogContent>
+      <DialogContent sx={{ 
+        p: 3, 
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         {submitError && (
           <Alert severity="error" sx={{ mb: 2 }} variant="outlined">
             {submitError}
@@ -875,21 +931,21 @@ export default function ScheduleMeetingPage() {
         
         {/* Meeting Organizer Information */}
         <Box sx={{ 
-          mb: 2, 
-          p: 1.5, 
-          borderRadius: 1.5, 
+          mb: 1, 
+          p: 1, 
+          borderRadius: 2, 
           bgcolor: 'primary.50', 
-          border: '1px solid',
-          borderColor: 'primary.200'
+          //border: '1px solid',
+          //borderColor: 'primary.200'
         }}>
-          <Typography variant="body2" sx={{ mb: 0.5, color: 'primary.main', fontWeight: 600 }}>
+          <Typography variant="body2" sx={{ mb: 1, color: 'primary.main', fontWeight: 400 }}>
             Meeting Organizer
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Avatar 
               sx={{ 
-                width: 32, 
-                height: 32,
+                width: 20, 
+                height: 20,
                 bgcolor: 'primary.main',
                 fontSize: '0.875rem'
               }}
@@ -906,20 +962,21 @@ export default function ScheduleMeetingPage() {
             </Box>
           </Box>
         </Box>
+       
         
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 2 }}>
-            <CircularProgress size={20} />
-            <Typography variant="body2" sx={{ ml: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+            <CircularProgress size={24} />
+            <Typography variant="body2" sx={{ ml: 1.5 }}>
               Loading participants...
             </Typography>
           </Box>
         )}
         
         {!loading && (
-        <>
+        <Box sx={{ flex: 1, overflow: 'auto', pr: 1 }}>
           {visitors.length === 0 && exhibitors.length === 0 && (
-            <Alert severity="warning" sx={{ mb: 2 }} variant="outlined">
+            <Alert severity="warning" sx={{ mb: 3 }} variant="outlined">
               No participants found.
             </Alert>
           )}
@@ -927,7 +984,7 @@ export default function ScheduleMeetingPage() {
           <Grid container spacing={3}>
           {/* Title Field */}
           <Grid item xs={12}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1,mt:-2 }}>
               <Box
                 sx={{
                   width: 24,
@@ -938,7 +995,7 @@ export default function ScheduleMeetingPage() {
                   justifyContent: 'center',
                   bgcolor: 'primary.main',
                   color: 'white',
-                  mt: 1,
+                  mt: 2,
                   flexShrink: 0
                 }}
               >
@@ -958,12 +1015,12 @@ export default function ScheduleMeetingPage() {
                       border: 'none',
                     },
                     '& input': {
-                      fontSize: '1.25rem',
-                      fontWeight: 500,
+                      fontSize: '1rem',
+                      fontWeight: 400,
                       padding: '0',
-                      mt:1,
+                      mt:2,
                       '&::placeholder': {
-                        color: 'text.primary',
+                        color: 'grey.400',
                         opacity: 1,
                       },
                     },
@@ -978,48 +1035,18 @@ export default function ScheduleMeetingPage() {
                 disabled={loading}
               />
             </Box>
+            <Divider sx={{ mt: 1, mb: 0 }} />
           </Grid>
 
-          {/* Description Field */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              placeholder="Add a description for the meeting (Optional)"
-              value={meetingForm.description}
-              onChange={(e) => handleFormChange('description', e.target.value)}
-              variant="outlined"
-              error={!!formErrors.description}
-              helperText={formErrors.description}
-              disabled={loading}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'primary.main',
-                  },
-                },
-              }}
-            />
-          </Grid>
+         
 
           {/* Attendees Selection */}
           <Grid item xs={12}>
             <Box sx={{ position: 'relative' }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
+              {/* <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
                 Meeting Attendees
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                {currentUserRole === 'exhibitor' ? 'Select visitors to invite to this meeting' :
-                 currentUserRole === 'visitor' ? 'Select exhibitors to invite to this meeting' :
-                 'Select participants to invite to this meeting'}
-              </Typography>
+              </Typography> */}
+             
               <TextField
                 fullWidth
                 placeholder="Invite attendees"
@@ -1030,7 +1057,7 @@ export default function ScheduleMeetingPage() {
                 value={getSelectedAttendeesDisplay()}
                 InputProps={{
                   startAdornment: (
-                    <Person sx={{ mr: 1, color: 'text.secondary' }} />
+                    <GroupAddIcon sx={{ ml: -1,mr: 1, color: 'text.secondary' }} />
                   ),
                   endAdornment: (
                     <Box sx={{ 
@@ -1070,28 +1097,23 @@ export default function ScheduleMeetingPage() {
                 PaperProps={{
                   sx: {
                     width: '100%',
-                    maxWidth: 650,
+                    maxWidth: 500,
                     mt: 1,
-                    maxHeight: 650,
-                    minHeight: 450,
+                    maxHeight: 500,
+                    minHeight: 250,
                     overflow: 'hidden',
                     borderRadius: 3,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
                     border: '1px solid',
                     borderColor: 'grey.200'
                   }
                 }}
               >
-                <Box sx={{ p: 2.5, maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
+                <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
                     <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.25, fontSize: '1.1rem' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.1rem' }}>
                         Select Meeting Attendees
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                        {currentUserRole === 'exhibitor' ? 'Choose visitors to invite to your meeting' :
-                         currentUserRole === 'visitor' ? 'Choose exhibitors to invite to your meeting' :
-                         'Choose participants to invite to your meeting'}
                       </Typography>
                     </Box>
                     <Button
@@ -1101,14 +1123,20 @@ export default function ScheduleMeetingPage() {
                         setShowAttendeesPopover(false);
                         setAttendeeAnchorEl(null);
                       }}
-                      sx={{ minWidth: 70, height: 32, fontSize: '0.8rem' }}
+                      sx={{ 
+                        minWidth: 70, 
+                        height: 32, 
+                        fontSize: '0.8rem',
+                        borderRadius: 2,
+                        textTransform: 'none'
+                      }}
                     >
                       Done
                     </Button>
                   </Box>
 
                   {/* Search Bar */}
-                  <Box sx={{ mb: 2, flexShrink: 0 }}>
+                  <Box sx={{ mb: 3, flexShrink: 0 }}>
                     <TextField
                       fullWidth
                       placeholder="Search attendees by name, company, or job title..."
@@ -1179,8 +1207,8 @@ export default function ScheduleMeetingPage() {
                               cursor: 'pointer',
                               borderRadius: 2,
                               bgcolor: isSelected ? 'primary.50' : 'transparent',
-                              border: '1px solid',
-                              borderColor: isSelected ? 'primary.200' : 'grey.200',
+                             // border: '1px solid',
+                             // borderColor: isSelected ? 'primary.200' : 'grey.200',
                               mb: 1,
                               '&:hover': {
                                 bgcolor: isSelected ? 'primary.100' : 'grey.50',
@@ -1315,8 +1343,8 @@ export default function ScheduleMeetingPage() {
                               cursor: 'pointer',
                               borderRadius: 2,
                               bgcolor: isSelected ? 'success.50' : 'transparent',
-                              border: '1px solid',
-                              borderColor: isSelected ? 'success.200' : 'grey.200',
+                             // border: '1px solid',
+                             // borderColor: isSelected ? 'success.200' : 'grey.200',
                               mb: 1,
                               '&:hover': {
                                 bgcolor: isSelected ? 'success.100' : 'grey.50',
@@ -1415,391 +1443,508 @@ export default function ScheduleMeetingPage() {
             )}
           </Grid>
 
-          {/* Meeting Date */}
-          <Grid item xs={12} md={4}>
-            <Box>
-              {/* <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
-                Meeting Date
-              </Typography> */}
+          <Divider sx={{ mt: 1, mb: 1 }} />
+          
+
+          {/* Date and Time Section */}
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 0, pb: 3, borderBottom: '1px solid', borderColor: 'grey.200' }}>
+              <Box
+                sx={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid',
+                  borderColor: 'grey.300',
+                  flexShrink: 0,
+                  mt: 0.5
+                }}
+              >
+                <AccessTime sx={{ fontSize: 16, color: 'grey.600' }} />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  {/* Date Field */}
+                  <TextField
+                    value={meetingForm.meetingDate ? new Date(meetingForm.meetingDate).toLocaleDateString('en-US', { 
+                      month: 'numeric',
+                      day: 'numeric',
+                      year: 'numeric'
+                    }) : ''}
+                    onClick={(e) => {
+                      setDatePickerAnchorEl(e.currentTarget);
+                    }}
+                    placeholder="Select date"
+                    variant="outlined"
+                    error={!!formErrors.meetingDate}
+                    InputProps={{
+                      readOnly: true,
+                      endAdornment: (
+                        <Event sx={{ fontSize: 16, color: 'grey.500' }} />
+                      ),
+                    }}
+                    sx={{
+                      minWidth: 140,
+                      '& .MuiOutlinedInput-root': {
+                        height: '40px',
+                        borderRadius: 2,
+                        '& fieldset': {
+                          borderColor: 'grey.300',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'grey.400',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'primary.main',
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        fontSize: '0.9rem',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        color: 'grey.700',
+                        '&::placeholder': {
+                          color: 'grey.400',
+                        },
+                      },
+                    }}
+                  />
+                  
+                  {/* Calendar Popup */}
+                  <Popover
+                    open={Boolean(datePickerAnchorEl)}
+                    onClose={() => setDatePickerAnchorEl(null)}
+                    anchorEl={datePickerAnchorEl}
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'left',
+                    }}
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'left',
+                    }}
+                    PaperProps={{
+                      sx: {
+                        width: 250,
+                        height: 350,
+                        p: 1,
+                        borderRadius: 3,
+                        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
+                        border: '1px solid',
+                        borderColor: 'grey.200',
+                        overflow: 'hidden'
+                      }
+                    }}
+                  >
+                    {/* Header */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      mb: 1,
+                      pb: 1,
+                      borderBottom: '1px solid',
+                      borderColor: 'grey.200'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <IconButton 
+                          size="small" 
+                          onClick={handlePreviousMonth}
+                          sx={{ 
+                            p: 0.5, 
+                            height: 20, 
+                            width: 20,
+                            color: 'text.secondary',
+                            '&:hover': {
+                              backgroundColor: 'grey.100'
+                            }
+                          }}
+                        >
+                          <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>◀</Box>
+                        </IconButton>
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 400, 
+                          fontSize: '1rem',
+                          color: 'text.primary'
+                        }}>
+                          {(() => {
+                            // Show current calendar month and year
+                            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                            return `${monthNames[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
+                          })()}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={handleNextMonth}
+                          sx={{ 
+                            p: 0.5, 
+                            height: 24, 
+                            width: 24,
+                            color: 'text.secondary',
+                            '&:hover': {
+                              backgroundColor: 'grey.100'
+                            }
+                          }}
+                        >
+                          <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>▶</Box>
+                        </IconButton>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <IconButton 
+                          size="small" 
+                          onClick={handlePreviousYear}
+                          sx={{ 
+                            p: 0.5, 
+                            height: 24, 
+                            width: 24,
+                            color: 'text.secondary',
+                            '&:hover': {
+                              backgroundColor: 'grey.100'
+                            }
+                          }}
+                        >
+                          <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>▲</Box>
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={handleNextYear}
+                          sx={{ 
+                            p: 0.5, 
+                            height: 24, 
+                            width: 24,
+                            color: 'text.secondary',
+                            '&:hover': {
+                              backgroundColor: 'grey.100'
+                            }
+                          }}
+                        >
+                          <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>▼</Box>
+                        </IconButton>
+                      </Box>
+                    </Box>
+                    
+                    {/* Calendar Grid */}
+                    <Box sx={{ mb: -1 }}>
+                      {/* Day Headers */}
+                      <Box sx={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(7, 1fr)', 
+                        mb: 1,
+                        gap: 0.5
+                      }}>
+                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
+                          <Typography 
+                            key={day} 
+                            variant="body2" 
+                            sx={{ 
+                              textAlign: 'center', 
+                              fontWeight: 400, 
+                              color: 'text.secondary', 
+                              fontSize: '0.700rem',
+                              py: 1
+                            }}
+                          >
+                            {day}
+                          </Typography>
+                        ))}
+                      </Box>
+                      
+                      {/* Calendar Days */}
+                      <Box sx={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(7, 1fr)', 
+                        gap: 0.5
+                      }}>
+                        {(() => {
+                          // Use current calendar month and year for navigation
+                          const displayMonth = currentCalendarDate.getMonth();
+                          const displayYear = currentCalendarDate.getFullYear();
+                          
+                          // Get the first day of the month
+                          const firstDay = new Date(displayYear, displayMonth, 1);
+                          const lastDay = new Date(displayYear, displayMonth + 1, 0);
+                          const startDate = new Date(firstDay);
+                          startDate.setDate(startDate.getDate() - firstDay.getDay());
+                          
+                          const calendarDays = [];
+                          
+                          // Generate calendar days
+                          for (let i = 0; i < 42; i++) {
+                            const date = new Date(startDate);
+                            date.setDate(startDate.getDate() + i);
+                            
+                            // Fix timezone issue by creating date string in local timezone
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const dateStr = `${year}-${month}-${day}`;
+                            
+                            const isCurrentMonth = date.getMonth() === displayMonth;
+                            const isSelected = meetingForm.meetingDate === dateStr;
+                            
+                            // Fix today comparison
+                            const today = new Date();
+                            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                            const isToday = dateStr === todayStr;
+                            
+                            calendarDays.push(
+                              <Box
+                                key={i}
+                                onClick={() => {
+                                  handleFormChange('meetingDate', dateStr);
+                                  setDatePickerAnchorEl(null);
+                                }}
+                                sx={{
+                                  aspectRatio: '1',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  borderRadius: 2,
+                                  fontSize: '0.700rem',
+                                  fontWeight: isSelected ? 600 : (isToday ? 500 : 300),
+                                  color: isSelected ? 'white' : isCurrentMonth ? 'text.primary' : 'text.secondary',
+                                  backgroundColor: isSelected ? 'primary.main' : 'transparent',
+                                  border: isToday ? '2px solid' : 'none',
+                                  borderColor: isToday ? 'primary.main' : 'transparent',
+                                  '&:hover': {
+                                    backgroundColor: isSelected ? 'primary.dark' : 'grey.50',
+                                    transform: 'scale(1.05)',
+                                  },
+                                  opacity: isCurrentMonth ? 1 : 0.4,
+                                  transition: 'all 0.2s ease',
+                                  position: 'relative'
+                                }}
+                              >
+                                {date.getDate()}
+                              </Box>
+                            );
+                          }
+                          
+                          return calendarDays;
+                        })()}
+                      </Box>
+                    </Box>
+                    
+                    {/* Footer */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'flex-end', 
+                      pt: 1,
+                      borderTop: '1px solid',
+                      borderColor: 'grey.200'
+                    }}>
+                      <Button
+                        size="small"
+                        onClick={handleToday}
+                        sx={{
+                          textTransform: 'none',
+                          fontSize: '0.700rem',
+                          px: 1,
+                          py: 1,
+                          color: 'white',
+                          fontWeight: 500,
+                          '&:hover': {
+                            backgroundColor: 'primary.50'
+                          }
+                        }}
+                      >
+                        Today
+                      </Button>
+                    </Box>
+                  </Popover>
+                  
+                  {/* Start Time Field */}
+                  <FormControl error={!!formErrors.startTime} disabled={loading}>
+                    <Select
+                      value={meetingForm.startTime}
+                      onChange={(e) => handleFormChange('startTime', e.target.value)}
+                      displayEmpty
+                      variant="outlined"
+                      sx={{
+                        minWidth: 120,
+                        height: '40px',
+                        borderRadius: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'grey.300',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'grey.400',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'primary.main',
+                          },
+                        },
+                        '& .MuiSelect-select': {
+                          fontSize: '0.9rem',
+                          padding: '8px 12px',
+                          color: 'grey.700',
+                        },
+                      }}
+                    >
+                      <MenuItem value="" disabled>
+                        Start time
+                      </MenuItem>
+                      {(() => {
+                        const timeSlots = [];
+                        const eventTimeSlots = getEventTimeSlots();
+                        
+                        const startHour = eventTimeSlots.length > 0 ? Math.min(...eventTimeSlots) : 0;
+                        const endHour = eventTimeSlots.length > 0 ? Math.max(...eventTimeSlots) : 23;
+                        
+                        for (let hour = startHour; hour <= endHour; hour++) {
+                          for (let minute = 0; minute < 60; minute += 30) {
+                            const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                            const ampm = hour < 12 ? 'AM' : 'PM';
+                            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                            const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+                            
+                            timeSlots.push(
+                              <MenuItem key={timeValue} value={timeValue}>
+                                {displayTime}
+                              </MenuItem>
+                            );
+                          }
+                        }
+                        
+                        return timeSlots;
+                      })()}
+                    </Select>
+                  </FormControl>
+                  
+                  {/* "to" separator */}
+                  <Typography variant="body2" sx={{ 
+                    color: 'grey.600', 
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                    px: 1
+                  }}>
+                    to
+                  </Typography>
+                  
+                  {/* End Time Field */}
+                  <FormControl error={!!formErrors.endTime} disabled={loading}>
+                    <Select
+                      value={meetingForm.endTime}
+                      onChange={(e) => handleFormChange('endTime', e.target.value)}
+                      displayEmpty
+                      variant="outlined"
+                      sx={{
+                        minWidth: 120,
+                        height: '40px',
+                        borderRadius: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'grey.300',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'grey.400',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'primary.main',
+                          },
+                        },
+                        '& .MuiSelect-select': {
+                          fontSize: '0.9rem',
+                          padding: '8px 12px',
+                          color: 'grey.700',
+                        },
+                      }}
+                    >
+                      <MenuItem value="" disabled>
+                        End time
+                      </MenuItem>
+                      {(() => {
+                        const availableEndTimes = getAvailableEndTimes(meetingForm.startTime);
+                        
+                        return availableEndTimes.map(timeValue => {
+                          const [hour, minute] = timeValue.split(':').map(Number);
+                          const ampm = hour < 12 ? 'AM' : 'PM';
+                          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                          const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+                          
+                          return (
+                            <MenuItem key={timeValue} value={timeValue}>
+                              {displayTime}
+                            </MenuItem>
+                          );
+                        });
+                      })()}
+                    </Select>
+                  </FormControl>
+                </Box>
+                {(formErrors.meetingDate || formErrors.startTime || formErrors.endTime) && (
+                  <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                    {formErrors.meetingDate || formErrors.startTime || formErrors.endTime}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          </Grid>
+           {/* Description Field */}
+           <Grid item xs={12}>
             <TextField
               fullWidth
-               // placeholder="Select meeting date"
-              label="Meeting Date"
-                value={meetingForm.meetingDate ? new Date(meetingForm.meetingDate).toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
-                }) : ''}
-                onClick={(e) => {
-                  setDatePickerAnchorEl(e.currentTarget);
+              multiline
+              rows={2}
+              placeholder="Add a description for the meeting"
+              value={meetingForm.description}
+              onChange={(e) => handleFormChange('description', e.target.value)}
+              variant="outlined"
+              error={!!formErrors.description}
+              helperText={formErrors.description}
+              disabled={loading}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
               }}
-              InputProps={{
-                startAdornment: (
-                  <Event sx={{ mr: 1, color: 'text.secondary' }} />
-                ),
-                  endAdornment: (
-                    <Box sx={{ 
-                      transform: datePickerAnchorEl ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s ease'
-                    }}>
-                      ▼
-                    </Box>
-                  ),
-                  readOnly: true,
-                  sx: {
-                    cursor: 'pointer',
-                    '& fieldset': {
-                      borderColor: formErrors.meetingDate ? 'error.main' : 'rgba(0, 0, 0, 0.23)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(0, 0, 0, 0.23)',
-                    },
-                    
-                    
-                  }
-                }}
-                disabled={loading}
-              />
-              {formErrors.meetingDate && (
-                <FormHelperText error>{formErrors.meetingDate}</FormHelperText>
-              )}
-              {!formErrors.meetingDate && eventDetails && (
-                <FormHelperText>
-                  Event runs from {new Date(eventDetails.startDateTime).toLocaleDateString()} to {new Date(eventDetails.endDateTime).toLocaleDateString()}
-                </FormHelperText>
-              )}
-            </Box>
-            
-                         {/* Calendar Popup */}
-             <Popover
-               open={Boolean(datePickerAnchorEl)}
-               onClose={() => setDatePickerAnchorEl(null)}
-               anchorEl={datePickerAnchorEl}
-               anchorOrigin={{
-                 vertical: 'bottom',
-                 horizontal: 'left',
-               }}
-               transformOrigin={{
-                 vertical: 'top',
-                 horizontal: 'left',
-               }}
-               PaperProps={{
-                 sx: {
-                   width: 320,
-                   p: 2,
-                   borderRadius: 2,
-                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)'
-                 }
-               }}
-             >
-               <Box sx={{ mb: 2 }}>
-                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                     <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
-                       {(() => {
-                         // Show event month if available, otherwise show current month
-                         if (eventDetails && eventDetails.startDateTime) {
-                           const eventDate = new Date(eventDetails.startDateTime);
-                           const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                           return `${monthNames[eventDate.getMonth()]} ${eventDate.getFullYear()}`;
-                         } else {
-                           const currentDate = new Date();
-                           const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                           return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-                         }
-                       })()}
-                     </Typography>
-                     <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', cursor: 'pointer' }}>▼</Box>
-                   </Box>
-                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                     <IconButton size="small" sx={{ p: 0.5, height: 20, width: 20 }}>
-                       <Box sx={{ fontSize: '0.75rem', lineHeight: 1 }}>▲</Box>
-                     </IconButton>
-                     <IconButton size="small" sx={{ p: 0.5, height: 20, width: 20 }}>
-                       <Box sx={{ fontSize: '0.75rem', lineHeight: 1 }}>▼</Box>
-                     </IconButton>
-                   </Box>
-                 </Box>
-               </Box>
-               
-               <Box sx={{ 
-                 border: '1px solid',
-                 borderColor: 'divider',
-                 borderRadius: 1,
-                 p: 2,
-                 bgcolor: 'background.paper',
-                 minHeight: 280,
-                 display: 'flex',
-                 flexDirection: 'column'
-               }}>
-                 {(() => {
-                   // Use event month and year if available, otherwise use current month
-                   let displayMonth, displayYear;
-                   if (eventDetails && eventDetails.startDateTime) {
-                     const eventDate = new Date(eventDetails.startDateTime);
-                     displayMonth = eventDate.getMonth();
-                     displayYear = eventDate.getFullYear();
-                   } else {
-                     const currentDate = new Date();
-                     displayMonth = currentDate.getMonth();
-                     displayYear = currentDate.getFullYear();
-                   }
-                   
-                   // Get the first day of the month
-                   const firstDay = new Date(displayYear, displayMonth, 1);
-                   const lastDay = new Date(displayYear, displayMonth + 1, 0);
-                   const startDate = new Date(firstDay);
-                   startDate.setDate(startDate.getDate() - firstDay.getDay());
-                   
-                   const days = [];
-                   const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-                   
-                   // Add day headers
-                   days.push(
-                     <Box key="headers" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 1 }}>
-                       {dayNames.map(day => (
-                         <Typography key={day} variant="caption" sx={{ textAlign: 'center', fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}>
-                           {day}
-                         </Typography>
-                       ))}
-                     </Box>
-                   );
-                   
-                   // Generate calendar days
-                   const calendarDays = [];
-                   for (let i = 0; i < 42; i++) {
-                     const date = new Date(startDate);
-                     date.setDate(startDate.getDate() + i);
-                     const dateStr = date.toISOString().split('T')[0];
-                     const isCurrentMonth = date.getMonth() === displayMonth;
-                     const isSelected = meetingForm.meetingDate === dateStr;
-                     const isToday = dateStr === new Date().toISOString().split('T')[0];
-                     // Allow all dates to be selectable - no event restrictions
-                     
-                     calendarDays.push(
-                       <Box
-                         key={i}
-                         onClick={() => {
-                           // Allow selection of any date - no restrictions
-                           handleFormChange('meetingDate', dateStr);
-                           setDatePickerAnchorEl(null);
-                         }}
-                         sx={{
-                           aspectRatio: '1',
-                           display: 'flex',
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           cursor: 'pointer',
-                           borderRadius: 1,
-                           fontSize: '0.875rem',
-                           fontWeight: isSelected ? 600 : (isToday ? 600 : 400),
-                           color: isSelected ? 'white' : isCurrentMonth ? 'text.primary' : 'text.secondary',
-                           backgroundColor: isSelected ? 'primary.main' : (isToday ? 'primary.50' : 'transparent'),
-                           border: isToday ? '2px solid' : 'none',
-                           borderColor: isToday ? 'primary.main' : 'transparent',
-                           '&:hover': {
-                             backgroundColor: isSelected ? 'primary.dark' : 'grey.100',
-                           },
-                           opacity: isCurrentMonth ? 1 : 0.5,
-                         }}
-                       >
-                         {date.getDate()}
-                       </Box>
-                     );
-                   }
-                   
-                   days.push(
-                     <Box key="calendar" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
-                       {calendarDays}
-                     </Box>
-                   );
-                   
-                   // Add footer buttons
-                   days.push(
-                     <Box key="footer" sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-                       <Button
-                         size="small"
-                         onClick={() => {
-                           handleFormChange('meetingDate', '');
-                           setDatePickerAnchorEl(null);
-                         }}
-                         sx={{
-                           textTransform: 'none',
-                           fontSize: '0.8rem',
-                           px: 2,
-                           py: 0.5,
-                           color: 'text.secondary',
-                           '&:hover': {
-                             backgroundColor: 'grey.100'
-                           }
-                         }}
-                       >
-                         Clear
-                       </Button>
-                       <Button
-                         size="small"
-                         onClick={() => {
-                           const today = new Date().toISOString().split('T')[0];
-                           handleFormChange('meetingDate', today);
-                           setDatePickerAnchorEl(null);
-                         }}
-                         sx={{
-                           textTransform: 'none',
-                           fontSize: '0.8rem',
-                           px: 2,
-                           py: 0.5,
-                           color: 'primary.main',
-                           '&:hover': {
-                             backgroundColor: 'primary.50'
-                           }
-                         }}
-                       >
-                         Today
-                       </Button>
-                     </Box>
-                   );
-                   
-                   return days;
-                 })()}
-               </Box>
-             </Popover>
+            />
           </Grid>
 
-          {/* Start Time */}
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth error={!!formErrors.startTime} disabled={loading}>
-              <InputLabel>Start Time</InputLabel>
-              <Select
-                value={meetingForm.startTime}
-                onChange={(e) => handleFormChange('startTime', e.target.value)}
-                label="Start Time"
-                startAdornment={
-                  <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
-                }
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    height: '40px',
-                  },
-                  '& .MuiSelect-select': {
-                    padding: '8px 12px',
-                  },
-                  '& .MuiInputLabel-root': {
-                    fontSize: '0.875rem',
-                  },
-                }}
-              >
-                {(() => {
-                  const timeSlots = [];
-                  const eventTimeSlots = getEventTimeSlots();
-                  
-                  // If we have event details, use event time range, otherwise use full day
-                  const startHour = eventTimeSlots.length > 0 ? Math.min(...eventTimeSlots) : 0;
-                  const endHour = eventTimeSlots.length > 0 ? Math.max(...eventTimeSlots) : 23;
-                  
-                  for (let hour = startHour; hour <= endHour; hour++) {
-                    for (let minute = 0; minute < 60; minute += 30) {
-                      const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                  const ampm = hour < 12 ? 'AM' : 'PM';
-                  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                      const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-                      
-                      timeSlots.push(
-                    <MenuItem key={timeValue} value={timeValue}>
-                      {displayTime}
-                    </MenuItem>
-                  );
-                    }
-                  }
-                  
-                  return timeSlots;
-                })()}
-              </Select>
-              {formErrors.startTime && (
-                <FormHelperText>{formErrors.startTime}</FormHelperText>
-              )}
-              {!formErrors.startTime && eventDetails && (
-                <FormHelperText>
-                  Event hours: {new Date(eventDetails.startDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(eventDetails.endDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </FormHelperText>
-              )}
-            </FormControl>
-          </Grid>
-
-          {/* End Time */}
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth error={!!formErrors.endTime} disabled={loading}>
-              <InputLabel>End Time</InputLabel>
-              <Select
-                value={meetingForm.endTime}
-                onChange={(e) => handleFormChange('endTime', e.target.value)}
-                label="End Time"
-                startAdornment={
-                  <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
-                }
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    height: '40px',
-                  },
-                  '& .MuiSelect-select': {
-                    padding: '8px 12px',
-                  },
-                  '& .MuiInputLabel-root': {
-                    fontSize: '0.875rem',
-                  },
-                }}
-              >
-                {(() => {
-                  const availableEndTimes = getAvailableEndTimes(meetingForm.startTime);
-                  
-                  return availableEndTimes.map(timeValue => {
-                    const [hour, minute] = timeValue.split(':').map(Number);
-                  const ampm = hour < 12 ? 'AM' : 'PM';
-                  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                    const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-                    
-                  return (
-                      <MenuItem key={timeValue} value={timeValue}>
-                      {displayTime}
-                    </MenuItem>
-                  );
-                  });
-                })()}
-              </Select>
-              {formErrors.endTime && (
-                <FormHelperText>{formErrors.endTime}</FormHelperText>
-              )}
-              {!formErrors.endTime && eventDetails && (
-                <FormHelperText>
-                  Event hours: {new Date(eventDetails.startDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(eventDetails.endDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </FormHelperText>
-              )}
-            </FormControl>
-          </Grid>
-
+          <Divider sx={{ mt: 1, mb: 1 }} />
          
 
         </Grid>
-        </>
+        </Box>
         )}
       </DialogContent>
 
       <DialogActions sx={{ 
-        p: 3, 
+        p: 1, 
         borderTop: '1px solid',
         borderColor: 'divider',
         gap: 2,
-        bgcolor: 'grey.50'
+        bgcolor: 'grey.50',
+        justifyContent: 'flex-end'
       }}>
         <Button 
           onClick={handleCloseDialog} 
-          size="large"
+          size="small"
           disabled={isSubmitting}
           sx={{
-            px: 3,
-            py: 1.5,
+            px: 1,
+            py: 1,
             borderRadius: 2,
             textTransform: 'none',
-            fontWeight: 500
+            fontWeight: 300,
+            color: 'text.primary',
+            
+            '&:hover': {
+              backgroundColor: 'grey.100'
+            }
           }}
         >
           Cancel
@@ -1807,22 +1952,27 @@ export default function ScheduleMeetingPage() {
         <Button 
           variant="contained" 
           onClick={handleSubmit} 
-          size="large"
+          size="small"
           disabled={isSubmitting}
           startIcon={isSubmitting ? <CircularProgress size={16} /> : <ScheduleSend />}
           sx={{
-            px: 4,
-            py: 1.5,
+            px: 1,
+            py: 1,
             borderRadius: 2,
             textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '1rem',
+            fontWeight: 300,
+            fontSize: '0.900rem',
             background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
             boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
             '&:hover': {
               background: 'linear-gradient(135deg, #1565c0, #1976d2)',
               boxShadow: '0 6px 16px rgba(25, 118, 210, 0.4)',
               transform: 'translateY(-1px)'
+            },
+            '&:disabled': {
+              background: 'grey.300',
+              boxShadow: 'none',
+              transform: 'none'
             },
             transition: 'all 0.3s ease'
           }}
@@ -1966,7 +2116,7 @@ export default function ScheduleMeetingPage() {
           variant="contained"
           onClick={() => {
             setShowConfirmation(false);
-            router.push(`/${identifier}/event-admin/meetings?view=list`);
+            router.push(`/${identifier}/event-admin/meetings?refresh=true&view=list`);
           }}
           autoFocus
           startIcon={<ScheduleSend />}

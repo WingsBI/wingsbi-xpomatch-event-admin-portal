@@ -782,7 +782,7 @@ export default function FavouritesPage() {
                             onClick={() => {
                               const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
                               const identifier = pathParts[1] || '';
-                              router.push(`/${identifier}/event-admin/meetings?view=list`);
+                              router.push(`/${identifier}/event-admin/meetings/schedule-meeting?visitorId=${visitor.id}`);
                             }}
                             sx={{ 
                               bgcolor: 'primary.main',
@@ -1100,7 +1100,7 @@ export default function FavouritesPage() {
                             onClick={() => {
                               const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
                               const identifier = pathParts[1] || '';
-                              router.push(`/${identifier}/event-admin/meetings?view=list`);
+                              router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${exhibitor.id}`);
                             }}
                             sx={{ 
                               bgcolor: 'primary.main',

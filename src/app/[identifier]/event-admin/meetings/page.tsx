@@ -1693,13 +1693,14 @@ export default function MeetingsPage() {
       case 1: // Upcoming - show meetings with status 'Upcoming' or approved meetings in the future
         const upcomingMeetings = meetings.filter(m => {
           // Show meetings that are explicitly upcoming OR approved and in future
-          // Ensure mutual exclusivity with pending tab
+          // Ensure mutual exclusivity with pending tab AND exclude past meetings
           const isExplicitlyUpcoming = m.approvalStatus?.toLowerCase() === 'upcoming';
           const isApprovedAndFuture = m.isApproved && m.dateTime > now;
           const isNotCancelled = m.status !== 'cancelled' && !m.isCancelled;
           const isNotPending = m.approvalStatus?.toLowerCase() !== 'pending';
+          const isFutureMeeting = m.dateTime > now; // Check if meeting is in the future
           
-          const shouldShow = (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled;
+          const shouldShow = (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled && isFutureMeeting;
           
           console.log(`Meeting ${m.id} upcoming check:`, {
             id: m.id,
@@ -1711,6 +1712,7 @@ export default function MeetingsPage() {
             isApprovedAndFuture,
             isNotCancelled,
             isNotPending,
+            isFutureMeeting,
             shouldShow,
             status: m.status,
             approvalStatus: m.approvalStatus
@@ -1754,7 +1756,8 @@ export default function MeetingsPage() {
       const isApprovedAndFuture = m.isApproved && m.dateTime > now;
       const isNotCancelled = m.status !== 'cancelled' && !m.isCancelled;
       const isNotPending = m.approvalStatus?.toLowerCase() !== 'pending';
-      return (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled;
+      const isFutureMeeting = m.dateTime > now; // Check if meeting is in the future
+      return (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled && isFutureMeeting;
     }).length;
   };
 
@@ -1765,7 +1768,9 @@ export default function MeetingsPage() {
     const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
     if (!endDateTime) return false;
     
-    return meeting.isApproved && now > endDateTime && meeting.status !== 'cancelled';
+    // Check if meeting is approved (either explicitly or by status)
+    const isApprovedMeeting = meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming';
+    return isApprovedMeeting && now > endDateTime && meeting.status !== 'cancelled';
   };
 
   const getCompletedCount = () => {
@@ -1819,6 +1824,18 @@ export default function MeetingsPage() {
     }
   };
 
+  const isPastNonApprovedMeeting = (meeting: Meeting) => {
+    const now = new Date();
+    if (!meeting.endTime || !meeting.meetingDate) return false;
+    
+    const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
+    if (!endDateTime) return false;
+    
+    // Check if meeting is NOT approved and time has passed
+    const isApprovedMeeting = meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming';
+    return !isApprovedMeeting && now > endDateTime && meeting.status !== 'cancelled';
+  };
+
   const isOngoingMeeting = (meeting: Meeting) => {
     const now = new Date();
     console.log('Checking if meeting is ongoing:', {
@@ -1845,7 +1862,9 @@ export default function MeetingsPage() {
       return false;
     }
     
-    const isOngoing = now >= startDateTime && now <= endDateTime && meeting.status !== 'cancelled' && meeting.isApproved;
+    // Check if meeting is approved (either explicitly or by status)
+    const isApprovedMeeting = meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming';
+    const isOngoing = now >= startDateTime && now <= endDateTime && meeting.status !== 'cancelled' && isApprovedMeeting;
     console.log('Meeting ongoing check result:', {
       id: meeting.id,
       startDateTime: startDateTime.toISOString(),
@@ -1854,6 +1873,8 @@ export default function MeetingsPage() {
       isBeforeEnd: now <= endDateTime,
       notCancelled: meeting.status !== 'cancelled',
       isApproved: meeting.isApproved,
+      approvalStatus: meeting.approvalStatus,
+      isApprovedMeeting,
       isOngoing
     });
     
@@ -1966,35 +1987,39 @@ export default function MeetingsPage() {
              meetingDate.getMonth() === date.getMonth() &&
              meetingDate.getFullYear() === date.getFullYear();
       
-      // Only show scheduled meetings (not completed or cancelled)
-      const isScheduled = meeting.status === 'scheduled' || meeting.status === 'in-progress';
-      
-      // Show both approved and pending meetings (but not completed)
-      const isNotCompleted = meeting.status !== 'completed';
-      
-      // Check if meeting is in the future or today (not past)
+      // Calendar should only show upcoming meetings (approved and in the future)
       const now = new Date();
-      const isNotPast = meetingDate >= now;
+      const isExplicitlyUpcoming = meeting.approvalStatus?.toLowerCase() === 'upcoming';
+      const isApprovedAndFuture = meeting.isApproved && meetingDate > now;
+      const isNotCancelled = meeting.status !== 'cancelled' && !meeting.isCancelled;
+      const isNotPending = meeting.approvalStatus?.toLowerCase() !== 'pending';
+      const isFutureMeeting = meetingDate > now;
+      
+      // Use the same logic as upcoming tab filter
+      const isUpcomingMeeting = (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled && isFutureMeeting;
       
       // Debug logging
       if (isSameDate) {
-        console.log('Calendar meeting check:', {
+        console.log('Calendar meeting check (upcoming only):', {
           id: meeting.id,
           title: meeting.title,
           status: meeting.status,
           isApproved: meeting.isApproved,
           approvalStatus: meeting.approvalStatus,
-          isScheduled,
-          isNotCompleted,
-          isNotPast,
+          isExplicitlyUpcoming,
+          isApprovedAndFuture,
+          isNotCancelled,
+          isNotPending,
+          isFutureMeeting,
+          isUpcomingMeeting,
           meetingDate: meetingDate.toISOString(),
           now: now.toISOString(),
           checkDate: date.toISOString(),
-          willShow: isSameDate && isScheduled && isNotCompleted && isNotPast
+          willShow: isSameDate && isUpcomingMeeting
         });
       }
       
-      return isSameDate && isScheduled && isNotCompleted && isNotPast;
+      return isSameDate && isUpcomingMeeting;
     });
   };
 
@@ -2287,14 +2312,6 @@ export default function MeetingsPage() {
           {/* Only show top-right button in calendar view */}
           {showCalendar && (
             <Box sx={{ mb: 2, mt: -1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={isRefreshing ? <CircularProgress size={16} /> : <Refresh />}
-                onClick={handleRefreshMeetings}
-                disabled={meetingsLoading || isRefreshing}
-              >
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
               <Button
                 variant="contained"
                 startIcon={<Add />}
@@ -2686,20 +2703,13 @@ export default function MeetingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
                     <Tab label="Pending" />
-                    <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
+                    <Tab label={<Badge badgeContent={getUpcomingCount()} color="info">Upcoming</Badge>}/>
                     <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
                     <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
                     <Tab label="Cancelled" />
                   </Tabs>
                                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="outlined"
-                      startIcon={isRefreshing ? <CircularProgress size={16} /> : <Refresh />}
-                      onClick={handleRefreshMeetings}
-                      disabled={meetingsLoading || isRefreshing}
-                    >
-                      {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                    </Button>
+                    
                                   <Button
                   variant="contained"
                   startIcon={<Add />}
@@ -2779,12 +2789,19 @@ export default function MeetingsPage() {
                     return (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
-                  
                   transition: 'all 0.3s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    boxShadow: 4
-                  }
+                  // Conditional styling based on meeting state
+                  ...(isPastNonApprovedMeeting(meeting) ? {
+                    opacity: 0.5,
+                    pointerEvents: 'none',
+                    backgroundColor: 'grey.100',
+                    cursor: 'not-allowed'
+                  } : {
+                    '&:hover': { 
+                      transform: 'translateY(-2px)',
+                      boxShadow: 4
+                    }
+                  })
                 }}>
                   <CardContent sx={{ p: 1.5 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>

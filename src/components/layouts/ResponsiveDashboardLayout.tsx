@@ -1125,7 +1125,12 @@ export default function ResponsiveDashboardLayout({
             onClose={() => handleNotificationClose(notification.id)}
             severity={notification.type}
             variant="filled"
-            sx={{ width: '100%' }}
+            sx={{ 
+              width: '100%',
+              '& .MuiAlert-message': {
+                color: '#000000 !important'
+              }
+            }}
           >
             {notification.message}
           </Alert>

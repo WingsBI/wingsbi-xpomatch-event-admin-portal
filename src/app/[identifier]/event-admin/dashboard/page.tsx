@@ -312,11 +312,38 @@ export default function EventAdminDashboard() {
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // No sessionStorage persistence; pass via route/state if needed
+        // Extract mappings from the nested structure
+        const mappingsData = (suggestResponse.result as any)?.mappings || suggestResponse.result;
+        if (!mappingsData || mappingsData.length === 0) {
+          throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
+        }
         
-        // Extract and store fileStorageId if available
+        // Extract fileStorageId from the suggest response
         const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId;
-        // responseFileStorageId can be passed via route/state if needed
+        
+        // Store data in session storage for the field mapping page
+        console.log('Storing visitors data in session storage from dashboard:', {
+          identifier,
+          mappingsData,
+          standardFields: standardFieldsResponse.result,
+          fileStorageId: responseFileStorageId
+        });
+        
+        sessionStorage.setItem(`visitors_mapping_${identifier}`, JSON.stringify(mappingsData));
+        sessionStorage.setItem(`visitors_standard_fields_${identifier}`, JSON.stringify(standardFieldsResponse.result));
+        if (responseFileStorageId) {
+          sessionStorage.setItem(`visitors_file_storage_id_${identifier}`, responseFileStorageId.toString());
+        }
+        
+        // Verify data was stored
+        console.log('Session storage verification from dashboard:', {
+          storedMapping: sessionStorage.getItem(`visitors_mapping_${identifier}`),
+          storedFields: sessionStorage.getItem(`visitors_standard_fields_${identifier}`),
+          storedFileId: sessionStorage.getItem(`visitors_file_storage_id_${identifier}`)
+        });
+        
+        // Small delay to ensure session storage is persisted
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Redirect to matching page
         router.push(`/${identifier}/event-admin/visitors/matching`);
@@ -373,11 +400,38 @@ export default function EventAdminDashboard() {
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // No sessionStorage persistence; pass via route/state if needed
+        // Extract mappings from the nested structure
+        const mappingsData = (suggestResponse.result as any)?.mappings || suggestResponse.result;
+        if (!mappingsData || mappingsData.length === 0) {
+          throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
+        }
         
-        // Extract and store fileStorageId if available
+        // Extract fileStorageId from the suggest response
         const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId;
-        // responseFileStorageId can be passed via route/state if needed
+        
+        // Store data in session storage for the field mapping page
+        console.log('Storing exhibitors data in session storage from dashboard:', {
+          identifier,
+          mappingsData,
+          standardFields: standardFieldsResponse.result,
+          fileStorageId: responseFileStorageId
+        });
+        
+        sessionStorage.setItem(`exhibitors_mapping_${identifier}`, JSON.stringify(mappingsData));
+        sessionStorage.setItem(`exhibitors_standard_fields_${identifier}`, JSON.stringify(standardFieldsResponse.result));
+        if (responseFileStorageId) {
+          sessionStorage.setItem(`exhibitors_file_storage_id_${identifier}`, responseFileStorageId.toString());
+        }
+        
+        // Verify data was stored
+        console.log('Session storage verification from dashboard:', {
+          storedMapping: sessionStorage.getItem(`exhibitors_mapping_${identifier}`),
+          storedFields: sessionStorage.getItem(`exhibitors_standard_fields_${identifier}`),
+          storedFileId: sessionStorage.getItem(`exhibitors_file_storage_id_${identifier}`)
+        });
+        
+        // Small delay to ensure session storage is persisted
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Redirect to matching page
         router.push(`/${identifier}/event-admin/exhibitors/matching`);

@@ -890,11 +890,11 @@ export default function MeetingsPage() {
         // No meetings found - set appropriate message
         setMeetings([]);
         const roleMessages = {
-          'visitor': 'No meetings found. You haven\'t scheduled any meetings or received any invitations yet.',
-          'exhibitor': 'No meetings found. You haven\'t scheduled any meetings or received any invitations yet.',
-          'event-admin': 'No meetings found for this event.'
+          'visitor': 'Welcome! Start your networking journey by scheduling meetings with exhibitors or wait for meeting invitations.',
+          'exhibitor': 'Welcome! Start connecting with visitors by scheduling meetings or wait for meeting requests.',
+          'event-admin': 'No meetings have been scheduled for this event yet. Meetings will appear here once participants start scheduling.'
         };
-        setNoMeetingsMessage(roleMessages[user.role as keyof typeof roleMessages] || 'No meetings found.');
+        setNoMeetingsMessage(roleMessages[user.role as keyof typeof roleMessages] || 'Welcome! Start scheduling meetings to connect with other participants.');
       } else {
         setMeetings([]);
         setMeetingsError('Unable to load meetings. Please try refreshing the page.');
@@ -2550,13 +2550,25 @@ export default function MeetingsPage() {
                 </Alert>
               )}
 
-              {/* No Meetings Message */}
+                            {/* No Meetings Message - Empty State */}
               {noMeetingsMessage && !meetingsError && (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  <Typography variant="body2">
+                <Paper sx={{ 
+                  p: 4, 
+                  textAlign: 'center',
+                  bgcolor: 'primary.50',
+                  border: '1px solid',
+                  borderColor: 'primary.light',
+                  borderRadius: 2,
+                  mb: 2
+                }}>
+                  <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                    No meetings found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
                     {noMeetingsMessage}
                   </Typography>
-                </Alert>
+                </Paper>
               )}
 
               {/* Meetings list */}
@@ -2872,23 +2884,44 @@ export default function MeetingsPage() {
               {!meetingsLoading && !meetingsError && !noMeetingsMessage && getFilteredMeetings().length === 0 && (
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
                   <CalendarMonth sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No meetings found
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
                     {tabValue === 0 
-                      ? "No pending meetings found"
+                      ? "No Pending Meetings"
                       : tabValue === 1
-                      ? "No upcoming meetings found"
+                      ? "No Upcoming Meetings"
                       : tabValue === 2
-                      ? "No ongoing meetings found"
+                      ? "No Ongoing Meetings"
                       : tabValue === 3
-                      ? "No completed meetings found"
+                      ? "No Completed Meetings"
                       : tabValue === 4
-                      ? "No cancelled meetings found"
-                      : "No meetings in this category"
+                      ? "No Cancelled Meetings"
+                      : "No Meetings Available"
                     }
                   </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {tabValue === 0 
+                      ? "Great! All your meeting requests have been processed. Check other tabs for your meetings."
+                      : tabValue === 1
+                      ? "No upcoming meetings scheduled. Use the 'Schedule Meeting' button to start planning."
+                      : tabValue === 2
+                      ? "No meetings are currently in progress. Check your upcoming meetings tab."
+                      : tabValue === 3
+                      ? "No completed meetings yet. Your finished meetings will appear here."
+                      : tabValue === 4
+                      ? "No cancelled meetings. This is a good sign - all your meetings are active!"
+                      : "No meetings available in this category at the moment."
+                    }
+                  </Typography>
+                  {tabValue === 1 && (
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={handleScheduleMeeting}
+                      sx={{ mt: 1 }}
+                    >
+                      Schedule Your First Meeting
+                    </Button>
+                  )}
                 </Paper>
               )}
             </>

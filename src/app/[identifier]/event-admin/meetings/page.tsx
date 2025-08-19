@@ -146,12 +146,15 @@ const canCancelMeeting = (meeting: Meeting, user: any) => {
 };
 
 const canAcceptRejectMeeting = (meeting: Meeting, user: any) => {
-  return !meeting.isInitiator && meeting.status !== 'cancelled' && !meeting.isApproved;
+  const isExplicitlyUpcoming = meeting.approvalStatus?.toLowerCase() === 'upcoming';
+  return !meeting.isInitiator && meeting.status !== 'cancelled' && !meeting.isApproved && !isExplicitlyUpcoming;
 };
 
 const shouldShowAcceptReject = (meeting: Meeting, user: any) => {
   // Show accept/reject buttons ONLY for attendees (not initiators) of non-cancelled and non-approved meetings
-  return !meeting.isInitiator && !meeting.isApproved && meeting.status !== 'cancelled';
+  // Also exclude meetings that have explicit "upcoming" status (these should show as approved)
+  const isExplicitlyUpcoming = meeting.approvalStatus?.toLowerCase() === 'upcoming';
+  return !meeting.isInitiator && !meeting.isApproved && meeting.status !== 'cancelled' && !isExplicitlyUpcoming;
 };
 
 const shouldShowRescheduleCancel = (meeting: Meeting, user: any) => {
@@ -409,16 +412,8 @@ export default function MeetingsPage() {
                 company: invite.companyName,
                 type: 'visitor', // Current user is visitor
                 avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
-              },
-              // Add the initiator
-              {
-                id: meetingDetails?.initiatorId?.toString() || '1',
-                name: meetingDetails?.initiatorName || 'Initiator',
-                email: `${meetingDetails?.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'initiator@example.com',
-                company: meetingDetails?.companyName || 'Company',
-                type: 'exhibitor', // Initiator is exhibitor (opposite of current user)
-                avatar: (meetingDetails?.initiatorName?.charAt(0) || 'I').toUpperCase()
               }
+              // Note: Initiator is not added to attendees list - they are shown separately in the Initiator section
             ],
             // Add approval status from invite
             isApproved: invite.isApproved === true,
@@ -614,16 +609,8 @@ export default function MeetingsPage() {
                 company: invite.companyName,
                 type: 'exhibitor', // Current user is exhibitor
                 avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
-              },
-              // Add the initiator
-              {
-                id: meetingDetails?.initiatorId?.toString() || '1',
-                name: meetingDetails?.initiatorName || 'Initiator',
-                email: `${meetingDetails?.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'initiator@example.com',
-                company: meetingDetails?.companyName || 'Company',
-                type: 'visitor', // Initiator is visitor (opposite of current user)
-                avatar: (meetingDetails?.initiatorName?.charAt(0) || 'I').toUpperCase()
               }
+              // Note: Initiator is not added to attendees list - they are shown separately in the Initiator section
             ],
             // Add approval status from invite
             isApproved: invite.isApproved === true,
@@ -836,45 +823,10 @@ export default function MeetingsPage() {
             }
           }
 
-          // Add initiator from meetingDetails if available
-          if (apiMeeting.meetingDetails && Array.isArray(apiMeeting.meetingDetails) && apiMeeting.meetingDetails.length > 0) {
-            const meetingDetail = apiMeeting.meetingDetails[0];
-            if (meetingDetail.initiatorName && meetingDetail.companyName) {
-              console.log('Adding initiator from meetingDetails:', { initiatorName: meetingDetail.initiatorName, companyName: meetingDetail.companyName });
-              
-              // Check if this initiator is already in the attendees list
-              const existingInitiator = attendees.find(attendee => 
-                attendee.name === meetingDetail.initiatorName.trim() && 
-                attendee.company === meetingDetail.companyName.trim()
-              );
-              
-              if (!existingInitiator) {
-                attendees.push({
-                  id: meetingDetail.initiatorId?.toString() || `initiator-${Math.random()}`,
-                  name: meetingDetail.initiatorName.trim() || 'Initiator',
-                  email: `${meetingDetail.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@${meetingDetail.companyName?.toLowerCase().replace(/\s+/g, '')}.com` || 'initiator@example.com',
-                  company: meetingDetail.companyName.trim() || 'Company',
-                  type: 'exhibitor' as const,
-                  avatar: (meetingDetail.initiatorName?.charAt(0) || 'I').toUpperCase()
-                });
-              } else {
-                console.log('Initiator already exists in attendees list, skipping duplicate');
-              }
-            }
-          }
+          // Note: Initiator should NOT be added to attendees list - they are shown separately in the Initiator section
+          // The initiator information is displayed in the "Initiator" field, not in the "Attendees" list
           
-          // If no attendees found, add initiator as an attendee (fallback)
-          if (attendees.length === 0 && apiMeeting.initiatorName) {
-            console.log('No attendees found, adding initiator');
-            attendees.push({
-              id: apiMeeting.initiatorId?.toString() || '1',
-              name: apiMeeting.initiatorName.trim() || 'Initiator',
-              email: `${apiMeeting.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@${apiMeeting.companyName?.toLowerCase().replace(/\s+/g, '')}.com` || 'initiator@example.com',
-              company: apiMeeting.companyName || 'Company',
-                type: 'exhibitor' as const,
-              avatar: (apiMeeting.initiatorName?.charAt(0) || 'I').toUpperCase()
-            });
-          }
+          // Note: We don't add initiator as fallback attendee anymore - initiator is shown separately
 
           // If still no attendees found, add a fallback
           if (attendees.length === 0) {
@@ -915,7 +867,22 @@ export default function MeetingsPage() {
             startTime: startTime,
             endTime: apiMeeting.endTime || (apiMeeting.meetingDetails?.[0]?.endTime),
             // Additional fields for approval status
-            isApproved: apiMeeting.isApproved === true,
+            // For meetings with attendees array, check if ANY attendee has approved (for initiator view)
+            isApproved: (() => {
+              if (apiMeeting.attendees && Array.isArray(apiMeeting.attendees) && apiMeeting.attendees.length > 0) {
+                // Check if ANY attendee has isApproved: true (changed from ALL to ANY)
+                const anyAttendeeApproved = apiMeeting.attendees.some((attendee: any) => attendee.isApproved === true);
+                console.log('Checking attendee approval status (ANY logic):', {
+                  meetingId: apiMeeting.id,
+                  totalAttendees: apiMeeting.attendees.length,
+                  attendeesApprovalStatus: apiMeeting.attendees.map((a: any) => ({ name: a.attendeeName, isApproved: a.isApproved })),
+                  anyAttendeeApproved
+                });
+                return anyAttendeeApproved;
+              }
+              // Fallback to the original logic if no attendees array
+              return apiMeeting.isApproved === true;
+            })(),
             isCancelled: apiMeeting.isCancelled === true,
             approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
             // Set isInitiator based on current user ID comparison
@@ -1682,7 +1649,7 @@ export default function MeetingsPage() {
     });
     
     switch (tabValue) {
-      case 0: // Pending meetings - show meetings that are not yet approved and not cancelled
+      case 0: // Pending meetings - show meetings with status 'Pending'
         console.log('=== PENDING TAB FILTERING ===');
         console.log('Total meetings count:', meetings.length);
         console.log('All meetings:', meetings.map(m => ({ 
@@ -1696,9 +1663,14 @@ export default function MeetingsPage() {
         })));
         
         const pendingMeetings = meetings.filter(m => {
-          // For all roles, show meetings that are not approved and not cancelled
-          // This includes both meetings where user is initiator and where user is attendee
-          const shouldShow = !m.isApproved && m.status !== 'cancelled' && !m.isCancelled;
+          // Show meetings that are explicitly pending OR not approved (but exclude cancelled)
+          // Ensure mutual exclusivity with upcoming tab
+          const isExplicitlyPending = m.approvalStatus?.toLowerCase() === 'pending';
+          const isNotApprovedYet = !m.isApproved && m.status !== 'cancelled' && !m.isCancelled;
+          const isNotUpcoming = m.approvalStatus?.toLowerCase() !== 'upcoming';
+          
+          const shouldShow = (isExplicitlyPending || (isNotApprovedYet && isNotUpcoming));
+          
           console.log(`Meeting ${m.id} pending check:`, {
             id: m.id,
             title: m.title,
@@ -1707,6 +1679,9 @@ export default function MeetingsPage() {
             isCancelled: m.isCancelled,
             status: m.status,
             approvalStatus: m.approvalStatus,
+            isExplicitlyPending,
+            isNotApprovedYet,
+            isNotUpcoming,
             shouldShow,
             userRole: user?.role
           });
@@ -1715,15 +1690,27 @@ export default function MeetingsPage() {
         console.log('Pending meetings count:', pendingMeetings.length);
         console.log('Pending meetings:', pendingMeetings.map(m => ({ id: m.id, title: m.title, isApproved: m.isApproved })));
         return pendingMeetings;
-      case 1: // Upcoming - show approved meetings that are in the future and not cancelled
+      case 1: // Upcoming - show meetings with status 'Upcoming' or approved meetings in the future
         const upcomingMeetings = meetings.filter(m => {
-          const shouldShow = m.isApproved && m.dateTime > now && m.status !== 'cancelled' && !m.isCancelled;
+          // Show meetings that are explicitly upcoming OR approved and in future
+          // Ensure mutual exclusivity with pending tab
+          const isExplicitlyUpcoming = m.approvalStatus?.toLowerCase() === 'upcoming';
+          const isApprovedAndFuture = m.isApproved && m.dateTime > now;
+          const isNotCancelled = m.status !== 'cancelled' && !m.isCancelled;
+          const isNotPending = m.approvalStatus?.toLowerCase() !== 'pending';
+          
+          const shouldShow = (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled;
+          
           console.log(`Meeting ${m.id} upcoming check:`, {
             id: m.id,
             isApproved: m.isApproved,
             dateTime: m.dateTime.toISOString(),
             now: now.toISOString(),
             isFuture: m.dateTime > now,
+            isExplicitlyUpcoming,
+            isApprovedAndFuture,
+            isNotCancelled,
+            isNotPending,
             shouldShow,
             status: m.status,
             approvalStatus: m.approvalStatus
@@ -1750,13 +1737,25 @@ export default function MeetingsPage() {
   }, [tabValue, meetings, user]);
 
   const getMyInvitesCount = () => {
-    // Count meetings where user is not the initiator and not approved
-    return meetings.filter(m => !m.isInitiator && !m.isApproved && m.status !== 'cancelled' && !m.isCancelled).length;
+    // Count meetings using same logic as pending tab
+    return meetings.filter(m => {
+      const isExplicitlyPending = m.approvalStatus?.toLowerCase() === 'pending';
+      const isNotApprovedYet = !m.isApproved && m.status !== 'cancelled' && !m.isCancelled;
+      const isNotUpcoming = m.approvalStatus?.toLowerCase() !== 'upcoming';
+      return (isExplicitlyPending || (isNotApprovedYet && isNotUpcoming));
+    }).length;
   };
 
   const getUpcomingCount = () => {
     const now = new Date();
-    return meetings.filter(m => m.isApproved && m.dateTime > now && m.status !== 'cancelled').length;
+    // Count meetings using same logic as upcoming tab
+    return meetings.filter(m => {
+      const isExplicitlyUpcoming = m.approvalStatus?.toLowerCase() === 'upcoming';
+      const isApprovedAndFuture = m.isApproved && m.dateTime > now;
+      const isNotCancelled = m.status !== 'cancelled' && !m.isCancelled;
+      const isNotPending = m.approvalStatus?.toLowerCase() !== 'pending';
+      return (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled;
+    }).length;
   };
 
   const isCompletedMeeting = (meeting: Meeting) => {
@@ -2100,104 +2099,145 @@ export default function MeetingsPage() {
 
 
 
-  // Calculate meeting layout for Teams-like calendar
+  // Calculate meeting layout for Teams-like calendar with spanning blocks
   const getMeetingLayout = (date: Date) => {
     const dayMeetings = getMeetingsForDate(date);
-    const layout: { [hour: number]: { meeting: Meeting; top: number; height: number; left: number; width: number }[] } = {};
+    const hourSlots = getHourSlots();
     
-    // Group meetings by hour and calculate overlaps
+    // Create spanning meeting blocks
+    const spanningMeetings: { 
+      meeting: Meeting; 
+      startHour: number; 
+      endHour: number; 
+      startMinutes: number; 
+      endMinutes: number;
+      left: number; 
+      width: number;
+      level: number;
+    }[] = [];
+    
     dayMeetings.forEach(meeting => {
       const meetingDate = meeting.dateTime;
       const meetingEndTime = new Date(meetingDate.getTime() + meeting.duration * 60000);
       const startHour = meetingDate.getHours();
       const endHour = meetingEndTime.getHours();
+      const startMinutes = meetingDate.getMinutes();
+      const endMinutes = meetingEndTime.getMinutes();
       
-      // Add meeting to all hours it spans
-      for (let hour = startHour; hour <= endHour; hour++) {
-        if (!layout[hour]) layout[hour] = [];
-        
-        // Calculate top position within the hour slot (60px height per hour)
-        const top = hour === startHour ? (meetingDate.getMinutes() / 60) * 60 : 0;
-        
-        // Calculate height for this hour slot
-        let height: number;
-        if (hour === startHour && hour === endHour) {
-          // Meeting starts and ends in the same hour
-          const startMinutes = meetingDate.getMinutes();
-          const endMinutes = meetingEndTime.getMinutes();
-          height = ((endMinutes - startMinutes) / 60) * 60;
-        } else if (hour === startHour) {
-          // Meeting starts in this hour
-          const startMinutes = meetingDate.getMinutes();
-          height = ((60 - startMinutes) / 60) * 60;
-        } else if (hour === endHour) {
-          // Meeting ends in this hour
-          const endMinutes = meetingEndTime.getMinutes();
-          height = (endMinutes / 60) * 60;
-        } else {
-          // Meeting spans the full hour
-          height = 60;
-        }
-        
-        // Ensure height is within bounds and has minimum size
-        height = Math.max(Math.min(height, 60), 24);
-        
-        // Ensure the meeting block fits within the hour slot
-        const maxTop = 60 - height;
-        const constrainedTop = Math.max(0, Math.min(top, maxTop));
-        
-        layout[hour].push({
-          meeting,
-          top: constrainedTop,
-          height: Math.min(height, 60 - constrainedTop), // Ensure height doesn't exceed remaining space
-          left: 0, // Will be calculated below
-          width: 100 // Will be calculated below
-        });
-      }
+      spanningMeetings.push({
+        meeting,
+        startHour,
+        endHour,
+        startMinutes,
+        endMinutes,
+        left: 0,
+        width: 100,
+        level: 0
+      });
     });
     
-    // Calculate overlapping positions for each hour
-    Object.keys(layout).forEach(hourStr => {
-      const hour = parseInt(hourStr);
-      const hourMeetings = layout[hour];
+    // Sort meetings by start time for proper overlap calculation
+    spanningMeetings.sort((a, b) => {
+      const aStart = a.startHour * 60 + a.startMinutes;
+      const bStart = b.startHour * 60 + b.startMinutes;
+      return aStart - bStart;
+    });
+    
+    // Improved overlap detection and positioning
+    // Group meetings into overlapping clusters
+    const overlapGroups: typeof spanningMeetings[] = [];
+    const processed = new Set<number>();
+    
+    spanningMeetings.forEach((meeting, index) => {
+      if (processed.has(index)) return;
       
-      // Sort meetings by start time within the hour
-      hourMeetings.sort((a, b) => a.top - b.top);
+      const meetingStart = meeting.startHour * 60 + meeting.startMinutes;
+      const meetingEnd = meeting.endHour * 60 + meeting.endMinutes;
       
-      // Group overlapping meetings - improved algorithm
-      const overlappingGroups: typeof hourMeetings[] = [];
-      const processed = new Set<number>();
+      // Create a new overlap group starting with this meeting
+      const currentGroup = [meeting];
+      processed.add(index);
       
-      hourMeetings.forEach((meeting, index) => {
-        if (processed.has(index)) return;
+      // Find all meetings that overlap with any meeting in the current group
+      let foundOverlap = true;
+      while (foundOverlap) {
+        foundOverlap = false;
         
-        const currentGroup = [meeting];
-        processed.add(index);
-        
-        // Find all meetings that overlap with this one
-        hourMeetings.forEach((otherMeeting, otherIndex) => {
+        spanningMeetings.forEach((otherMeeting, otherIndex) => {
           if (processed.has(otherIndex)) return;
           
-          const meetingEnd = meeting.top + meeting.height;
-          const otherEnd = otherMeeting.top + otherMeeting.height;
+          const otherStart = otherMeeting.startHour * 60 + otherMeeting.startMinutes;
+          const otherEnd = otherMeeting.endHour * 60 + otherMeeting.endMinutes;
           
-          // Check if meetings overlap
-          if ((meeting.top < otherEnd) && (otherMeeting.top < meetingEnd)) {
+          // Check if this meeting overlaps with any meeting in the current group
+          const overlapsWithGroup = currentGroup.some(groupMeeting => {
+            const groupStart = groupMeeting.startHour * 60 + groupMeeting.startMinutes;
+            const groupEnd = groupMeeting.endHour * 60 + groupMeeting.endMinutes;
+            
+            // True overlap detection - meetings must have overlapping time periods
+            // For meetings to be considered overlapping, they must share at least 1 minute of time
+            // Adjacent meetings (like 9:00-10:30 and 10:30-11:30) will NOT be grouped together
+            return (otherStart < groupEnd) && (groupStart < otherEnd);
+          });
+          
+          if (overlapsWithGroup) {
             currentGroup.push(otherMeeting);
             processed.add(otherIndex);
+            foundOverlap = true;
           }
         });
-        
-        overlappingGroups.push(currentGroup);
+      }
+      
+      overlapGroups.push(currentGroup);
+    });
+    
+    // Assign levels within each overlap group
+    overlapGroups.forEach(group => {
+      // Sort group by start time for consistent positioning
+      group.sort((a, b) => {
+        const aStart = a.startHour * 60 + a.startMinutes;
+        const bStart = b.startHour * 60 + b.startMinutes;
+        return aStart - bStart;
       });
       
-      // Calculate positions for each overlapping group
-      overlappingGroups.forEach(group => {
-        const groupWidth = 100 / group.length;
-        group.forEach((meeting, index) => {
-          meeting.left = index * groupWidth;
-          meeting.width = groupWidth;
-        });
+      const groupSize = group.length;
+      const groupColumnWidth = 100 / groupSize;
+      
+      group.forEach((meeting, levelIndex) => {
+        meeting.level = levelIndex;
+        meeting.width = groupColumnWidth;
+        meeting.left = levelIndex * groupColumnWidth;
+      });
+    });
+    
+    // Return format that works with existing rendering code
+    const layout: { [hour: number]: { meeting: Meeting; top: number; height: number; left: number; width: number; spanningMeeting?: any }[] } = {};
+    
+    // For each hour slot, add spanning meetings that intersect with it
+    hourSlots.forEach(hour => {
+      layout[hour] = [];
+      
+      spanningMeetings.forEach(spanningMeeting => {
+        // Check if this spanning meeting intersects with this hour
+        if (spanningMeeting.startHour <= hour && hour <= spanningMeeting.endHour) {
+          // Only render the meeting block in its starting hour to avoid duplicates
+          if (hour === spanningMeeting.startHour) {
+            // Calculate position and size for the spanning block
+            const top = (spanningMeeting.startMinutes / 60) * 60;
+            const totalDuration = (spanningMeeting.endHour - spanningMeeting.startHour) * 60 + 
+                                (spanningMeeting.endMinutes - spanningMeeting.startMinutes);
+            const height = Math.max((totalDuration / 60) * 60, 24);
+            
+            layout[hour].push({
+              meeting: spanningMeeting.meeting,
+              top,
+              height,
+              left: spanningMeeting.left,
+              width: spanningMeeting.width,
+              spanningMeeting
+            });
+          }
+        }
       });
     });
     
@@ -2462,106 +2502,142 @@ export default function MeetingsPage() {
                         </Box>
                       </Box>
 
-                      {/* Time slot columns with day partitioning */}
-                      {getHourSlots().map((hour, hourIndex) => {
-                        const meetingLayout = getMeetingLayout(day);
-                        const hourMeetings = meetingLayout[hour] || [];
-                        
-                        return (
+                      {/* Time slot columns container with relative positioning for spanning meetings */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flex: 1, 
+                        position: 'relative',
+                        height: 60
+                      }}>
+                        {/* Time slot columns */}
+                        {getHourSlots().map((hour, hourIndex) => (
                           <Box key={hourIndex} sx={{ 
                             flex: 1, 
                             borderRight: hourIndex < getHourSlots().length - 1 ? 1 : 0, 
                             borderColor: 'grey.200',
-                            position: 'relative',
-                            display: 'flex',
                             cursor: 'pointer',
-                            height: 60, // Increased height for each hour slot
-                            overflow: 'hidden',
+                            height: 60,
                             bgcolor: hour % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
                             '&:hover': { bgcolor: 'primary.25' }
-                          }}>
-                            {/* Meetings for this time slot */}
-                            {hourMeetings.map((meetingData, meetingIndex) => {
-                              // Ensure the meeting block stays within the hour slot bounds
-                              const constrainedTop = Math.max(0, Math.min(meetingData.top, 60 - meetingData.height));
-                              const constrainedHeight = Math.min(meetingData.height, 60 - constrainedTop);
-                              
-                              return (
-                                <Tooltip
-                                  key={`${meetingData.meeting.id}-${hour}`}
-                                  title={meetingData.meeting.title}
-                                  placement="top"
-                                  arrow
+                          }} />
+                        ))}
+                        
+                        {/* Meetings positioned absolutely over the entire day row */}
+                        {(() => {
+                          const meetingLayout = getMeetingLayout(day);
+                          const allMeetings: any[] = [];
+                          
+                          // Collect all meetings from all hours (but avoid duplicates)
+                          Object.keys(meetingLayout).forEach(hourStr => {
+                            const hourMeetings = meetingLayout[parseInt(hourStr)] || [];
+                            hourMeetings.forEach(meetingData => {
+                              // Only add if not already added (avoid duplicates from spanning)
+                              if (!allMeetings.find(m => m.meeting.id === meetingData.meeting.id)) {
+                                allMeetings.push(meetingData);
+                              }
+                            });
+                          });
+                          
+                          return allMeetings.map((meetingData, meetingIndex) => {
+                            const spanningMeeting = meetingData.spanningMeeting;
+                            const hourSlots = getHourSlots();
+                            
+                            // Calculate position and size for precise spanning including partial hours
+                            const totalColumns = hourSlots.length;
+                            const columnWidth = 100 / totalColumns;
+                            
+                            const startHour = spanningMeeting?.startHour || 0;
+                            const endHour = spanningMeeting?.endHour || 0;
+                            const startMinutes = spanningMeeting?.startMinutes || 0;
+                            const endMinutes = spanningMeeting?.endMinutes || 0;
+                            
+                            // Calculate precise start position (including minutes within the start hour)
+                            const startIndex = hourSlots.indexOf(startHour);
+                            const startMinuteFraction = startMinutes / 60; // 0.0 to 1.0
+                            const preciseStartPosition = (startIndex + startMinuteFraction) * columnWidth;
+                            
+                            // Calculate precise end position (including minutes within the end hour)
+                            const endIndex = hourSlots.indexOf(endHour);
+                            const endMinuteFraction = endMinutes / 60; // 0.0 to 1.0
+                            const preciseEndPosition = (endIndex + endMinuteFraction) * columnWidth;
+                            
+                            // Calculate the actual span width based on precise start and end positions
+                            const preciseSpanWidth = preciseEndPosition - preciseStartPosition;
+                            
+                            // Apply meeting's width adjustment for overlapping meetings
+                            const actualWidth = (meetingData.width / 100) * preciseSpanWidth;
+                            const leftPosition = preciseStartPosition + (meetingData.left / 100) * preciseSpanWidth;
+                            
+                            const constrainedTop = Math.max(0, Math.min(meetingData.top, 60 - Math.min(meetingData.height, 56)));
+                            const constrainedHeight = Math.min(meetingData.height, 60 - constrainedTop, 56);
+                            
+                            return (
+                              <Tooltip
+                                key={`${meetingData.meeting.id}-spanning`}
+                                title={`${meetingData.meeting.title} (${formatTimeOnly(meetingData.meeting.dateTime)} - ${formatTimeOnly(new Date(meetingData.meeting.dateTime.getTime() + meetingData.meeting.duration * 60000))})`}
+                                placement="top"
+                                arrow
+                              >
+                                <Box
+                                  onClick={() => {
+                                    setSelectedMeeting(meetingData.meeting);
+                                  }}
+                                  sx={{
+                                    position: 'absolute',
+                                    top: constrainedTop + 2,
+                                    left: `${leftPosition}%`,
+                                    width: `${actualWidth}%`,
+                                    bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.light' :
+                                             getStatusColor(meetingData.meeting.status) === 'success' ? 'success.light' :
+                                             getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.light' :
+                                             getStatusColor(meetingData.meeting.status) === 'error' ? 'error.light' : 'grey.300',
+                                    color: 'text.primary',
+                                    borderRadius: 1,
+                                    p: 0.5,
+                                    cursor: 'pointer',
+                                    zIndex: 2,
+                                    height: `${constrainedHeight - 4}px`,
+                                    overflow: 'hidden',
+                                    margin: '0 2px',
+                                    border: '1px solid rgba(0,0,0,0.1)',
+                                    maxHeight: '56px',
+                                    minWidth: preciseSpanWidth > columnWidth ? `${Math.max(actualWidth * 0.8, 60)}px` : 'auto',
+                                    '&:hover': {
+                                      opacity: 0.9,
+                                      transform: 'scale(1.01)',
+                                      boxShadow: 2,
+                                      zIndex: 3
+                                    }
+                                  }}
                                 >
-                                  <Box
-                                    onClick={() => {
-                                      setSelectedMeeting(meetingData.meeting);
-                                    }}
-                                    sx={{
-                                      position: 'absolute',
-                                      top: constrainedTop + 2,
-                                      left: `${meetingData.left}%`,
-                                      width: `${meetingData.width}%`,
-                                      bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.light' :
-                                               getStatusColor(meetingData.meeting.status) === 'success' ? 'success.light' :
-                                               getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.light' :
-                                               getStatusColor(meetingData.meeting.status) === 'error' ? 'error.light' : 'grey.300',
-                                      color: 'text.primary',
-                                      borderRadius: 1,
-                                      p: 0.5,
-                                      cursor: 'pointer',
-                                      zIndex: 1,
-                                      height: `${constrainedHeight - 4}px`,
-                                      overflow: 'hidden',
-                                      margin: '0 2px',
-                                      border: '1px solid rgba(0,0,0,0.1)',
-                                      maxHeight: '56px',
-                                      '&:hover': {
-                                        opacity: 0.9,
-                                        transform: 'scale(1.02)',
-                                        boxShadow: 2
-                                      }
-                                    }}
-                                  >
-                                    <Typography variant="caption" sx={{ 
-                                      display: 'block',
-                                      fontWeight: 'bold',
-                                      fontSize: '0.65rem',
-                                      lineHeight: 1.1,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}>
-                                      {meetingData.meeting.title}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ 
-                                      display: 'block',
-                                      fontSize: '0.6rem',
-                                      opacity: 0.8,
-                                      lineHeight: 1.1
-                                    }}>
-                                      {formatDuration(meetingData.meeting.duration)}
-                                      {/* Show indicator if meeting continues to next hour */}
-                                      {hour < getHourSlots().length - 1 && meetingData.meeting.duration > 60 && 
-                                       meetingData.meeting.dateTime.getHours() === hour && 
-                                       meetingData.meeting.dateTime.getMinutes() + meetingData.meeting.duration > 60 && (
-                                        <Box component="span" sx={{ 
-                                          display: 'inline-block',
-                                          width: '4px',
-                                          height: '4px',
-                                          borderRadius: '50%',
-                                          bgcolor: 'rgba(0,0,0,0.6)',
-                                          ml: 0.5
-                                        }} />
-                                      )}
-                                    </Typography>
-                                  </Box>
-                                </Tooltip>
-                              );
-                            })}
-                          </Box>
-                        );
-                      })}
+                                  <Typography variant="caption" sx={{ 
+                                    display: 'block',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.65rem',
+                                    lineHeight: 1.1,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {meetingData.meeting.title}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ 
+                                    display: 'block',
+                                    fontSize: '0.6rem',
+                                    opacity: 0.8,
+                                    lineHeight: 1.1,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {formatTimeOnly(meetingData.meeting.dateTime)} - {formatTimeOnly(new Date(meetingData.meeting.dateTime.getTime() + meetingData.meeting.duration * 60000))}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            );
+                          });
+                        })()}
+                      </Box>
                     </Box>
                   );
                 })) : (
@@ -2819,13 +2895,12 @@ export default function MeetingsPage() {
                               Initiator:
                             </Typography>
                             <Chip
-                              avatar={<Avatar sx={{ bgcolor: 'secondary.main', width: 20, height: 20, fontSize: '0.7rem' }}>
+                              avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>
                                 {meeting.initiatorName.charAt(0).toUpperCase()}
                               </Avatar>}
                               label={`${meeting.initiatorName}${meeting.companyName ? ` (${meeting.companyName})` : ''}`}
                               variant="outlined"
                               size="small"
-                              color="secondary"
                               sx={{ fontSize: '0.75rem', height: 24 }}
                             />
                           </Box>
@@ -2972,7 +3047,7 @@ export default function MeetingsPage() {
                           )}
                           
                           {/* Show approved status for approved meetings (for both initiators and attendees) */}
-                          {meeting.isApproved && (
+                          {(meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming') && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               <Chip 
                                 label="Approved" 

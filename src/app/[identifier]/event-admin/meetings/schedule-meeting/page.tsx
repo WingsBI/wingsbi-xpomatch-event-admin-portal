@@ -89,6 +89,7 @@ interface Exhibitor {
   jobTitle?: string;
   companyLogo?: string;
   fullData?: any;
+  exhibitorId?: number; // Store the original exhibitor ID for reference
 }
 
 export default function ScheduleMeetingPage() {
@@ -204,7 +205,7 @@ export default function ScheduleMeetingPage() {
   const getFilteredExhibitors = () => {
     return exhibitors.filter(exhibitor => {
       // Exclude current user if they are an exhibitor
-      if (currentUserRole === 'exhibitor' && exhibitor.id === currentUserId) {
+      if (currentUserRole === 'exhibitor' && (exhibitor.id === currentUserId || exhibitor.exhibitorId === currentUserId)) {
         return false;
       }
       
@@ -304,7 +305,7 @@ export default function ScheduleMeetingPage() {
                                    exhibitor.exhibitorToUserMaps?.[0];
             
             return {
-              id: exhibitor.id,
+              id: primaryContact?.userId || exhibitor.id, // Use userId from exhibitorToUserMaps instead of exhibitor.id
               firstName: primaryContact?.firstName || '',
               lastName: primaryContact?.lastName || '',
               email: primaryContact?.email || '',
@@ -313,7 +314,9 @@ export default function ScheduleMeetingPage() {
               jobTitle: primaryContact?.designation || primaryContact?.jobTitle || '',
               companyLogo: exhibitor.companyLogoPath,
               // Store the full exhibitor data for display purposes
-              fullData: exhibitor
+              fullData: exhibitor,
+              // Store the original exhibitor ID for reference
+              exhibitorId: exhibitor.id
             };
           });
           console.log('Transformed exhibitors:', transformedExhibitors);
@@ -399,7 +402,8 @@ export default function ScheduleMeetingPage() {
       if (currentUserRole === 'visitor') {
         userDetails = visitors.find(v => v.id === currentUserId);
       } else if (currentUserRole === 'exhibitor') {
-        userDetails = exhibitors.find(e => e.id === currentUserId);
+        // For exhibitors, we need to find by the original exhibitor ID or user ID
+        userDetails = exhibitors.find(e => e.id === currentUserId || e.exhibitorId === currentUserId);
       }
       
       if (userDetails) {
@@ -675,8 +679,13 @@ export default function ScheduleMeetingPage() {
 
     setLoadingExhibitorDetails(true);
     try {
+      // Find the exhibitor to get the original exhibitor ID
+      const exhibitor = exhibitors.find(e => e.id === exhibitorId);
+      const originalExhibitorId = exhibitor?.exhibitorId || exhibitorId;
+      
+      console.log('🔍 Using original exhibitor ID for API call:', originalExhibitorId);
       console.log('🔍 Calling getExhibitorById API...');
-      const response = await fieldMappingApi.getExhibitorById(identifier, exhibitorId);
+      const response = await fieldMappingApi.getExhibitorById(identifier, originalExhibitorId);
       console.log('🔍 getExhibitorById response:', response);
       if (response.statusCode === 200 && response.result) {
         setSelectedExhibitorDetails(response.result);
@@ -713,6 +722,8 @@ export default function ScheduleMeetingPage() {
     // Fetch details when attendees are selected
     if (field === 'attendiesId' && Array.isArray(value) && value.length > 0) {
       const lastSelectedId = value[value.length - 1];
+      console.log('🔍 Last selected attendee ID:', lastSelectedId);
+      
       // Check if it's a visitor
       const visitor = visitors.find(v => v.id === lastSelectedId);
       if (visitor) {
@@ -723,6 +734,7 @@ export default function ScheduleMeetingPage() {
         const exhibitor = exhibitors.find(e => e.id === lastSelectedId);
         if (exhibitor) {
           console.log('🔍 Fetching exhibitor details for ID:', lastSelectedId);
+          console.log('🔍 Selected exhibitor:', { id: exhibitor.id, exhibitorId: exhibitor.exhibitorId, companyName: exhibitor.companyName });
           fetchExhibitorDetails(lastSelectedId);
         }
       }
@@ -783,6 +795,11 @@ export default function ScheduleMeetingPage() {
     setSubmitError('');
 
     try {
+      // Log the selected attendee IDs for debugging
+      console.log('🔍 Selected attendee IDs:', meetingForm.attendiesId);
+      console.log('🔍 Available exhibitors:', exhibitors.map(e => ({ id: e.id, exhibitorId: e.exhibitorId, companyName: e.companyName })));
+      console.log('🔍 Available visitors:', visitors.map(v => ({ id: v.id, name: `${v.firstName} ${v.lastName}` })));
+
       const meetingData = {
         agenda: meetingForm.agenda,
         description: meetingForm.description, // Commented out as requested

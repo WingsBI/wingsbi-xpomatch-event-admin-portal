@@ -125,6 +125,9 @@ interface Meeting {
   approvalStatus?: string;
   // Flag to indicate if current user is the meeting initiator
   isInitiator?: boolean;
+  // Initiator information from API
+  initiatorName?: string;
+  companyName?: string;
 }
 
 
@@ -364,9 +367,10 @@ export default function MeetingsPage() {
         console.log('Number of invites to transform:', invitesResponse?.result?.length || 0);
         
         const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
-          console.log(`Processing invite ${index + 1}:`, invite);
+          console.log(`🔍 VISITOR INVITE PROCESSING - Processing invite ${index + 1}:`, invite);
+          console.log(`🔍 VISITOR INVITE - Attendee name: ${invite.attendeeName}, Company: ${invite.companyName}`);
           const meetingDetails = invite.meetingDetails?.[0];
-          console.log(`Meeting details for invite ${index + 1}:`, meetingDetails);
+          console.log(`🔍 VISITOR INVITE - Meeting details for invite ${index + 1}:`, meetingDetails);
           
           // Determine if current user is the initiator of this meeting
           // Use the original user ID (visitorId) for initiator check, not the fallback ID
@@ -421,7 +425,7 @@ export default function MeetingsPage() {
             isCancelled: invite.isCancelled === true,
             approvalStatus: invite.status,
             // Set isInitiator based on current user ID comparison
-            isInitiator: isCurrentUserInitiator
+            isInitiator: isCurrentUserInitiator,
           };
           
           console.log('Transformed invite:', {
@@ -568,9 +572,10 @@ export default function MeetingsPage() {
         console.log('Number of exhibitor invites to transform:', invitesResponse?.result?.length || 0);
         
         const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
-          console.log(`Processing exhibitor invite ${index + 1}:`, invite);
+          console.log(`🔍 EXHIBITOR INVITE PROCESSING - Processing exhibitor invite ${index + 1}:`, invite);
+          console.log(`🔍 EXHIBITOR INVITE - Attendee name: ${invite.attendeeName}, Company: ${invite.companyName}`);
           const meetingDetails = invite.meetingDetails?.[0];
-          console.log(`Meeting details for exhibitor invite ${index + 1}:`, meetingDetails);
+          console.log(`🔍 EXHIBITOR INVITE - Meeting details for exhibitor invite ${index + 1}:`, meetingDetails);
           
           // Determine if current user is the initiator of this meeting
           // Use the original user ID (userId) for initiator check, not the fallback ID
@@ -625,7 +630,7 @@ export default function MeetingsPage() {
             isCancelled: invite.isCancelled === true,
             approvalStatus: invite.status,
             // Set isInitiator based on current user ID comparison
-            isInitiator: isCurrentUserInitiator
+            isInitiator: isCurrentUserInitiator,
           };
         }).filter(Boolean);
         
@@ -696,13 +701,26 @@ export default function MeetingsPage() {
         
         // Transform API response to match our Meeting interface
         const transformedMeetings = response.result.map((apiMeeting: any) => {
-          console.log('Processing API meeting:', apiMeeting);
+          console.log('🔍 REGULAR MEETING PROCESSING - Processing API meeting:', apiMeeting);
+          console.log('🔍 REGULAR MEETING - Attendee name:', apiMeeting.attendeeName, 'Company:', apiMeeting.companyName);
           
-                  // Determine if current user is the initiator of this meeting
-        const isCurrentUserInitiator = currentUserId && apiMeeting.initiatorId === currentUserId;
+                  // Extract initiator information, preferring meetingDetails if available
+          let initiatorId = apiMeeting.initiatorId;
+          let initiatorName = apiMeeting.initiatorName;
+          let companyName = apiMeeting.companyName;
+          
+          if (apiMeeting.meetingDetails && Array.isArray(apiMeeting.meetingDetails) && apiMeeting.meetingDetails.length > 0) {
+            const meetingDetail = apiMeeting.meetingDetails[0];
+            initiatorId = meetingDetail.initiatorId || initiatorId;
+            initiatorName = meetingDetail.initiatorName || initiatorName;
+            companyName = meetingDetail.companyName || companyName;
+          }
+          
+          // Determine if current user is the initiator of this meeting
+        const isCurrentUserInitiator = currentUserId && initiatorId === currentUserId;
         console.log('Initiator check:', {
           currentUserId,
-          apiInitiatorId: apiMeeting.initiatorId,
+          apiInitiatorId: initiatorId,
           isCurrentUserInitiator,
           meetingId: apiMeeting.id,
           userRole: user?.role
@@ -710,12 +728,25 @@ export default function MeetingsPage() {
           
           // Safely create dateTime with validation
           let dateTime: Date;
+          let meetingDate = apiMeeting.meetingDate;
+          let startTime = apiMeeting.startTime;
+          let agenda = apiMeeting.agenda;
+          
+          // If date/time not at root level, check in meetingDetails array
+          if ((!meetingDate || !startTime) && apiMeeting.meetingDetails && Array.isArray(apiMeeting.meetingDetails) && apiMeeting.meetingDetails.length > 0) {
+            const meetingDetail = apiMeeting.meetingDetails[0];
+            meetingDate = meetingDetail.meetingDate || meetingDate;
+            startTime = meetingDetail.startTime || startTime;
+            agenda = meetingDetail.agenda || agenda;
+            console.log('Using date/time from meetingDetails:', { meetingDate, startTime, agenda });
+          }
+          
           try {
-            if (apiMeeting.meetingDate && apiMeeting.startTime) {
+            if (meetingDate && startTime) {
               // API returns meetingDate in ISO format: "2025-07-31T00:00:00"
               // and startTime as separate time: "10:23:00"
-              const dateStr = apiMeeting.meetingDate;
-              const timeStr = apiMeeting.startTime;
+              const dateStr = meetingDate;
+              const timeStr = startTime;
               
               console.log('Parsing date for meeting:', apiMeeting.id, { dateStr, timeStr });
               
@@ -753,26 +784,86 @@ export default function MeetingsPage() {
           // Extract attendee information from the API response
           let attendees: Meeting['attendees'] = [];
           
+          // First, check if there's attendee information at the root level (for meeting invites)
+          if (apiMeeting.attendeeName && apiMeeting.companyName) {
+            console.log('Processing root level attendee:', { attendeeName: apiMeeting.attendeeName, companyName: apiMeeting.companyName });
+            
+            // Check if this attendee is already in the attendees list
+            const existingAttendee = attendees.find(attendee => 
+              attendee.name === apiMeeting.attendeeName.trim() && 
+              attendee.company === apiMeeting.companyName.trim()
+            );
+            
+            if (!existingAttendee) {
+              attendees.push({
+                id: apiMeeting.attendeesId?.toString() || `attendee-${Math.random()}`,
+                name: apiMeeting.attendeeName.trim() || 'Attendee',
+                email: `${apiMeeting.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
+                company: apiMeeting.companyName.trim() || 'Company',
+                type: 'visitor' as const,
+                avatar: (apiMeeting.attendeeName?.charAt(0) || 'A').toUpperCase()
+              });
+            } else {
+              console.log('Attendee already exists in attendees list, skipping duplicate');
+            }
+          }
+          
+          // Also check for attendees array (for other meeting types)
           if (apiMeeting.attendees && Array.isArray(apiMeeting.attendees)) {
             console.log('Processing attendees array:', apiMeeting.attendees);
             
-            // Process each attendee in the array
-            apiMeeting.attendees.forEach((attendee: any) => {
-                const attendeeData = {
-                id: attendee.attendeesId?.toString() || `attendee-${Math.random()}`,
-                name: attendee.attendeeName || 'Attendee',
-                email: `${attendee.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
-                company: attendee.companyName || 'Company',
-                type: 'visitor' as const,
-                avatar: (attendee.attendeeName?.charAt(0) || 'A').toUpperCase()
-              };
-              
-              console.log('Processed attendee:', attendeeData);
-                attendees.push(attendeeData);
-            });
+            // Check if this is already a transformed attendees array (from invite processing)
+            const firstAttendee = apiMeeting.attendees[0];
+            if (firstAttendee && firstAttendee.name && firstAttendee.email && firstAttendee.company) {
+              // This is already a transformed attendees array, use it directly
+              console.log('Using already transformed attendees array');
+              attendees.push(...apiMeeting.attendees);
+            } else {
+              // Process each attendee in the array (raw API format)
+              apiMeeting.attendees.forEach((attendee: any) => {
+                  const attendeeData = {
+                  id: attendee.attendeesId?.toString() || `attendee-${Math.random()}`,
+                  name: attendee.attendeeName || 'Attendee',
+                  email: `${attendee.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
+                  company: attendee.companyName || 'Company',
+                  type: 'visitor' as const,
+                  avatar: (attendee.attendeeName?.charAt(0) || 'A').toUpperCase()
+                };
+                
+                console.log('Processed attendee:', attendeeData);
+                  attendees.push(attendeeData);
+              });
+            }
           }
 
-          // If no attendees found, add initiator as an attendee
+          // Add initiator from meetingDetails if available
+          if (apiMeeting.meetingDetails && Array.isArray(apiMeeting.meetingDetails) && apiMeeting.meetingDetails.length > 0) {
+            const meetingDetail = apiMeeting.meetingDetails[0];
+            if (meetingDetail.initiatorName && meetingDetail.companyName) {
+              console.log('Adding initiator from meetingDetails:', { initiatorName: meetingDetail.initiatorName, companyName: meetingDetail.companyName });
+              
+              // Check if this initiator is already in the attendees list
+              const existingInitiator = attendees.find(attendee => 
+                attendee.name === meetingDetail.initiatorName.trim() && 
+                attendee.company === meetingDetail.companyName.trim()
+              );
+              
+              if (!existingInitiator) {
+                attendees.push({
+                  id: meetingDetail.initiatorId?.toString() || `initiator-${Math.random()}`,
+                  name: meetingDetail.initiatorName.trim() || 'Initiator',
+                  email: `${meetingDetail.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@${meetingDetail.companyName?.toLowerCase().replace(/\s+/g, '')}.com` || 'initiator@example.com',
+                  company: meetingDetail.companyName.trim() || 'Company',
+                  type: 'exhibitor' as const,
+                  avatar: (meetingDetail.initiatorName?.charAt(0) || 'I').toUpperCase()
+                });
+              } else {
+                console.log('Initiator already exists in attendees list, skipping duplicate');
+              }
+            }
+          }
+          
+          // If no attendees found, add initiator as an attendee (fallback)
           if (attendees.length === 0 && apiMeeting.initiatorName) {
             console.log('No attendees found, adding initiator');
             attendees.push({
@@ -802,10 +893,10 @@ export default function MeetingsPage() {
 
           const transformedMeeting = {
             id: apiMeeting.id?.toString() || Math.random().toString(),
-            title: apiMeeting.agenda || 'Meeting',
+            title: agenda || 'Meeting',
             description: apiMeeting.description || 'No description available',
             dateTime: dateTime,
-            duration: calculateDuration(apiMeeting.startTime, apiMeeting.endTime),
+            duration: calculateDuration(startTime, apiMeeting.endTime || (apiMeeting.meetingDetails?.[0]?.endTime)),
             type: 'in-person' as const, // Default type
             location: apiMeeting.location || undefined,
             attendees: attendees,
@@ -815,20 +906,23 @@ export default function MeetingsPage() {
               name: 'Event Admin',
               email: 'admin@event.com'
             },
-            agenda: apiMeeting.agenda ? [apiMeeting.agenda] : [],
+            agenda: agenda ? [agenda] : [],
             notes: apiMeeting.notes || undefined,
             createdAt: new Date(apiMeeting.createdAt || Date.now()),
             updatedAt: new Date(apiMeeting.updatedAt || Date.now()),
             // Store original API data for display
-            meetingDate: apiMeeting.meetingDate,
-            startTime: apiMeeting.startTime,
-            endTime: apiMeeting.endTime,
+            meetingDate: meetingDate,
+            startTime: startTime,
+            endTime: apiMeeting.endTime || (apiMeeting.meetingDetails?.[0]?.endTime),
             // Additional fields for approval status
             isApproved: apiMeeting.isApproved === true,
             isCancelled: apiMeeting.isCancelled === true,
             approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
             // Set isInitiator based on current user ID comparison
             isInitiator: isCurrentUserInitiator,
+            // Initiator information from API
+            initiatorName: initiatorName,
+            companyName: companyName,
           };
           
           console.log('Transformed meeting:', {
@@ -2718,13 +2812,32 @@ export default function MeetingsPage() {
 
                       
 
+                        {/* Initiator Information */}
+                        {meeting.initiatorName && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Initiator:
+                            </Typography>
+                            <Chip
+                              avatar={<Avatar sx={{ bgcolor: 'secondary.main', width: 20, height: 20, fontSize: '0.7rem' }}>
+                                {meeting.initiatorName.charAt(0).toUpperCase()}
+                              </Avatar>}
+                              label={`${meeting.initiatorName}${meeting.companyName ? ` (${meeting.companyName})` : ''}`}
+                              variant="outlined"
+                              size="small"
+                              color="secondary"
+                              sx={{ fontSize: '0.75rem', height: 24 }}
+                            />
+                          </Box>
+                        )}
+
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                             Attendees:
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                             {meeting.attendees.map((attendee) => {
-                              console.log('Rendering attendee chip with data:', attendee);
+                              console.log('🎨 UI RENDERING - Rendering attendee chip with data:', attendee);
                               const displayLabel = attendee.company && attendee.company.trim() !== '' 
                                 ? `${attendee.name} (${attendee.company})`
                                 : attendee.name;

@@ -103,9 +103,16 @@ const FullPageLoader = () => (
       setError(null);
 
       // Get data from session storage first - using exhibitors-specific keys
-      const mappingData = null;
-      const standardFieldsData = null;
-      const storedFileStorageId = null;
+      console.log('Loading exhibitors data from session storage:', {
+        identifier,
+        mappingData: sessionStorage.getItem(`exhibitors_mapping_${identifier}`),
+        standardFieldsData: sessionStorage.getItem(`exhibitors_standard_fields_${identifier}`),
+        storedFileStorageId: sessionStorage.getItem(`exhibitors_file_storage_id_${identifier}`)
+      });
+      
+      const mappingData = sessionStorage.getItem(`exhibitors_mapping_${identifier}`);
+      const standardFieldsData = sessionStorage.getItem(`exhibitors_standard_fields_${identifier}`);
+      const storedFileStorageId = sessionStorage.getItem(`exhibitors_file_storage_id_${identifier}`);
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
@@ -206,7 +213,11 @@ const FullPageLoader = () => (
         setSelectedMappings(defaultMappings);
 
         // Also store in session storage for future use - using exhibitors-specific keys
-        // No sessionStorage persistence
+        sessionStorage.setItem(`exhibitors_mapping_${identifier}`, JSON.stringify(mappingsData));
+        sessionStorage.setItem(`exhibitors_standard_fields_${identifier}`, JSON.stringify(standardFieldsResponse.result));
+        if (responseFileStorageId) {
+          sessionStorage.setItem(`exhibitors_file_storage_id_${identifier}`, responseFileStorageId.toString());
+        }
 
       } else {
         // Handle API errors

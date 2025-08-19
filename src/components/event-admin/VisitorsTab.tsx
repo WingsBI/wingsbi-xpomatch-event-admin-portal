@@ -175,10 +175,35 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
           throw new Error('No field mapping suggestions received from backend. Please ensure your Excel file has proper headers.');
         }
         
-        // No sessionStorage persistence; pass via route/state if needed
+        // Extract fileStorageId from the suggest response
+        const responseFileStorageId = (suggestResponse.result as any)?.fileStorageId;
+        
+        // Store data in session storage for the field mapping page
+        console.log('Storing visitors data in session storage:', {
+          identifier,
+          mappingsData,
+          standardFields: standardFieldsResponse.result,
+          fileStorageId: responseFileStorageId
+        });
+        
+        sessionStorage.setItem(`visitors_mapping_${identifier}`, JSON.stringify(mappingsData));
+        sessionStorage.setItem(`visitors_standard_fields_${identifier}`, JSON.stringify(standardFieldsResponse.result));
+        if (responseFileStorageId) {
+          sessionStorage.setItem(`visitors_file_storage_id_${identifier}`, responseFileStorageId.toString());
+        }
+        
+        // Verify data was stored
+        console.log('Session storage verification:', {
+          storedMapping: sessionStorage.getItem(`visitors_mapping_${identifier}`),
+          storedFields: sessionStorage.getItem(`visitors_standard_fields_${identifier}`),
+          storedFileId: sessionStorage.getItem(`visitors_file_storage_id_${identifier}`)
+        });
+        
+        // Small delay to ensure session storage is persisted
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Redirect to matching page
-        router.push(`/${identifier}/visitors/matching`);
+        router.push(`/${identifier}/event-admin/visitors/matching`);
       } else {
         // Handle API errors
         const errorMessage = suggestResponse.statusCode !== 200 

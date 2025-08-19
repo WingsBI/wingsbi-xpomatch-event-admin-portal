@@ -125,6 +125,9 @@ interface Meeting {
   approvalStatus?: string;
   // Flag to indicate if current user is the meeting initiator
   isInitiator?: boolean;
+  // Initiator information from API
+  initiatorName?: string;
+  companyName?: string;
 }
 
 
@@ -143,12 +146,15 @@ const canCancelMeeting = (meeting: Meeting, user: any) => {
 };
 
 const canAcceptRejectMeeting = (meeting: Meeting, user: any) => {
-  return !meeting.isInitiator && meeting.status !== 'cancelled' && !meeting.isApproved;
+  const isExplicitlyUpcoming = meeting.approvalStatus?.toLowerCase() === 'upcoming';
+  return !meeting.isInitiator && meeting.status !== 'cancelled' && !meeting.isApproved && !isExplicitlyUpcoming;
 };
 
 const shouldShowAcceptReject = (meeting: Meeting, user: any) => {
   // Show accept/reject buttons ONLY for attendees (not initiators) of non-cancelled and non-approved meetings
-  return !meeting.isInitiator && !meeting.isApproved && meeting.status !== 'cancelled';
+  // Also exclude meetings that have explicit "upcoming" status (these should show as approved)
+  const isExplicitlyUpcoming = meeting.approvalStatus?.toLowerCase() === 'upcoming';
+  return !meeting.isInitiator && !meeting.isApproved && meeting.status !== 'cancelled' && !isExplicitlyUpcoming;
 };
 
 const shouldShowRescheduleCancel = (meeting: Meeting, user: any) => {
@@ -364,9 +370,10 @@ export default function MeetingsPage() {
         console.log('Number of invites to transform:', invitesResponse?.result?.length || 0);
         
         const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
-          console.log(`Processing invite ${index + 1}:`, invite);
+          console.log(`🔍 VISITOR INVITE PROCESSING - Processing invite ${index + 1}:`, invite);
+          console.log(`🔍 VISITOR INVITE - Attendee name: ${invite.attendeeName}, Company: ${invite.companyName}`);
           const meetingDetails = invite.meetingDetails?.[0];
-          console.log(`Meeting details for invite ${index + 1}:`, meetingDetails);
+          console.log(`🔍 VISITOR INVITE - Meeting details for invite ${index + 1}:`, meetingDetails);
           
           // Determine if current user is the initiator of this meeting
           // Use the original user ID (visitorId) for initiator check, not the fallback ID
@@ -405,23 +412,15 @@ export default function MeetingsPage() {
                 company: invite.companyName,
                 type: 'visitor', // Current user is visitor
                 avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
-              },
-              // Add the initiator
-              {
-                id: meetingDetails?.initiatorId?.toString() || '1',
-                name: meetingDetails?.initiatorName || 'Initiator',
-                email: `${meetingDetails?.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'initiator@example.com',
-                company: meetingDetails?.companyName || 'Company',
-                type: 'exhibitor', // Initiator is exhibitor (opposite of current user)
-                avatar: (meetingDetails?.initiatorName?.charAt(0) || 'I').toUpperCase()
               }
+              // Note: Initiator is not added to attendees list - they are shown separately in the Initiator section
             ],
             // Add approval status from invite
             isApproved: invite.isApproved === true,
             isCancelled: invite.isCancelled === true,
             approvalStatus: invite.status,
             // Set isInitiator based on current user ID comparison
-            isInitiator: isCurrentUserInitiator
+            isInitiator: isCurrentUserInitiator,
           };
           
           console.log('Transformed invite:', {
@@ -568,9 +567,10 @@ export default function MeetingsPage() {
         console.log('Number of exhibitor invites to transform:', invitesResponse?.result?.length || 0);
         
         const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
-          console.log(`Processing exhibitor invite ${index + 1}:`, invite);
+          console.log(`🔍 EXHIBITOR INVITE PROCESSING - Processing exhibitor invite ${index + 1}:`, invite);
+          console.log(`🔍 EXHIBITOR INVITE - Attendee name: ${invite.attendeeName}, Company: ${invite.companyName}`);
           const meetingDetails = invite.meetingDetails?.[0];
-          console.log(`Meeting details for exhibitor invite ${index + 1}:`, meetingDetails);
+          console.log(`🔍 EXHIBITOR INVITE - Meeting details for exhibitor invite ${index + 1}:`, meetingDetails);
           
           // Determine if current user is the initiator of this meeting
           // Use the original user ID (userId) for initiator check, not the fallback ID
@@ -609,23 +609,15 @@ export default function MeetingsPage() {
                 company: invite.companyName,
                 type: 'exhibitor', // Current user is exhibitor
                 avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
-              },
-              // Add the initiator
-              {
-                id: meetingDetails?.initiatorId?.toString() || '1',
-                name: meetingDetails?.initiatorName || 'Initiator',
-                email: `${meetingDetails?.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'initiator@example.com',
-                company: meetingDetails?.companyName || 'Company',
-                type: 'visitor', // Initiator is visitor (opposite of current user)
-                avatar: (meetingDetails?.initiatorName?.charAt(0) || 'I').toUpperCase()
               }
+              // Note: Initiator is not added to attendees list - they are shown separately in the Initiator section
             ],
             // Add approval status from invite
             isApproved: invite.isApproved === true,
             isCancelled: invite.isCancelled === true,
             approvalStatus: invite.status,
             // Set isInitiator based on current user ID comparison
-            isInitiator: isCurrentUserInitiator
+            isInitiator: isCurrentUserInitiator,
           };
         }).filter(Boolean);
         
@@ -696,13 +688,26 @@ export default function MeetingsPage() {
         
         // Transform API response to match our Meeting interface
         const transformedMeetings = response.result.map((apiMeeting: any) => {
-          console.log('Processing API meeting:', apiMeeting);
+          console.log('🔍 REGULAR MEETING PROCESSING - Processing API meeting:', apiMeeting);
+          console.log('🔍 REGULAR MEETING - Attendee name:', apiMeeting.attendeeName, 'Company:', apiMeeting.companyName);
           
-                  // Determine if current user is the initiator of this meeting
-        const isCurrentUserInitiator = currentUserId && apiMeeting.initiatorId === currentUserId;
+                  // Extract initiator information, preferring meetingDetails if available
+          let initiatorId = apiMeeting.initiatorId;
+          let initiatorName = apiMeeting.initiatorName;
+          let companyName = apiMeeting.companyName;
+          
+          if (apiMeeting.meetingDetails && Array.isArray(apiMeeting.meetingDetails) && apiMeeting.meetingDetails.length > 0) {
+            const meetingDetail = apiMeeting.meetingDetails[0];
+            initiatorId = meetingDetail.initiatorId || initiatorId;
+            initiatorName = meetingDetail.initiatorName || initiatorName;
+            companyName = meetingDetail.companyName || companyName;
+          }
+          
+          // Determine if current user is the initiator of this meeting
+        const isCurrentUserInitiator = currentUserId && initiatorId === currentUserId;
         console.log('Initiator check:', {
           currentUserId,
-          apiInitiatorId: apiMeeting.initiatorId,
+          apiInitiatorId: initiatorId,
           isCurrentUserInitiator,
           meetingId: apiMeeting.id,
           userRole: user?.role
@@ -710,12 +715,25 @@ export default function MeetingsPage() {
           
           // Safely create dateTime with validation
           let dateTime: Date;
+          let meetingDate = apiMeeting.meetingDate;
+          let startTime = apiMeeting.startTime;
+          let agenda = apiMeeting.agenda;
+          
+          // If date/time not at root level, check in meetingDetails array
+          if ((!meetingDate || !startTime) && apiMeeting.meetingDetails && Array.isArray(apiMeeting.meetingDetails) && apiMeeting.meetingDetails.length > 0) {
+            const meetingDetail = apiMeeting.meetingDetails[0];
+            meetingDate = meetingDetail.meetingDate || meetingDate;
+            startTime = meetingDetail.startTime || startTime;
+            agenda = meetingDetail.agenda || agenda;
+            console.log('Using date/time from meetingDetails:', { meetingDate, startTime, agenda });
+          }
+          
           try {
-            if (apiMeeting.meetingDate && apiMeeting.startTime) {
+            if (meetingDate && startTime) {
               // API returns meetingDate in ISO format: "2025-07-31T00:00:00"
               // and startTime as separate time: "10:23:00"
-              const dateStr = apiMeeting.meetingDate;
-              const timeStr = apiMeeting.startTime;
+              const dateStr = meetingDate;
+              const timeStr = startTime;
               
               console.log('Parsing date for meeting:', apiMeeting.id, { dateStr, timeStr });
               
@@ -753,37 +771,62 @@ export default function MeetingsPage() {
           // Extract attendee information from the API response
           let attendees: Meeting['attendees'] = [];
           
+          // First, check if there's attendee information at the root level (for meeting invites)
+          if (apiMeeting.attendeeName && apiMeeting.companyName) {
+            console.log('Processing root level attendee:', { attendeeName: apiMeeting.attendeeName, companyName: apiMeeting.companyName });
+            
+            // Check if this attendee is already in the attendees list
+            const existingAttendee = attendees.find(attendee => 
+              attendee.name === apiMeeting.attendeeName.trim() && 
+              attendee.company === apiMeeting.companyName.trim()
+            );
+            
+            if (!existingAttendee) {
+              attendees.push({
+                id: apiMeeting.attendeesId?.toString() || `attendee-${Math.random()}`,
+                name: apiMeeting.attendeeName.trim() || 'Attendee',
+                email: `${apiMeeting.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
+                company: apiMeeting.companyName.trim() || 'Company',
+                type: 'visitor' as const,
+                avatar: (apiMeeting.attendeeName?.charAt(0) || 'A').toUpperCase()
+              });
+            } else {
+              console.log('Attendee already exists in attendees list, skipping duplicate');
+            }
+          }
+          
+          // Also check for attendees array (for other meeting types)
           if (apiMeeting.attendees && Array.isArray(apiMeeting.attendees)) {
             console.log('Processing attendees array:', apiMeeting.attendees);
             
-            // Process each attendee in the array
-            apiMeeting.attendees.forEach((attendee: any) => {
-                const attendeeData = {
-                id: attendee.attendeesId?.toString() || `attendee-${Math.random()}`,
-                name: attendee.attendeeName || 'Attendee',
-                email: `${attendee.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
-                company: attendee.companyName || 'Company',
-                type: 'visitor' as const,
-                avatar: (attendee.attendeeName?.charAt(0) || 'A').toUpperCase()
-              };
-              
-              console.log('Processed attendee:', attendeeData);
-                attendees.push(attendeeData);
-            });
+            // Check if this is already a transformed attendees array (from invite processing)
+            const firstAttendee = apiMeeting.attendees[0];
+            if (firstAttendee && firstAttendee.name && firstAttendee.email && firstAttendee.company) {
+              // This is already a transformed attendees array, use it directly
+              console.log('Using already transformed attendees array');
+              attendees.push(...apiMeeting.attendees);
+            } else {
+              // Process each attendee in the array (raw API format)
+              apiMeeting.attendees.forEach((attendee: any) => {
+                  const attendeeData = {
+                  id: attendee.attendeesId?.toString() || `attendee-${Math.random()}`,
+                  name: attendee.attendeeName || 'Attendee',
+                  email: `${attendee.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
+                  company: attendee.companyName || 'Company',
+                  type: 'visitor' as const,
+                  avatar: (attendee.attendeeName?.charAt(0) || 'A').toUpperCase()
+                };
+                
+                console.log('Processed attendee:', attendeeData);
+                  attendees.push(attendeeData);
+              });
+            }
           }
 
-          // If no attendees found, add initiator as an attendee
-          if (attendees.length === 0 && apiMeeting.initiatorName) {
-            console.log('No attendees found, adding initiator');
-            attendees.push({
-              id: apiMeeting.initiatorId?.toString() || '1',
-              name: apiMeeting.initiatorName.trim() || 'Initiator',
-              email: `${apiMeeting.initiatorName?.toLowerCase().replace(/\s+/g, '.')}@${apiMeeting.companyName?.toLowerCase().replace(/\s+/g, '')}.com` || 'initiator@example.com',
-              company: apiMeeting.companyName || 'Company',
-                type: 'exhibitor' as const,
-              avatar: (apiMeeting.initiatorName?.charAt(0) || 'I').toUpperCase()
-            });
-          }
+          // Note: Initiator should NOT be added to attendees list - they are shown separately in the Initiator section
+          // The initiator information is displayed in the "Initiator" field, not in the "Attendees" list
+          
+          // Note: We don't add initiator as fallback attendee anymore - initiator is shown separately
 
           // If still no attendees found, add a fallback
           if (attendees.length === 0) {
@@ -802,10 +845,10 @@ export default function MeetingsPage() {
 
           const transformedMeeting = {
             id: apiMeeting.id?.toString() || Math.random().toString(),
-            title: apiMeeting.agenda || 'Meeting',
+            title: agenda || 'Meeting',
             description: apiMeeting.description || 'No description available',
             dateTime: dateTime,
-            duration: calculateDuration(apiMeeting.startTime, apiMeeting.endTime),
+            duration: calculateDuration(startTime, apiMeeting.endTime || (apiMeeting.meetingDetails?.[0]?.endTime)),
             type: 'in-person' as const, // Default type
             location: apiMeeting.location || undefined,
             attendees: attendees,
@@ -815,20 +858,38 @@ export default function MeetingsPage() {
               name: 'Event Admin',
               email: 'admin@event.com'
             },
-            agenda: apiMeeting.agenda ? [apiMeeting.agenda] : [],
+            agenda: agenda ? [agenda] : [],
             notes: apiMeeting.notes || undefined,
             createdAt: new Date(apiMeeting.createdAt || Date.now()),
             updatedAt: new Date(apiMeeting.updatedAt || Date.now()),
             // Store original API data for display
-            meetingDate: apiMeeting.meetingDate,
-            startTime: apiMeeting.startTime,
-            endTime: apiMeeting.endTime,
+            meetingDate: meetingDate,
+            startTime: startTime,
+            endTime: apiMeeting.endTime || (apiMeeting.meetingDetails?.[0]?.endTime),
             // Additional fields for approval status
-            isApproved: apiMeeting.isApproved === true,
+            // For meetings with attendees array, check if ANY attendee has approved (for initiator view)
+            isApproved: (() => {
+              if (apiMeeting.attendees && Array.isArray(apiMeeting.attendees) && apiMeeting.attendees.length > 0) {
+                // Check if ANY attendee has isApproved: true (changed from ALL to ANY)
+                const anyAttendeeApproved = apiMeeting.attendees.some((attendee: any) => attendee.isApproved === true);
+                console.log('Checking attendee approval status (ANY logic):', {
+                  meetingId: apiMeeting.id,
+                  totalAttendees: apiMeeting.attendees.length,
+                  attendeesApprovalStatus: apiMeeting.attendees.map((a: any) => ({ name: a.attendeeName, isApproved: a.isApproved })),
+                  anyAttendeeApproved
+                });
+                return anyAttendeeApproved;
+              }
+              // Fallback to the original logic if no attendees array
+              return apiMeeting.isApproved === true;
+            })(),
             isCancelled: apiMeeting.isCancelled === true,
             approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
             // Set isInitiator based on current user ID comparison
             isInitiator: isCurrentUserInitiator,
+            // Initiator information from API
+            initiatorName: initiatorName,
+            companyName: companyName,
           };
           
           console.log('Transformed meeting:', {
@@ -1588,7 +1649,7 @@ export default function MeetingsPage() {
     });
     
     switch (tabValue) {
-      case 0: // Pending meetings - show meetings that are not yet approved and not cancelled
+      case 0: // Pending meetings - show meetings with status 'Pending'
         console.log('=== PENDING TAB FILTERING ===');
         console.log('Total meetings count:', meetings.length);
         console.log('All meetings:', meetings.map(m => ({ 
@@ -1602,9 +1663,14 @@ export default function MeetingsPage() {
         })));
         
         const pendingMeetings = meetings.filter(m => {
-          // For all roles, show meetings that are not approved and not cancelled
-          // This includes both meetings where user is initiator and where user is attendee
-          const shouldShow = !m.isApproved && m.status !== 'cancelled' && !m.isCancelled;
+          // Show meetings that are explicitly pending OR not approved (but exclude cancelled)
+          // Ensure mutual exclusivity with upcoming tab
+          const isExplicitlyPending = m.approvalStatus?.toLowerCase() === 'pending';
+          const isNotApprovedYet = !m.isApproved && m.status !== 'cancelled' && !m.isCancelled;
+          const isNotUpcoming = m.approvalStatus?.toLowerCase() !== 'upcoming';
+          
+          const shouldShow = (isExplicitlyPending || (isNotApprovedYet && isNotUpcoming));
+          
           console.log(`Meeting ${m.id} pending check:`, {
             id: m.id,
             title: m.title,
@@ -1613,6 +1679,9 @@ export default function MeetingsPage() {
             isCancelled: m.isCancelled,
             status: m.status,
             approvalStatus: m.approvalStatus,
+            isExplicitlyPending,
+            isNotApprovedYet,
+            isNotUpcoming,
             shouldShow,
             userRole: user?.role
           });
@@ -1621,15 +1690,29 @@ export default function MeetingsPage() {
         console.log('Pending meetings count:', pendingMeetings.length);
         console.log('Pending meetings:', pendingMeetings.map(m => ({ id: m.id, title: m.title, isApproved: m.isApproved })));
         return pendingMeetings;
-      case 1: // Upcoming - show approved meetings that are in the future and not cancelled
+      case 1: // Upcoming - show meetings with status 'Upcoming' or approved meetings in the future
         const upcomingMeetings = meetings.filter(m => {
-          const shouldShow = m.isApproved && m.dateTime > now && m.status !== 'cancelled' && !m.isCancelled;
+          // Show meetings that are explicitly upcoming OR approved and in future
+          // Ensure mutual exclusivity with pending tab AND exclude past meetings
+          const isExplicitlyUpcoming = m.approvalStatus?.toLowerCase() === 'upcoming';
+          const isApprovedAndFuture = m.isApproved && m.dateTime > now;
+          const isNotCancelled = m.status !== 'cancelled' && !m.isCancelled;
+          const isNotPending = m.approvalStatus?.toLowerCase() !== 'pending';
+          const isFutureMeeting = m.dateTime > now; // Check if meeting is in the future
+          
+          const shouldShow = (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled && isFutureMeeting;
+          
           console.log(`Meeting ${m.id} upcoming check:`, {
             id: m.id,
             isApproved: m.isApproved,
             dateTime: m.dateTime.toISOString(),
             now: now.toISOString(),
             isFuture: m.dateTime > now,
+            isExplicitlyUpcoming,
+            isApprovedAndFuture,
+            isNotCancelled,
+            isNotPending,
+            isFutureMeeting,
             shouldShow,
             status: m.status,
             approvalStatus: m.approvalStatus
@@ -1656,13 +1739,26 @@ export default function MeetingsPage() {
   }, [tabValue, meetings, user]);
 
   const getMyInvitesCount = () => {
-    // Count meetings where user is not the initiator and not approved
-    return meetings.filter(m => !m.isInitiator && !m.isApproved && m.status !== 'cancelled' && !m.isCancelled).length;
+    // Count meetings using same logic as pending tab
+    return meetings.filter(m => {
+      const isExplicitlyPending = m.approvalStatus?.toLowerCase() === 'pending';
+      const isNotApprovedYet = !m.isApproved && m.status !== 'cancelled' && !m.isCancelled;
+      const isNotUpcoming = m.approvalStatus?.toLowerCase() !== 'upcoming';
+      return (isExplicitlyPending || (isNotApprovedYet && isNotUpcoming));
+    }).length;
   };
 
   const getUpcomingCount = () => {
     const now = new Date();
-    return meetings.filter(m => m.isApproved && m.dateTime > now && m.status !== 'cancelled').length;
+    // Count meetings using same logic as upcoming tab
+    return meetings.filter(m => {
+      const isExplicitlyUpcoming = m.approvalStatus?.toLowerCase() === 'upcoming';
+      const isApprovedAndFuture = m.isApproved && m.dateTime > now;
+      const isNotCancelled = m.status !== 'cancelled' && !m.isCancelled;
+      const isNotPending = m.approvalStatus?.toLowerCase() !== 'pending';
+      const isFutureMeeting = m.dateTime > now; // Check if meeting is in the future
+      return (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled && isFutureMeeting;
+    }).length;
   };
 
   const isCompletedMeeting = (meeting: Meeting) => {
@@ -1672,7 +1768,9 @@ export default function MeetingsPage() {
     const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
     if (!endDateTime) return false;
     
-    return meeting.isApproved && now > endDateTime && meeting.status !== 'cancelled';
+    // Check if meeting is approved (either explicitly or by status)
+    const isApprovedMeeting = meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming';
+    return isApprovedMeeting && now > endDateTime && meeting.status !== 'cancelled';
   };
 
   const getCompletedCount = () => {
@@ -1726,6 +1824,18 @@ export default function MeetingsPage() {
     }
   };
 
+  const isPastNonApprovedMeeting = (meeting: Meeting) => {
+    const now = new Date();
+    if (!meeting.endTime || !meeting.meetingDate) return false;
+    
+    const endDateTime = parseMeetingDateTime(meeting.meetingDate, meeting.endTime);
+    if (!endDateTime) return false;
+    
+    // Check if meeting is NOT approved and time has passed
+    const isApprovedMeeting = meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming';
+    return !isApprovedMeeting && now > endDateTime && meeting.status !== 'cancelled';
+  };
+
   const isOngoingMeeting = (meeting: Meeting) => {
     const now = new Date();
     console.log('Checking if meeting is ongoing:', {
@@ -1752,7 +1862,9 @@ export default function MeetingsPage() {
       return false;
     }
     
-    const isOngoing = now >= startDateTime && now <= endDateTime && meeting.status !== 'cancelled' && meeting.isApproved;
+    // Check if meeting is approved (either explicitly or by status)
+    const isApprovedMeeting = meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming';
+    const isOngoing = now >= startDateTime && now <= endDateTime && meeting.status !== 'cancelled' && isApprovedMeeting;
     console.log('Meeting ongoing check result:', {
       id: meeting.id,
       startDateTime: startDateTime.toISOString(),
@@ -1761,6 +1873,8 @@ export default function MeetingsPage() {
       isBeforeEnd: now <= endDateTime,
       notCancelled: meeting.status !== 'cancelled',
       isApproved: meeting.isApproved,
+      approvalStatus: meeting.approvalStatus,
+      isApprovedMeeting,
       isOngoing
     });
     
@@ -1873,35 +1987,39 @@ export default function MeetingsPage() {
              meetingDate.getMonth() === date.getMonth() &&
              meetingDate.getFullYear() === date.getFullYear();
       
-      // Only show scheduled meetings (not completed or cancelled)
-      const isScheduled = meeting.status === 'scheduled' || meeting.status === 'in-progress';
-      
-      // Show both approved and pending meetings (but not completed)
-      const isNotCompleted = meeting.status !== 'completed';
-      
-      // Check if meeting is in the future or today (not past)
+      // Calendar should only show upcoming meetings (approved and in the future)
       const now = new Date();
-      const isNotPast = meetingDate >= now;
+      const isExplicitlyUpcoming = meeting.approvalStatus?.toLowerCase() === 'upcoming';
+      const isApprovedAndFuture = meeting.isApproved && meetingDate > now;
+      const isNotCancelled = meeting.status !== 'cancelled' && !meeting.isCancelled;
+      const isNotPending = meeting.approvalStatus?.toLowerCase() !== 'pending';
+      const isFutureMeeting = meetingDate > now;
+      
+      // Use the same logic as upcoming tab filter
+      const isUpcomingMeeting = (isExplicitlyUpcoming || (isApprovedAndFuture && isNotPending)) && isNotCancelled && isFutureMeeting;
       
       // Debug logging
       if (isSameDate) {
-        console.log('Calendar meeting check:', {
+        console.log('Calendar meeting check (upcoming only):', {
           id: meeting.id,
           title: meeting.title,
           status: meeting.status,
           isApproved: meeting.isApproved,
           approvalStatus: meeting.approvalStatus,
-          isScheduled,
-          isNotCompleted,
-          isNotPast,
+          isExplicitlyUpcoming,
+          isApprovedAndFuture,
+          isNotCancelled,
+          isNotPending,
+          isFutureMeeting,
+          isUpcomingMeeting,
           meetingDate: meetingDate.toISOString(),
           now: now.toISOString(),
           checkDate: date.toISOString(),
-          willShow: isSameDate && isScheduled && isNotCompleted && isNotPast
+          willShow: isSameDate && isUpcomingMeeting
         });
       }
       
-      return isSameDate && isScheduled && isNotCompleted && isNotPast;
+      return isSameDate && isUpcomingMeeting;
     });
   };
 
@@ -2006,104 +2124,145 @@ export default function MeetingsPage() {
 
 
 
-  // Calculate meeting layout for Teams-like calendar
+  // Calculate meeting layout for Teams-like calendar with spanning blocks
   const getMeetingLayout = (date: Date) => {
     const dayMeetings = getMeetingsForDate(date);
-    const layout: { [hour: number]: { meeting: Meeting; top: number; height: number; left: number; width: number }[] } = {};
+    const hourSlots = getHourSlots();
     
-    // Group meetings by hour and calculate overlaps
+    // Create spanning meeting blocks
+    const spanningMeetings: { 
+      meeting: Meeting; 
+      startHour: number; 
+      endHour: number; 
+      startMinutes: number; 
+      endMinutes: number;
+      left: number; 
+      width: number;
+      level: number;
+    }[] = [];
+    
     dayMeetings.forEach(meeting => {
       const meetingDate = meeting.dateTime;
       const meetingEndTime = new Date(meetingDate.getTime() + meeting.duration * 60000);
       const startHour = meetingDate.getHours();
       const endHour = meetingEndTime.getHours();
+      const startMinutes = meetingDate.getMinutes();
+      const endMinutes = meetingEndTime.getMinutes();
       
-      // Add meeting to all hours it spans
-      for (let hour = startHour; hour <= endHour; hour++) {
-        if (!layout[hour]) layout[hour] = [];
-        
-        // Calculate top position within the hour slot (60px height per hour)
-        const top = hour === startHour ? (meetingDate.getMinutes() / 60) * 60 : 0;
-        
-        // Calculate height for this hour slot
-        let height: number;
-        if (hour === startHour && hour === endHour) {
-          // Meeting starts and ends in the same hour
-          const startMinutes = meetingDate.getMinutes();
-          const endMinutes = meetingEndTime.getMinutes();
-          height = ((endMinutes - startMinutes) / 60) * 60;
-        } else if (hour === startHour) {
-          // Meeting starts in this hour
-          const startMinutes = meetingDate.getMinutes();
-          height = ((60 - startMinutes) / 60) * 60;
-        } else if (hour === endHour) {
-          // Meeting ends in this hour
-          const endMinutes = meetingEndTime.getMinutes();
-          height = (endMinutes / 60) * 60;
-        } else {
-          // Meeting spans the full hour
-          height = 60;
-        }
-        
-        // Ensure height is within bounds and has minimum size
-        height = Math.max(Math.min(height, 60), 24);
-        
-        // Ensure the meeting block fits within the hour slot
-        const maxTop = 60 - height;
-        const constrainedTop = Math.max(0, Math.min(top, maxTop));
-        
-        layout[hour].push({
-          meeting,
-          top: constrainedTop,
-          height: Math.min(height, 60 - constrainedTop), // Ensure height doesn't exceed remaining space
-          left: 0, // Will be calculated below
-          width: 100 // Will be calculated below
-        });
-      }
+      spanningMeetings.push({
+        meeting,
+        startHour,
+        endHour,
+        startMinutes,
+        endMinutes,
+        left: 0,
+        width: 100,
+        level: 0
+      });
     });
     
-    // Calculate overlapping positions for each hour
-    Object.keys(layout).forEach(hourStr => {
-      const hour = parseInt(hourStr);
-      const hourMeetings = layout[hour];
+    // Sort meetings by start time for proper overlap calculation
+    spanningMeetings.sort((a, b) => {
+      const aStart = a.startHour * 60 + a.startMinutes;
+      const bStart = b.startHour * 60 + b.startMinutes;
+      return aStart - bStart;
+    });
+    
+    // Improved overlap detection and positioning
+    // Group meetings into overlapping clusters
+    const overlapGroups: typeof spanningMeetings[] = [];
+    const processed = new Set<number>();
+    
+    spanningMeetings.forEach((meeting, index) => {
+      if (processed.has(index)) return;
       
-      // Sort meetings by start time within the hour
-      hourMeetings.sort((a, b) => a.top - b.top);
+      const meetingStart = meeting.startHour * 60 + meeting.startMinutes;
+      const meetingEnd = meeting.endHour * 60 + meeting.endMinutes;
       
-      // Group overlapping meetings - improved algorithm
-      const overlappingGroups: typeof hourMeetings[] = [];
-      const processed = new Set<number>();
+      // Create a new overlap group starting with this meeting
+      const currentGroup = [meeting];
+      processed.add(index);
       
-      hourMeetings.forEach((meeting, index) => {
-        if (processed.has(index)) return;
+      // Find all meetings that overlap with any meeting in the current group
+      let foundOverlap = true;
+      while (foundOverlap) {
+        foundOverlap = false;
         
-        const currentGroup = [meeting];
-        processed.add(index);
-        
-        // Find all meetings that overlap with this one
-        hourMeetings.forEach((otherMeeting, otherIndex) => {
+        spanningMeetings.forEach((otherMeeting, otherIndex) => {
           if (processed.has(otherIndex)) return;
           
-          const meetingEnd = meeting.top + meeting.height;
-          const otherEnd = otherMeeting.top + otherMeeting.height;
+          const otherStart = otherMeeting.startHour * 60 + otherMeeting.startMinutes;
+          const otherEnd = otherMeeting.endHour * 60 + otherMeeting.endMinutes;
           
-          // Check if meetings overlap
-          if ((meeting.top < otherEnd) && (otherMeeting.top < meetingEnd)) {
+          // Check if this meeting overlaps with any meeting in the current group
+          const overlapsWithGroup = currentGroup.some(groupMeeting => {
+            const groupStart = groupMeeting.startHour * 60 + groupMeeting.startMinutes;
+            const groupEnd = groupMeeting.endHour * 60 + groupMeeting.endMinutes;
+            
+            // True overlap detection - meetings must have overlapping time periods
+            // For meetings to be considered overlapping, they must share at least 1 minute of time
+            // Adjacent meetings (like 9:00-10:30 and 10:30-11:30) will NOT be grouped together
+            return (otherStart < groupEnd) && (groupStart < otherEnd);
+          });
+          
+          if (overlapsWithGroup) {
             currentGroup.push(otherMeeting);
             processed.add(otherIndex);
+            foundOverlap = true;
           }
         });
-        
-        overlappingGroups.push(currentGroup);
+      }
+      
+      overlapGroups.push(currentGroup);
+    });
+    
+    // Assign levels within each overlap group
+    overlapGroups.forEach(group => {
+      // Sort group by start time for consistent positioning
+      group.sort((a, b) => {
+        const aStart = a.startHour * 60 + a.startMinutes;
+        const bStart = b.startHour * 60 + b.startMinutes;
+        return aStart - bStart;
       });
       
-      // Calculate positions for each overlapping group
-      overlappingGroups.forEach(group => {
-        const groupWidth = 100 / group.length;
-        group.forEach((meeting, index) => {
-          meeting.left = index * groupWidth;
-          meeting.width = groupWidth;
-        });
+      const groupSize = group.length;
+      const groupColumnWidth = 100 / groupSize;
+      
+      group.forEach((meeting, levelIndex) => {
+        meeting.level = levelIndex;
+        meeting.width = groupColumnWidth;
+        meeting.left = levelIndex * groupColumnWidth;
+      });
+    });
+    
+    // Return format that works with existing rendering code
+    const layout: { [hour: number]: { meeting: Meeting; top: number; height: number; left: number; width: number; spanningMeeting?: any }[] } = {};
+    
+    // For each hour slot, add spanning meetings that intersect with it
+    hourSlots.forEach(hour => {
+      layout[hour] = [];
+      
+      spanningMeetings.forEach(spanningMeeting => {
+        // Check if this spanning meeting intersects with this hour
+        if (spanningMeeting.startHour <= hour && hour <= spanningMeeting.endHour) {
+          // Only render the meeting block in its starting hour to avoid duplicates
+          if (hour === spanningMeeting.startHour) {
+            // Calculate position and size for the spanning block
+            const top = (spanningMeeting.startMinutes / 60) * 60;
+            const totalDuration = (spanningMeeting.endHour - spanningMeeting.startHour) * 60 + 
+                                (spanningMeeting.endMinutes - spanningMeeting.startMinutes);
+            const height = Math.max((totalDuration / 60) * 60, 24);
+            
+            layout[hour].push({
+              meeting: spanningMeeting.meeting,
+              top,
+              height,
+              left: spanningMeeting.left,
+              width: spanningMeeting.width,
+              spanningMeeting
+            });
+          }
+        }
       });
     });
     
@@ -2153,14 +2312,6 @@ export default function MeetingsPage() {
           {/* Only show top-right button in calendar view */}
           {showCalendar && (
             <Box sx={{ mb: 2, mt: -1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={isRefreshing ? <CircularProgress size={16} /> : <Refresh />}
-                onClick={handleRefreshMeetings}
-                disabled={meetingsLoading || isRefreshing}
-              >
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
               <Button
                 variant="contained"
                 startIcon={<Add />}
@@ -2368,106 +2519,142 @@ export default function MeetingsPage() {
                         </Box>
                       </Box>
 
-                      {/* Time slot columns with day partitioning */}
-                      {getHourSlots().map((hour, hourIndex) => {
-                        const meetingLayout = getMeetingLayout(day);
-                        const hourMeetings = meetingLayout[hour] || [];
-                        
-                        return (
+                      {/* Time slot columns container with relative positioning for spanning meetings */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flex: 1, 
+                        position: 'relative',
+                        height: 60
+                      }}>
+                        {/* Time slot columns */}
+                        {getHourSlots().map((hour, hourIndex) => (
                           <Box key={hourIndex} sx={{ 
                             flex: 1, 
                             borderRight: hourIndex < getHourSlots().length - 1 ? 1 : 0, 
                             borderColor: 'grey.200',
-                            position: 'relative',
-                            display: 'flex',
                             cursor: 'pointer',
-                            height: 60, // Increased height for each hour slot
-                            overflow: 'hidden',
+                            height: 60,
                             bgcolor: hour % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
                             '&:hover': { bgcolor: 'primary.25' }
-                          }}>
-                            {/* Meetings for this time slot */}
-                            {hourMeetings.map((meetingData, meetingIndex) => {
-                              // Ensure the meeting block stays within the hour slot bounds
-                              const constrainedTop = Math.max(0, Math.min(meetingData.top, 60 - meetingData.height));
-                              const constrainedHeight = Math.min(meetingData.height, 60 - constrainedTop);
-                              
-                              return (
-                                <Tooltip
-                                  key={`${meetingData.meeting.id}-${hour}`}
-                                  title={meetingData.meeting.title}
-                                  placement="top"
-                                  arrow
+                          }} />
+                        ))}
+                        
+                        {/* Meetings positioned absolutely over the entire day row */}
+                        {(() => {
+                          const meetingLayout = getMeetingLayout(day);
+                          const allMeetings: any[] = [];
+                          
+                          // Collect all meetings from all hours (but avoid duplicates)
+                          Object.keys(meetingLayout).forEach(hourStr => {
+                            const hourMeetings = meetingLayout[parseInt(hourStr)] || [];
+                            hourMeetings.forEach(meetingData => {
+                              // Only add if not already added (avoid duplicates from spanning)
+                              if (!allMeetings.find(m => m.meeting.id === meetingData.meeting.id)) {
+                                allMeetings.push(meetingData);
+                              }
+                            });
+                          });
+                          
+                          return allMeetings.map((meetingData, meetingIndex) => {
+                            const spanningMeeting = meetingData.spanningMeeting;
+                            const hourSlots = getHourSlots();
+                            
+                            // Calculate position and size for precise spanning including partial hours
+                            const totalColumns = hourSlots.length;
+                            const columnWidth = 100 / totalColumns;
+                            
+                            const startHour = spanningMeeting?.startHour || 0;
+                            const endHour = spanningMeeting?.endHour || 0;
+                            const startMinutes = spanningMeeting?.startMinutes || 0;
+                            const endMinutes = spanningMeeting?.endMinutes || 0;
+                            
+                            // Calculate precise start position (including minutes within the start hour)
+                            const startIndex = hourSlots.indexOf(startHour);
+                            const startMinuteFraction = startMinutes / 60; // 0.0 to 1.0
+                            const preciseStartPosition = (startIndex + startMinuteFraction) * columnWidth;
+                            
+                            // Calculate precise end position (including minutes within the end hour)
+                            const endIndex = hourSlots.indexOf(endHour);
+                            const endMinuteFraction = endMinutes / 60; // 0.0 to 1.0
+                            const preciseEndPosition = (endIndex + endMinuteFraction) * columnWidth;
+                            
+                            // Calculate the actual span width based on precise start and end positions
+                            const preciseSpanWidth = preciseEndPosition - preciseStartPosition;
+                            
+                            // Apply meeting's width adjustment for overlapping meetings
+                            const actualWidth = (meetingData.width / 100) * preciseSpanWidth;
+                            const leftPosition = preciseStartPosition + (meetingData.left / 100) * preciseSpanWidth;
+                            
+                            const constrainedTop = Math.max(0, Math.min(meetingData.top, 60 - Math.min(meetingData.height, 56)));
+                            const constrainedHeight = Math.min(meetingData.height, 60 - constrainedTop, 56);
+                            
+                            return (
+                              <Tooltip
+                                key={`${meetingData.meeting.id}-spanning`}
+                                title={`${meetingData.meeting.title} (${formatTimeOnly(meetingData.meeting.dateTime)} - ${formatTimeOnly(new Date(meetingData.meeting.dateTime.getTime() + meetingData.meeting.duration * 60000))})`}
+                                placement="top"
+                                arrow
+                              >
+                                <Box
+                                  onClick={() => {
+                                    setSelectedMeeting(meetingData.meeting);
+                                  }}
+                                  sx={{
+                                    position: 'absolute',
+                                    top: constrainedTop + 2,
+                                    left: `${leftPosition}%`,
+                                    width: `${actualWidth}%`,
+                                    bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.light' :
+                                             getStatusColor(meetingData.meeting.status) === 'success' ? 'success.light' :
+                                             getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.light' :
+                                             getStatusColor(meetingData.meeting.status) === 'error' ? 'error.light' : 'grey.300',
+                                    color: 'text.primary',
+                                    borderRadius: 1,
+                                    p: 0.5,
+                                    cursor: 'pointer',
+                                    zIndex: 2,
+                                    height: `${constrainedHeight - 4}px`,
+                                    overflow: 'hidden',
+                                    margin: '0 2px',
+                                    border: '1px solid rgba(0,0,0,0.1)',
+                                    maxHeight: '56px',
+                                    minWidth: preciseSpanWidth > columnWidth ? `${Math.max(actualWidth * 0.8, 60)}px` : 'auto',
+                                    '&:hover': {
+                                      opacity: 0.9,
+                                      transform: 'scale(1.01)',
+                                      boxShadow: 2,
+                                      zIndex: 3
+                                    }
+                                  }}
                                 >
-                                  <Box
-                                    onClick={() => {
-                                      setSelectedMeeting(meetingData.meeting);
-                                    }}
-                                    sx={{
-                                      position: 'absolute',
-                                      top: constrainedTop + 2,
-                                      left: `${meetingData.left}%`,
-                                      width: `${meetingData.width}%`,
-                                      bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.light' :
-                                               getStatusColor(meetingData.meeting.status) === 'success' ? 'success.light' :
-                                               getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.light' :
-                                               getStatusColor(meetingData.meeting.status) === 'error' ? 'error.light' : 'grey.300',
-                                      color: 'text.primary',
-                                      borderRadius: 1,
-                                      p: 0.5,
-                                      cursor: 'pointer',
-                                      zIndex: 1,
-                                      height: `${constrainedHeight - 4}px`,
-                                      overflow: 'hidden',
-                                      margin: '0 2px',
-                                      border: '1px solid rgba(0,0,0,0.1)',
-                                      maxHeight: '56px',
-                                      '&:hover': {
-                                        opacity: 0.9,
-                                        transform: 'scale(1.02)',
-                                        boxShadow: 2
-                                      }
-                                    }}
-                                  >
-                                    <Typography variant="caption" sx={{ 
-                                      display: 'block',
-                                      fontWeight: 'bold',
-                                      fontSize: '0.65rem',
-                                      lineHeight: 1.1,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}>
-                                      {meetingData.meeting.title}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ 
-                                      display: 'block',
-                                      fontSize: '0.6rem',
-                                      opacity: 0.8,
-                                      lineHeight: 1.1
-                                    }}>
-                                      {formatDuration(meetingData.meeting.duration)}
-                                      {/* Show indicator if meeting continues to next hour */}
-                                      {hour < getHourSlots().length - 1 && meetingData.meeting.duration > 60 && 
-                                       meetingData.meeting.dateTime.getHours() === hour && 
-                                       meetingData.meeting.dateTime.getMinutes() + meetingData.meeting.duration > 60 && (
-                                        <Box component="span" sx={{ 
-                                          display: 'inline-block',
-                                          width: '4px',
-                                          height: '4px',
-                                          borderRadius: '50%',
-                                          bgcolor: 'rgba(0,0,0,0.6)',
-                                          ml: 0.5
-                                        }} />
-                                      )}
-                                    </Typography>
-                                  </Box>
-                                </Tooltip>
-                              );
-                            })}
-                          </Box>
-                        );
-                      })}
+                                  <Typography variant="caption" sx={{ 
+                                    display: 'block',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.65rem',
+                                    lineHeight: 1.1,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {meetingData.meeting.title}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ 
+                                    display: 'block',
+                                    fontSize: '0.6rem',
+                                    opacity: 0.8,
+                                    lineHeight: 1.1,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {formatTimeOnly(meetingData.meeting.dateTime)} - {formatTimeOnly(new Date(meetingData.meeting.dateTime.getTime() + meetingData.meeting.duration * 60000))}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            );
+                          });
+                        })()}
+                      </Box>
                     </Box>
                   );
                 })) : (
@@ -2516,20 +2703,13 @@ export default function MeetingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
                     <Tab label="Pending" />
-                    <Tab label={<Badge badgeContent={getUpcomingCount()} color="warning">Upcoming</Badge>}/>
+                    <Tab label={<Badge badgeContent={getUpcomingCount()} color="info">Upcoming</Badge>}/>
                     <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
                     <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
                     <Tab label="Cancelled" />
                   </Tabs>
                                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="outlined"
-                      startIcon={isRefreshing ? <CircularProgress size={16} /> : <Refresh />}
-                      onClick={handleRefreshMeetings}
-                      disabled={meetingsLoading || isRefreshing}
-                    >
-                      {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                    </Button>
+                    
                                   <Button
                   variant="contained"
                   startIcon={<Add />}
@@ -2609,12 +2789,19 @@ export default function MeetingsPage() {
                     return (
               <Grid item xs={12} key={meeting.id}>
                 <Card sx={{ 
-                  
                   transition: 'all 0.3s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    boxShadow: 4
-                  }
+                  // Conditional styling based on meeting state
+                  ...(isPastNonApprovedMeeting(meeting) ? {
+                    opacity: 0.5,
+                    pointerEvents: 'none',
+                    backgroundColor: 'grey.100',
+                    cursor: 'not-allowed'
+                  } : {
+                    '&:hover': { 
+                      transform: 'translateY(-2px)',
+                      boxShadow: 4
+                    }
+                  })
                 }}>
                   <CardContent sx={{ p: 1.5 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
@@ -2718,13 +2905,31 @@ export default function MeetingsPage() {
 
                       
 
+                        {/* Initiator Information */}
+                        {meeting.initiatorName && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Initiator:
+                            </Typography>
+                            <Chip
+                              avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>
+                                {meeting.initiatorName.charAt(0).toUpperCase()}
+                              </Avatar>}
+                              label={`${meeting.initiatorName}${meeting.companyName ? ` (${meeting.companyName})` : ''}`}
+                              variant="outlined"
+                              size="small"
+                              sx={{ fontSize: '0.75rem', height: 24 }}
+                            />
+                          </Box>
+                        )}
+
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                             Attendees:
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                             {meeting.attendees.map((attendee) => {
-                              console.log('Rendering attendee chip with data:', attendee);
+                              console.log('🎨 UI RENDERING - Rendering attendee chip with data:', attendee);
                               const displayLabel = attendee.company && attendee.company.trim() !== '' 
                                 ? `${attendee.name} (${attendee.company})`
                                 : attendee.name;
@@ -2859,7 +3064,7 @@ export default function MeetingsPage() {
                           )}
                           
                           {/* Show approved status for approved meetings (for both initiators and attendees) */}
-                          {meeting.isApproved && (
+                          {(meeting.isApproved || meeting.approvalStatus?.toLowerCase() === 'upcoming') && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               <Chip 
                                 label="Approved" 

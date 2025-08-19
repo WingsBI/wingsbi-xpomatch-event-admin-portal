@@ -109,9 +109,16 @@ export default function VisitorsMatchingPage() {
       setError(null);
 
       // Get data from session storage first - using visitors-specific keys
-      const mappingData = null;
-      const standardFieldsData = null;
-      const storedFileStorageId = null;
+      console.log('Loading visitors data from session storage:', {
+        identifier,
+        mappingData: sessionStorage.getItem(`visitors_mapping_${identifier}`),
+        standardFieldsData: sessionStorage.getItem(`visitors_standard_fields_${identifier}`),
+        storedFileStorageId: sessionStorage.getItem(`visitors_file_storage_id_${identifier}`)
+      });
+      
+      const mappingData = sessionStorage.getItem(`visitors_mapping_${identifier}`);
+      const standardFieldsData = sessionStorage.getItem(`visitors_standard_fields_${identifier}`);
+      const storedFileStorageId = sessionStorage.getItem(`visitors_file_storage_id_${identifier}`);
 
       if (mappingData && standardFieldsData) {
         const mappings = JSON.parse(mappingData);
@@ -225,7 +232,11 @@ export default function VisitorsMatchingPage() {
         setSelectedMappings(defaultMappings);
         
         // Also store in session storage for future use - using visitors-specific keys
-        // No sessionStorage persistence
+        sessionStorage.setItem(`visitors_mapping_${identifier}`, JSON.stringify(mappingsData));
+        sessionStorage.setItem(`visitors_standard_fields_${identifier}`, JSON.stringify(standardFieldsResponse.result));
+        if (responseFileStorageId) {
+          sessionStorage.setItem(`visitors_file_storage_id_${identifier}`, responseFileStorageId.toString());
+        }
         
       } else {
         // Handle API errors

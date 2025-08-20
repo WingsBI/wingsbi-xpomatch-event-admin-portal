@@ -208,8 +208,40 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
         return;
       }
 
-      console.log('Updating event with payload:', editedEvent);
-      const response = await eventsApi.updateEventDetails(identifier, editedEvent);
+      // Ensure all required fields are present in the payload
+      const updatePayload: UpdateEventPayload = {
+        eventId: editedEvent.eventId,
+        eventDetails: {
+          eventName: editedEvent.eventDetails?.eventName || '',
+          description: editedEvent.eventDetails?.description || '',
+          startDate: editedEvent.eventDetails?.startDate || null,
+          endDate: editedEvent.eventDetails?.endDate || null,
+        },
+        location: {
+          venueName: editedEvent.location?.venueName || '',
+          addressLine1: editedEvent.location?.addressLine1 || '',
+          addressLine2: editedEvent.location?.addressLine2 || null,
+          countryId: editedEvent.location?.countryId || 2,
+          stateId: editedEvent.location?.stateId || 2,
+          cityId: editedEvent.location?.cityId || 1,
+          postalCode: editedEvent.location?.postalCode || null,
+          latitude: editedEvent.location?.latitude || null,
+          longitude: editedEvent.location?.longitude || null,
+          googleMapLink: editedEvent.location?.googleMapLink || null,
+        },
+        marketingAbbreviation: editedEvent.marketingAbbreviation || '',
+        themeSelectionId: editedEvent.themeSelectionId || 1,
+        fontFamilyId: editedEvent.fontFamilyId || 1,
+        logoUrl: editedEvent.logoUrl || 'string',
+        payment: editedEvent.payment !== undefined ? editedEvent.payment : true,
+        eventCatalogId: editedEvent.eventCatalogId || 1,
+        eventStatusId: editedEvent.eventStatusId || 1,
+        paymentDetailsId: editedEvent.paymentDetailsId || 1,
+        eventModeId: editedEvent.eventModeId || 1,
+      };
+
+      console.log('Updating event with payload:', updatePayload);
+      const response = await eventsApi.updateEventDetails(identifier, updatePayload);
       
       if (response.success) {
         setEditDialogOpen(false);
@@ -456,10 +488,138 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                label="Country ID"
+                type="number"
+                value={editedEvent.location?.countryId || 2}
+                onChange={(e) => updateLocationField('countryId', parseInt(e.target.value) || 2)}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="State ID"
+                type="number"
+                value={editedEvent.location?.stateId || 2}
+                onChange={(e) => updateLocationField('stateId', parseInt(e.target.value) || 2)}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="City ID"
+                type="number"
+                value={editedEvent.location?.cityId || 1}
+                onChange={(e) => updateLocationField('cityId', parseInt(e.target.value) || 1)}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Latitude"
+                type="number"
+                value={editedEvent.location?.latitude || ''}
+                onChange={(e) => updateLocationField('latitude', e.target.value ? parseFloat(e.target.value) : null)}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Longitude"
+                type="number"
+                value={editedEvent.location?.longitude || ''}
+                onChange={(e) => updateLocationField('longitude', e.target.value ? parseFloat(e.target.value) : null)}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Google Map Link"
+                value={editedEvent.location?.googleMapLink || ''}
+                onChange={(e) => updateLocationField('googleMapLink', e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 label="Marketing Abbreviation"
                 value={editedEvent.marketingAbbreviation || ''}
                 onChange={(e) => setEditedEvent(prev => ({ ...prev, marketingAbbreviation: e.target.value }))}
               />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Logo URL"
+                value={editedEvent.logoUrl || ''}
+                onChange={(e) => setEditedEvent(prev => ({ ...prev, logoUrl: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Theme Selection ID"
+                type="number"
+                value={editedEvent.themeSelectionId || 1}
+                onChange={(e) => setEditedEvent(prev => ({ ...prev, themeSelectionId: parseInt(e.target.value) || 1 }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Font Family ID"
+                type="number"
+                value={editedEvent.fontFamilyId || 1}
+                onChange={(e) => setEditedEvent(prev => ({ ...prev, fontFamilyId: parseInt(e.target.value) || 1 }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Event Catalog ID"
+                type="number"
+                value={editedEvent.eventCatalogId || 1}
+                onChange={(e) => setEditedEvent(prev => ({ ...prev, eventCatalogId: parseInt(e.target.value) || 1 }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Event Status ID"
+                type="number"
+                value={editedEvent.eventStatusId || 1}
+                onChange={(e) => setEditedEvent(prev => ({ ...prev, eventStatusId: parseInt(e.target.value) || 1 }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Payment Details ID"
+                type="number"
+                value={editedEvent.paymentDetailsId || 1}
+                onChange={(e) => setEditedEvent(prev => ({ ...prev, paymentDetailsId: parseInt(e.target.value) || 1 }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Event Mode ID"
+                type="number"
+                value={editedEvent.eventModeId || 1}
+                onChange={(e) => setEditedEvent(prev => ({ ...prev, eventModeId: parseInt(e.target.value) || 1 }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Payment Enabled</InputLabel>
+                <Select
+                  value={editedEvent.payment !== undefined ? editedEvent.payment.toString() : 'true'}
+                  onChange={(e) => setEditedEvent(prev => ({ ...prev, payment: e.target.value === 'true' }))}
+                  label="Payment Enabled"
+                >
+                  <MenuItem value="true">Yes</MenuItem>
+                  <MenuItem value="false">No</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
           </Grid>
 

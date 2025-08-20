@@ -1535,7 +1535,7 @@ export default function ScheduleMeetingPage() {
                         cursor: 'pointer',
                         color: 'grey.700',
                         '&::placeholder': {
-                          color: 'grey.400',
+                          color: 'black',
                         },
                       },
                     }}
@@ -1750,7 +1750,7 @@ export default function ScheduleMeetingPage() {
                                   borderColor: isToday ? 'primary.main' : 'transparent',
                                   '&:hover': {
                                     backgroundColor: isSelected ? 'primary.dark' : 
-                                                   isInEventRange ? 'grey.50' : 'grey.200',
+                                                   isInEventRange ? 'grey.50' : 'grey.100',
                                     transform: isInEventRange ? 'scale(1.05)' : 'none',
                                   },
                                   opacity: isCurrentMonth ? (isInEventRange ? 1 : 0.3) : 0.4,

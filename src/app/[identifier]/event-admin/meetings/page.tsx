@@ -37,6 +37,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Popover,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -66,6 +67,8 @@ import {
   LockClock,
   PunchClock,
   Refresh,
+  ScheduleSend,
+  GroupAdd,
 } from '@mui/icons-material';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -190,11 +193,15 @@ export default function MeetingsPage() {
   const [rescheduleForm, setRescheduleForm] = useState({
     meetingId: '',
     agenda: '',
+    description: '',
     meetingDate: '',
     startTime: '',
     endTime: ''
   });
+  const [rescheduleFormErrors, setRescheduleFormErrors] = useState<Record<string, string>>({});
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [rescheduleDatePickerAnchorEl, setRescheduleDatePickerAnchorEl] = useState<HTMLElement | null>(null);
+  const [rescheduleCurrentCalendarDate, setRescheduleCurrentCalendarDate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancelledCount, setCancelledCount] = useState(0);
   const [meetingsError, setMeetingsError] = useState<string | null>(null);
@@ -650,7 +657,7 @@ export default function MeetingsPage() {
         const visitorId = getCurrentVisitorId();
         if (!visitorId) {
           console.warn('No visitor ID found for event-admin role');
-          setMeetingsError('Unable to load meetings: Event admin ID not found. Please try refreshing the page.');
+         // setMeetingsError('Unable to load meetings: Event admin ID not found. Please try refreshing the page.');
           return;
         }
         currentUserId = visitorId;
@@ -947,19 +954,7 @@ export default function MeetingsPage() {
           data: transformedMeetings,
           timestamp: Date.now()
         });
-      } else if (response && !response.isError && response.result && response.result.length === 0) {
-        // No meetings found - set appropriate message
-        setMeetings([]);
-        const roleMessages = {
-          'visitor': 'Welcome! Start your networking journey by scheduling meetings with exhibitors or wait for meeting invitations.',
-          'exhibitor': 'Welcome! Start connecting with visitors by scheduling meetings or wait for meeting requests.',
-          'event-admin': 'No meetings have been scheduled for this event yet. Meetings will appear here once participants start scheduling.'
-        };
-        setNoMeetingsMessage(roleMessages[user.role as keyof typeof roleMessages] || 'Welcome! Start scheduling meetings to connect with other participants.');
-      } else {
-        setMeetings([]);
-        setMeetingsError('Unable to load meetings. Please try refreshing the page.');
-      }
+      }  
     } catch (error: any) {
       console.error('Error loading meetings:', error);
       setMeetings([]);
@@ -1447,7 +1442,11 @@ export default function MeetingsPage() {
       try {
         const date = new Date(meeting.meetingDate);
         if (!isNaN(date.getTime())) {
-          formattedDate = date.toISOString().split('T')[0];
+          // Use local date formatting to avoid timezone issues
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          formattedDate = `${year}-${month}-${day}`;
         }
       } catch (error) {
         console.error('Error parsing meeting date:', error);
@@ -1505,6 +1504,7 @@ export default function MeetingsPage() {
     const formData = {
       meetingId: meeting.id,
       agenda: meeting.title || '',
+      description: meeting.description || '',
       meetingDate: formattedDate,
       startTime: formattedStartTime,
       endTime: formattedEndTime
@@ -1523,6 +1523,7 @@ export default function MeetingsPage() {
     setRescheduleForm({
       meetingId: '',
       agenda: '',
+      description: '',
       meetingDate: '',
       startTime: '',
       endTime: ''
@@ -1609,6 +1610,170 @@ export default function MeetingsPage() {
       // You can add error handling here (show error message to user)
     } finally {
       setIsRescheduling(false);
+    }
+  };
+
+  // Get event time slots for reschedule
+  const getRescheduleEventTimeSlots = () => {
+    if (!eventDetails || !eventDetails.startDateTime || !eventDetails.endDateTime) {
+      return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; // Default business hours
+    }
+    
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
+    const slots = [];
+    
+    // Check if dates are valid
+    if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+      return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; // Default business hours
+    }
+    
+    // Use event start/end times (in IST)
+    const startHour = eventStart.getHours();
+    const endHour = eventEnd.getHours();
+    
+    // If the hours don't make sense (e.g., 0:00), use default business hours
+    if (startHour === 0 && endHour === 0) {
+      const defaultStartHour = 9;
+      const defaultEndHour = 18;
+      
+      // Generate time slots from start to end hour
+      for (let hour = defaultStartHour; hour <= defaultEndHour; hour++) {
+        slots.push(hour);
+      }
+    } else {
+      // Generate time slots from start to end hour
+      for (let hour = startHour; hour <= endHour; hour++) {
+        slots.push(hour);
+      }
+    }
+    
+    return slots;
+  };
+
+  // Get available end times based on start time for reschedule
+  const getRescheduleAvailableEndTimes = (startTime: string) => {
+    if (!startTime) return [];
+    
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const eventTimeSlots = getRescheduleEventTimeSlots();
+    const endTimes = [];
+    
+    // If we have event details, use event time range, otherwise use full day
+    const startHourLimit = eventTimeSlots.length > 0 ? Math.min(...eventTimeSlots) : 0;
+    const endHourLimit = eventTimeSlots.length > 0 ? Math.max(...eventTimeSlots) : 23;
+    
+    for (let hour = startHour; hour <= endHourLimit; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        // Skip if this time is before or equal to start time
+        if (hour === startHour && minute <= startMinute) {
+          continue;
+        }
+        
+        const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        endTimes.push(timeValue);
+      }
+    }
+    
+    return endTimes;
+  };
+
+  // Check if date is in event range for reschedule
+  const isRescheduleDateInEventRange = (date: string) => {
+    if (!eventDetails) return true; // Allow all dates if no event details
+    
+    // Create date string in YYYY-MM-DD format for comparison
+    const selectedDate = new Date(date + 'T00:00:00');
+    
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
+    
+    // Set times to beginning and end of day for comparison
+    const eventStartDate = new Date(eventStart);
+    eventStartDate.setHours(0, 0, 0, 0);
+    
+    const eventEndDate = new Date(eventEnd);
+    eventEndDate.setHours(23, 59, 59, 999);
+    
+    return selectedDate >= eventStartDate && selectedDate <= eventEndDate;
+  };
+
+  // Get event date options for reschedule
+  const getRescheduleEventDateOptions = () => {
+    if (!eventDetails) return [];
+    
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
+    const dates = [];
+    
+    // Check if dates are valid
+    if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+      return [];
+    }
+    
+    // Set start to beginning of day
+    const startDate = new Date(eventStart);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Set end to end of day
+    const endDate = new Date(eventEnd);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const dateStr = new Date(currentDate).toISOString().split('T')[0];
+      dates.push(dateStr);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return dates;
+  };
+
+  // Calendar navigation functions for reschedule
+  const handleReschedulePreviousMonth = () => {
+    setRescheduleCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const handleRescheduleNextMonth = () => {
+    setRescheduleCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  };
+
+  const handleReschedulePreviousYear = () => {
+    setRescheduleCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setFullYear(newDate.getFullYear() - 1);
+      return newDate;
+    });
+  };
+
+  const handleRescheduleNextYear = () => {
+    setRescheduleCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setFullYear(newDate.getFullYear() + 1);
+      return newDate;
+    });
+  };
+
+  const handleRescheduleToday = () => {
+    const today = new Date();
+    const eventDateOptions = getRescheduleEventDateOptions();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Only set to today if it's in the event range
+    if (eventDateOptions.includes(todayStr)) {
+      handleRescheduleFormChange('meetingDate', todayStr);
     }
   };
 
@@ -2064,8 +2229,9 @@ export default function MeetingsPage() {
   const getEventDays = () => {
     if (!eventDetails) return [];
     
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
     const days = [];
     
     // Set start to beginning of day
@@ -2088,8 +2254,12 @@ export default function MeetingsPage() {
 
   const getHourSlots = () => {
     if (eventDetails && eventDetails.startDateTime && eventDetails.endDateTime) {
-      const start = new Date(eventDetails.startDateTime).getHours();
-      const end = new Date(eventDetails.endDateTime).getHours();
+      // Convert UTC times to IST (UTC+5:30)
+      const istStart = convertUTCToIST(eventDetails.startDateTime);
+      const istEnd = convertUTCToIST(eventDetails.endDateTime);
+      
+      const start = istStart.getHours();
+      const end = istEnd.getHours();
       const slots = [];
       for (let hour = start; hour <= end; hour++) {
         slots.push(hour);
@@ -2107,16 +2277,17 @@ export default function MeetingsPage() {
   const isHourInEventRange = (hour: number, date: Date) => {
     if (!eventDetails) return false;
     
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Convert UTC times to IST (UTC+5:30)
+    const istStart = convertUTCToIST(eventDetails.startDateTime);
+    const istEnd = convertUTCToIST(eventDetails.endDateTime);
     
     // Check if this date is within event range
     const currentDate = new Date(date);
     currentDate.setHours(hour, 0, 0, 0);
     
-    // Get the start and end hours for the event
-    const eventStartHour = eventStart.getHours();
-    const eventEndHour = eventEnd.getHours();
+    // Get the start and end hours for the event (in IST)
+    const eventStartHour = istStart.getHours();
+    const eventEndHour = istEnd.getHours();
     
     // Check if this hour falls within the event time range
     return hour >= eventStartHour && hour <= eventEndHour;
@@ -2287,11 +2458,18 @@ export default function MeetingsPage() {
 
   const isDateInEventRange = (date: Date) => {
     if (!eventDetails) return true;
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
     eventStart.setHours(0, 0, 0, 0);
     eventEnd.setHours(23, 59, 59, 999);
     return date >= eventStart && date <= eventEnd;
+  };
+
+  // Helper function to convert UTC to IST
+  const convertUTCToIST = (utcDateString: string) => {
+    const utcDate = new Date(utcDateString);
+    return new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
   };
 
   const formatHour = (hour: number) => {
@@ -2363,7 +2541,7 @@ export default function MeetingsPage() {
                           Event Start
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {new Date(eventDetails.startDateTime).toLocaleDateString('en-US', {
+                          {convertUTCToIST(eventDetails.startDateTime).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'
@@ -2378,7 +2556,7 @@ export default function MeetingsPage() {
                           Event End
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {new Date(eventDetails.endDateTime).toLocaleDateString('en-US', {
+                          {convertUTCToIST(eventDetails.endDateTime).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'
@@ -2741,7 +2919,7 @@ export default function MeetingsPage() {
                   borderRadius: 2,
                   mb: 2
                 }}>
-                  <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <CalendarMonth sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
                     No meetings found
                   </Typography>
@@ -3117,16 +3295,7 @@ export default function MeetingsPage() {
                       : "No meetings available in this category at the moment."
                     }
                   </Typography>
-                  {tabValue === 1 && (
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={handleScheduleMeeting}
-                      sx={{ mt: 1 }}
-                    >
-                      Schedule Your First Meeting
-                    </Button>
-                  )}
+                
                 </Paper>
               )}
             </>
@@ -3137,14 +3306,24 @@ export default function MeetingsPage() {
         <Dialog 
           open={showRescheduleDialog} 
           onClose={handleCloseRescheduleDialog}
-          maxWidth="sm" 
+          maxWidth="md" 
           fullWidth
           disableEscapeKeyDown={false}
           PaperProps={{
             sx: {
-              maxHeight: '80vh',
-              '& .MuiDialogContent-root': {
-                p: 3
+              maxHeight: '90vh',
+              borderRadius: 3,
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+              overflow: 'hidden',
+              position: 'relative',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(90deg, #1976d2, #42a5f5, #90caf9)',
               }
             }
           }}
@@ -3156,13 +3335,39 @@ export default function MeetingsPage() {
             gap: 2,
             borderBottom: '1px solid',
             borderColor: 'divider',
-            p: 2
+            p: 3,
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Event color="primary" fontSize="small" />
-              <Typography variant="subtitle1" component="div">
-                Reschedule Meeting
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)'
+                }}
+              >
+                <ScheduleSend sx={{ color: 'white', fontSize: 20 }} />
+              </Box>
+              <Box>
+                <Typography variant="h5" sx={{ 
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 0.5
+                }}>
+                  Reschedule Meeting
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                  Update meeting details and time
+                </Typography>
+              </Box>
             </Box>
             <IconButton
               onClick={handleCloseRescheduleDialog}
@@ -3179,328 +3384,634 @@ export default function MeetingsPage() {
             </IconButton>
           </DialogTitle>
           
-          <DialogContent>
-            {/* Current Meeting Info */}
+          <DialogContent sx={{ p: 3 }}>
             {selectedMeetingForReschedule && (
-              <Box sx={{ mb: 3, p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Event fontSize="small" />
-                  Current Meeting Details
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <Description fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        Title
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {selectedMeetingForReschedule.title}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  
-                  {selectedMeetingForReschedule.meetingDate && (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                      <CalendarMonth fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Date
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {formatMeetingDate(selectedMeetingForReschedule.meetingDate)}
-                        </Typography>
+              <Box sx={{ mb: 3 }}>
+                <Grid container spacing={3}>
+                  {/* Meeting Organizer Section */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+                          color: 'white',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Person sx={{ fontSize: 20 }} />
                       </Box>
-                    </Box>
-                  )}
-                  
-                  {selectedMeetingForReschedule.startTime && selectedMeetingForReschedule.endTime && (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                      <AccessTime fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Time
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {formatTime(selectedMeetingForReschedule.startTime)} - {formatTime(selectedMeetingForReschedule.endTime)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  )}
-                  
-                  {/* Current User as Organizer */}
-                  {user && (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                      <Person fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Organizer (You)
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          {user?.firstName} {user?.lastName}
                         </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', minWidth: '60px' }}>
-                              Name:
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {user.firstName} {user.lastName}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', minWidth: '60px' }}>
-                              Role:
-                            </Typography>
-                            <Chip
-                              label={user.role === 'event-admin' ? 'Event Admin' : user.role === 'exhibitor' ? 'Exhibitor' : 'Visitor'}
-                              size="small"
-                              variant="outlined"
-                              color="primary"
-                              sx={{
-                                fontSize: '0.7rem',
-                                height: '20px',
-                                '& .MuiChip-label': {
-                                  px: 0.5,
-                                },
-                              }}
-                            />
-                          </Box>
-                          {user.email && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', minWidth: '60px' }}>
-                                Email:
-                              </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          {user?.role === 'event-admin' ? 'Event-Admin' : user?.role === 'exhibitor' ? 'Exhibitor' : 'Visitor'} • You Are Rescheduling This Meeting
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  {/* Title Field */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                          mt: 1,
+                          flexShrink: 0
+                        }}
+                      >
+                        <Description fontSize="small" />
+                      </Box>
+                      <TextField
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              border: 'none',
+                            },
+                            '&:hover fieldset': {
+                              border: 'none',
+                            },
+                            '&.Mui-focused fieldset': {
+                              border: 'none',
+                            },
+                            '& input': {
+                              fontSize: '1.25rem',
+                              fontWeight: 500,
+                              padding: '0',
+                              mt: 1,
+                              '&::placeholder': {
+                                color: 'text.primary',
+                                opacity: 1,
+                              },
+                            },
+                          },
+                        }}
+                        placeholder="Add a title"
+                        value={rescheduleForm.agenda}
+                        onChange={(e) => handleRescheduleFormChange('agenda', e.target.value)}
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Grid>
+
+                  {/* Attendees Section (Read-only) */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: 'grey.300',
+                          color: 'grey.600',
+                          mt: 1,
+                          flexShrink: 0
+                        }}
+                      >
+                        <GroupAdd fontSize="small" />
+                      </Box>
+                      <Box sx={{ flex: 1, mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
+                          Attendees
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                          {selectedMeetingForReschedule.attendees && selectedMeetingForReschedule.attendees.length > 0 ? (
+                            selectedMeetingForReschedule.attendees.map((attendee, index) => (
                               <Chip
-                                label={user.email}
+                                key={attendee.id}
+                                label={attendee.name}
                                 size="small"
                                 variant="outlined"
                                 sx={{
-                                  fontSize: '0.7rem',
-                                  height: '20px',
+                                  fontSize: '0.8rem',
+                                  height: '28px',
                                   '& .MuiChip-label': {
-                                    px: 0.5,
+                                    px: 1,
                                   },
                                 }}
                               />
-                            </Box>
+                            ))
+                          ) : (
+                            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                              No attendees
+                            </Typography>
                           )}
                         </Box>
                       </Box>
                     </Box>
-                  )}
-                  
-                  {selectedMeetingForReschedule.attendees && selectedMeetingForReschedule.attendees.length > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                      <Business fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 0.5 }}>
-                          Attendees ({selectedMeetingForReschedule.attendees.length})
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {selectedMeetingForReschedule.attendees.map((attendee, index) => (
-                            <Chip
-                              key={attendee.id}
-                              label={attendee.name}
-                              size="small"
+                  </Grid>
+
+                  <Divider sx={{ mt: 1, mb: 1 }} />
+
+                  {/* Date and Time Section */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 0, pb: 3, borderBottom: '1px solid', borderColor: 'grey.200' }}>
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px solid',
+                          borderColor: 'grey.300',
+                          flexShrink: 0,
+                          mt: 0.5
+                        }}
+                      >
+                        <AccessTime sx={{ fontSize: 16, color: 'grey.600' }} />
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                          {/* Date Field */}
+                          <TextField
+                            value={rescheduleForm.meetingDate ? new Date(rescheduleForm.meetingDate).toLocaleDateString('en-US', { 
+                              month: 'numeric',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : ''}
+                            onClick={(e) => {
+                              setRescheduleDatePickerAnchorEl(e.currentTarget);
+                            }}
+                            placeholder="Select date"
+                            variant="outlined"
+                            error={!!rescheduleFormErrors.meetingDate}
+                            InputProps={{
+                              readOnly: true,
+                              endAdornment: (
+                                <Event sx={{ fontSize: 16, color: 'grey.500' }} />
+                              ),
+                            }}
+                            sx={{
+                              minWidth: 140,
+                              '& .MuiOutlinedInput-root': {
+                                height: '40px',
+                                borderRadius: 2,
+                                '& fieldset': {
+                                  borderColor: 'grey.300',
+                                },
+                                '&:hover fieldset': {
+                                  borderColor: 'grey.400',
+                                },
+                                '&.Mui-focused fieldset': {
+                                  borderColor: 'primary.main',
+                                },
+                              },
+                              '& .MuiInputBase-input': {
+                                fontSize: '0.9rem',
+                                padding: '8px 12px',
+                                cursor: 'pointer',
+                                color: 'grey.700',
+                                '&::placeholder': {
+                                  color: 'grey.400',
+                                },
+                              },
+                            }}
+                          />
+                          
+                          {/* Calendar Popup */}
+                          <Popover
+                            open={Boolean(rescheduleDatePickerAnchorEl)}
+                            onClose={() => setRescheduleDatePickerAnchorEl(null)}
+                            anchorEl={rescheduleDatePickerAnchorEl}
+                            anchorOrigin={{
+                              vertical: 'bottom',
+                              horizontal: 'left',
+                            }}
+                            transformOrigin={{
+                              vertical: 'top',
+                              horizontal: 'left',
+                            }}
+                            PaperProps={{
+                              sx: {
+                                width: 250,
+                                height: 350,
+                                p: 1,
+                                borderRadius: 3,
+                                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
+                                border: '1px solid',
+                                borderColor: 'grey.200',
+                                overflow: 'hidden'
+                              }
+                            }}
+                          >
+                            {/* Header */}
+                            <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between', 
+                              mb: 1,
+                              pb: 1,
+                              borderBottom: '1px solid',
+                              borderColor: 'grey.200'
+                            }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <IconButton 
+                                  size="small" 
+                                  onClick={handleReschedulePreviousMonth}
+                                  sx={{ 
+                                    p: 0.5, 
+                                    height: 20, 
+                                    width: 20,
+                                    color: 'text.secondary',
+                                    '&:hover': {
+                                      backgroundColor: 'grey.100'
+                                    }
+                                  }}
+                                >
+                                  <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>◀</Box>
+                                </IconButton>
+                                <Typography variant="h6" sx={{ 
+                                  fontWeight: 400, 
+                                  fontSize: '1rem',
+                                  color: 'text.primary'
+                                }}>
+                                  {rescheduleCurrentCalendarDate.toLocaleDateString('en-US', { 
+                                    month: 'long', 
+                                    year: 'numeric' 
+                                  })}
+                                </Typography>
+                                <IconButton 
+                                  size="small" 
+                                  onClick={handleRescheduleNextMonth}
+                                  sx={{ 
+                                    p: 0.5, 
+                                    height: 20, 
+                                    width: 20,
+                                    color: 'text.secondary',
+                                    '&:hover': {
+                                      backgroundColor: 'grey.100'
+                                    }
+                                  }}
+                                >
+                                  <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>▶</Box>
+                                </IconButton>
+                              </Box>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                <IconButton 
+                                  size="small" 
+                                  onClick={handleReschedulePreviousYear}
+                                  sx={{ 
+                                    p: 0.5, 
+                                    height: 24, 
+                                    width: 24,
+                                    color: 'text.secondary',
+                                    '&:hover': {
+                                      backgroundColor: 'grey.100'
+                                    }
+                                  }}
+                                >
+                                  <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>▲</Box>
+                                </IconButton>
+                                <IconButton 
+                                  size="small" 
+                                  onClick={handleRescheduleNextYear}
+                                  sx={{ 
+                                    p: 0.5, 
+                                    height: 24, 
+                                    width: 24,
+                                    color: 'text.secondary',
+                                    '&:hover': {
+                                      backgroundColor: 'grey.100'
+                                    }
+                                  }}
+                                >
+                                  <Box sx={{ fontSize: '0.75rem', lineHeight: 0.5 }}>▼</Box>
+                                </IconButton>
+                              </Box>
+                            </Box>
+                            
+                            {/* Calendar Grid */}
+                            <Box sx={{ mb: -1 }}>
+                              {/* Day Headers */}
+                              <Box sx={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(7, 1fr)', 
+                                mb: 1,
+                                gap: 0.5
+                              }}>
+                                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
+                                  <Typography 
+                                    key={day} 
+                                    variant="body2" 
+                                    sx={{ 
+                                      textAlign: 'center', 
+                                      fontWeight: 400, 
+                                      color: 'text.secondary', 
+                                      fontSize: '0.700rem',
+                                      py: 1
+                                    }}
+                                  >
+                                    {day}
+                                  </Typography>
+                                ))}
+                              </Box>
+                              
+                              {/* Calendar Days */}
+                              <Box sx={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(7, 1fr)', 
+                                gap: 0.5
+                              }}>
+                                {(() => {
+                                  // Use current calendar month and year for navigation
+                                  const displayMonth = rescheduleCurrentCalendarDate.getMonth();
+                                  const displayYear = rescheduleCurrentCalendarDate.getFullYear();
+                                  
+                                  // Get the first day of the month
+                                  const firstDay = new Date(displayYear, displayMonth, 1);
+                                  const lastDay = new Date(displayYear, displayMonth + 1, 0);
+                                  const startDate = new Date(firstDay);
+                                  startDate.setDate(startDate.getDate() - firstDay.getDay());
+                                  
+                                  const calendarDays = [];
+                                  
+                                  // Generate calendar days
+                                  for (let i = 0; i < 42; i++) {
+                                    const date = new Date(startDate);
+                                    date.setDate(startDate.getDate() + i);
+                                    
+                                    // Fix timezone issue by creating date string in local timezone
+                                    const year = date.getFullYear();
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    const dateStr = `${year}-${month}-${day}`;
+                                    
+                                    const isCurrentMonth = date.getMonth() === displayMonth;
+                                    const isSelected = rescheduleForm.meetingDate === dateStr;
+                                    
+                                    // Fix today comparison
+                                    const today = new Date();
+                                    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                                    const isToday = dateStr === todayStr;
+                                    
+                                    // Check if this date is within event range
+                                    const isInEventRange = isRescheduleDateInEventRange(dateStr);
+                                    
+                                    calendarDays.push(
+                                      <Box
+                                        key={i}
+                                        onClick={() => {
+                                          // Only allow selection if date is in event range
+                                          if (isInEventRange) {
+                                            handleRescheduleFormChange('meetingDate', dateStr);
+                                            setRescheduleDatePickerAnchorEl(null);
+                                          }
+                                        }}
+                                        sx={{
+                                          aspectRatio: '1',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          cursor: isInEventRange ? 'pointer' : 'not-allowed',
+                                          borderRadius: 2,
+                                          fontSize: '0.700rem',
+                                          fontWeight: isSelected ? 600 : (isToday ? 500 : 300),
+                                          color: isSelected ? 'white' : 
+                                                 isInEventRange ? (isCurrentMonth ? 'text.primary' : 'text.secondary') : 'text.disabled',
+                                          backgroundColor: isSelected ? 'primary.main' : 
+                                                         isInEventRange ? 'transparent' : 'grey.100',
+                                          border: isToday ? '2px solid' : 'none',
+                                          borderColor: isToday ? 'primary.main' : 'transparent',
+                                          '&:hover': {
+                                            backgroundColor: isSelected ? 'primary.dark' : 
+                                                           isInEventRange ? 'grey.50' : 'grey.200',
+                                            transform: isInEventRange ? 'scale(1.05)' : 'none',
+                                          },
+                                          opacity: isCurrentMonth ? (isInEventRange ? 1 : 0.3) : 0.4,
+                                          transition: 'all 0.2s ease',
+                                          position: 'relative'
+                                        }}
+                                      >
+                                        {date.getDate()}
+                                      </Box>
+                                    );
+                                  }
+                                  
+                                  return calendarDays;
+                                })()}
+                              </Box>
+                            </Box>
+                            
+                            {/* Footer */}
+                            <Box sx={{ 
+                              display: 'flex', 
+                              justifyContent: 'flex-end', 
+                              pt: 1,
+                              borderTop: '1px solid',
+                              borderColor: 'grey.200'
+                            }}>
+                              <Button
+                                size="small"
+                                onClick={handleRescheduleToday}
+                                sx={{
+                                  textTransform: 'none',
+                                  fontSize: '0.700rem',
+                                  px: 1,
+                                  py: 1,
+                                  color: 'white',
+                                  fontWeight: 500,
+                                  '&:hover': {
+                                    backgroundColor: 'primary.50'
+                                  }
+                                }}
+                              >
+                                Today
+                              </Button>
+                            </Box>
+                          </Popover>
+
+                          {/* Start Time Field */}
+                          <FormControl error={!!rescheduleFormErrors.startTime} disabled={isRescheduling}>
+                            <Select
+                              value={rescheduleForm.startTime}
+                              onChange={(e) => handleRescheduleFormChange('startTime', e.target.value)}
+                              displayEmpty
                               variant="outlined"
                               sx={{
-                                fontSize: '0.75rem',
-                                height: '24px',
-                                '& .MuiChip-label': {
-                                  px: 1,
+                                minWidth: 120,
+                                height: '40px',
+                                borderRadius: 2,
+                                '& .MuiOutlinedInput-root': {
+                                  '& fieldset': {
+                                    borderColor: 'grey.300',
+                                  },
+                                  '&:hover fieldset': {
+                                    borderColor: 'grey.400',
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: 'primary.main',
+                                  },
+                                },
+                                '& .MuiSelect-select': {
+                                  fontSize: '0.9rem',
+                                  padding: '8px 12px',
+                                  color: 'grey.700',
                                 },
                               }}
-                            />
-                          ))}
+                            >
+                              <MenuItem value="" disabled>
+                                Start time
+                              </MenuItem>
+                              {(() => {
+                                const timeSlots = [];
+                                const eventTimeSlots = getRescheduleEventTimeSlots();
+                                
+                                const startHour = eventTimeSlots.length > 0 ? Math.min(...eventTimeSlots) : 0;
+                                const endHour = eventTimeSlots.length > 0 ? Math.max(...eventTimeSlots) : 23;
+                                
+                                for (let hour = startHour; hour <= endHour; hour++) {
+                                  for (let minute = 0; minute < 60; minute += 30) {
+                                    const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                                    const ampm = hour < 12 ? 'AM' : 'PM';
+                                    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                    const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+                                    
+                                    timeSlots.push(
+                                      <MenuItem key={timeValue} value={timeValue}>
+                                        {displayTime}
+                                      </MenuItem>
+                                    );
+                                  }
+                                }
+                                
+                                return timeSlots;
+                              })()}
+                            </Select>
+                          </FormControl>
+
+                          {/* End Time Field */}
+                          <FormControl error={!!rescheduleFormErrors.endTime} disabled={isRescheduling}>
+                            <Select
+                              value={rescheduleForm.endTime}
+                              onChange={(e) => handleRescheduleFormChange('endTime', e.target.value)}
+                              displayEmpty
+                              variant="outlined"
+                              sx={{
+                                minWidth: 120,
+                                height: '40px',
+                                borderRadius: 2,
+                                '& .MuiOutlinedInput-root': {
+                                  '& fieldset': {
+                                    borderColor: 'grey.300',
+                                  },
+                                  '&:hover fieldset': {
+                                    borderColor: 'grey.400',
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: 'primary.main',
+                                  },
+                                },
+                                '& .MuiSelect-select': {
+                                  fontSize: '0.9rem',
+                                  padding: '8px 12px',
+                                  color: 'grey.700',
+                                },
+                              }}
+                            >
+                              <MenuItem value="" disabled>
+                                End time
+                              </MenuItem>
+                              {(() => {
+                                const availableEndTimes = getRescheduleAvailableEndTimes(rescheduleForm.startTime);
+                                
+                                return availableEndTimes.map(timeValue => {
+                                  const [hour, minute] = timeValue.split(':').map(Number);
+                                  const ampm = hour < 12 ? 'AM' : 'PM';
+                                  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                  const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+                                  
+                                  return (
+                                    <MenuItem key={timeValue} value={timeValue}>
+                                      {displayTime}
+                                    </MenuItem>
+                                  );
+                                });
+                              })()}
+                            </Select>
+                          </FormControl>
                         </Box>
                       </Box>
                     </Box>
-                  )}
-                </Box>
-              </Box>
-            )}
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-                  New Meeting Details
-                </Typography>
-              </Grid>
-              {/* Title Field */}
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
-                  <Box
-                    sx={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: 'primary.main',
-                      color: 'white',
-                      mt: 1,
-                      flexShrink: 0
-                    }}
-                  >
-                    <Description fontSize="small" />
-                  </Box>
-                  <TextField
-                    fullWidth
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': {
-                          border: 'none',
-                        },
-                        '&:hover fieldset': {
-                          border: 'none',
-                        },
-                        '&.Mui-focused fieldset': {
-                          border: 'none',
-                        },
-                        '& input': {
-                          fontSize: '1.25rem',
-                          fontWeight: 500,
-                          padding: '0',
-                          mt:1,
-                          '&::placeholder': {
-                            color: 'text.primary',
-                            opacity: 1,
+                  </Grid>
+
+                  {/* Description Field */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={2}
+                      placeholder="Add a description for the meeting"
+                      value={rescheduleForm.description || ''}
+                      onChange={(e) => handleRescheduleFormChange('description', e.target.value)}
+                      variant="outlined"
+                      error={!!rescheduleFormErrors.description}
+                      helperText={rescheduleFormErrors.description}
+                      disabled={isRescheduling}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'rgba(0, 0, 0, 0.23)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(0, 0, 0, 0.23)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'primary.main',
                           },
                         },
-                      },
-                    }}
-                    placeholder="Add a title"
-                    value={rescheduleForm.agenda}
-                    onChange={(e) => handleRescheduleFormChange('agenda', e.target.value)}
-                    variant="outlined"
-                  />
-                </Box>
-              </Grid>
+                      }}
+                    />
+                  </Grid>
 
-              {/* Meeting Date */}
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Meeting Date"
-                  type="date"
-                  value={rescheduleForm.meetingDate}
-                  onChange={(e) => handleRescheduleFormChange('meetingDate', e.target.value)}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <Event sx={{ mr: -1, color: 'text.secondary' }} />
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      height: '40px',
-                      width: '100%',
-                      '& input': {
-                        padding: '8px 12px',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Start Time */}
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Start Time</InputLabel>
-                  <Select
-                    value={rescheduleForm.startTime}
-                    onChange={(e) => handleRescheduleFormChange('startTime', e.target.value)}
-                    label="Start Time"
-                    startAdornment={
-                      <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
-                    }
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        height: '40px',
-                      },
-                      '& .MuiSelect-select': {
-                        padding: '8px 12px',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  >
-                    {Array.from({ length: 48 }, (_, i) => {
-                      const hour = Math.floor(i / 2);
-                      const minute = i % 2 === 0 ? '00' : '30';
-                      const ampm = hour < 12 ? 'AM' : 'PM';
-                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                      const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
-                      const displayTime = `${displayHour}:${minute} ${ampm}`;
-                      return (
-                        <MenuItem 
-                          key={timeValue} 
-                          value={timeValue}
-                        >
-                          {displayTime}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              {/* End Time */}
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>End Time</InputLabel>
-                  <Select
-                    value={rescheduleForm.endTime}
-                    onChange={(e) => handleRescheduleFormChange('endTime', e.target.value)}
-                    label="End Time"
-                    startAdornment={
-                      <AccessTime sx={{ mr: 1, color: 'text.secondary' }} />
-                    }
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        height: '40px',
-                      },
-                      '& .MuiSelect-select': {
-                        padding: '8px 12px',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  >
-                    {Array.from({ length: 48 }, (_, i) => {
-                      const hour = Math.floor(i / 2);
-                      const minute = i % 2 === 0 ? '00' : '30';
-                      const ampm = hour < 12 ? 'AM' : 'PM';
-                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                      const timeValue = `${hour.toString().padStart(2, '0')}:${minute}`;
-                      const displayTime = `${displayHour}:${minute} ${ampm}`;
-                      return (
-                        <MenuItem key={timeValue} value={timeValue}>
-                          {displayTime}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+                  <Divider sx={{ mt: 1, mb: 1 }} />
+                </Grid>
+              </Box>
+            )}
           </DialogContent>
 
           <DialogActions sx={{ 
-            p: 2, 
+            p: 1, 
             borderTop: '1px solid',
             borderColor: 'divider',
-            gap: 1
+            gap: 2,
+            bgcolor: 'grey.50',
+            justifyContent: 'flex-end'
           }}>
             <Button 
               onClick={handleCloseRescheduleDialog} 
               size="small"
+              disabled={isRescheduling}
+              sx={{
+                px: 1,
+                py: 1,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 300,
+                color: 'text.primary',
+                '&:hover': {
+                  backgroundColor: 'grey.100'
+                }
+              }}
             >
               Cancel
             </Button>
@@ -3509,9 +4020,30 @@ export default function MeetingsPage() {
               onClick={handleRescheduleSubmit}
               size="small"
               disabled={isRescheduling}
-              startIcon={isRescheduling ? <CircularProgress size={14} /> : <Event fontSize="small" />}
+              startIcon={isRescheduling ? <CircularProgress size={16} /> : <ScheduleSend />}
+              sx={{
+                px: 1,
+                py: 1,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 300,
+                fontSize: '0.900rem',
+                background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+                  boxShadow: '0 6px 16px rgba(25, 118, 210, 0.4)',
+                  transform: 'translateY(-1px)'
+                },
+                '&:disabled': {
+                  background: 'grey.300',
+                  boxShadow: 'none',
+                  transform: 'none'
+                },
+                transition: 'all 0.3s ease'
+              }}
             >
-              {isRescheduling ? 'Rescheduling...' : 'Reschedule'}
+              {isRescheduling ? 'Rescheduling...' : 'Reschedule Meeting'}
             </Button>
           </DialogActions>
         </Dialog>

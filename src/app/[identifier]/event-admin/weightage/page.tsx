@@ -25,6 +25,7 @@ import { Save, Refresh } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { matchmakingApi } from '@/services/apiService';
+import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { store } from '@/store';
 import { addNotification } from '@/store/slices/appSlice';
 
@@ -50,6 +51,11 @@ interface UpdateConfigPayload {
   algorithmId: number;
 }
 
+interface AvailableField {
+  value: string;
+  label: string;
+}
+
 export default function WeightagePage() {
   const params = useParams();
   const identifier = params?.identifier as string;
@@ -59,6 +65,8 @@ export default function WeightagePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [visitorFields, setVisitorFields] = useState<AvailableField[]>([]);
+  const [exhibitorFields, setExhibitorFields] = useState<AvailableField[]>([]);
 
   // Available algorithms
   const algorithms = [
@@ -67,6 +75,72 @@ export default function WeightagePage() {
     { id: 3, name: 'euclidean_distance', label: 'Euclidean Distance' },
     { id: 4, name: 'pearson_correlation', label: 'Pearson Correlation' },
   ];
+
+  // Fetch available visitor fields
+  const fetchVisitorFields = async () => {
+    try {
+      const response = await fieldMappingApi.getAllVisitorMatchingConfig(identifier);
+      
+      if (response.statusCode === 200 && response.result) {
+        const fields = response.result.map((field: any) => ({
+          value: field.fieldName,
+          label: field.fieldName.charAt(0).toUpperCase() + field.fieldName.slice(1).replace(/([A-Z])/g, ' $1')
+        }));
+        setVisitorFields(fields);
+      } else {
+        console.warn('Failed to fetch visitor fields:', response.message);
+        // Fallback to default fields if API fails
+        setVisitorFields([
+          { value: 'industry', label: 'Industry' },
+          { value: 'companytype', label: 'Company Type' },
+          { value: 'technology', label: 'Technology' },
+          { value: 'interests', label: 'Interests' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching visitor fields:', error);
+      // Fallback to default fields if API fails
+      setVisitorFields([
+        { value: 'industry', label: 'Industry' },
+        { value: 'companytype', label: 'Company Type' },
+        { value: 'technology', label: 'Technology' },
+        { value: 'interests', label: 'Interests' },
+      ]);
+    }
+  };
+
+  // Fetch available exhibitor fields
+  const fetchExhibitorFields = async () => {
+    try {
+      const response = await fieldMappingApi.getAllExhibitorMatchingConfig(identifier);
+      
+      if (response.statusCode === 200 && response.result) {
+        const fields = response.result.map((field: any) => ({
+          value: field.fieldName,
+          label: field.fieldName.charAt(0).toUpperCase() + field.fieldName.slice(1).replace(/([A-Z])/g, ' $1')
+        }));
+        setExhibitorFields(fields);
+      } else {
+        console.warn('Failed to fetch exhibitor fields:', response.message);
+        // Fallback to default fields if API fails
+        setExhibitorFields([
+          { value: 'industry', label: 'Industry' },
+          { value: 'companytype', label: 'Company Type' },
+          { value: 'technology', label: 'Technology' },
+          { value: 'interests', label: 'Interests' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching exhibitor fields:', error);
+      // Fallback to default fields if API fails
+      setExhibitorFields([
+        { value: 'industry', label: 'Industry' },
+        { value: 'companytype', label: 'Company Type' },
+        { value: 'technology', label: 'Technology' },
+        { value: 'interests', label: 'Interests' },
+      ]);
+    }
+  };
 
   // Fetch matchmaking configuration
   const fetchConfigs = async () => {
@@ -96,9 +170,30 @@ export default function WeightagePage() {
 
   useEffect(() => {
     if (identifier) {
-      fetchConfigs();
+      // Fetch all data in parallel
+      Promise.all([
+        fetchVisitorFields(),
+        fetchExhibitorFields(),
+        fetchConfigs()
+      ]).catch(error => {
+        console.error('Error fetching initial data:', error);
+      });
     }
   }, [identifier]);
+
+  // Handle visitor field change
+  const handleVisitorFieldChange = (id: number, value: string) => {
+    setConfigs(prev => prev.map(config => 
+      config.id === id ? { ...config, visitorFieldName: value } : config
+    ));
+  };
+
+  // Handle exhibitor field change
+  const handleExhibitorFieldChange = (id: number, value: string) => {
+    setConfigs(prev => prev.map(config => 
+      config.id === id ? { ...config, exhibitorFieldName: value } : config
+    ));
+  };
 
   // Handle weightage change
   const handleWeightageChange = (id: number, value: number) => {
@@ -211,6 +306,30 @@ export default function WeightagePage() {
     return algorithm ? algorithm.label : 'Unknown Algorithm';
   };
 
+  // Get field label by value
+  const getFieldLabel = (value: string, fields: AvailableField[]) => {
+    const field = fields.find(field => field.value === value);
+    return field ? field.label : value;
+  };
+
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await Promise.all([
+        fetchVisitorFields(),
+        fetchExhibitorFields(),
+        fetchConfigs()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      setError('Failed to refresh data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <RoleBasedRoute allowedRoles={['event_admin', 'event-admin']}>
@@ -229,10 +348,20 @@ export default function WeightagePage() {
     <RoleBasedRoute allowedRoles={['event_admin', 'event-admin']}>
       <ResponsiveDashboardLayout title="Content Matching Configuration">
         <Container maxWidth="lg" sx={{ py: 3, overflow: 'hidden' }}>
-          <Box sx={{ mb: 4, mt: -3 }}>
+          <Box sx={{ mb: 4, mt: -3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 2 }}>
               Content Matching Configuration
             </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Refresh />}
+              onClick={handleRefresh}
+              disabled={loading}
+              sx={{ textTransform: 'none' }}
+            >
+              Refresh Fields
+            </Button>
           </Box>
 
           {/* Alerts */}
@@ -255,6 +384,7 @@ export default function WeightagePage() {
             background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
             overflow: 'hidden'
           }}>
+
             {/* Mobile View - Stacked Layout */}
             <Box sx={{ display: { xs: 'block', md: 'none' } }}>
               {configs.map((config, index) => (
@@ -266,16 +396,34 @@ export default function WeightagePage() {
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">Exhibitor:</Typography>
-                      <Typography variant="body2" fontWeight="500">
-                        {config.exhibitorFieldName}
-                      </Typography>
+                      <Typography variant="caption" color="text.secondary">Exhibitor Field:</Typography>
+                      <FormControl size="small" fullWidth sx={{ mt: 0.5 }}>
+                        <Select
+                          value={config.exhibitorFieldName}
+                          onChange={(e) => handleExhibitorFieldChange(config.id, e.target.value)}
+                        >
+                          {exhibitorFields.map((field) => (
+                            <MenuItem key={field.value} value={field.value}>
+                              {field.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">Visitor:</Typography>
-                      <Typography variant="body2" fontWeight="500">
-                        {config.visitorFieldName}
-                      </Typography>
+                      <Typography variant="caption" color="text.secondary">Visitor Field:</Typography>
+                      <FormControl size="small" fullWidth sx={{ mt: 0.5 }}>
+                        <Select
+                          value={config.visitorFieldName}
+                          onChange={(e) => handleVisitorFieldChange(config.id, e.target.value)}
+                        >
+                          {visitorFields.map((field) => (
+                            <MenuItem key={field.value} value={field.value}>
+                              {field.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
                                          <Grid item xs={6}>
                        <Typography variant="caption" color="text.secondary">Algorithm:</Typography>
@@ -341,11 +489,21 @@ export default function WeightagePage() {
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {configs.map((config) => (
-                    <Card key={config.id} variant="outlined" sx={{ p: 1, bgcolor: 'grey.50' }}>
-                      <Typography variant="body2" fontWeight="500" color="text.secondary">
-                        {config.exhibitorFieldName}
-                      </Typography>
-                    </Card>
+                    <FormControl key={config.id} size="small">
+                      <Select
+                        value={config.exhibitorFieldName}
+                        onChange={(e) => handleExhibitorFieldChange(config.id, e.target.value)}
+                        sx={{
+                          borderRadius: 1,
+                        }}
+                      >
+                        {exhibitorFields.map((field) => (
+                          <MenuItem key={field.value} value={field.value}>
+                            {field.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                   ))}
                 </Box>
               </Grid>
@@ -357,11 +515,21 @@ export default function WeightagePage() {
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {configs.map((config) => (
-                    <Card key={config.id} variant="outlined" sx={{ p: 1, bgcolor: 'grey.50' }}>
-                      <Typography variant="body2" fontWeight="500" color="text.secondary">
-                        {config.visitorFieldName}
-                      </Typography>
-                    </Card>
+                    <FormControl key={config.id} size="small">
+                      <Select
+                        value={config.visitorFieldName}
+                        onChange={(e) => handleVisitorFieldChange(config.id, e.target.value)}
+                        sx={{
+                          borderRadius: 1,
+                        }}
+                      >
+                        {visitorFields.map((field) => (
+                          <MenuItem key={field.value} value={field.value}>
+                            {field.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                   ))}
                 </Box>
               </Grid>

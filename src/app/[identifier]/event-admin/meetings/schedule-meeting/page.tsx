@@ -343,50 +343,25 @@ export default function ScheduleMeetingPage() {
     }
   }, [identifier, currentUserRole]);
 
+  // Helper function to convert UTC to IST
+  const convertUTCToIST = (utcDateString: string) => {
+    const utcDate = new Date(utcDateString);
+    return new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
+  };
+
   // Load event details
   const loadEventDetails = async () => {
     try {
-      console.log('🔍 Loading event details for identifier:', identifier);
       const response = await eventsApi.getEventDetails(identifier);
-      console.log('🔍 Raw event details response:', response);
       
-      if (response.success && response.data) {
-        setEventDetails(response.data);
-        console.log('🔍 Event details loaded:', response.data);
-        console.log('🔍 Event start date:', response.data.startDateTime);
-        console.log('🔍 Event end date:', response.data.endDateTime);
-        console.log('🔍 Event business hours:', response.data.businessHours);
-        
-        // Validate the dates
-        if (response.data.startDateTime) {
-          const startDate = new Date(response.data.startDateTime);
-          console.log('🔍 Parsed start date:', startDate, 'Valid:', !isNaN(startDate.getTime()));
-        }
-        if (response.data.endDateTime) {
-          const endDate = new Date(response.data.endDateTime);
-          console.log('🔍 Parsed end date:', endDate, 'Valid:', !isNaN(endDate.getTime()));
-        }
+      if (response.success && response.data?.result && response.data.result.length > 0) {
+        const eventData = response.data.result[0]; // Take the first event from the array
+        setEventDetails(eventData);
       } else {
         console.error('Failed to load event details:', response);
-        // Set default event details for testing
-        const defaultEventDetails = {
-          startDateTime: '2025-08-11T09:00:00',
-          endDateTime: '2025-08-13T18:00:00',
-          businessHours: { start: 9, end: 18 }
-        };
-        setEventDetails(defaultEventDetails);
-        console.log('🔍 Using default event details for testing:', defaultEventDetails);
       }
     } catch (error) {
       console.error('Error loading event details:', error);
-      // Set default event details for testing
-      const defaultEventDetails = {
-        startDateTime: '2025-08-11T09:00:00',
-        endDateTime: '2025-08-13T18:00:00',
-        businessHours: { start: 9, end: 18 }
-      };
-      setEventDetails(defaultEventDetails);
-      console.log('🔍 Using default event details due to error:', defaultEventDetails);
     }
   };
 
@@ -394,6 +369,14 @@ export default function ScheduleMeetingPage() {
   useEffect(() => {
     loadEventDetails();
   }, [identifier]);
+
+  // Set calendar date to event start date when event details are loaded
+  useEffect(() => {
+    if (eventDetails && eventDetails.startDateTime) {
+      const eventStart = convertUTCToIST(eventDetails.startDateTime);
+      setCurrentCalendarDate(eventStart);
+    }
+  }, [eventDetails]);
 
   // Set current user details after participants are loaded
   useEffect(() => {
@@ -422,8 +405,9 @@ export default function ScheduleMeetingPage() {
   const getEventDays = () => {
     if (!eventDetails) return [];
     
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
     const days = [];
     
     // Set start to beginning of day
@@ -450,8 +434,9 @@ export default function ScheduleMeetingPage() {
       return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; // Default business hours
     }
     
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
     const slots = [];
     
     // Check if dates are valid
@@ -460,36 +445,26 @@ export default function ScheduleMeetingPage() {
       return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; // Default business hours
     }
     
-    // Try to get business hours from event details if available
-    let startHour = 9; // Default business hours
-    let endHour = 18;
+    // Use event start/end times (in IST)
+    const startHour = eventStart.getHours();
+    const endHour = eventEnd.getHours();
     
-    if (eventDetails.businessHours) {
-      startHour = eventDetails.businessHours.start || 9;
-      endHour = eventDetails.businessHours.end || 18;
-      console.log('🔍 Using business hours from event details:', { startHour, endHour });
-    } else {
-      // Use event start/end times if available
-      startHour = eventStart.getHours();
-      endHour = eventEnd.getHours();
-      console.log('🔍 Using event start/end hours:', { startHour, endHour });
+    // If the hours don't make sense (e.g., 0:00), use default business hours
+    if (startHour === 0 && endHour === 0) {
+      const defaultStartHour = 9;
+      const defaultEndHour = 18;
       
-      // If the hours don't make sense (e.g., 0:00), use default business hours
-      if (startHour === 0 && endHour === 0) {
-        startHour = 9;
-        endHour = 18;
-        console.log('🔍 Using default business hours due to 0:00 times');
+      // Generate time slots from start to end hour
+      for (let hour = defaultStartHour; hour <= defaultEndHour; hour++) {
+        slots.push(hour);
+      }
+    } else {
+      // Generate time slots from start to end hour
+      for (let hour = startHour; hour <= endHour; hour++) {
+        slots.push(hour);
       }
     }
     
-    console.log('🔍 Final time range:', { startHour, endHour });
-    
-    // Generate time slots from start to end hour
-    for (let hour = startHour; hour <= endHour; hour++) {
-      slots.push(hour);
-    }
-    
-    console.log('🔍 Generated time slots:', slots);
     return slots;
   };
 
@@ -522,44 +497,34 @@ export default function ScheduleMeetingPage() {
   const isDateInEventRange = (date: string) => {
     if (!eventDetails) return true; // Allow all dates if no event details
     
-    const selectedDate = new Date(date);
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Create date string in YYYY-MM-DD format for comparison
+    const selectedDate = new Date(date + 'T00:00:00');
+    
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
     
     // Set times to beginning and end of day for comparison
-    selectedDate.setHours(0, 0, 0, 0);
-    eventStart.setHours(0, 0, 0, 0);
-    eventEnd.setHours(23, 59, 59, 999);
+    const eventStartDate = new Date(eventStart);
+    eventStartDate.setHours(0, 0, 0, 0);
     
-    return selectedDate >= eventStart && selectedDate <= eventEnd;
+    const eventEndDate = new Date(eventEnd);
+    eventEndDate.setHours(23, 59, 59, 999);
+    
+    return selectedDate >= eventStartDate && selectedDate <= eventEndDate;
   };
 
   const getEventDateOptions = () => {
     if (!eventDetails) return [];
     
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
     const dates = [];
-    
-    console.log('🔍 Event date range:', { eventStart, eventEnd });
-    console.log('🔍 Start date valid:', !isNaN(eventStart.getTime()));
-    console.log('🔍 End date valid:', !isNaN(eventEnd.getTime()));
     
     // Check if dates are valid
     if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
-      console.log('🔍 Invalid dates detected, using fallback dates');
-      // Use fallback dates for testing
-      const fallbackStart = new Date('2025-08-11T00:00:00');
-      const fallbackEnd = new Date('2025-08-13T23:59:59');
-      
-      const currentDate = new Date(fallbackStart);
-      while (currentDate <= fallbackEnd) {
-        const dateStr = new Date(currentDate).toISOString().split('T')[0];
-        dates.push(dateStr);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      console.log('🔍 Generated fallback event dates:', dates);
-      return dates;
+      return [];
     }
     
     // Set start to beginning of day
@@ -578,7 +543,6 @@ export default function ScheduleMeetingPage() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log('🔍 Generated event dates:', dates);
     return dates;
   };
 
@@ -586,13 +550,56 @@ export default function ScheduleMeetingPage() {
     if (!eventDetails) return true; // Allow all times if no event details
     
     const [hours, minutes] = time.split(':').map(Number);
-    const eventStart = new Date(eventDetails.startDateTime);
-    const eventEnd = new Date(eventDetails.endDateTime);
+    // Convert UTC times to IST (UTC+5:30)
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
     
     const eventStartHour = eventStart.getHours();
     const eventEndHour = eventEnd.getHours();
     
     return hours >= eventStartHour && hours <= eventEndHour;
+  };
+
+  // Helper function to get formatted event date range for display
+  const getEventDateRangeDisplay = () => {
+    if (!eventDetails) return '';
+    
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
+    
+    const startDate = eventStart.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    const endDate = eventEnd.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    return `${startDate} - ${endDate}`;
+  };
+
+  // Helper function to get formatted event time range for display
+  const getEventTimeRangeDisplay = () => {
+    if (!eventDetails) return '';
+    
+    const eventStart = convertUTCToIST(eventDetails.startDateTime);
+    const eventEnd = convertUTCToIST(eventDetails.endDateTime);
+    
+    const startTime = eventStart.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    const endTime = eventEnd.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    return `${startTime} - ${endTime}`;
   };
 
   // Function to load favorites
@@ -881,7 +888,11 @@ export default function ScheduleMeetingPage() {
     setCurrentCalendarDate(new Date());
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    handleFormChange('meetingDate', todayStr);
+    
+    // Only set today if it's within the event range
+    if (isDateInEventRange(todayStr)) {
+      handleFormChange('meetingDate', todayStr);
+    }
     setDatePickerAnchorEl(null);
   };
 
@@ -1524,7 +1535,7 @@ export default function ScheduleMeetingPage() {
                         cursor: 'pointer',
                         color: 'grey.700',
                         '&::placeholder': {
-                          color: 'grey.400',
+                          color: 'black',
                         },
                       },
                     }}
@@ -1643,6 +1654,8 @@ export default function ScheduleMeetingPage() {
                       </Box>
                     </Box>
                     
+                   
+                    
                     {/* Calendar Grid */}
                     <Box sx={{ mb: -1 }}>
                       {/* Day Headers */}
@@ -1707,31 +1720,40 @@ export default function ScheduleMeetingPage() {
                             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                             const isToday = dateStr === todayStr;
                             
+                            // Check if this date is within event range
+                            const isInEventRange = isDateInEventRange(dateStr);
+                            
                             calendarDays.push(
                               <Box
                                 key={i}
                                 onClick={() => {
-                                  handleFormChange('meetingDate', dateStr);
-                                  setDatePickerAnchorEl(null);
+                                  // Only allow selection if date is in event range
+                                  if (isInEventRange) {
+                                    handleFormChange('meetingDate', dateStr);
+                                    setDatePickerAnchorEl(null);
+                                  }
                                 }}
                                 sx={{
                                   aspectRatio: '1',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  cursor: 'pointer',
+                                  cursor: isInEventRange ? 'pointer' : 'not-allowed',
                                   borderRadius: 2,
                                   fontSize: '0.700rem',
                                   fontWeight: isSelected ? 600 : (isToday ? 500 : 300),
-                                  color: isSelected ? 'white' : isCurrentMonth ? 'text.primary' : 'text.secondary',
-                                  backgroundColor: isSelected ? 'primary.main' : 'transparent',
+                                  color: isSelected ? 'white' : 
+                                         isInEventRange ? (isCurrentMonth ? 'text.primary' : 'text.secondary') : 'text.disabled',
+                                  backgroundColor: isSelected ? 'primary.main' : 
+                                                 isInEventRange ? 'transparent' : 'grey.100',
                                   border: isToday ? '2px solid' : 'none',
                                   borderColor: isToday ? 'primary.main' : 'transparent',
                                   '&:hover': {
-                                    backgroundColor: isSelected ? 'primary.dark' : 'grey.50',
-                                    transform: 'scale(1.05)',
+                                    backgroundColor: isSelected ? 'primary.dark' : 
+                                                   isInEventRange ? 'grey.50' : 'grey.100',
+                                    transform: isInEventRange ? 'scale(1.05)' : 'none',
                                   },
-                                  opacity: isCurrentMonth ? 1 : 0.4,
+                                  opacity: isCurrentMonth ? (isInEventRange ? 1 : 0.3) : 0.4,
                                   transition: 'all 0.2s ease',
                                   position: 'relative'
                                 }}
@@ -1773,6 +1795,8 @@ export default function ScheduleMeetingPage() {
                       </Button>
                     </Box>
                   </Popover>
+                  
+                 
                   
                   {/* Start Time Field */}
                   <FormControl error={!!formErrors.startTime} disabled={loading}>

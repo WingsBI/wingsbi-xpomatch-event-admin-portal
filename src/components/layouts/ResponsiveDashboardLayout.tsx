@@ -659,15 +659,15 @@ export default function ResponsiveDashboardLayout({
 
           {(!ui.sidebarCollapsed || isMobile) && (
             <>
-              <ListItemText
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontSize: level === 0 ? '0.85rem' : '0.8rem', // Even smaller for child items
-                  fontWeight: level === 0 ? 500 : 400,
-                  lineHeight: 1.2,
-                  color: level > 0 ? 'text.secondary' : 'inherit'
-                }}
-              />
+                             <ListItemText
+                 primary={item.text}
+                 primaryTypographyProps={{
+                   variant: level === 0 ? 'h6' : 'body2',
+                   fontWeight: level === 0 ? 500 : 400,
+                   lineHeight: 1.2,
+                   color: level > 0 ? 'text.secondary' : 'inherit'
+                 }}
+               />
               {item.children && item.children.length > 0 && (
                 <IconButton size="small" sx={{ p: 0.25 }}>
                   {expandedItems.includes(item.text) ? 
@@ -790,10 +790,10 @@ export default function ResponsiveDashboardLayout({
               {!ui.sidebarCollapsed && (
                 <Box>
                    
-                  <Typography variant="h5" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                     {eventDetails?.title || 'Xpo Match'}
-                  
-                  </Typography>
+                                     <Typography variant="h6" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {eventDetails?.title || 'Xpo Match'}
+                   
+                   </Typography>
                   
                 </Box>
               )}

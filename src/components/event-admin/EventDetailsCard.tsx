@@ -128,12 +128,18 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    
+    // Parse the UTC date string and convert to IST (UTC+5:30)
+    const utcDate = new Date(dateString);
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
+    
+    return istDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     });
   };
 

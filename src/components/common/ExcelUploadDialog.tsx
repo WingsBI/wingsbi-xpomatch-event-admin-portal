@@ -39,7 +39,7 @@ export default function ExcelUploadDialog({
   title,
   description,
   acceptedFormats = ['.xlsx', '.xls', '.csv'],
-  maxFileSize = 10,
+  maxFileSize = 30,
   type,
 }: ExcelUploadDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

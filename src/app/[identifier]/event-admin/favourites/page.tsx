@@ -223,25 +223,69 @@ const transformExhibitorData = (apiExhibitor: VisitorFavoriteExhibitor): Transfo
 
 // Transform basic Exhibitor data to UI format (for exhibitor favorites)
 const transformBasicExhibitorData = (apiExhibitor: Exhibitor): TransformedExhibitor => {
+  const userMap = apiExhibitor.exhibitorToUserMaps?.[0];
+  const profile = apiExhibitor.exhibitorProfile?.[0];
+  const address = apiExhibitor.exhibitorAddress?.[0];
+  
+  // Get contact name from user map
+  const getContactName = () => {
+    if (!userMap) return '';
+    const firstName = userMap.firstName || '';
+    const lastName = userMap.lastName || '';
+    return `${firstName} ${lastName}`.trim();
+  };
+  
+  // Get job title from user map
+  const getJobTitle = () => {
+    if (!userMap) return '';
+    return userMap.jobTitle || userMap.designation || '';
+  };
+  
+  // Get location from address and country
+  const getLocation = () => {
+    const locationParts = [
+      address?.city,
+      address?.stateProvince, 
+      apiExhibitor.country
+    ].filter(part => part && part !== 'null' && part !== 'undefined' && part.trim() !== '');
+    
+    return locationParts.length > 0 ? locationParts.join(', ') : '';
+  };
+  
+  // Get company type/industry
+  const getCompanyType = () => {
+    return apiExhibitor.companyType || profile?.listingAs || '';
+  };
+  
+  // Get products from product array
+  const getProducts = () => {
+    if (!apiExhibitor.product || !Array.isArray(apiExhibitor.product)) return [];
+    return apiExhibitor.product
+      .map((p: { title: string }) => p.title)
+      .filter((title: string) => title && title !== 'null' && title !== 'undefined' && title.trim() !== '');
+  };
+  
   return {
     id: apiExhibitor.id.toString(),
-    name: `${apiExhibitor.firstName} ${apiExhibitor.lastName}`,
-    email: apiExhibitor.email || '',
+    name: getContactName(),
+    email: userMap?.email || '',
     company: apiExhibitor.companyName || 'Unknown Company',
-    jobTitle: apiExhibitor.jobTitle || '',
+    jobTitle: getJobTitle(),
     type: 'exhibitor' as const,
     avatar: apiExhibitor.companyName?.charAt(0).toUpperCase() || 'E',
-    phone: apiExhibitor.phoneNumber,
-    location: [apiExhibitor.city, apiExhibitor.country].filter(Boolean).join(', '),
-    interests: apiExhibitor.interests || [],
+    companyLogoPath: apiExhibitor.companyLogoPath,
+    phone: apiExhibitor.telephone || apiExhibitor.mobileNumber || userMap?.phone,
+    location: getLocation(),
+    interests: userMap?.interest ? userMap.interest.split(', ') : [],
     customData: {
-      industry: apiExhibitor.industry,
-      boothNumber: apiExhibitor.boothNumber,
-      products: apiExhibitor.products || [],
-      website: apiExhibitor.website,
-      companyProfile: apiExhibitor.companyDescription,
-      listingAs: apiExhibitor.industry,
-      experience: apiExhibitor.experience,
+      industry: getCompanyType(),
+      boothNumber: apiExhibitor.hall && apiExhibitor.stand ? `${apiExhibitor.hall}-${apiExhibitor.stand}` : '',
+      products: getProducts(),
+      website: apiExhibitor.webSite,
+      companyProfile: profile?.companyProfile,
+      listingAs: getCompanyType(),
+      experience: userMap?.experienceYears ? `${userMap.experienceYears}+ years` : undefined,
+      linkedInProfile: userMap?.linkedInProfile,
     }
   };
 };
@@ -995,14 +1039,14 @@ export default function FavouritesPage() {
                               </Box>
                             )}
                             
-                            {/* {exhibitor.customData?.industry && (
+                            {exhibitor.customData?.industry && (
                               <Box display="flex" alignItems="center">
                                 <Business sx={{ fontSize: 18, mr: 1.5, color: 'text.secondary' }} />
                                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
                                   {exhibitor.customData.industry}
                                 </Typography>
                               </Box>
-                            )} */}
+                            )}
                           </Box>
                         )}
 

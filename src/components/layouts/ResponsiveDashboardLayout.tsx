@@ -267,16 +267,7 @@ export default function ResponsiveDashboardLayout({
       path: `/${identifier}/visitors/matching`,
       description: 'Map visitor fields'
     },
-    {
-      title: 'Exhibitor Weightage',
-      path: `/${identifier}/weightage/exhibitor`,
-      description: 'Configure exhibitor content score weightage'
-    },
-    {
-      title: 'Visitor Weightage',
-      path: `/${identifier}/weightage/visitor`,
-      description: 'Configure visitor content score weightage'
-    }
+   
   ];
 
   // Handle page navigation from search

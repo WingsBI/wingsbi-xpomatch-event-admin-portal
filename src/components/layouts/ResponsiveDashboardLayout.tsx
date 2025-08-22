@@ -653,9 +653,9 @@ export default function ResponsiveDashboardLayout({
                              <ListItemText
                  primary={item.text}
                  primaryTypographyProps={{
-                   variant: level === 0 ? 'h6' : 'body2',
+                   variant: level === 0 ? 'h5' : 'body2',
                    fontWeight: level === 0 ? 500 : 400,
-                   lineHeight: 1.2,
+                   lineHeight: 1.1,
                    color: level > 0 ? 'text.secondary' : 'inherit'
                  }}
                />
@@ -955,7 +955,7 @@ export default function ResponsiveDashboardLayout({
                 }}
                 title={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {user?.role === 'visitor' ? (
+                    {user?.role === 'visitor' || user?.role === 'event-admin'? (
                       <Person sx={{ fontSize: 20 }} />
                     ) : (
                       <Business sx={{ fontSize: 20 }} />

@@ -533,8 +533,8 @@ export function ExhibitorListView({ identifier }: { identifier: string }) {
               fontStyle="italic"
               variant="h5"
               component="h1"
-              fontWeight="600"
-              sx={{ mb: 1 }}
+              fontWeight="500"
+              sx={{ mb: 1 , lineHeight: 1.1,}}
             >
               Exhibitors Directory
             </Typography>

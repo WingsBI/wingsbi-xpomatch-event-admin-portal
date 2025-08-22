@@ -402,7 +402,7 @@ export function VisitorListView({ identifier }: { identifier: string }) {
       <Box mb={1}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            <Typography fontStyle="italic" variant="h5" component="h1" fontWeight="600" sx={{ mb: 0 }}>
+            <Typography fontStyle="italic" variant="h5" component="h1" fontWeight="500" sx={{ mb: 0 ,lineHeight: 1.1, }}>
               Visitors Directory
             </Typography>
           </Box>

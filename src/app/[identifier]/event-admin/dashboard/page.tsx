@@ -579,7 +579,7 @@ export default function EventAdminDashboard() {
             {/* Header with Welcome Message */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Box>
-                <Typography variant="h5" component="h1" gutterBottom>
+                <Typography variant="h5" component="h1" fontWeight={500} fontStyle={'italic'} gutterBottom>
                   Welcome, {user?.firstName} {user?.lastName}!
                 </Typography>
                

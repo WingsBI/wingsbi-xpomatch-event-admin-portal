@@ -223,14 +223,53 @@ export default function WeightagePage() {
     return null;
   };
 
+  // Validate duplicate fields
+  const validateDuplicateFields = () => {
+    const exhibitorFields = configs.map(config => config.exhibitorFieldName);
+    const visitorFields = configs.map(config => config.visitorFieldName);
+    
+    const duplicateExhibitorFields = exhibitorFields.filter((field, index) => 
+      exhibitorFields.indexOf(field) !== index
+    );
+    
+    const duplicateVisitorFields = visitorFields.filter((field, index) => 
+      visitorFields.indexOf(field) !== index
+    );
+    
+    if (duplicateExhibitorFields.length > 0) {
+      return `Duplicate exhibitor fields detected: ${duplicateExhibitorFields.join(', ')}`;
+    }
+    
+    if (duplicateVisitorFields.length > 0) {
+      return `Duplicate visitor fields detected: ${duplicateVisitorFields.join(', ')}`;
+    }
+    
+    return null;
+  };
+
+  // Check if form has validation errors
+  const hasValidationErrors = () => {
+    return getTotalWeightage() !== 100 || validateDuplicateFields() !== null;
+  };
+
   // Handle form submission
   const handleSubmit = async () => {
-    const validationError = validateWeightage();
-    if (validationError) {
-      setError(validationError);
+    const weightageValidationError = validateWeightage();
+    if (weightageValidationError) {
+      setError(weightageValidationError);
       store.dispatch(addNotification({
         type: 'error',
-        message: validationError,
+        message: weightageValidationError,
+      }));
+      return;
+    }
+
+    const duplicateValidationError = validateDuplicateFields();
+    if (duplicateValidationError) {
+      setError(duplicateValidationError);
+      store.dispatch(addNotification({
+        type: 'error',
+        message: duplicateValidationError,
       }));
       return;
     }
@@ -312,6 +351,32 @@ export default function WeightagePage() {
     return field ? field.label : value;
   };
 
+  // Check if exhibitor field is duplicate
+  const isExhibitorFieldDuplicate = (configId: number, fieldName: string) => {
+    const duplicateCount = configs.filter(config => 
+      config.exhibitorFieldName === fieldName && config.id !== configId
+    ).length;
+    return duplicateCount > 0;
+  };
+
+  // Check if visitor field is duplicate
+  const isVisitorFieldDuplicate = (configId: number, fieldName: string) => {
+    const duplicateCount = configs.filter(config => 
+      config.visitorFieldName === fieldName && config.id !== configId
+    ).length;
+    return duplicateCount > 0;
+  };
+
+  // Get exhibitor field border color
+  const getExhibitorFieldBorderColor = (configId: number, fieldName: string) => {
+    return isExhibitorFieldDuplicate(configId, fieldName) ? '#d32f2f' : undefined;
+  };
+
+  // Get visitor field border color
+  const getVisitorFieldBorderColor = (configId: number, fieldName: string) => {
+    return isVisitorFieldDuplicate(configId, fieldName) ? '#d32f2f' : undefined;
+  };
+
   // Handle refresh button click
   const handleRefresh = async () => {
     try {
@@ -349,19 +414,10 @@ export default function WeightagePage() {
       <ResponsiveDashboardLayout title="Content Matching Configuration">
         <Container maxWidth="lg" sx={{ py: 3, overflow: 'hidden' }}>
           <Box sx={{ mb: 4, mt: -3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h4" component="h1" fontWeight="600" sx={{ mb: 2 }}>
+            <Typography variant="h5" component="h1" fontWeight="500" sx={{ mb: 2, lineHeight: 1.1,fontStyle: 'italic' }} >
               Content Matching Configuration
             </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Refresh />}
-              onClick={handleRefresh}
-              disabled={loading}
-              sx={{ textTransform: 'none' }}
-            >
-              Refresh Fields
-            </Button>
+          
           </Box>
 
           {/* Alerts */}
@@ -401,6 +457,23 @@ export default function WeightagePage() {
                         <Select
                           value={config.exhibitorFieldName}
                           onChange={(e) => handleExhibitorFieldChange(config.id, e.target.value)}
+                          error={isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '#d32f2f' : undefined,
+                                borderWidth: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '2px' : undefined,
+                              },
+                              '&:hover fieldset': {
+                                borderColor: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '#d32f2f' : undefined,
+                                borderWidth: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '2px' : undefined,
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '#d32f2f' : undefined,
+                                borderWidth: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '2px' : undefined,
+                              },
+                            },
+                          }}
                         >
                           {exhibitorFields.map((field) => (
                             <MenuItem key={field.value} value={field.value}>
@@ -416,6 +489,23 @@ export default function WeightagePage() {
                         <Select
                           value={config.visitorFieldName}
                           onChange={(e) => handleVisitorFieldChange(config.id, e.target.value)}
+                          error={isVisitorFieldDuplicate(config.id, config.visitorFieldName)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '#d32f2f' : undefined,
+                                borderWidth: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '2px' : undefined,
+                              },
+                              '&:hover fieldset': {
+                                borderColor: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '#d32f2f' : undefined,
+                                borderWidth: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '2px' : undefined,
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '#d32f2f' : undefined,
+                                borderWidth: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '2px' : undefined,
+                              },
+                            },
+                          }}
                         >
                           {visitorFields.map((field) => (
                             <MenuItem key={field.value} value={field.value}>
@@ -484,19 +574,34 @@ export default function WeightagePage() {
             <Grid container spacing={3}>
               {/* Exhibitor Column */}
               <Grid item xs={12} md={3}>
-                <Typography variant="h6" fontWeight="600" sx={{ mb: 3, color: 'primary.main' }}>
+                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
                   Exhibitor Fields
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {configs.map((config) => (
                     <FormControl key={config.id} size="small">
-                      <Select
-                        value={config.exhibitorFieldName}
-                        onChange={(e) => handleExhibitorFieldChange(config.id, e.target.value)}
-                        sx={{
-                          borderRadius: 1,
-                        }}
-                      >
+                                                                                                                                                                                       <Select
+                           value={config.exhibitorFieldName}
+                           onChange={(e) => handleExhibitorFieldChange(config.id, e.target.value)}
+                           error={isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName)}
+                           sx={{
+                             borderRadius: 1,
+                             '& .MuiOutlinedInput-root': {
+                               '& fieldset': {
+                                 borderColor: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '#d32f2f' : undefined,
+                                 borderWidth: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '2px' : undefined,
+                               },
+                               '&:hover fieldset': {
+                                 borderColor: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '#d32f2f' : undefined,
+                                 borderWidth: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '2px' : undefined,
+                               },
+                               '&.Mui-focused fieldset': {
+                                 borderColor: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '#d32f2f' : undefined,
+                                 borderWidth: isExhibitorFieldDuplicate(config.id, config.exhibitorFieldName) ? '2px' : undefined,
+                               },
+                             },
+                           }}
+                         >
                         {exhibitorFields.map((field) => (
                           <MenuItem key={field.value} value={field.value}>
                             {field.label}
@@ -510,19 +615,34 @@ export default function WeightagePage() {
 
               {/* Visitor Column */}
               <Grid item xs={12} md={3}>
-                <Typography variant="h6" fontWeight="600" sx={{ mb: 3, color: 'primary.main' }}>
+                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
                   Visitor Fields
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {configs.map((config) => (
                     <FormControl key={config.id} size="small">
-                      <Select
-                        value={config.visitorFieldName}
-                        onChange={(e) => handleVisitorFieldChange(config.id, e.target.value)}
-                        sx={{
-                          borderRadius: 1,
-                        }}
-                      >
+                                                                                                                                                                                       <Select
+                           value={config.visitorFieldName}
+                           onChange={(e) => handleVisitorFieldChange(config.id, e.target.value)}
+                           error={isVisitorFieldDuplicate(config.id, config.visitorFieldName)}
+                           sx={{
+                             borderRadius: 1,
+                             '& .MuiOutlinedInput-root': {
+                               '& fieldset': {
+                                 borderColor: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '#d32f2f' : undefined,
+                                 borderWidth: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '2px' : undefined,
+                               },
+                               '&:hover fieldset': {
+                                 borderColor: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '#d32f2f' : undefined,
+                                 borderWidth: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '2px' : undefined,
+                               },
+                               '&.Mui-focused fieldset': {
+                                 borderColor: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '#d32f2f' : undefined,
+                                 borderWidth: isVisitorFieldDuplicate(config.id, config.visitorFieldName) ? '2px' : undefined,
+                               },
+                             },
+                           }}
+                         >
                         {visitorFields.map((field) => (
                           <MenuItem key={field.value} value={field.value}>
                             {field.label}
@@ -536,7 +656,7 @@ export default function WeightagePage() {
 
               {/* Algorithm Column */}
               <Grid item xs={12} md={3}>
-                <Typography variant="h6" fontWeight="600" sx={{ mb: 3, color: 'primary.main' }}>
+                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
                   Algorithm
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -562,15 +682,16 @@ export default function WeightagePage() {
 
                  {/* Weightage Column */}
                  <Grid item xs={12} md={3}>
-                   <Typography variant="h6" fontWeight="600" sx={{ mb: 3, color: 'primary.main' }}>
+                   <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
                      Weightage (%)
                    </Typography>
-                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, }}>
                      {configs.map((config) => (
                        <TextField
                          key={config.id}
                          type="number"
                          size="small"
+                         
                          value={config.weight || ''}
                          onChange={(e) => handleWeightageChange(config.id, Number(e.target.value) || 0)}
                          inputProps={{ 
@@ -581,7 +702,8 @@ export default function WeightagePage() {
                          sx={{
                            '& .MuiOutlinedInput-root': {
                              borderRadius: 1,
-                           }
+                           },
+                           
                          }}
                        />
                      ))}
@@ -630,6 +752,11 @@ export default function WeightagePage() {
                     </Typography>
                   )}
                 </Typography>
+                {validateDuplicateFields() && (
+                  <Typography variant="body2" color="error.main" sx={{ mt: 0.5 }}>
+                    {validateDuplicateFields()}
+                  </Typography>
+                )}
               </Box>
                 
                   <Button
@@ -637,7 +764,7 @@ export default function WeightagePage() {
                    size="medium"
                    startIcon={saving ? <CircularProgress size={16} /> : <Save />}
                    onClick={handleSubmit}
-                   disabled={saving || getTotalWeightage() !== 100}
+                   disabled={saving || hasValidationErrors()}
                    sx={{
                      borderRadius: 1.5,
                      px: 3,

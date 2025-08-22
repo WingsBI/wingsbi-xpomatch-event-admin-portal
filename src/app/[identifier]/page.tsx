@@ -422,7 +422,7 @@ export default function EventLoginPage() {
                     textShadow: "0 2px 4px rgba(0,0,0,0.3)",
                   }}
                 >
-                  {identifier} Event Portal
+                  {identifier} Event 
                 </Typography>
                 
                 <Typography

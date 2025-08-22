@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
+import { useTheme, useMediaQuery } from '@mui/material';
 import {
   Box,
   Container,
@@ -171,6 +172,12 @@ export default function MeetingsPage() {
   const router = useRouter();
   const identifier = params.identifier as string;
   const dispatch = useDispatch<AppDispatch>();
+  
+  // Responsive hooks
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useSelector((state: RootState) => state.auth);
   
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -2485,15 +2492,30 @@ export default function MeetingsPage() {
         title="Meetings"
         
       >
-        <Container maxWidth="xl" sx={{ mt: 0}}>
+        <Container maxWidth={isMobile ? false : "xl"} sx={{ 
+          mt: 0,
+          px: isMobile ? 1 : 3,
+          maxWidth: isMobile ? '100%' : undefined
+        }}>
           {/* Action buttons */}
           {/* Only show top-right button in calendar view */}
           {showCalendar && (
-            <Box sx={{ mb: 2, mt: -1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Box sx={{ 
+              mb: 2, 
+              mt: -1, 
+              display: 'flex', 
+              justifyContent: isMobile ? 'center' : 'flex-end', 
+              gap: 1 
+            }}>
               <Button
                 variant="contained"
                 startIcon={<Add />}
                 onClick={handleScheduleMeeting}
+                size={isMobile ? 'medium' : 'medium'}
+                fullWidth={isMobile}
+                sx={{
+                  maxWidth: isMobile ? '300px' : 'auto'
+                }}
               >
                 Schedule Meeting
               </Button>
@@ -2513,12 +2535,14 @@ export default function MeetingsPage() {
             }}>
               {/* Event Calendar Header */}
               <Box sx={{ 
-                p: 2, 
+                p: isMobile ? 1.5 : 2, 
                 display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
                 justifyContent: 'space-between', 
-                alignItems: 'center', 
+                alignItems: isMobile ? 'flex-start' : 'center', 
                 bgcolor: 'primary.main',
-                color: 'white'
+                color: 'white',
+                gap: isMobile ? 1 : 0
               }}>
                 <Box>
                   <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 0.5 }}>
@@ -2534,34 +2558,42 @@ export default function MeetingsPage() {
                 </Box>
                 
                 {eventDetails && (
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
-                      <Box>
-                        <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
-                          Event Start
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {convertUTCToIST(eventDetails.startDateTime).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </Typography>
-                      </Box>
+                  <Box sx={{ textAlign: isMobile ? 'left' : 'right' }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: isMobile ? 'flex-start' : 'center', 
+                      gap: isMobile ? 1 : 2, 
+                      mb: 0.5,
+                      flexDirection: isMobile ? 'column' : 'row'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 1 : 2 }}>
+                        <Box>
+                          <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                            Event Start
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
+                            {convertUTCToIST(eventDetails.startDateTime).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: isMobile ? undefined : 'numeric'
+                            })}
+                          </Typography>
+                        </Box>
 
-                      <Box sx={{ mx: 1, opacity: 0.6 }}>→</Box>
-                      
-                      <Box>
-                        <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
-                          Event End
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {convertUTCToIST(eventDetails.endDateTime).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </Typography>
+                        <Box sx={{ mx: 1, opacity: 0.6 }}>→</Box>
+                        
+                        <Box>
+                          <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                            Event End
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
+                            {convertUTCToIST(eventDetails.endDateTime).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: isMobile ? undefined : 'numeric'
+                            })}
+                          </Typography>
+                        </Box>
                       </Box>
                     </Box>
                     
@@ -2570,42 +2602,57 @@ export default function MeetingsPage() {
                 )}
               </Box>
 
-              {/* Time Slots Header - Horizontal */}
-              <Box sx={{ display: 'flex', borderBottom: 2, borderColor: 'grey.400' }}>
-                {/* Date column header */}
-                <Box sx={{ width: 120, p: 1, borderRight: 2, borderColor: 'grey.400', bgcolor: 'grey.50' }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
-                    Date
+              {/* Time Slots Header - Responsive */}
+              {!isMobile ? (
+                // Desktop Calendar Header
+                <Box sx={{ display: 'flex', borderBottom: 2, borderColor: 'grey.400' }}>
+                  {/* Date column header */}
+                  <Box sx={{ width: 120, p: 1, borderRight: 2, borderColor: 'grey.400', bgcolor: 'grey.50' }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
+                      Date
+                    </Typography>
+                  </Box>
+                  
+                  {/* Time slot headers - Horizontal */}
+                  {getHourSlots().map((hour, index) => {
+                    return (
+                      <Box key={index} sx={{ 
+                        flex: 1, 
+                        p: 1, 
+                        textAlign: 'center', 
+                        borderRight: index < getHourSlots().length - 1 ? 1 : 0, 
+                        borderColor: 'grey.300',
+                        bgcolor: 'grey.50'
+                      }}>
+                        <Typography variant="body2" sx={{ 
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'text.secondary'
+                        }}>
+                          {formatHour(hour)}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ) : (
+                // Mobile Calendar Header
+                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'grey.300', bgcolor: 'grey.50' }}>
+                  <Typography variant="body2" sx={{ 
+                    fontSize: '0.85rem', 
+                    color: 'text.secondary', 
+                    fontWeight: 500,
+                    textAlign: 'center'
+                  }}>
+                    Daily Schedule View
                   </Typography>
                 </Box>
-                
-                {/* Time slot headers - Horizontal */}
-                {getHourSlots().map((hour, index) => {
-                  return (
-                    <Box key={index} sx={{ 
-                      flex: 1, 
-                      p: 1, 
-                      textAlign: 'center', 
-                      borderRight: index < getHourSlots().length - 1 ? 1 : 0, 
-                      borderColor: 'grey.300',
-                      bgcolor: 'grey.50'
-                    }}>
-                      <Typography variant="body2" sx={{ 
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        color: 'text.secondary'
-                      }}>
-                        {formatHour(hour)}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Box>
+              )}
 
-              {/* Date Grid - Vertical with Day Partitioning */}
+              {/* Date Grid - Responsive */}
               <Box sx={{ 
-                height: eventDetails ? `calc(${getEventDays().length} * 60px)` : '240px', 
-                overflow: 'hidden',
+                height: isMobile ? 'auto' : (eventDetails ? `calc(${getEventDays().length} * 60px)` : '240px'), 
+                overflow: isMobile ? 'visible' : 'hidden',
                 position: 'relative'
               }}>
                 {eventDetails ? (meetingsLoading ? (
@@ -2654,6 +2701,130 @@ export default function MeetingsPage() {
                         {noMeetingsMessage}
                       </Typography>
                     </Alert>
+                  </Box>
+                ) : isMobile ? (
+                  // Mobile view - Daily cards
+                  <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {getEventDays().map((day, dayIndex) => {
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                      const dayMeetings = meetings.filter(meeting => 
+                        meeting.dateTime.toDateString() === day.toDateString()
+                      );
+                      
+                      return (
+                        <Card key={dayIndex} sx={{ 
+                          mb: 1,
+                          border: isToday ? 2 : 1,
+                          borderColor: isToday ? 'primary.main' : 'grey.300',
+                          bgcolor: isToday ? 'primary.50' : 'white',
+                          boxShadow: isToday ? 2 : 1
+                        }}>
+                          <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                            {/* Day header */}
+                            <Box sx={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center',
+                              mb: dayMeetings.length > 0 ? 2 : 0
+                            }}>
+                              <Typography variant="h6" sx={{ 
+                                fontWeight: isToday ? 'bold' : 'medium',
+                                color: isToday ? 'primary.main' : 'text.primary',
+                                fontSize: '1rem'
+                              }}>
+                                {day.toLocaleDateString('en-US', { 
+                                  weekday: 'long', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </Typography>
+                              <Chip 
+                                label={`${dayMeetings.length} meeting${dayMeetings.length !== 1 ? 's' : ''}`}
+                                size="small"
+                                color={dayMeetings.length > 0 ? 'primary' : 'default'}
+                                variant={dayMeetings.length > 0 ? 'filled' : 'outlined'}
+                              />
+                            </Box>
+                            
+                            {/* Day meetings */}
+                            {dayMeetings.length > 0 ? (
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {dayMeetings
+                                  .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+                                  .map((meeting, meetingIndex) => (
+                                    <Box
+                                      key={meeting.id}
+                                      onClick={() => setSelectedMeeting(meeting)}
+                                      sx={{
+                                        p: 1.5,
+                                        borderRadius: 1,
+                                        border: 1,
+                                        borderColor: 'grey.200',
+                                        bgcolor: getStatusColor(meeting.status) === 'primary' ? 'primary.50' :
+                                                getStatusColor(meeting.status) === 'success' ? 'success.50' :
+                                                getStatusColor(meeting.status) === 'warning' ? 'warning.50' :
+                                                getStatusColor(meeting.status) === 'error' ? 'error.50' : 'grey.50',
+                                        cursor: 'pointer',
+                                        '&:hover': {
+                                          bgcolor: getStatusColor(meeting.status) === 'primary' ? 'primary.100' :
+                                                  getStatusColor(meeting.status) === 'success' ? 'success.100' :
+                                                  getStatusColor(meeting.status) === 'warning' ? 'warning.100' :
+                                                  getStatusColor(meeting.status) === 'error' ? 'error.100' : 'grey.100',
+                                          transform: 'scale(1.01)',
+                                          boxShadow: 1
+                                        }
+                                      }}
+                                    >
+                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <Box sx={{ flex: 1 }}>
+                                          <Typography variant="body2" sx={{ 
+                                            fontWeight: 'bold',
+                                            mb: 0.5,
+                                            fontSize: '0.9rem'
+                                          }}>
+                                            {meeting.title}
+                                          </Typography>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                            <AccessTime sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {formatTimeOnly(meeting.dateTime)} - {formatTimeOnly(new Date(meeting.dateTime.getTime() + meeting.duration * 60000))}
+                                            </Typography>
+                                          </Box>
+                                          {meeting.attendees && meeting.attendees.length > 0 && (
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                              <Person sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                {meeting.attendees.length} participant{meeting.attendees.length !== 1 ? 's' : ''}
+                                              </Typography>
+                                            </Box>
+                                          )}
+                                        </Box>
+                                        <Chip
+                                          label={meeting.status}
+                                          size="small"
+                                          color={getStatusColor(meeting.status)}
+                                          variant="outlined"
+                                          sx={{ fontSize: '0.7rem', height: 20 }}
+                                        />
+                                      </Box>
+                                    </Box>
+                                  ))}
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" sx={{ 
+                                color: 'text.secondary',
+                                fontStyle: 'italic',
+                                textAlign: 'center',
+                                py: 1
+                              }}>
+                                No meetings scheduled
+                              </Typography>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </Box>
                 ) : getEventDays().map((day, dayIndex) => {
                   const isToday = day.toDateString() === new Date().toDateString();
@@ -2884,7 +3055,7 @@ export default function MeetingsPage() {
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="info">Upcoming</Badge>}/>
                     <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
                     <Tab label={<Badge badgeContent={getCompletedCount()} color="success">Completed</Badge>}/>
-                    <Tab label="Cancelled" />
+                    <Tab label={<Badge badgeContent={getCancelledCount()} color="error">Cancelled</Badge>}/>
                   </Tabs>
                                   <Box sx={{ display: 'flex', gap: 1 }}>
                     
@@ -3007,7 +3178,7 @@ export default function MeetingsPage() {
                               color = 'info';
                             } else if (tabValue === 2 && isOngoingMeeting(meeting)) {
                               label = 'ongoing';
-                              color = 'success';
+                              color = 'warning';
                             } else if (tabValue === 3) {
                               label = 'completed';
                               color = 'success';

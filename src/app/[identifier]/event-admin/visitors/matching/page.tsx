@@ -96,6 +96,8 @@ export default function VisitorsMatchingPage() {
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
   // Add duplicateFields state
   const [duplicateFields, setDuplicateFields] = useState<Set<string>>(new Set());
+  // Add state for showing already registered visitors
+  const [showAlreadyRegistered, setShowAlreadyRegistered] = useState(false);
   
   // Display all mappings evenly distributed
 
@@ -419,9 +421,12 @@ export default function VisitorsMatchingPage() {
     setError('No mapping data found. Please upload an Excel file first.');
     setRegistrationResult(null);
     setRemovedFields(new Set());
+    setShowAlreadyRegistered(false);
     
     // Clear session storage - using visitors-specific keys
-    // No sessionStorage persistence
+    sessionStorage.removeItem(`visitors_mapping_${identifier}`);
+    sessionStorage.removeItem(`visitors_standard_fields_${identifier}`);
+    sessionStorage.removeItem(`visitors_file_storage_id_${identifier}`);
   };
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -843,11 +848,11 @@ export default function VisitorsMatchingPage() {
             <DialogTitle sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 2,
+              gap: 1,
               background: '#f8fafc',
               borderBottom: '1px solid #e5e7eb',
-              py: 2,
-              px: 3
+              py: 1,
+              px: 2
             }}>
               <Box sx={{ 
                 background: '#10b981',
@@ -857,10 +862,10 @@ export default function VisitorsMatchingPage() {
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <CheckCircle sx={{ fontSize: 20, color: 'white' }} />
+                <CheckCircle sx={{ fontSize: 15, color: 'white' }} />
               </Box>
               <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1f2937' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 500, color: '#1f2937' }}>
                   Registration Completed Successfully
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.85rem' }}>
@@ -876,25 +881,26 @@ export default function VisitorsMatchingPage() {
                     background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
                     border: '1px solid #bbf7d0',
                     borderRadius: 2,
-                    p: 3,
-                    mb: 2,
+                    p: 2,
+                    mb: 1,
+                    mt: 1,
                     textAlign: 'center',
                     boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
                   }}>
-                    <Box display="flex" alignItems="center" justifyContent="center" gap={2} mb={2}>
+                    <Box display="flex" alignItems="center" justifyContent="center" gap={2} mb={1}>
                       <Box sx={{ 
                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                         borderRadius: '50%',
-                        p: 1.5,
+                        p: 1,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                       }}>
-                        <Person sx={{ fontSize: 20, color: 'white' }} />
+                        <Person sx={{ fontSize: 15, color: 'white' }} />
                       </Box>
                       <Typography variant="h3" sx={{ 
-                        fontWeight: 700, 
+                        fontWeight: 600, 
                         color: '#065f46',
                         textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                       }}>
@@ -916,6 +922,119 @@ export default function VisitorsMatchingPage() {
                       Successfully processed and registered in the system
                     </Typography>
                   </Box>
+
+                                     {/* Already Registered Visitors Button */}
+                   {registrationResult.result.alredyRegisteredEmails && registrationResult.result.alredyRegisteredEmails.length > 0 && (
+                     <Box sx={{ mb: 1, textAlign: 'center' }}>
+                       <Button
+                         variant="outlined"
+                         onClick={() => setShowAlreadyRegistered(!showAlreadyRegistered)}
+                         sx={{
+                           border: '1px solid #3b82f6',
+                           color: '#1e40af',
+                           fontWeight: 500,
+                           px: 3,
+                           py: 1,
+                           borderRadius: 2,
+                           textTransform: 'none',
+                           fontSize: '0.9rem',
+                           background: 'rgba(59, 130, 246, 0.05)',
+                           '&:hover': {
+                             background: 'rgba(59, 130, 246, 0.1)',
+                             border: '1px solid #2563eb'
+                           }
+                         }}
+                         startIcon={<Person sx={{ fontSize: 18 }} />}
+                       >
+                         {showAlreadyRegistered ? 'Hide' : 'Show'} Already Registered Visitors ({registrationResult.result.alredyRegisteredEmails.length})
+                       </Button>
+                     </Box>
+                   )}
+
+                                     {/* Already Registered Visitors Section - Only show when button is clicked */}
+                   {showAlreadyRegistered && registrationResult.result.alredyRegisteredEmails && registrationResult.result.alredyRegisteredEmails.length > 0 && (
+                     <Box sx={{ 
+                       background: 'linear-gradient(135deg,rgb(237, 241, 245) 0%,rgb(241, 245, 250) 100%)',
+                       border: '1px solid #3b82f6',
+                       borderRadius: 2,
+                       p: 2,
+                       mb: 2,
+                       boxShadow: '0 2px 8px rgba(59, 130, 246, 0.1)',
+                       animation: 'slideDown 0.3s ease-out'
+                     }}>
+                       <Box display="flex" alignItems="center" gap={2} mb={2}>
+                         <Box sx={{ 
+                           background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                           borderRadius: '50%',
+                           p: 1,
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                         }}>
+                           <Person sx={{ fontSize: 17, color: 'white' }} />
+                         </Box>
+                         <Box>
+                           <Typography variant="h6" sx={{ 
+                             fontWeight: 600, 
+                             color: '#1e40af', 
+                             mb: 0.5
+                           }}>
+                             Already Registered Visitors
+                           </Typography>
+                           <Typography variant="body2" sx={{ 
+                             color: '#1d4ed8',
+                             opacity: 0.8,
+                             fontSize: '0.9rem'
+                           }}>
+                             {registrationResult.result.alredyRegisteredEmails.length} visitors were already registered
+                           </Typography>
+                         </Box>
+                       </Box>
+                       
+                       {/* Email List */}
+                       <Box sx={{ 
+                         maxHeight: 200, 
+                         overflowY: 'auto',
+                         background: 'rgba(255, 255, 255, 0.5)',
+                         borderRadius: 1,
+                         p: 1,
+                         border: '1px solid rgba(59, 130, 246, 0.2)'
+                       }}>
+                         <Typography variant="body2" sx={{ 
+                           fontWeight: 600, 
+                           color: '#1e40af', 
+                           mb: 1,
+                           fontSize: '0.85rem'
+                         }}>
+                           Already registered emails:
+                         </Typography>
+                         <Box sx={{ 
+                           display: 'grid', 
+                           gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                           gap: 1
+                         }}>
+                           {registrationResult.result.alredyRegisteredEmails.map((email, index) => (
+                             <Typography 
+                               key={index}
+                               variant="body2" 
+                               sx={{ 
+                                 color: '#1d4ed8',
+                                 fontSize: '0.8rem',
+                                 fontFamily: 'monospace',
+                                 p: 0.5,
+                                 borderRadius: 0.5,
+                                 background: 'rgba(255, 255, 255, 0.3)',
+                                 border: '1px solid rgba(59, 130, 246, 0.1)'
+                               }}
+                             >
+                               {email}
+                             </Typography>
+                           ))}
+                         </Box>
+                       </Box>
+                     </Box>
+                   )}
                 </Box>
               )}
             </DialogContent>
@@ -1011,6 +1130,18 @@ export default function VisitorsMatchingPage() {
             @keyframes bounce {
               0% { transform: translateY(0); }
               100% { transform: translateY(-4px); }
+            }
+            @keyframes slideDown {
+              0% { 
+                opacity: 0;
+                transform: translateY(-10px);
+                max-height: 0;
+              }
+              100% { 
+                opacity: 1;
+                transform: translateY(0);
+                max-height: 500px;
+              }
             }
           `}</style>
         </Container>

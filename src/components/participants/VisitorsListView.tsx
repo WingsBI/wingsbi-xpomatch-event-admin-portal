@@ -167,7 +167,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
             </Typography>
           </Box>
 
-          {!isEventAdmin() && (
+          {/* {!isEventAdmin() && (
             <IconButton onClick={handleFavoriteClick} disabled={isLoadingFavorite || isCheckingInitialState} size="large" sx={{ position: 'absolute', top: 0, right: 8, p: 0.5, mr: 0.5 }}>
               {(isLoadingFavorite || isCheckingInitialState) ? (
                 <CircularProgress size={20} sx={{ color: '#b0bec5' }} />
@@ -177,7 +177,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
                 <FavoriteBorder sx={{ fontSize: 20, color: '#b0bec5' }} />
               )}
             </IconButton>
-          )}
+          )} */}
         </Box>
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>

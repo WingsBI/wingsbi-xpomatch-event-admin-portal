@@ -48,6 +48,7 @@ import {
   Event,
   Person,
   Business,
+  
   Settings,
   Logout,
   AdminPanelSettings,
@@ -81,6 +82,8 @@ import {
 } from '@/store/slices/appSlice';
 import { logoutUser } from '@/store/slices/authSlice';
 import { useRoleAccess } from '@/context/RoleAccessContext';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 
 interface ResponsiveDashboardLayoutProps {
   children: ReactNode;
@@ -143,6 +146,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     // Exhibitor-specific navigation with role-based permissions
     baseItems = [
       { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard/exhibitor_dashboard`, children: [] },
+      
     ];
     
     // Show Visitors tab only if visitor permission is true
@@ -171,6 +175,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     if (permissions?.isFavorite) {
       baseItems.push({ text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] });
     }
+    baseItems.push({ text: 'Interested Users', icon: <HowToRegIcon />, href: `/${identifier}/exhibitors/interested_user`, children: [] });
     
     baseItems.push({
       text: 'Settings', 
@@ -178,8 +183,11 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       children: [
          { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
          { text: 'Exhibitor Profile', href: `/${identifier}/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },
-      ]
+      
+        ]
+      
     });
+   
     
   } else {
     // Default for event-admin role - full navigation (event-admin has all permissions)

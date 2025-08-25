@@ -37,6 +37,10 @@ const nextConfig = {
         destination: '/:identifier/event-admin/exhibitors/matching',
       },
       {
+        source: '/:identifier/exhibitors/interested_user',
+        destination: '/:identifier/event-admin/exhibitors/interested_user',
+      },
+      {
         source: '/:identifier/exhibitors/exhibitor_details',
         destination: '/:identifier/event-admin/exhibitors/exhibitor_details',
       },

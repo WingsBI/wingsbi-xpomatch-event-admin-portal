@@ -206,6 +206,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
         { text: 'Content Matchmaking Settings', href: `/${identifier}/weightage`, children: [] },
         { text: 'Role Based settings', href: `/${identifier}/exhibitor_visitor_settings`, children: [] },
+        { text: 'Simulation', href: `/${identifier}/simulation`, children: [] },
       ] },
     ];
   }

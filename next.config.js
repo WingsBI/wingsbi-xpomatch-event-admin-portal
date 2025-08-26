@@ -64,6 +64,10 @@ const nextConfig = {
         source: '/:identifier/exhibitor_visitor_settings',
         destination: '/:identifier/event-admin/exhibitor_visitor_settings',
       },
+      {
+        source: '/:identifier/simulation',
+        destination: '/:identifier/event-admin/simulation',
+      },
       
       // Dashboard sub-routes
       {

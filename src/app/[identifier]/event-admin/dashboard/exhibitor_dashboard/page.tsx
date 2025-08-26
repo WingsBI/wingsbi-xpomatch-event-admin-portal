@@ -28,7 +28,8 @@ import {
   Fade,
   Slide,
   useTheme,
-  alpha
+  alpha,
+  Tooltip
 } from '@mui/material';
 import {
   Business,
@@ -45,7 +46,8 @@ import {
   Close,
   ArrowBackIos,
   ArrowForwardIos,
-  BusinessCenter
+  BusinessCenter,
+  Refresh
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
@@ -59,6 +61,7 @@ import { FavoritesManager } from '@/utils/favoritesManager';
 import { TransformedVisitor } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { getLoginFirstTime, markLoginCompleted } from '@/utils/cookieManager';
 
 
 export default function ExhibitorDashboard() {
@@ -74,6 +77,44 @@ export default function ExhibitorDashboard() {
   const [exhibitorRecommendations, setExhibitorRecommendations] = useState<any[]>([]);
   const [exhibitorId, setExhibitorId] = useState<number | null>(null);
 
+  // Function to manually check and update refresh icon state
+  const updateRefreshIconState = () => {
+    const shouldEnable = getLoginFirstTime();
+    setRefreshIconEnabled(shouldEnable);
+    console.log('🔄 Refresh icon state updated:', shouldEnable ? 'enabled (blue)' : 'disabled (gray)');
+    console.log('🔄 Raw cookie value:', shouldEnable);
+  };
+
+  // Monitor login first time flag for refresh icon state
+  useEffect(() => {
+    // Check initially
+    updateRefreshIconState();
+
+    // Set up an interval to check for changes (in case profile is updated in another tab)
+    const interval = setInterval(updateRefreshIconState, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Also check when component gains focus (when user returns from profile page)
+  useEffect(() => {
+    const handleFocus = () => {
+      updateRefreshIconState();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        updateRefreshIconState();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, []);
+
   // Fetch exhibitor recommendations
   useEffect(() => {
     const fetchExhibitorRecommendations = async () => {
@@ -82,10 +123,40 @@ export default function ExhibitorDashboard() {
         setExhibitorId(currentExhibitorId);
         
         if (currentExhibitorId && identifier) {
-          // Fetch exhibitor recommendations
-          const response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
+          const isFirstLogin = getLoginFirstTime();
+          let response;
+          
+          if (isFirstLogin) {
+            // First time login or profile updated - call the matchmaking API
+            console.log('First time login or profile updated - calling getExhibitortoExhibitorMatch API');
+            response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
+          } else {
+            // Subsequent logins - try cached recommendations API first
+            console.log('Subsequent login - calling getAllExhibitorRecommendationByExhibitorId API');
+            response = await ExhibitormatchmakingApi.getAllExhibitorRecommendationByExhibitorId(identifier, currentExhibitorId);
+            
+            // If cached API returns empty/error, fallback to first-time API (user might be truly new)
+            if (!response || response.isError || !response.result || 
+                (Array.isArray(response.result) ? response.result.length === 0 : 
+                 (!response.result.exhibitorDetails || response.result.exhibitorDetails.length === 0))) {
+              console.log('No cached data found, falling back to first-time API for exhibitors');
+              response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
+            }
+          }
+          
           if (response && response.result) {
-            const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+            // Handle different response structures
+            let exhibitorData;
+            if (Array.isArray(response.result)) {
+              // First time API returns array directly
+              exhibitorData = response.result;
+              console.log('Using direct array response for exhibitors, count:', exhibitorData.length);
+            } else {
+              // Cached API returns object with exhibitorDetails array
+              exhibitorData = response.result.exhibitorDetails || [];
+              console.log('Using exhibitorDetails from cached response, count:', exhibitorData.length);
+            }
+            const sorted = exhibitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setExhibitorRecommendations(sorted);
           }
           
@@ -131,6 +202,8 @@ export default function ExhibitorDashboard() {
   const [favoriteVisitorIds, setFavoriteVisitorIds] = useState(new Set());
   const [favoriteExhibitorIds, setFavoriteExhibitorIds] = useState(new Set());
   const [loadingFavoriteId, setLoadingFavoriteId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshIconEnabled, setRefreshIconEnabled] = useState(false);
 
   // Dialog state for visitor details
   const [selectedVisitorId, setSelectedVisitorId] = useState<number | null>(null);
@@ -139,6 +212,63 @@ export default function ExhibitorDashboard() {
   const handleNameClick = (visitorId: number) => {
     setSelectedVisitorId(visitorId);
     setDialogOpen(true);
+  };
+
+  // Refresh recommendations function
+  const handleRefreshRecommendations = async () => {
+    if (!refreshIconEnabled || isRefreshing) return; // Only allow refresh if flag is true and not already refreshing
+    
+    setIsRefreshing(true);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const currentExhibitorId = await getCurrentExhibitorId();
+      if (!currentExhibitorId || !identifier) {
+        setError('Unable to refresh recommendations');
+        return;
+      }
+
+      console.log('Refreshing recommendations - calling first-time APIs');
+      
+      // Call both first-time APIs to get fresh recommendations
+      const [exhibitorResponse, visitorResponse] = await Promise.all([
+        ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId),
+        ExhibitormatchmakingApi.getExhibitorMatch(identifier, currentExhibitorId, null)
+      ]);
+
+      // Handle exhibitor recommendations
+      if (exhibitorResponse && exhibitorResponse.result) {
+        const exhibitorData = Array.isArray(exhibitorResponse.result) 
+          ? exhibitorResponse.result 
+          : exhibitorResponse.result.exhibitorDetails || [];
+        const sortedExhibitors = exhibitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+        setExhibitorRecommendations(sortedExhibitors);
+        console.log('Refreshed exhibitor recommendations count:', sortedExhibitors.length);
+      }
+
+      // Handle visitor recommendations  
+      if (visitorResponse && !visitorResponse.isError && visitorResponse.result) {
+        const visitorData = Array.isArray(visitorResponse.result)
+          ? visitorResponse.result
+          : visitorResponse.result.visitorDetails || [];
+        const sortedVisitors = visitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+        setRecommendations(sortedVisitors);
+        console.log('Refreshed visitor recommendations count:', sortedVisitors.length);
+      }
+
+      // Mark as completed - set first login flag to false
+      markLoginCompleted();
+      setRefreshIconEnabled(false); // Update icon state immediately
+      console.log('Recommendations refreshed successfully - flag set to false');
+      
+    } catch (error) {
+      console.error('Error refreshing recommendations:', error);
+      setError('Failed to refresh recommendations');
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
+    }
   };
 
 
@@ -187,21 +317,58 @@ export default function ExhibitorDashboard() {
           const exhibitorId = getCurrentExhibitorId();
           if (!exhibitorId) throw new Error('Exhibitor ID not found');
           
-          // Fetch visitor recommendations
-          const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
+          const isFirstLogin = getLoginFirstTime();
+          let response;
+          
+          if (isFirstLogin) {
+            // First time login or profile updated - call the matchmaking API
+            console.log('First time login or profile updated - calling getExhibitorMatch API');
+            response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
+          } else {
+            // Subsequent logins - try cached recommendations API first
+            console.log('Subsequent login - calling getAllVisitorRecommendationByExhibitorId API');
+            response = await ExhibitormatchmakingApi.getAllVisitorRecommendationByExhibitorId(identifier, exhibitorId);
+            
+            // If cached API returns empty/error, fallback to first-time API (user might be truly new)
+            if (!response || response.isError || !response.result || 
+                (Array.isArray(response.result) ? response.result.length === 0 : 
+                 (!response.result.visitorDetails || response.result.visitorDetails.length === 0))) {
+              console.log('No cached data found, falling back to first-time API for visitors');
+              response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
+            }
+          }
+          
           console.log("responseee", response);
           if (response.isError) {
             setError(response.message || 'Failed to fetch recommendations');
             setRecommendations([]);
           } else {
+            // Handle different response structures
+            let visitorData;
+            if (Array.isArray(response.result)) {
+              // First time API returns array directly
+              visitorData = response.result;
+              console.log('Using direct array response for visitors, count:', visitorData.length);
+            } else {
+              // Cached API returns object with visitorDetails array
+              visitorData = response.result.visitorDetails || [];
+              console.log('Using visitorDetails from cached response, count:', visitorData.length);
+            }
             // Sort by matchPercentage descending
-            const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+            const sorted = visitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setRecommendations(sorted);
             
             // Also fetch favorited visitors to update favorite state
             const favoriteVisitors = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
             const favoriteVisitorIds = favoriteVisitors.map((favorite: any) => favorite.visitorId.toString());
             setFavoriteVisitorIds(new Set(favoriteVisitorIds));
+            
+            // Mark login as completed for future visits if this was the first login
+            if (isFirstLogin) {
+              markLoginCompleted();
+              setRefreshIconEnabled(false); // Update icon state immediately
+              console.log('First time login completed - marked for subsequent optimized API calls');
+            }
           }
         } catch (err: any) {
           setError(err.message || 'An error occurred while fetching recommendations');
@@ -561,8 +728,9 @@ export default function ExhibitorDashboard() {
           <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
               <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
-              Recommended Visitors for You
-            </Typography>
+                Recommended Visitors for You
+              </Typography>
+             
             </Box>
             <AnimatePresence mode="wait" custom={pageDirection}>
               <motion.div

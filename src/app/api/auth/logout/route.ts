@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
       ...cookieOptions,
       httpOnly: false,
     });
+    response.cookies.set('event-identifier', '', cookieOptions);
+    response.cookies.set('user-role', '', cookieOptions);
+    response.cookies.set('user-email', '', cookieOptions);
+    // Note: We intentionally don't clear 'login-first-time' cookie as it should persist across sessions
 
     return response;
 

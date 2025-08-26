@@ -16,6 +16,8 @@ export const COOKIE_NAMES = {
   EVENT_IDENTIFIER: 'event-identifier',
   USER_ROLE: 'user-role',
   USER_EMAIL: 'user-email',
+  LOGIN_FIRST_TIME: 'login-first-time',
+  VISITOR_LOGIN_FIRST_TIME: 'visitor-login-first-time',
 } as const;
 
 /**
@@ -62,13 +64,16 @@ export function removeCookie(name: string, options?: any) {
 }
 
 /**
- * Clear all authentication cookies
+ * Clear all authentication cookies (except LOGIN_FIRST_TIME and VISITOR_LOGIN_FIRST_TIME)
  */
 export function clearAllAuthCookies() {
   Object.values(COOKIE_NAMES).forEach(cookieName => {
-    removeCookie(cookieName);
+    // Don't clear LOGIN_FIRST_TIME or VISITOR_LOGIN_FIRST_TIME flags during logout - only profile updates should reset them
+    if (cookieName !== COOKIE_NAMES.LOGIN_FIRST_TIME && cookieName !== COOKIE_NAMES.VISITOR_LOGIN_FIRST_TIME) {
+      removeCookie(cookieName);
+    }
   });
-  console.log('All authentication cookies cleared');
+  console.log('All authentication cookies cleared (except login first time flags)');
 }
 
 /**
@@ -254,4 +259,73 @@ export function isEventAdmin(): boolean {
     console.error('Error checking if user is event-admin:', error);
     return false;
   }
+}
+
+/**
+ * Set login first time flag
+ */
+export function setLoginFirstTime(isFirstTime: boolean) {
+  setCookie(COOKIE_NAMES.LOGIN_FIRST_TIME, isFirstTime);
+}
+
+/**
+ * Get login first time flag
+ */
+export function getLoginFirstTime(): boolean {
+  const value = getCookie(COOKIE_NAMES.LOGIN_FIRST_TIME);
+  // Default to false if cookie doesn't exist (returning user, no profile update needed)
+  return value === null ? false : value;
+}
+
+/**
+ * Mark login as completed (set first time to false)
+ */
+export function markLoginCompleted() {
+  setLoginFirstTime(false);
+}
+
+/**
+ * Mark profile as updated (set first time to true) - to trigger fresh recommendations
+ */
+export function markProfileUpdated() {
+  setLoginFirstTime(true);
+  console.log('Profile marked as updated - refresh icon should now be enabled');
+}
+
+/**
+ * Mark user as truly first time (for new registrations)
+ */
+export function markFirstTimeUser() {
+  setLoginFirstTime(true);
+}
+
+/**
+ * Set visitor login first time flag
+ */
+export function setVisitorLoginFirstTime(isFirstTime: boolean) {
+  setCookie(COOKIE_NAMES.VISITOR_LOGIN_FIRST_TIME, isFirstTime);
+}
+
+/**
+ * Get visitor login first time flag
+ */
+export function getVisitorLoginFirstTime(): boolean {
+  const value = getCookie(COOKIE_NAMES.VISITOR_LOGIN_FIRST_TIME);
+  // Default to true if cookie doesn't exist (first time visitor)
+  return value === null ? true : value;
+}
+
+/**
+ * Mark visitor login as completed (set first time to false)
+ */
+export function markVisitorLoginCompleted() {
+  setVisitorLoginFirstTime(false);
+}
+
+/**
+ * Mark visitor profile as updated (set first time to true) - to trigger fresh recommendations
+ */
+export function markVisitorProfileUpdated() {
+  setVisitorLoginFirstTime(true);
+  console.log('Visitor profile marked as updated - refresh icon should now be enabled');
 } 

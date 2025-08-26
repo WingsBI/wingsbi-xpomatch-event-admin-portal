@@ -19,7 +19,8 @@ import {
   Button,
   Pagination,
   useTheme,
-  alpha
+  alpha,
+  Tooltip
 } from '@mui/material';
 import {
   Business,
@@ -35,16 +36,18 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowBackIos,
-  ArrowForwardIos
+  ArrowForwardIos,
+  Refresh
 } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
 import { useAuth } from '@/context/AuthContext';
-import { matchmakingApi } from '@/services/apiService';
+import { matchmakingApi, ExhibitormatchmakingApi } from '@/services/apiService';
 import { theme } from '@/lib/theme';
 import { getCurrentVisitorId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
+import { getVisitorLoginFirstTime, markVisitorLoginCompleted } from '@/utils/cookieManager';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 
@@ -71,6 +74,8 @@ export default function VisitorDashboard() {
   const router = useRouter();
   const [exhibitorDialogOpen, setExhibitorDialogOpen] = useState(false);
   const [selectedExhibitorId, setSelectedExhibitorId] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshIconEnabled, setRefreshIconEnabled] = useState(false);
 
   // Normalize asset URLs coming from API (which may be relative like "/logos/xyz.png")
   const normalizeAssetUrl = (path?: string | null): string | null => {
@@ -82,6 +87,32 @@ export default function VisitorDashboard() {
 
   const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
   const identifier = pathParts[1] || '';
+
+  // Function to manually check and update refresh icon state
+  const updateRefreshIconState = () => {
+    const shouldEnable = getVisitorLoginFirstTime();
+    setRefreshIconEnabled(shouldEnable);
+    console.log('🔄 Visitor Dashboard - Refresh icon state updated:', shouldEnable ? 'enabled (blue)' : 'disabled (gray)');
+    console.log('🔄 Raw visitor cookie value:', shouldEnable);
+  };
+
+  // Monitor login first time flag for refresh icon state
+  useEffect(() => {
+    // Check initially
+    updateRefreshIconState();
+
+    // Set up an interval to check for changes (in case profile is updated in another tab)
+    const interval = setInterval(updateRefreshIconState, 2000);
+
+    // Also check when window gains focus
+    const handleFocus = () => updateRefreshIconState();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   // Load favorites for the visitor on mount
   useEffect(() => {
@@ -147,14 +178,45 @@ export default function VisitorDashboard() {
         setError(null);
         try {
           console.log('Visitor Dashboard - Calling API with visitorId:', visitorId, 'for identifier:', identifier);
-          const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
+          
+          const isVisitorFirstLogin = getVisitorLoginFirstTime();
+          let response;
+          
+          if (isVisitorFirstLogin) {
+            // First time visitor login or profile updated - call the matchmaking API
+            console.log('🔄 Visitor first time login or profile updated - calling getVisitorMatch API');
+            response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
+          } else {
+            // Subsequent logins - call the cached recommendations API
+            console.log('🔄 Visitor subsequent login - calling getAllExhibitorRecommendationByVisitorId API');
+            response = await ExhibitormatchmakingApi.getAllExhibitorRecommendationByVisitorId(identifier, visitorId);
+          }
+          
           if (response.isError) {
             setError(response.message || 'Failed to fetch recommendations');
             setRecommendations([]);
           } else {
+            // Handle different response structures
+            let exhibitorData;
+            if (Array.isArray(response.result)) {
+              // First time API returns array directly
+              exhibitorData = response.result;
+              console.log('Using direct array response from first-time API');
+            } else {
+              // Cached API might return object with exhibitorDetails array
+              exhibitorData = response.result.exhibitorDetails || response.result || [];
+              console.log('Using nested response from cached API');
+            }
             // Sort by matchPercentage descending
-            const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+            const sorted = exhibitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setRecommendations(sorted);
+            
+            // Mark visitor login as completed for future visits if this was the first login
+            if (isVisitorFirstLogin) {
+              markVisitorLoginCompleted();
+              setRefreshIconEnabled(false); // Update icon state immediately
+              console.log('🔄 Visitor first time login completed - marked for subsequent optimized API calls');
+            }
           }
         } catch (err: any) {
           setError(err.message || 'An error occurred while fetching recommendations');
@@ -200,6 +262,50 @@ export default function VisitorDashboard() {
   const handleCompanyNameClick = (exhibitorId: number) => {
     setSelectedExhibitorId(exhibitorId);
     setExhibitorDialogOpen(true);
+  };
+
+  // Refresh recommendations function
+  const handleRefreshRecommendations = async () => {
+    if (!refreshIconEnabled || isRefreshing) return; // Only allow refresh if flag is true and not already refreshing
+    
+    setIsRefreshing(true);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const visitorId = getCurrentVisitorId();
+      if (!visitorId || !identifier) {
+        setError('Unable to refresh recommendations');
+        return;
+      }
+
+      console.log('Refreshing visitor recommendations - calling first-time API (getVisitorMatch)');
+      
+      // Call the first-time API to get fresh recommendations
+      const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
+      
+      if (response.isError) {
+        setError(response.message || 'Failed to refresh recommendations');
+        setRecommendations([]);
+      } else {
+        // Sort by matchPercentage descending
+        const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+        setRecommendations(sorted);
+        console.log('Visitor recommendations refreshed successfully:', sorted.length, 'recommendations');
+      }
+
+      // Mark as completed - set visitor first login flag to false
+      markVisitorLoginCompleted();
+      setRefreshIconEnabled(false); // Update icon state immediately
+      console.log('🔄 Visitor recommendations refreshed successfully - flag set to false');
+      
+    } catch (error) {
+      console.error('Error refreshing visitor recommendations:', error);
+      setError('Failed to refresh recommendations');
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
+    }
   };
 
   // Show loading skeleton when fetching exhibitor details

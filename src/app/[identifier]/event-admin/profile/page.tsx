@@ -35,7 +35,7 @@ import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { RootState } from '@/store';
 import { getCurrentVisitorId, getCurrentExhibitorId, getCurrentUserId } from '@/utils/authUtils';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
-import { markVisitorProfileUpdated } from '@/utils/cookieManager';
+
 
 interface ProfileData {
   id?: number;
@@ -226,9 +226,6 @@ export default function ProfileSettingsPage() {
       // Call the new API
       const result = await fieldMappingApi.updateVisitorEmbeddings(identifier, updateBody);
       if (result && !result.isError) {
-        // Mark visitor profile as updated to enable refresh icon in visitor dashboard
-        markVisitorProfileUpdated();
-        
         setSuccess('Profile updated successfully');
         // Reload profile data to show updated profile
         await loadProfileData();

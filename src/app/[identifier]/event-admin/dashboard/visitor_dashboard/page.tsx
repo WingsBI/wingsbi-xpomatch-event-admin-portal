@@ -47,7 +47,7 @@ import { matchmakingApi, ExhibitormatchmakingApi } from '@/services/apiService';
 import { theme } from '@/lib/theme';
 import { getCurrentVisitorId } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
-import { getVisitorLoginFirstTime, markVisitorLoginCompleted } from '@/utils/cookieManager';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 
@@ -88,31 +88,7 @@ export default function VisitorDashboard() {
   const pathParts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
   const identifier = pathParts[1] || '';
 
-  // Function to manually check and update refresh icon state
-  const updateRefreshIconState = () => {
-    const shouldEnable = getVisitorLoginFirstTime();
-    setRefreshIconEnabled(shouldEnable);
-    console.log('🔄 Visitor Dashboard - Refresh icon state updated:', shouldEnable ? 'enabled (blue)' : 'disabled (gray)');
-    console.log('🔄 Raw visitor cookie value:', shouldEnable);
-  };
 
-  // Monitor login first time flag for refresh icon state
-  useEffect(() => {
-    // Check initially
-    updateRefreshIconState();
-
-    // Set up an interval to check for changes (in case profile is updated in another tab)
-    const interval = setInterval(updateRefreshIconState, 2000);
-
-    // Also check when window gains focus
-    const handleFocus = () => updateRefreshIconState();
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
 
   // Load favorites for the visitor on mount
   useEffect(() => {
@@ -179,44 +155,25 @@ export default function VisitorDashboard() {
         try {
           console.log('Visitor Dashboard - Calling API with visitorId:', visitorId, 'for identifier:', identifier);
           
-          const isVisitorFirstLogin = getVisitorLoginFirstTime();
-          let response;
-          
-          if (isVisitorFirstLogin) {
-            // First time visitor login or profile updated - call the matchmaking API
-            console.log('🔄 Visitor first time login or profile updated - calling getVisitorMatch API');
-            response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
-          } else {
-            // Subsequent logins - call the cached recommendations API
-            console.log('🔄 Visitor subsequent login - calling getAllExhibitorRecommendationByVisitorId API');
-            response = await ExhibitormatchmakingApi.getAllExhibitorRecommendationByVisitorId(identifier, visitorId);
-          }
+          console.log('🔄 Calling getVisitorMatch API');
+          const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
           
           if (response.isError) {
             setError(response.message || 'Failed to fetch recommendations');
             setRecommendations([]);
           } else {
-            // Handle different response structures
+            // Handle response structure
             let exhibitorData;
             if (Array.isArray(response.result)) {
-              // First time API returns array directly
               exhibitorData = response.result;
-              console.log('Using direct array response from first-time API');
+              console.log('Using direct array response from API');
             } else {
-              // Cached API might return object with exhibitorDetails array
               exhibitorData = response.result.exhibitorDetails || response.result || [];
-              console.log('Using nested response from cached API');
+              console.log('Using nested response from API');
             }
             // Sort by matchPercentage descending
             const sorted = exhibitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setRecommendations(sorted);
-            
-            // Mark visitor login as completed for future visits if this was the first login
-            if (isVisitorFirstLogin) {
-              markVisitorLoginCompleted();
-              setRefreshIconEnabled(false); // Update icon state immediately
-              console.log('🔄 Visitor first time login completed - marked for subsequent optimized API calls');
-            }
           }
         } catch (err: any) {
           setError(err.message || 'An error occurred while fetching recommendations');
@@ -294,10 +251,7 @@ export default function VisitorDashboard() {
         console.log('Visitor recommendations refreshed successfully:', sorted.length, 'recommendations');
       }
 
-      // Mark as completed - set visitor first login flag to false
-      markVisitorLoginCompleted();
-      setRefreshIconEnabled(false); // Update icon state immediately
-      console.log('🔄 Visitor recommendations refreshed successfully - flag set to false');
+      console.log('🔄 Visitor recommendations refreshed successfully');
       
     } catch (error) {
       console.error('Error refreshing visitor recommendations:', error);

@@ -285,8 +285,8 @@ export default function SimulationPage() {
   };
 
   const getMatchScoreColor = (score: number) => {
-    if (score >= 80) return '#2e7d32'; // Green
-    if (score >= 50) return '#ed6c02'; // Orange
+    if (score >= 80) return '#d32f2f'; // Green
+    if (score >= 50) return '#d32f2f'; // Orange
     return '#d32f2f'; // Red
   };
 
@@ -617,7 +617,7 @@ export default function SimulationPage() {
   return (
     <ResponsiveDashboardLayout title="Matchmaking Simulation">
       <Container maxWidth="lg" sx={{ py: 4, mt: -1}}>
-        <Typography variant="h5" component="h1" gutterBottom sx={{ mb: 1, fontWeight: 600 ,mt: -4}}>
+      <Typography variant="h5" component="h1" fontWeight="500" sx={{ mb: 1, lineHeight: 1.1,mt: -4 }} >
           Matchmaking Simulation
         </Typography>
 

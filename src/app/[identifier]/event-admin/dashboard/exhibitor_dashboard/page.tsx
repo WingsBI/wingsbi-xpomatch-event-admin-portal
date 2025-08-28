@@ -61,8 +61,6 @@ import { FavoritesManager } from '@/utils/favoritesManager';
 import { TransformedVisitor } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { getLoginFirstTime, markLoginCompleted } from '@/utils/cookieManager';
-
 
 export default function ExhibitorDashboard() {
   const searchParams = useSearchParams();
@@ -77,44 +75,6 @@ export default function ExhibitorDashboard() {
   const [exhibitorRecommendations, setExhibitorRecommendations] = useState<any[]>([]);
   const [exhibitorId, setExhibitorId] = useState<number | null>(null);
 
-  // Function to manually check and update refresh icon state
-  const updateRefreshIconState = () => {
-    const shouldEnable = getLoginFirstTime();
-    setRefreshIconEnabled(shouldEnable);
-    console.log('🔄 Refresh icon state updated:', shouldEnable ? 'enabled (blue)' : 'disabled (gray)');
-    console.log('🔄 Raw cookie value:', shouldEnable);
-  };
-
-  // Monitor login first time flag for refresh icon state
-  useEffect(() => {
-    // Check initially
-    updateRefreshIconState();
-
-    // Set up an interval to check for changes (in case profile is updated in another tab)
-    const interval = setInterval(updateRefreshIconState, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Also check when component gains focus (when user returns from profile page)
-  useEffect(() => {
-    const handleFocus = () => {
-      updateRefreshIconState();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        updateRefreshIconState();
-      }
-    });
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleFocus);
-    };
-  }, []);
-
   // Fetch exhibitor recommendations
   useEffect(() => {
     const fetchExhibitorRecommendations = async () => {
@@ -123,38 +83,20 @@ export default function ExhibitorDashboard() {
         setExhibitorId(currentExhibitorId);
         
         if (currentExhibitorId && identifier) {
-          const isFirstLogin = getLoginFirstTime();
-          let response;
-          
-          if (isFirstLogin) {
-            // First time login or profile updated - call the matchmaking API
-            console.log('First time login or profile updated - calling getExhibitortoExhibitorMatch API');
-            response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
-          } else {
-            // Subsequent logins - try cached recommendations API first
-            console.log('Subsequent login - calling getAllExhibitorRecommendationByExhibitorId API');
-            response = await ExhibitormatchmakingApi.getAllExhibitorRecommendationByExhibitorId(identifier, currentExhibitorId);
-            
-            // If cached API returns empty/error, fallback to first-time API (user might be truly new)
-            if (!response || response.isError || !response.result || 
-                (Array.isArray(response.result) ? response.result.length === 0 : 
-                 (!response.result.exhibitorDetails || response.result.exhibitorDetails.length === 0))) {
-              console.log('No cached data found, falling back to first-time API for exhibitors');
-              response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
-            }
-          }
+          console.log('Calling getExhibitortoExhibitorMatch API');
+          const response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
           
           if (response && response.result) {
             // Handle different response structures
             let exhibitorData;
             if (Array.isArray(response.result)) {
-              // First time API returns array directly
+              // API returns array directly
               exhibitorData = response.result;
               console.log('Using direct array response for exhibitors, count:', exhibitorData.length);
             } else {
-              // Cached API returns object with exhibitorDetails array
+              // API returns object with exhibitorDetails array
               exhibitorData = response.result.exhibitorDetails || [];
-              console.log('Using exhibitorDetails from cached response, count:', exhibitorData.length);
+              console.log('Using exhibitorDetails from response, count:', exhibitorData.length);
             }
             const sorted = exhibitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
             setExhibitorRecommendations(sorted);
@@ -174,7 +116,6 @@ export default function ExhibitorDashboard() {
       fetchExhibitorRecommendations();
     }
   }, [identifier]);
-
 
   // Pagination hooks must be at the top level
   // Pagination for visitor recommendations
@@ -203,7 +144,6 @@ export default function ExhibitorDashboard() {
   const [favoriteExhibitorIds, setFavoriteExhibitorIds] = useState(new Set());
   const [loadingFavoriteId, setLoadingFavoriteId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshIconEnabled, setRefreshIconEnabled] = useState(false);
 
   // Dialog state for visitor details
   const [selectedVisitorId, setSelectedVisitorId] = useState<number | null>(null);
@@ -216,7 +156,7 @@ export default function ExhibitorDashboard() {
 
   // Refresh recommendations function
   const handleRefreshRecommendations = async () => {
-    if (!refreshIconEnabled || isRefreshing) return; // Only allow refresh if flag is true and not already refreshing
+    if (isRefreshing) return;
     
     setIsRefreshing(true);
     setLoading(true);
@@ -229,9 +169,9 @@ export default function ExhibitorDashboard() {
         return;
       }
 
-      console.log('Refreshing recommendations - calling first-time APIs');
+      console.log('Refreshing recommendations - calling matchmaking APIs');
       
-      // Call both first-time APIs to get fresh recommendations
+      // Call both matchmaking APIs to get fresh recommendations
       const [exhibitorResponse, visitorResponse] = await Promise.all([
         ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId),
         ExhibitormatchmakingApi.getExhibitorMatch(identifier, currentExhibitorId, null)
@@ -256,11 +196,6 @@ export default function ExhibitorDashboard() {
         setRecommendations(sortedVisitors);
         console.log('Refreshed visitor recommendations count:', sortedVisitors.length);
       }
-
-      // Mark as completed - set first login flag to false
-      markLoginCompleted();
-      setRefreshIconEnabled(false); // Update icon state immediately
-      console.log('Recommendations refreshed successfully - flag set to false');
       
     } catch (error) {
       console.error('Error refreshing recommendations:', error);
@@ -270,8 +205,6 @@ export default function ExhibitorDashboard() {
       setLoading(false);
     }
   };
-
-
 
   // Toggle handler for visitor-to-exhibitor favorites (recommended visitors section)
   const handleVisitorFavoriteToggle = async (visitorId: string) => {
@@ -317,26 +250,8 @@ export default function ExhibitorDashboard() {
           const exhibitorId = getCurrentExhibitorId();
           if (!exhibitorId) throw new Error('Exhibitor ID not found');
           
-          const isFirstLogin = getLoginFirstTime();
-          let response;
-          
-          if (isFirstLogin) {
-            // First time login or profile updated - call the matchmaking API
-            console.log('First time login or profile updated - calling getExhibitorMatch API');
-            response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
-          } else {
-            // Subsequent logins - try cached recommendations API first
-            console.log('Subsequent login - calling getAllVisitorRecommendationByExhibitorId API');
-            response = await ExhibitormatchmakingApi.getAllVisitorRecommendationByExhibitorId(identifier, exhibitorId);
-            
-            // If cached API returns empty/error, fallback to first-time API (user might be truly new)
-            if (!response || response.isError || !response.result || 
-                (Array.isArray(response.result) ? response.result.length === 0 : 
-                 (!response.result.visitorDetails || response.result.visitorDetails.length === 0))) {
-              console.log('No cached data found, falling back to first-time API for visitors');
-              response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
-            }
-          }
+          console.log('Calling getExhibitorMatch API');
+          const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
           
           console.log("responseee", response);
           if (response.isError) {
@@ -346,13 +261,13 @@ export default function ExhibitorDashboard() {
             // Handle different response structures
             let visitorData;
             if (Array.isArray(response.result)) {
-              // First time API returns array directly
+              // API returns array directly
               visitorData = response.result;
               console.log('Using direct array response for visitors, count:', visitorData.length);
             } else {
-              // Cached API returns object with visitorDetails array
+              // API returns object with visitorDetails array
               visitorData = response.result.visitorDetails || [];
-              console.log('Using visitorDetails from cached response, count:', visitorData.length);
+              console.log('Using visitorDetails from response, count:', visitorData.length);
             }
             // Sort by matchPercentage descending
             const sorted = visitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
@@ -362,13 +277,6 @@ export default function ExhibitorDashboard() {
             const favoriteVisitors = await FavoritesManager.getExhibitorFavoriteVisitors(identifier);
             const favoriteVisitorIds = favoriteVisitors.map((favorite: any) => favorite.visitorId.toString());
             setFavoriteVisitorIds(new Set(favoriteVisitorIds));
-            
-            // Mark login as completed for future visits if this was the first login
-            if (isFirstLogin) {
-              markLoginCompleted();
-              setRefreshIconEnabled(false); // Update icon state immediately
-              console.log('First time login completed - marked for subsequent optimized API calls');
-            }
           }
         } catch (err: any) {
           setError(err.message || 'An error occurred while fetching recommendations');
@@ -400,7 +308,6 @@ export default function ExhibitorDashboard() {
 
     fetchVisitorDetails();
   }, [visitorId, user]);
-  
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
@@ -408,264 +315,6 @@ export default function ExhibitorDashboard() {
 
   const theme = useTheme();
   const router = useRouter();
-
-  // // Show loading skeleton when fetching exhibitor details
-  // if (loading) {
-  //   return (
-  //     <RoleBasedRoute allowedRoles={['event-admin', 'exhibitor']}>
-  //       <ResponsiveDashboardLayout title="Exhibitor Dashboard">
-  //         <Container maxWidth="lg" sx={{ mt: 2, mb: 2 }}>
-  //           <Grid container spacing={3}>
-  //             <Grid item xs={12}>
-  //               <Card>
-  //                 <CardContent>
-  //                   <Box display="flex" alignItems="center" gap={2}>
-  //                     <Skeleton variant="circular" width={80} height={80} />
-  //                     <Box flex={1}>
-  //                       <Skeleton variant="text" width="60%" height={32} />
-  //                       <Skeleton variant="text" width="40%" height={24} />
-  //                     </Box>
-  //                   </Box>
-  //                   <Box mt={3}>
-  //                     <Skeleton variant="text" width="100%" height={20} />
-  //                     <Skeleton variant="text" width="80%" height={20} />
-  //                     <Skeleton variant="text" width="90%" height={20} />
-  //                   </Box>
-  //                 </CardContent>
-  //               </Card>
-  //             </Grid>
-  //           </Grid>
-  //         </Container>
-  //       </ResponsiveDashboardLayout>
-  //     </RoleBasedRoute>
-  //   );
-  // }
-
-  // // Show error if there was an issue fetching exhibitor details
-  // if (error) {
-  //   return (
-  //     <RoleBasedRoute allowedRoles={['event-admin', 'exhibitor']}>
-  //       <ResponsiveDashboardLayout title="Exhibitor Dashboard">
-  //         <Container maxWidth="md" sx={{ mt: 2, mb: 2 }}>
-  //           <Alert severity="error" sx={{ mb: 2 }}>
-  //             {error}
-  //           </Alert>
-  //         </Container>
-  //       </ResponsiveDashboardLayout>
-  //     </RoleBasedRoute>
-  //   );
-  // }
-
-  // // If visitor ID is provided and visitor data is available, show visitor details
-  // if (visitorId && visitor) {
-  //   return (
-  //     <RoleBasedRoute allowedRoles={['event-admin', 'exhibitor']}>
-  //       <ResponsiveDashboardLayout title={`Exhibitor Details - ${visitor.companyName || `${visitor.firstName} ${visitor.lastName}`}`}>
-  //         <Container maxWidth="lg" sx={{ mt: 2, mb: 2 }}>
-  //         <Grid container spacing={3}>
-  //           {/* Main Visitor Card */}
-  //           <Grid item xs={12}>
-  //             <Card>
-  //               <CardContent>
-  //                 <Box display="flex" alignItems="flex-start" gap={3}>
-  //                   <Avatar
-  //                     sx={{
-  //                       width: 80,
-  //                       height: 80,
-  //                       fontSize: '1.5rem',
-  //                       fontWeight: 'bold',
-  //                       bgcolor: 'primary.main',
-  //                       color: 'white'
-  //                     }}
-  //                   >
-  //                     {visitor.companyName ? 
-  //                       visitor.companyName.charAt(0).toUpperCase() : 
-  //                       getInitials(visitor.firstName, visitor.lastName)
-  //                     }
-  //                   </Avatar>
-                    
-  //                   <Box flex={1}>
-  //                     <Typography variant="h4" component="h1" gutterBottom>
-  //                       {visitor.companyName || `${visitor.firstName} ${visitor.lastName}`}
-  //                     </Typography>
-                      
-  //                     {visitor.jobTitle && (
-  //                       <Typography variant="h6" color="text.secondary" gutterBottom>
-  //                         {visitor.jobTitle}
-  //                       </Typography>
-  //                     )}
-  //                     <Box display="flex" flexWrap="wrap" gap={1} mt={2}>
-                        
-  //                       {visitor.industry && (
-  //                         <Chip
-  //                           icon={<Work />}
-  //                           label={visitor.industry}
-  //                           variant="outlined"
-  //                         />
-  //                       )}
-  //                       {visitor.location && (
-  //                         <Chip
-  //                           icon={<LocationOn />}
-  //                           label={visitor.location}
-  //                           variant="outlined"
-  //                         />
-  //                       )}
-  //                     </Box>
-  //                   </Box>
-  //                 </Box>
-  //               </CardContent>
-  //             </Card>
-  //           </Grid>
-
-  //           {/* Contact Information */}
-  //           <Grid item xs={12} md={6}>
-  //             <Card>
-  //               <CardContent>
-  //                 <Typography variant="h6" gutterBottom>
-  //                   Contact Information
-  //                 </Typography>
-  //                 <Divider sx={{ mb: 2 }} />
-                  
-  //                 <Box display="flex" flexDirection="column" gap={2}>
-  //                   <Box display="flex" alignItems="center" gap={2}>
-  //                     <Email color="action" />
-  //                     <Typography>{visitor.email}</Typography>
-  //                   </Box>
-                    
-  //                   {visitor.phoneNumber && (
-  //                     <Box display="flex" alignItems="center" gap={2}>
-  //                       <Phone color="action" />
-  //                       <Typography>{visitor.phoneNumber}</Typography>
-  //                     </Box>
-  //                   )}
-                    
-  //                   {visitor.website && (
-  //                     <Box display="flex" alignItems="center" gap={2}>
-  //                       <Language color="action" />
-  //                       <Typography 
-  //                         component="a" 
-  //                         href={visitor.website}
-  //                         target="_blank"
-  //                         rel="noopener noreferrer"
-  //                         sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-  //                       >
-  //                         {visitor.website}
-  //                       </Typography>
-  //                     </Box>
-  //                   )}
-  //                 </Box>
-  //               </CardContent>
-  //             </Card>
-  //           </Grid>
-
-  //           {/* Company Details */}
-  //           <Grid item xs={12} md={6}>
-  //             <Card>
-  //               <CardContent>
-  //                 <Typography variant="h6" gutterBottom>
-  //                   Company Details
-  //                 </Typography>
-  //                 <Divider sx={{ mb: 2 }} />
-                  
-  //                 <Box display="flex" flexDirection="column" gap={2}>
-  //                   {visitor.companyDescription && (
-  //                     <Typography variant="body2" color="text.secondary">
-  //                       {visitor.companyDescription}
-  //                     </Typography>
-  //                   )}
-                    
-  //                   {visitor.products && visitor.products.length > 0 && (
-  //                     <Box>
-  //                       <Typography variant="subtitle2" gutterBottom>
-  //                         Products & Services:
-  //                       </Typography>
-  //                       <Box display="flex" flexWrap="wrap" gap={0.5}>
-  //                         {visitor.products.slice(0, 5).map((product: string, index: number) => (
-  //                           <Chip
-  //                             key={index}
-  //                             label={product}
-  //                             size="small"
-  //                             variant="outlined"
-  //                           />
-  //                         ))}
-  //                         {visitor.products.length > 5 && (
-  //                           <Chip
-  //                             label={`+${visitor.products.length - 5} more`}
-  //                             size="small"
-  //                             variant="outlined"
-  //                           />
-  //                         )}
-  //                       </Box>
-  //                     </Box>
-  //                   )}
-  //                 </Box>
-  //               </CardContent>
-  //             </Card>
-  //           </Grid>
-
-  //           {/* Additional Information */}
-  //           <Grid item xs={12}>
-  //             <Card>
-  //               <CardContent>
-  //                 <Typography variant="h6" gutterBottom>
-  //                   Additional Information
-  //                 </Typography>
-  //                 <Divider sx={{ mb: 2 }} />
-                  
-  //                 <Grid container spacing={2}>
-  //                   {visitor.status && (
-  //                     <Grid item xs={12} sm={6} md={3}>
-  //                       <Typography variant="subtitle2" color="text.secondary">
-  //                         Status
-  //                       </Typography>
-  //                       <Typography variant="body1">
-  //                         {visitor.status.charAt(0).toUpperCase() + visitor.status.slice(1)}
-  //                       </Typography>
-  //                     </Grid>
-  //                   )}
-                    
-  //                   {visitor.registrationDate && (
-  //                     <Grid item xs={12} sm={6} md={3}>
-  //                       <Typography variant="subtitle2" color="text.secondary">
-  //                         Registration Date
-  //                       </Typography>
-  //                       <Typography variant="body1">
-  //                         {new Date(visitor.registrationDate).toLocaleDateString()}
-  //                       </Typography>
-  //                     </Grid>
-  //                   )}
-                    
-  //                   {visitor.boothSize && (
-  //                     <Grid item xs={12} sm={6} md={3}>
-  //                       <Typography variant="subtitle2" color="text.secondary">
-  //                         Booth Size
-  //                       </Typography>
-  //                       <Typography variant="body1">
-  //                         {visitor.boothSize}
-  //                       </Typography>
-  //                     </Grid>
-  //                   )}
-                    
-  //                   {visitor.companyType && (
-  //                     <Grid item xs={12} sm={6} md={3}>
-  //                       <Typography variant="subtitle2" color="text.secondary">
-  //                         Company Type
-  //                       </Typography>
-  //                       <Typography variant="body1">
-  //                         {visitor.companyType}
-  //                       </Typography>
-  //                     </Grid>
-  //                   )}
-  //                 </Grid>
-  //               </CardContent>
-  //             </Card>
-  //           </Grid>
-  //                     </Grid>
-  //         </Container>
-  //       </ResponsiveDashboardLayout>
-  //     </RoleBasedRoute>
-  //   );
-  // }
 
   // Default visitor dashboard view (when no exhibitor ID is provided)
   if (!visitorId) {
@@ -1206,7 +855,7 @@ export default function ExhibitorDashboard() {
             
           <Divider sx={{ mb: 0.5, mt: 0.5 }} />
 
-          <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: -1, mt: 1 }}>
+          <Typography variant="h6" sx={{fontWeight: 600, color: 'text.secondary', mb: -1, mt: 1 }}>
               Because you clicked
             </Typography>
 

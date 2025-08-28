@@ -530,7 +530,7 @@ export function ExhibitorListView({ identifier }: { identifier: string }) {
         >
           <Box>
             <Typography
-              fontStyle="italic"
+              
               variant="h5"
               component="h1"
               fontWeight="500"

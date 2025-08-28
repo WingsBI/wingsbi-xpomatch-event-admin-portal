@@ -187,7 +187,7 @@ export default function ExhibitorVisitorSettingsPage() {
       >
         <Container maxWidth="lg" sx={{ py: 3, overflow: 'hidden' }}>
           <Box sx={{ mb: 3, mt: -3 }}>
-            <Typography variant="h5" fontWeight="500" sx={{ mb: 2 , lineHeight: 1.1, fontStyle: 'italic'}} > 
+            <Typography variant="h5" fontWeight="500" sx={{ mb: 2 , lineHeight: 1.1,}} > 
               Configure module access for different user roles
             </Typography>
           </Box>
@@ -206,7 +206,7 @@ export default function ExhibitorVisitorSettingsPage() {
               <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                 <Paper sx={{ overflow: 'hidden', mb: 3 }}>
                   <Box sx={{ p: 2 }}>
-                    <Typography variant="h6" sx={{ mb: 2, textAlign: 'center', fontWeight: 'bold' , fontStyle: 'italic'}}>
+                    <Typography variant="h6" sx={{ mb: 2, textAlign: 'center', fontWeight: 'bold' , }}>
                       Module Access Settings
                     </Typography>
                     {modules.map((module) => (

@@ -28,7 +28,7 @@ import {
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import { fieldMappingApi, type Exhibitor } from '@/services/fieldMappingApi';
-import { markProfileUpdated } from '@/utils/cookieManager';
+
 import { getCurrentExhibitorId } from '@/utils/authUtils';
 
 export default function ExhibitorSelfDetails() {
@@ -117,8 +117,7 @@ export default function ExhibitorSelfDetails() {
         setError(null);
         setFormData(prev => prev ? { ...prev, ...updateBody } : prev); // Optimistically update
         
-        // Mark profile as updated to enable refresh icon in dashboard
-        markProfileUpdated();
+
         
         // Refetch exhibitor details to show updated profile
         await new Promise(res => setTimeout(res, 500));

@@ -621,7 +621,7 @@ const FullPageLoader = () => (
               </Box>
               
               {isRemoved ? (
-                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.8rem' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                   Field removed - will not be included in registration
                 </Typography>
               ) : (

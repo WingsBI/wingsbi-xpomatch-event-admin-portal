@@ -393,9 +393,37 @@ let theme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+          borderRight: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: '2px 0 8px rgba(0, 0, 0, 0.06)',
           '@media (min-width:1920px)': {
-            borderRight: '2px solid rgba(0, 0, 0, 0.12)',
+            borderRight: '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: '4px 0 12px rgba(0, 0, 0, 0.08)',
+          },
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          marginBottom: 4,
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateX(2px)',
+          },
+          '@media (min-width:1920px)': {
+            borderRadius: 10,
+            marginBottom: 6,
+          },
+        },
+      },
+    },
+    MuiListItemIcon: {
+      styleOverrides: {
+        root: {
+          transition: 'all 0.2s ease-in-out',
+          '& svg': {
+            transition: 'transform 0.2s ease-in-out',
           },
         },
       },

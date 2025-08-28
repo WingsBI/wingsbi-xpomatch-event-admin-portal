@@ -565,7 +565,7 @@ export default function VisitorDashboard() {
         <ResponsiveDashboardLayout title="Visitor Dashboard">
           <Container maxWidth="lg" sx={{ mt: -1, mb: 0 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
-              <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                 Recommended Exhibitors for You
               </Typography>
               
@@ -767,7 +767,7 @@ export default function VisitorDashboard() {
           {/* Section 2: Based On Category */}
           <Divider sx={{ my: 0.5 }} />
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1 }}>
               Based On Category
             </Typography>
             {/* Placeholder for category-based recommendations */}
@@ -779,7 +779,7 @@ export default function VisitorDashboard() {
           {/* Section 3: Because you click */}
           <Divider sx={{ my: 1 }} />
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1 }}>
               Because you click
             </Typography>
             <Box sx={{ minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.disabled', fontStyle: 'italic' }}>

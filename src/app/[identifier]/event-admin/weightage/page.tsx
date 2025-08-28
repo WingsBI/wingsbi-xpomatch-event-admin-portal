@@ -672,7 +672,7 @@ export default function WeightagePage() {
       <ResponsiveDashboardLayout title="Content Matching Configuration">
         <Container maxWidth="lg" sx={{ py: 3, overflow: 'hidden' }}>
           <Box sx={{ mb: 4, mt: -3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h5" component="h1" fontWeight="500" sx={{ mb: 2, lineHeight: 1.1,fontStyle: 'italic' }} >
+            <Typography variant="h5" component="h1" fontWeight="500" sx={{ mb: 2, lineHeight: 1.1, }} >
               Content Matching Configuration
             </Typography>
           

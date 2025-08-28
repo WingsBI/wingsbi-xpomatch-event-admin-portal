@@ -235,7 +235,7 @@ export default function InterestedUserPage() {
       <RoleBasedRoute allowedRoles={['exhibitor']}>
         <Container maxWidth="lg" sx={{ py: 4 }}>
           <Box mb={4}>
-            <Typography variant="h5" mt={-4} fontStyle={"italic"} component="h1" fontWeight={600} gutterBottom>
+            <Typography variant="h5" mt={-4} component="h1" fontWeight={600} gutterBottom>
               Interested Visitors
             </Typography>
             <Typography variant="body2" color="text.secondary">

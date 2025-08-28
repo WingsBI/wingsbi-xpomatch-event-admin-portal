@@ -2,7 +2,7 @@
 
 import React, { ReactNode, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
 import { useInView } from 'react-intersection-observer';
@@ -221,6 +221,7 @@ export default function ResponsiveDashboardLayout({
 }: ResponsiveDashboardLayoutProps) {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const pathname = usePathname();
   const theme = useTheme();
 
   // Redux state
@@ -590,14 +591,52 @@ export default function ResponsiveDashboardLayout({
 
   // Memoize navigation items to prevent recalculation on every render
   const navigationItems = useMemo(() => {
-    return getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier, permissions);
+    const items = getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier, permissions);
+    
+    // Add section dividers for better organization
+    const organizedItems: (NavigationItem | { type: 'divider'; key: string })[] = [];
+    let currentSection = '';
+    
+    items.forEach((item, index) => {
+      // Add divider before Settings section
+      if (item.text === 'Settings' && index > 0) {
+        organizedItems.push({ type: 'divider', key: `divider-${index}` });
+      }
+      organizedItems.push(item);
+    });
+    
+    return organizedItems;
   }, [user?.role, responsive.deviceType, identifier, permissions]);
 
   // Optimized navigation item renderer - defined before drawerContent
-  const renderNavigationItem = useCallback((item: any, level = 0) => (
-    <React.Fragment key={item.text}>
-      <ListItem disablePadding sx={{ mb: level === 0 ? 0.25 : 0.1, pl: level * 1.2 }}>
+  const renderNavigationItem = useCallback((item: any, level = 0) => {
+    // Handle divider items
+    if (item.type === 'divider') {
+      return (
+        <Box
+          key={item.key}
+          sx={{
+            my: 1.5,
+            mx: 2,
+            height: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.06)',
+            borderRadius: 0.5
+          }}
+        />
+      );
+    }
+
+    return (
+      <React.Fragment key={item.text}>
+      <ListItem disablePadding sx={{ 
+        mb: level === 0 ? 0.75 : 0.25, 
+        pl: level * 1.5,
+        '&:last-child': {
+          mb: 0
+        }
+      }}>
         <ListItemButton
+          selected={item.href ? pathname === item.href : false}
           onClick={() => {
             // If sidebar is collapsed and this is a top-level item, expand sidebar first
             if (ui.sidebarCollapsed && level === 0 && !isMobile) {
@@ -618,61 +657,120 @@ export default function ResponsiveDashboardLayout({
             }
           }}
           sx={{
-            borderRadius: level === 0 ? 1.5 : 1,
-            minHeight: ui.sidebarCollapsed && level === 0 ? 40 : level === 0 ? 36 : 32,
-            py: level === 0 ? 0.5 : 0.25,
-            px: level === 0 ? 1 : 0.75,
-            '&:hover': {
-              backgroundColor: level === 0 ? 'primary.main' : 'primary.light',
-              color: level === 0 ? 'white' : 'primary.dark',
-              '& .MuiListItemIcon-root': {
-                color: level === 0 ? 'white' : 'primary.dark',
-              },
+            borderRadius: level === 0 ? 2 : 1.5,
+            minHeight: ui.sidebarCollapsed && level === 0 ? 48 : level === 0 ? 44 : 36,
+            py: level === 0 ? 1 : 0.75,
+            px: level === 0 ? 1.5 : 1,
+            transition: 'all 0.2s ease-in-out',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              backgroundColor: 'transparent',
+              transition: 'background-color 0.2s ease-in-out'
             },
+            '&:hover': {
+              backgroundColor: level === 0 ? 'rgba(238, 234, 236, 0.81)' : 'rgba(179, 155, 168, 0.67)',
+              color: level === 0 ? 'primary.main' : 'text.primary',
+              transform: 'translateX(2px)',
+              '&::before': {
+                backgroundColor: 'primary.main'
+              },
+              '& .MuiListItemIcon-root': {
+                color: level === 0 ? 'primary.main' : 'text.primary',
+                transform: 'scale(1.1)'
+              },
+              '& .MuiListItemText-primary': {
+                fontWeight: level === 0 ? 600 : 500
+              }
+            },
+            '&.Mui-selected': {
+              backgroundColor: 'rgba(180, 154, 168, 0.12)',
+              color: 'primary.main',
+              '&::before': {
+                backgroundColor: 'primary.main'
+              },
+              '& .MuiListItemIcon-root': {
+                color: 'primary.main'
+              },
+              '& .MuiListItemText-primary': {
+                fontWeight: 600
+              }
+            }
           }}
         >
           {item.icon && level === 0 && (
-            <ListItemIcon sx={{
-              minWidth: ui.sidebarCollapsed ? 0 : 32,
-              justifyContent: 'center',
-              color: 'inherit',
-              '& svg': {
-                fontSize: '1.1rem' // Smaller icons
-              }
-            }}>
-              {item.icon}
-            </ListItemIcon>
+            <Tooltip 
+              title={ui.sidebarCollapsed ? item.text : ''} 
+              placement="right"
+              disableHoverListener={!ui.sidebarCollapsed}
+            >
+              <ListItemIcon sx={{
+                minWidth: ui.sidebarCollapsed ? 0 : 36,
+                justifyContent: 'center',
+                color: 'text.secondary',
+                transition: 'all 0.2s ease-in-out',
+                '& svg': {
+                  fontSize: '1.25rem'
+                }
+              }}>
+                {item.icon}
+              </ListItemIcon>
+            </Tooltip>
           )}
 
-          {/* Small bullet point for child items */}
+          {/* Enhanced bullet point for child items */}
           {level > 0 && (
             <Box sx={{
-              width: 4,
-              height: 4,
+              width: 6,
+              height: 6,
               borderRadius: '50%',
               backgroundColor: 'text.secondary',
-              mr: 1.5,
+              mr: 2,
               ml: 0.5,
-              flexShrink: 0
+              flexShrink: 0,
+              opacity: 0.6,
+              transition: 'all 0.2s ease-in-out'
             }} />
           )}
 
           {(!ui.sidebarCollapsed || isMobile) && (
             <>
-                             <ListItemText
-                 primary={item.text}
-                 primaryTypographyProps={{
-                   variant: level === 0 ? 'h5' : 'body2',
-                   fontWeight: level === 0 ? 500 : 400,
-                   lineHeight: 1.1,
-                   color: level > 0 ? 'text.secondary' : 'inherit'
-                 }}
-               />
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  variant: level === 0 ? 'body1' : 'body2',
+                  fontWeight: level === 0 ? 500 : 400,
+                  lineHeight: 1.2,
+                  color: level > 0 ? 'text.secondary' : 'text.primary'
+                }}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    transition: 'font-weight 0.2s ease-in-out'
+                  }
+                }}
+              />
               {item.children && item.children.length > 0 && (
-                <IconButton size="small" sx={{ p: 0.25 }}>
+                <IconButton 
+                  size="small" 
+                  sx={{ 
+                    p: 0.5,
+                    color: 'text.secondary',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                      color: 'text.primary'
+                    }
+                  }}
+                >
                   {expandedItems.includes(item.text) ? 
-                    <ExpandLess sx={{ fontSize: '1rem' }} /> : 
-                    <ExpandMore sx={{ fontSize: '1rem' }} />
+                    <ExpandLess sx={{ fontSize: '1.1rem' }} /> : 
+                    <ExpandMore sx={{ fontSize: '1.1rem' }} />
                   }
                 </IconButton>
               )}
@@ -681,40 +779,102 @@ export default function ResponsiveDashboardLayout({
         </ListItemButton>
       </ListItem>
 
-      {/* Render children in a separate fragment to prevent parent from moving */}
-      {item.children && item.children.length > 0 && (!ui.sidebarCollapsed || isMobile) && (
-        <Collapse in={expandedItems.includes(item.text)} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding sx={{ pl: 0.5 }}>
-            {item.children.map((child: any) => renderNavigationItem(child, level + 1))}
-          </List>
-        </Collapse>
-      )}
-    </React.Fragment>
-  ), [ui.sidebarCollapsed, isMobile, expandedItems, dispatch, router, handleThemeDialogOpen, handleExpandClick]);
+             {/* Render children in a separate fragment to prevent parent from moving */}
+       {item.children && item.children.length > 0 && (!ui.sidebarCollapsed || isMobile) && (
+         <Collapse in={expandedItems.includes(item.text)} timeout="auto" unmountOnExit>
+           <List component="div" disablePadding sx={{ 
+             pl: 1,
+             mt: 0.5,
+             '& .MuiListItem-root': {
+               mb: 0.25
+             }
+           }}>
+             {item.children.map((child: any) => renderNavigationItem(child, level + 1))}
+           </List>
+         </Collapse>
+       )}
+     </React.Fragment>
+   );
+   }, [ui.sidebarCollapsed, isMobile, expandedItems, dispatch, router, handleThemeDialogOpen, handleExpandClick, pathname]);
 
   // Memoize drawer content to prevent re-renders
   const drawer = useMemo(() => (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', pt: '64px' }}>
+    <Box sx={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      pt: '64px',
+      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+      borderRight: '1px solid rgba(0, 0, 0, 0.08)'
+    }}>
+     
+
       {/* Navigation */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', p: ui.sidebarCollapsed ? 0.5 : 1.5, pt: 1.5 }}>
-        <List sx={{ py: 0 }}>
-          {navigationItems.map(item => renderNavigationItem(item))}
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflow: 'auto', 
+        p: ui.sidebarCollapsed ? 1 : 2, 
+        pt: ui.sidebarCollapsed ? 1 : 1.5
+      }}>
+        <List sx={{ 
+          py: 0,
+          '& .MuiListItem-root': {
+            marginBottom: 0.5,
+            animation: 'fadeInUp 0.3s ease-out'
+          },
+          '@keyframes fadeInUp': {
+            '0%': {
+              opacity: 0,
+              transform: 'translateY(10px)'
+            },
+            '100%': {
+              opacity: 1,
+              transform: 'translateY(0)'
+            }
+          }
+        }}>
+          {navigationItems.map((item, index) => (
+            <Box
+              key={'text' in item ? item.text : item.key}
+              sx={{
+                animationDelay: `${index * 0.05}s`
+              }}
+            >
+              {renderNavigationItem(item)}
+            </Box>
+          ))}
         </List>
       </Box>
 
       {/* Collapse button for desktop */}
       {!isMobile && (
-        <Box sx={{ p: 0.5, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ 
+          p: 1, 
+          borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+          background: 'rgba(255, 255, 255, 0.5)',
+          backdropFilter: 'blur(10px)'
+        }}>
           <Tooltip title={ui.sidebarCollapsed ? 'Expand' : 'Collapse'}>
             <IconButton
               onClick={handleDrawerToggle}
               sx={{
                 width: '100%',
                 justifyContent: 'center',
-                color: 'text.primary',
-                py: 0.5,
+                color: 'text.secondary',
+                py: 1,
+                borderRadius: 2,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  color: 'text.primary',
+                  transform: 'translateY(-1px)'
+                },
                 '& svg': {
-                  fontSize: '1.1rem'
+                  fontSize: '1.2rem',
+                  transition: 'transform 0.2s ease-in-out'
+                },
+                '&:hover svg': {
+                  transform: ui.sidebarCollapsed ? 'translateX(2px)' : 'translateX(-2px)'
                 }
               }}
             >

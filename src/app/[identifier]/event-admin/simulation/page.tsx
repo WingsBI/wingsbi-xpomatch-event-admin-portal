@@ -617,7 +617,7 @@ export default function SimulationPage() {
   return (
     <ResponsiveDashboardLayout title="Matchmaking Simulation">
       <Container maxWidth="lg" sx={{ py: 4, mt: -1}}>
-        <Typography variant="h5" component="h1" gutterBottom sx={{ mb: 1, fontWeight: 600 ,fontStyle: 'italic' ,mt: -4}}>
+        <Typography variant="h5" component="h1" gutterBottom sx={{ mb: 1, fontWeight: 600 ,mt: -4}}>
           Matchmaking Simulation
         </Typography>
 

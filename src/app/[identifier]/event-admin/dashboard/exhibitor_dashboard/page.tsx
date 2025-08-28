@@ -855,7 +855,7 @@ export default function ExhibitorDashboard() {
             
           <Divider sx={{ mb: 0.5, mt: 0.5 }} />
 
-          <Typography variant="h6" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary', mb: -1, mt: 1 }}>
+          <Typography variant="h6" sx={{fontWeight: 600, color: 'text.secondary', mb: -1, mt: 1 }}>
               Because you clicked
             </Typography>
 

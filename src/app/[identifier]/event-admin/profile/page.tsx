@@ -264,7 +264,7 @@ export default function ProfileSettingsPage() {
           {/* Header */}
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
             <Box display="flex" alignItems="center" gap={0.5}>
-              <Typography variant="h5" component="h1" fontWeight="500" sx={{ mb: 0 , lineHeight: 1.1,fontStyle: 'italic'}}>
+              <Typography variant="h5" component="h1" fontWeight="500" sx={{ mb: 0 , lineHeight: 1.1,}}>
                 Profile Details
               </Typography>
             </Box>

@@ -48,7 +48,8 @@ import {
   Event,
   Person,
   Business,
-  
+  Handshake,
+  Science,
   Settings,
   Logout,
   AdminPanelSettings,
@@ -68,6 +69,9 @@ import {
   CalendarMonth,
   Favorite as FavoriteIcon,
   Search,
+  RocketLaunch,
+  Security,
+  Build,
 } from '@mui/icons-material';
 import { RootState, AppDispatch } from '@/store';
 import {
@@ -180,12 +184,15 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     baseItems.push({
       text: 'Settings', 
       icon: <Settings />, 
+      children: []
+    });
+    baseItems.push({
+      text: 'Profile', 
+      icon: <Person />, 
       children: [
          { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
          { text: 'Exhibitor Profile', href: `/${identifier}/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },
-      
-        ]
-      
+      ]
     });
    
     
@@ -199,15 +206,23 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
       ] },
-      { text: 'Settings', icon: <Settings />, children: [
+      { text: 'Settings', icon: <Settings />, children: [] },
+      { text: 'Profile', icon: <Person />, children: [
         { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
         { text: 'Theme Settings', href: '#', children: [] },
+      ] },
+      { text: 'Onboarding', icon: <RocketLaunch />, children: [
         { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
-        { text: 'Content Matchmaking Settings', href: `/${identifier}/weightage`, children: [] },
-        { text: 'Role Based settings', href: `/${identifier}/exhibitor_visitor_settings`, children: [] },
+      ] },
+      { text: 'Matchmaking', icon: <Handshake />, children: [
+        { text: 'Content Matchmaking', href: `/${identifier}/weightage`, children: [] },
+        { text: 'Role Based Settings', href: `/${identifier}/exhibitor_visitor_settings`, children: [] },
+      ] },
+      { text: 'System', icon: <Science />, children: [
         { text: 'Simulation', href: `/${identifier}/simulation`, children: [] },
       ] },
+    
     ];
   }
 

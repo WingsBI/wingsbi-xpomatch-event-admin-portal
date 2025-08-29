@@ -936,6 +936,39 @@ export const matchmakingApi = {
     }
   },
 
+  // Get all visitor interaction configurations
+  getAllVisitorInterationConfig: async (identifier: string) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Common/getAllVisitorInterationConfig`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching visitor interaction config:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
   // Get all algorithms
   getAllAlgorithms: async (identifier: string) => {
     const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Common/getAllAlgorithms`;
@@ -1025,6 +1058,72 @@ export const matchmakingApi = {
       return data;
     } catch (error) {
       console.error('Error updating matchmaking config:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  // Update visitor interaction configuration
+  updateVisitorInteractionConfig: async (identifier: string, configData: any[]) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Event/updateVisitorInteractionConfig`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      console.log('Updating visitor interaction config:', {
+        url,
+        configData,
+        hasToken: !!token
+      });
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(configData),
+      });
+
+      console.log('Update visitor interaction config response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Update visitor interaction config response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { message: 'Invalid JSON response from server' };
+      }
+      
+      console.log('Update visitor interaction config response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to update visitor interaction config`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error updating visitor interaction config:', error);
       return {
         version: null,
         statusCode: 500,

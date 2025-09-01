@@ -815,15 +815,9 @@ export default function SimulationPage() {
                  fontWeight="500" 
                  sx={{ mb: 2, color: '#2c3e50' }}
                >
-                 Choose Your Role to Begin
+                 Choose Your Role 
                </Typography>
-               <Typography 
-                 variant="body2" 
-                 color="text.secondary" 
-                 sx={{ mb: 5, maxWidth: 500 }}
-               >
-                 Select whether you're a visitor looking for exhibitors or an exhibitor seeking visitors and other exhibitors
-               </Typography>
+              
                
                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-start' }}>
                  <RoleSelectionCard

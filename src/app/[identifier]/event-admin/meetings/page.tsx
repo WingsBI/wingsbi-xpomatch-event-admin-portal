@@ -142,14 +142,17 @@ const isExhibitor = (user: any) => user?.role === 'exhibitor';
 const isEventAdmin = (user: any) => user?.role === 'event-admin';
 
 const canRescheduleMeeting = (meeting: Meeting, user: any) => {
+  // User can reschedule if they are the initiator
   return meeting.isInitiator === true;
 };
 
 const canCancelMeeting = (meeting: Meeting, user: any) => {
+  // User can cancel if they are the initiator
   return meeting.isInitiator === true;
 };
 
 const canAcceptRejectMeeting = (meeting: Meeting, user: any) => {
+  // User can accept/reject if they are an attendee (not initiator) and meeting is not already approved/cancelled
   const isExplicitlyUpcoming = meeting.approvalStatus?.toLowerCase() === 'upcoming';
   return !meeting.isInitiator && meeting.status !== 'cancelled' && !meeting.isApproved && !isExplicitlyUpcoming;
 };
@@ -272,10 +275,7 @@ export default function MeetingsPage() {
       let invitesResponse;
       let currentUserId: number | null = null;
       
-      if (user.role === 'visitor') {
-        let visitorId = null;
-        
-        // Get user ID from JWT token (cookie-based) - same logic as exhibitor
+      // Get user ID from JWT token for all roles
         try {
           const token = getAuthToken();
           if (token) {
@@ -286,36 +286,30 @@ export default function MeetingsPage() {
             }).join(''));
             const tokenData = JSON.parse(jsonPayload);
             if (tokenData.id) {
-              visitorId = parseInt(tokenData.id);
+            currentUserId = parseInt(tokenData.id);
             }
           }
         } catch (error) {
-          console.error('Error parsing JWT token for visitorId:', error);
-        }
-        
-        // Fallback to getCurrentVisitorId() if JWT parsing fails
-        if (!visitorId) {
-          visitorId = getCurrentVisitorId();
-        }
-        
-        console.log('=== VISITOR ROLE DEBUG ===');
+        console.error('Error parsing JWT token for userId:', error);
+      }
+
+      if (!currentUserId) {
+        console.warn('No userId found from JWT token for role:', user.role);
+        setMeetingsError('Unable to load meetings: User ID not found. Please try refreshing the page.');
+        return;
+      }
+
+      console.log('=== USER ROLE DEBUG ===');
         console.log('User role:', user.role);
-        console.log('Visitor ID from JWT token:', visitorId);
+      console.log('User ID from JWT token:', currentUserId);
         console.log('User object:', user);
         
-        if (!visitorId) {
-          console.warn('No visitorId found for visitor role');
-          setMeetingsError('Unable to load meetings: Visitor ID not found. Please try refreshing the page.');
-          return;
-        }
-        
-        currentUserId = visitorId;
-        
-        console.log('Calling API with attendeeId:', visitorId);
-        
-        // Get meetings where visitor is the initiator
-        try {
-        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, visitorId);
+      // All roles (event-admin, visitor, exhibitor) follow the same pattern
+      console.log('Calling API with userId:', currentUserId);
+      
+      // Get meetings where user is the initiator
+      try {
+        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, currentUserId);
         console.log('Initiator response:', initiatorResponse);
           
           // Handle API errors and null responses
@@ -331,15 +325,14 @@ export default function MeetingsPage() {
           initiatorResponse = { result: [] };
         }
         
-        // Get meetings where visitor is an attendee with retry logic
-        let invitesResponse = null;
+      // Get meetings where user is an attendee with retry logic
         let retryCount = 0;
         const maxRetries = 3;
         
         while (retryCount < maxRetries && !invitesResponse?.result) {
           try {
-            console.log(`Attempt ${retryCount + 1} to get meeting invites for attendee ID: ${visitorId}`);
-            invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, visitorId);
+          console.log(`Attempt ${retryCount + 1} to get meeting invites for attendee ID: ${currentUserId}`);
+          invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, currentUserId);
         console.log('Invites response:', invitesResponse);
             
             // Handle API errors and null responses
@@ -384,17 +377,15 @@ export default function MeetingsPage() {
         console.log('Number of invites to transform:', invitesResponse?.result?.length || 0);
         
         const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
-          console.log(`🔍 VISITOR INVITE PROCESSING - Processing invite ${index + 1}:`, invite);
-          console.log(`🔍 VISITOR INVITE - Attendee name: ${invite.attendeeName}, Company: ${invite.companyName}`);
+        console.log(`🔍 INVITE PROCESSING - Processing invite ${index + 1}:`, invite);
+        console.log(`🔍 INVITE - Attendee name: ${invite.attendeeName}, Company: ${invite.companyName}`);
           const meetingDetails = invite.meetingDetails?.[0];
-          console.log(`🔍 VISITOR INVITE - Meeting details for invite ${index + 1}:`, meetingDetails);
+        console.log(`🔍 INVITE - Meeting details for invite ${index + 1}:`, meetingDetails);
           
           // Determine if current user is the initiator of this meeting
-          // Use the original user ID (visitorId) for initiator check, not the fallback ID
-          const isCurrentUserInitiator = visitorId && (meetingDetails?.initiatorId === visitorId);
+        const isCurrentUserInitiator = currentUserId && (meetingDetails?.initiatorId === currentUserId);
           console.log(`Invite ${index + 1} initiator check:`, {
             currentUserId,
-            visitorId,
             meetingInitiatorId: meetingDetails?.initiatorId,
             isCurrentUserInitiator,
             meetingId: meetingDetails?.id || invite.meetingId || invite.id
@@ -418,23 +409,22 @@ export default function MeetingsPage() {
 
             // Add attendee information from the root level of invite response
             attendees: [
-              // Add the attendee (current user) - handle both attendeesId and attendeeId
+            // Add the attendee - handle both attendeesId and attendeeId
               {
                 id: (invite.attendeesId || invite.attendeeId || invite.id).toString(),
                 name: invite.attendeeName,
                 email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
                 company: invite.companyName,
-                type: 'visitor', // Current user is visitor
+              type: (user.role === 'event-admin' ? 'visitor' : user.role) as 'visitor' | 'exhibitor', // Use current user role, default event-admin to visitor
                 avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
               }
-              // Note: Initiator is not added to attendees list - they are shown separately in the Initiator section
             ],
             // Add approval status from invite
             isApproved: invite.isApproved === true,
             isCancelled: invite.isCancelled === true,
             approvalStatus: invite.status,
             // Set isInitiator based on current user ID comparison
-            isInitiator: isCurrentUserInitiator,
+          isInitiator: Boolean(isCurrentUserInitiator),
           };
           
           console.log('Transformed invite:', {
@@ -450,7 +440,7 @@ export default function MeetingsPage() {
         }).filter(Boolean);
         
         // Combine both responses
-        console.log('=== COMBINING VISITOR RESPONSES ===');
+      console.log('=== COMBINING RESPONSES ===');
         console.log('Initiator response result count:', initiatorResponse?.result?.length || 0);
         console.log('Transformed invites count:', transformedInvites.length);
         
@@ -467,218 +457,8 @@ export default function MeetingsPage() {
           ]
         };
         
-        console.log('Final combined visitor response result count:', response.result.length);
-        console.log('Final combined visitor response:', response);
-        
-      } else if (user.role === 'exhibitor') {
-        let userId = null;
-        
-        // Get user ID from JWT token (cookie-based)
-        try {
-          const token = getAuthToken();
-          if (token) {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            const tokenData = JSON.parse(jsonPayload);
-            if (tokenData.id) {
-              userId = parseInt(tokenData.id);
-            }
-          }
-        } catch (error) {
-          console.error('Error parsing JWT token for userId:', error);
-        }
-        
-        if (!userId) {
-          console.warn('No userId found for exhibitor role');
-          setMeetingsError('Unable to load meetings: Exhibitor ID not found. Please try refreshing the page.');
-          return;
-        }
-        
-        currentUserId = userId;
-        console.log('=== EXHIBITOR ROLE DEBUG ===');
-        console.log('User role:', user.role);
-        console.log('User ID from JWT token:', userId);
-        console.log('User object:', user);
-        
-        console.log('Calling API with userId:', userId);
-        
-        // Get meetings where exhibitor is the initiator
-        try {
-        initiatorResponse = await MeetingDetailsApi.getMeetingInitiatorDetails(identifier, userId);
-        console.log('Initiator response:', initiatorResponse);
-          
-          // Handle API errors and null responses
-          if (initiatorResponse?.isError) {
-            console.warn('API error for initiator meetings:', initiatorResponse.message);
-            if (initiatorResponse.statusCode === 404) {
-              console.log('404 error - initiator endpoint may not exist, treating as no meetings found');
-              initiatorResponse = { result: [] };
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching initiator meetings:', error);
-          initiatorResponse = { result: [] };
-        }
-        
-        // Get meetings where exhibitor is an attendee with retry logic
-        let invitesResponse = null;
-        let retryCount = 0;
-        const maxRetries = 3;
-        
-        while (retryCount < maxRetries && !invitesResponse?.result) {
-          try {
-            console.log(`Attempt ${retryCount + 1} to get meeting invites for attendee ID: ${userId}`);
-        invitesResponse = await MeetingDetailsApi.getAllMeetingInvites(identifier, userId);
-        console.log('Invites response:', invitesResponse);
-            
-            // Handle API errors and null responses
-            if (invitesResponse?.isError) {
-              console.warn(`API error on attempt ${retryCount + 1}:`, invitesResponse.message);
-              if (invitesResponse.statusCode === 404) {
-                console.log('404 error - endpoint may not exist, treating as no meetings found');
-                invitesResponse = { result: [] };
-                break;
-              }
-            }
-        
-            if (invitesResponse?.result && invitesResponse.result.length > 0) {
-              console.log(`Successfully got ${invitesResponse.result.length} invites`);
-                break;
-              }
-          } catch (error) {
-            console.error(`Attempt ${retryCount + 1} failed:`, error);
-            }
-          
-          retryCount++;
-          if (retryCount < maxRetries) {
-            console.log(`Waiting 1 second before retry ${retryCount + 1}...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
-        // Ensure invitesResponse is not null and has a result property
-        if (!invitesResponse) {
-          console.log('No response received, treating as no meetings found');
-          invitesResponse = { result: [] };
-        }
-        
-        if (!invitesResponse.result || invitesResponse.result.length === 0) {
-          console.log('No invites found with the correct user ID from JWT token');
-        }
-        
-        console.log('=== getAllMeetingInvites Response ===');
-        console.log('Full response:', invitesResponse);
-        console.log('Result array:', invitesResponse?.result);
-        console.log('Result length:', invitesResponse?.result?.length);
-        
-        // Transform invites response to match meeting format (tolerate meetingDetails: null)
-        console.log('=== TRANSFORMING EXHIBITOR INVITES ===');
-        console.log('Raw exhibitor invites response:', invitesResponse);
-        console.log('Exhibitor invites result array:', invitesResponse?.result);
-        console.log('Number of exhibitor invites to transform:', invitesResponse?.result?.length || 0);
-        
-        const transformedInvites = (invitesResponse?.result || []).map((invite: any, index: number) => {
-          console.log(`🔍 EXHIBITOR INVITE PROCESSING - Processing exhibitor invite ${index + 1}:`, invite);
-          console.log(`🔍 EXHIBITOR INVITE - Attendee name: ${invite.attendeeName}, Company: ${invite.companyName}`);
-          const meetingDetails = invite.meetingDetails?.[0];
-          console.log(`🔍 EXHIBITOR INVITE - Meeting details for exhibitor invite ${index + 1}:`, meetingDetails);
-          
-          // Determine if current user is the initiator of this meeting
-          // Use the original user ID (userId) for initiator check, not the fallback ID
-          const isCurrentUserInitiator = userId && (meetingDetails?.initiatorId === userId);
-          console.log(`Exhibitor invite ${index + 1} initiator check:`, {
-            currentUserId,
-            originalUserId: userId,
-            meetingInitiatorId: meetingDetails?.initiatorId,
-            isCurrentUserInitiator,
-            meetingId: meetingDetails?.id || invite.meetingId || invite.id
-          });
-          
-          return {
-            id: (meetingDetails?.id ?? invite.meetingId ?? invite.id).toString(),
-            agenda: meetingDetails?.agenda ?? invite.attendeeName ?? 'Meeting',
-            initiatorId: meetingDetails?.initiatorId ?? invite.createdBy,
-            initiatorName: meetingDetails?.initiatorName ?? 'Initiator',
-            companyName: meetingDetails?.companyName ?? invite.companyName,
-            meetingDate: meetingDetails?.meetingDate ?? null,
-            startTime: meetingDetails?.startTime ?? null,
-            endTime: meetingDetails?.endTime ?? null,
-            status: (invite.status?.toLowerCase() || (invite.isCancelled ? 'cancelled' : invite.isApproved ? 'scheduled' : 'pending')) as Meeting['status'],
-            createdBy: meetingDetails?.createdBy ?? invite.createdBy,
-            createdDate: meetingDetails?.createdDate ?? invite.createdDate,
-            modifiedBy: meetingDetails?.modifiedBy ?? invite.modifiedBy,
-            modifiedDate: meetingDetails?.modifiedDate ?? invite.modifiedDate,
-            isActive: meetingDetails?.isActive ?? invite.isActive,
-
-            // Add attendee information from the root level of invite response
-            attendees: [
-              // Add the attendee (current user) - handle both attendeesId and attendeeId
-              {
-                id: (invite.attendeesId || invite.attendeeId || invite.id).toString(),
-                name: invite.attendeeName,
-                email: `${invite.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-                company: invite.companyName,
-                type: 'exhibitor', // Current user is exhibitor
-                avatar: (invite.attendeeName?.charAt(0) || 'A').toUpperCase()
-              }
-              // Note: Initiator is not added to attendees list - they are shown separately in the Initiator section
-            ],
-            // Add approval status from invite
-            isApproved: invite.isApproved === true,
-            isCancelled: invite.isCancelled === true,
-            approvalStatus: invite.status,
-            // Set isInitiator based on current user ID comparison
-            isInitiator: isCurrentUserInitiator,
-          };
-        }).filter(Boolean);
-        
-        console.log('=== Transformed Invites ===');
-        console.log('Transformed invites count:', transformedInvites.length);
-        console.log('Transformed invites:', transformedInvites);
-        
-        // Combine both responses
-        console.log('=== COMBINING EXHIBITOR RESPONSES ===');
-        console.log('Initiator response result count:', initiatorResponse?.result?.length || 0);
-        console.log('Transformed invites count:', transformedInvites.length);
-        
-        // Create a proper response object with the transformed data
-        response = {
-          version: '1.0.0.0',
-          statusCode: 200,
-          message: 'Meetings retrieved successfully',
-          responseException: null,
-          isError: false,
-          result: [
-            ...(initiatorResponse?.result || []),
-            ...transformedInvites
-          ]
-        };
-        
-        console.log('Final combined exhibitor response result count:', response.result.length);
-        console.log('Final combined exhibitor response:', response);
-      } else if (user.role === 'event-admin') {
-        // For event-admins, show all meetings
-        const visitorId = getCurrentVisitorId();
-        if (!visitorId) {
-          console.warn('No visitor ID found for event-admin role');
-         // setMeetingsError('Unable to load meetings: Event admin ID not found. Please try refreshing the page.');
-          return;
-        }
-        currentUserId = visitorId;
-        try {
-        response = await MeetingDetailsApi.getVisitorMeetingDetails(identifier, visitorId);
-        } catch (error) {
-          console.error('Error fetching event admin meetings:', error);
-          response = { result: [] };
-        }
-      } else {
-        console.warn('Unknown user role for meetings:', user.role);
-        setMeetingsError(`Unable to load meetings: Unknown user role '${user.role}'. Please contact support.`);
-        return;
-      }
+      console.log('Final combined response result count:', response.result.length);
+      console.log('Final combined response:', response);
       
       if (response && !response.isError && response.result && response.result.length > 0) {
         console.log('=== RAW API RESPONSE ===');
@@ -785,28 +565,23 @@ export default function MeetingsPage() {
           // Extract attendee information from the API response
           let attendees: Meeting['attendees'] = [];
           
-          // First, check if there's attendee information at the root level (for meeting invites)
+          // Check if there's attendee information at the root level (for meeting invites)
           if (apiMeeting.attendeeName && apiMeeting.companyName) {
             console.log('Processing root level attendee:', { attendeeName: apiMeeting.attendeeName, companyName: apiMeeting.companyName });
             
-            // Check if this attendee is already in the attendees list
-            const existingAttendee = attendees.find(attendee => 
-              attendee.name === apiMeeting.attendeeName.trim() && 
-              attendee.company === apiMeeting.companyName.trim()
-            );
+            // Determine attendee type based on the meeting context
+            let attendeeType: 'visitor' | 'exhibitor' = 'visitor';
+            // You can add logic here to determine if the attendee is a visitor or exhibitor
+            // For now, defaulting to visitor
             
-            if (!existingAttendee) {
               attendees.push({
                 id: apiMeeting.attendeesId?.toString() || `attendee-${Math.random()}`,
                 name: apiMeeting.attendeeName.trim() || 'Attendee',
                 email: `${apiMeeting.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
                 company: apiMeeting.companyName.trim() || 'Company',
-                type: 'visitor' as const,
+              type: attendeeType,
                 avatar: (apiMeeting.attendeeName?.charAt(0) || 'A').toUpperCase()
               });
-            } else {
-              console.log('Attendee already exists in attendees list, skipping duplicate');
-            }
           }
           
           // Also check for attendees array (for other meeting types)
@@ -827,7 +602,7 @@ export default function MeetingsPage() {
                   name: attendee.attendeeName || 'Attendee',
                   email: `${attendee.attendeeName?.toLowerCase().replace(/\s+/g, '.')}@example.com` || 'attendee@example.com',
                   company: attendee.companyName || 'Company',
-                  type: 'visitor' as const,
+                  type: 'visitor' as const, // Default to visitor
                   avatar: (attendee.attendeeName?.charAt(0) || 'A').toUpperCase()
                 };
                 
@@ -837,27 +612,14 @@ export default function MeetingsPage() {
             }
           }
 
-          // Note: Initiator should NOT be added to attendees list - they are shown separately in the Initiator section
-          // The initiator information is displayed in the "Initiator" field, not in the "Attendees" list
+          // Remove duplicates from attendees array
+          const uniqueAttendees = attendees.filter((attendee, index, self) => 
+            index === self.findIndex(a => a.name === attendee.name && a.company === attendee.company)
+          );
           
-          // Note: We don't add initiator as fallback attendee anymore - initiator is shown separately
+          console.log('Final attendees list (after deduplication):', uniqueAttendees);
 
-          // If still no attendees found, add a fallback
-          if (attendees.length === 0) {
-            console.log('No attendees or initiator found, using fallback');
-            attendees.push({
-              id: '1',
-              name: 'Attendee',
-              email: 'attendee@example.com',
-              company: 'Company',
-              type: 'visitor',
-              avatar: 'A'
-            });
-          }
-          
-          console.log('Final attendees list:', attendees);
-
-          const transformedMeeting = {
+          const transformedMeeting: Meeting = {
             id: apiMeeting.id?.toString() || Math.random().toString(),
             title: agenda || 'Meeting',
             description: apiMeeting.description || 'No description available',
@@ -865,7 +627,7 @@ export default function MeetingsPage() {
             duration: calculateDuration(startTime, apiMeeting.endTime || (apiMeeting.meetingDetails?.[0]?.endTime)),
             type: 'in-person' as const, // Default type
             location: apiMeeting.location || undefined,
-            attendees: attendees,
+            attendees: uniqueAttendees,
             status: mapApiStatusToMeetingStatus(apiMeeting.status),
             organizer: {
               id: 'admin1',
@@ -900,7 +662,7 @@ export default function MeetingsPage() {
             isCancelled: apiMeeting.isCancelled === true,
             approvalStatus: apiMeeting.approvalStatus || apiMeeting.status,
             // Set isInitiator based on current user ID comparison
-            isInitiator: isCurrentUserInitiator,
+            isInitiator: Boolean(isCurrentUserInitiator),
             // Initiator information from API
             initiatorName: initiatorName,
             companyName: companyName,
@@ -1025,11 +787,9 @@ export default function MeetingsPage() {
         return;
       }
 
-      // Get current user's attendee ID
+      // Get current user's attendee ID from JWT token (same logic as loadMeetings)
       let attendeeId: number | null = null;
       
-      if (user?.role === 'visitor') {
-        // Get user ID from JWT token (cookie-based) - same logic as loadMeetings
         try {
           const token = getAuthToken();
           if (token) {
@@ -1043,28 +803,6 @@ export default function MeetingsPage() {
           }
         } catch (error) {
           console.error('Error parsing JWT token for attendeeId:', error);
-        }
-        
-        // Fallback to getCurrentVisitorId() if JWT parsing fails
-        if (!attendeeId) {
-          attendeeId = getCurrentVisitorId();
-        }
-      } else if (user?.role === 'exhibitor') {
-        // Get user ID from JWT token for exhibitors (cookie-based)
-        try {
-          const token = getAuthToken();
-          if (token) {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            const tokenData = JSON.parse(jsonPayload);
-            attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
-          }
-        } catch (error) {
-          console.error('Error parsing JWT token for attendeeId:', error);
-        }
       }
 
       if (!attendeeId) {
@@ -1134,11 +872,9 @@ export default function MeetingsPage() {
         return;
       }
 
-      // Get current user's attendee ID
+      // Get current user's attendee ID from JWT token (same logic as loadMeetings)
       let attendeeId: number | null = null;
       
-      if (user?.role === 'visitor') {
-        // Get user ID from JWT token (cookie-based) - same logic as loadMeetings
         try {
           const token = getAuthToken();
           if (token) {
@@ -1152,28 +888,6 @@ export default function MeetingsPage() {
           }
         } catch (error) {
           console.error('Error parsing JWT token for attendeeId:', error);
-        }
-        
-        // Fallback to getCurrentVisitorId() if JWT parsing fails
-        if (!attendeeId) {
-          attendeeId = getCurrentVisitorId();
-        }
-      } else if (user?.role === 'exhibitor') {
-        // Get user ID from JWT token for exhibitors (cookie-based)
-        try {
-          const token = getAuthToken();
-          if (token) {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            const tokenData = JSON.parse(jsonPayload);
-            attendeeId = tokenData.id ? parseInt(tokenData.id) : null;
-          }
-        } catch (error) {
-          console.error('Error parsing JWT token for attendeeId:', error);
-        }
       }
 
       if (!attendeeId) {

@@ -206,23 +206,15 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
       ] },
-      { text: 'Settings', icon: <Settings />, children: [] },
-      { text: 'Profile', icon: <Person />, children: [
-        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
+      { text: 'Settings', icon: <Settings />, children: [
         { text: 'Theme Settings', href: '#', children: [] },
-      ] },
-      { text: 'Onboarding', icon: <RocketLaunch />, children: [
         { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
-      ] },
-      { text: 'Matchmaking', icon: <Handshake />, children: [
         { text: 'Content Matchmaking', href: `/${identifier}/weightage`, children: [] },
         { text: 'Role Based Settings', href: `/${identifier}/exhibitor_visitor_settings`, children: [] },
-      ] },
-      { text: 'System', icon: <Science />, children: [
         { text: 'Simulation', href: `/${identifier}/simulation`, children: [] },
-      ] },
-    
+      
+    ]},
     ];
   }
 
@@ -608,38 +600,12 @@ export default function ResponsiveDashboardLayout({
   const navigationItems = useMemo(() => {
     const items = getNavigationItems(user?.role || 'event-admin', responsive.deviceType, identifier, permissions);
     
-    // Add section dividers for better organization
-    const organizedItems: (NavigationItem | { type: 'divider'; key: string })[] = [];
-    let currentSection = '';
-    
-    items.forEach((item, index) => {
-      // Add divider before Settings section
-      if (item.text === 'Settings' && index > 0) {
-        organizedItems.push({ type: 'divider', key: `divider-${index}` });
-      }
-      organizedItems.push(item);
-    });
-    
-    return organizedItems;
+    // Return items directly without dividers
+    return items;
   }, [user?.role, responsive.deviceType, identifier, permissions]);
 
   // Optimized navigation item renderer - defined before drawerContent
   const renderNavigationItem = useCallback((item: any, level = 0) => {
-    // Handle divider items
-    if (item.type === 'divider') {
-      return (
-        <Box
-          key={item.key}
-          sx={{
-            my: 1.5,
-            mx: 2,
-            height: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.06)',
-            borderRadius: 0.5
-          }}
-        />
-      );
-    }
 
     return (
       <React.Fragment key={item.text}>
@@ -850,7 +816,7 @@ export default function ResponsiveDashboardLayout({
         }}>
           {navigationItems.map((item, index) => (
             <Box
-              key={'text' in item ? item.text : item.key}
+              key={item.text}
               sx={{
                 animationDelay: `${index * 0.05}s`
               }}
@@ -1167,13 +1133,19 @@ export default function ResponsiveDashboardLayout({
               sx: { mt: 1, minWidth: 200 },
             }}
           >
-           
+           <MenuItem onClick={() => router.push(`/${identifier}/profile`)}>
+              <ListItemIcon>
+              <Person fontSize="small" />
+              </ListItemIcon>
+                  Profile Settings
+              </MenuItem>
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <Logout fontSize="small" />
               </ListItemIcon>
               Logout
             </MenuItem>
+             
           </Menu>
         </Toolbar>
       </AppBar>

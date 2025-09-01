@@ -1135,6 +1135,72 @@ export const matchmakingApi = {
     }
   },
 
+  // Update hybrid matching configuration
+  updateHybridMatchingConfig: async (identifier: string, configData: any[]) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Event/updateHybridMatchingConfig`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      console.log('Updating hybrid matching config:', {
+        url,
+        configData,
+        hasToken: !!token
+      });
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(configData),
+      });
+
+      console.log('Update hybrid matching config response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Update hybrid matching config response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { message: 'Invalid JSON response from server' };
+      }
+      
+      console.log('Update hybrid matching config response data:', data);
+
+      if (!response.ok) {
+        return {
+          version: null,
+          statusCode: response.status,
+          message: data.message || `HTTP ${response.status}: Failed to update hybrid matching config`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error updating hybrid matching config:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
   // Insert new matchmaking configuration
   insertMatchMakingConfig: async (identifier: string, configData: any[]) => {
     const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Event/insertMatchMakingConfig`;

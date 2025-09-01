@@ -31,9 +31,11 @@ import {
   AdminPanelSettings,
   Notifications,
   
+  
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import ProfileSettingsPage from '@/app/[identifier]/event-admin/profile/page';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -205,6 +207,12 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
                 <Logout fontSize="small" />
               </ListItemIcon>
               Logout
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <Person fontSize="small" />
+              </ListItemIcon>
+              Profile Settings
             </MenuItem>
           </Menu>
         </Toolbar>

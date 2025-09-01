@@ -260,6 +260,41 @@ export function getCurrentVisitorId(): number | null {
 } 
 
 /**
+ * Get current event admin ID from JWT token
+ */
+export function getCurrentEventAdminId(): number | null {
+  try {
+    const tokenData = decodeJWTToken();
+    if (!tokenData) {
+      console.log('No token data available');
+      return null;
+    }
+
+    // Check if user is an event-admin
+    if (tokenData.roleName !== 'event-admin') {
+      console.log('Current user is not an event-admin:', tokenData.roleName);
+      return null;
+    }
+
+    // Look for event admin ID in token - check both camelCase and lowercase versions
+    const eventAdminId = tokenData.userId || tokenData.id || tokenData.sub;
+    
+    if (!eventAdminId) {
+      console.log('No event admin ID found in token data:', tokenData);
+      return null;
+    }
+
+    const parsedId = parseInt(eventAdminId, 10);
+    console.log('Extracted event admin ID from token:', parsedId, 'from field:', eventAdminId);
+    
+    return isNaN(parsedId) ? null : parsedId;
+  } catch (error) {
+    console.error('Error getting current event admin ID:', error);
+    return null;
+  }
+}
+
+/**
  * Check if current user is an event-admin
  */
 export function isEventAdmin(): boolean {

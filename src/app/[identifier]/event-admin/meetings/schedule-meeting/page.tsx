@@ -54,7 +54,7 @@ import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { apiService, eventsApi } from '@/services/apiService';
 import { addNotification } from '@/store/slices/appSlice';
-import { getCurrentUser, getCurrentExhibitorId, getCurrentVisitorId } from '@/utils/authUtils';
+import { getCurrentUser, getCurrentExhibitorId, getCurrentVisitorId, getCurrentEventAdminId, decodeJWTToken } from '@/utils/authUtils';
 import { FavoritesManager } from '@/utils/favoritesManager';
 import { AutoSizer, List as VirtualList } from 'react-virtualized';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -146,8 +146,7 @@ export default function ScheduleMeetingPage() {
     meetingForm.attendiesId.forEach(attendeeId => {
       console.log('🔍 Looking for attendee ID:', attendeeId, 'Type:', typeof attendeeId);
       
-      // Since we're in visitor role, we should only be selecting exhibitors
-      // Check exhibitors first to avoid ID collision
+      // Check exhibitors first
       const exhibitor = exhibitors.find(e => e.id === attendeeId);
       if (exhibitor) {
         console.log('🔍 Found exhibitor:', exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`);
@@ -161,14 +160,12 @@ export default function ScheduleMeetingPage() {
         return;
       }
       
-      // Only check visitors if we're in exhibitor role
-      if (currentUserRole === 'exhibitor') {
+      // Check visitors
       const visitor = visitors.find(v => v.id === attendeeId);
       if (visitor) {
-          console.log('🔍 Found visitor:', visitor.firstName, visitor.lastName);
+        console.log('🔍 Found visitor:', visitor.firstName, visitor.lastName);
         names.push(`${visitor.firstName} ${visitor.lastName}`);
         return;
-      }
       }
       
       console.log('🔍 No attendee found for ID:', attendeeId);
@@ -185,6 +182,9 @@ export default function ScheduleMeetingPage() {
       if (currentUserRole === 'visitor' && visitor.id === currentUserId) {
         return false;
       }
+      
+      // Event admin should be able to see all visitors (they don't appear in visitor list anyway)
+      // Exhibitors should be able to see all visitors
       
       // Apply search filter
       if (searchQuery) {
@@ -209,6 +209,9 @@ export default function ScheduleMeetingPage() {
         return false;
       }
       
+      // Event admin should be able to see all exhibitors (they don't appear in exhibitor list anyway)
+      // Visitors should be able to see all exhibitors
+      
       // Apply search filter
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();
@@ -232,8 +235,39 @@ export default function ScheduleMeetingPage() {
     
     if (currentUser) {
       setCurrentUserRole(currentUser.role);
-      // Use email as display name or extract name from email
-      const displayName = currentUser.email ? currentUser.email.split('@')[0] : 'User';
+      
+      // Get user name from JWT token
+      const tokenData = decodeJWTToken();
+      
+      console.log('JWT Token data:', tokenData);
+      
+      // Set display name based on role and available data
+      let displayName = '';
+      if (tokenData) {
+        if (currentUser.role === 'exhibitor') {
+          // For exhibitors, try to get company name or user name
+          displayName = tokenData.companyName || 
+                       `${tokenData.firstName || ''} ${tokenData.lastName || ''}`.trim() ||
+                       tokenData.name ||
+                       currentUser.email?.split('@')[0] || 'Exhibitor';
+        } else if (currentUser.role === 'visitor') {
+          // For visitors, use their name
+          displayName = `${tokenData.firstName || ''} ${tokenData.lastName || ''}`.trim() ||
+                       tokenData.name ||
+                       currentUser.email?.split('@')[0] || 'Visitor';
+        } else if (currentUser.role === 'event-admin') {
+          // For event admin
+          displayName = `${tokenData.firstName || ''} ${tokenData.lastName || ''}`.trim() ||
+                       tokenData.name ||
+                       'Event Admin';
+        }
+      }
+      
+      // Fallback to email if no name found
+      if (!displayName || displayName.trim() === '') {
+        displayName = currentUser.email ? currentUser.email.split('@')[0] : 'User';
+      }
+      
       setCurrentUserName(displayName);
       console.log('ScheduleMeeting - User role:', currentUser.role);
       console.log('ScheduleMeeting - User email:', currentUser.email);
@@ -250,6 +284,11 @@ export default function ScheduleMeetingPage() {
         console.log('ScheduleMeeting - Visitor ID:', visitorId);
         setCurrentUserId(visitorId);
         // Don't auto-add current user to attendees - they are the organizer
+      } else if (currentUser.role === 'event-admin') {
+        const eventAdminId = getCurrentEventAdminId();
+        console.log('ScheduleMeeting - Event Admin ID:', eventAdminId);
+        setCurrentUserId(eventAdminId);
+        // Don't auto-add current user to attendees - they are the organizer
       }
     }
   }, []);
@@ -263,17 +302,29 @@ export default function ScheduleMeetingPage() {
         let visitorsResponse, exhibitorsResponse;
         
         if (currentUserRole === 'visitor') {
-          // Visitors only need exhibitors data
-          exhibitorsResponse = await fieldMappingApi.getAllExhibitors(identifier);
+          // Visitors need both visitors and exhibitors data
+          [visitorsResponse, exhibitorsResponse] = await Promise.all([
+            apiService.getAllVisitors(identifier),
+            fieldMappingApi.getAllExhibitors(identifier)
+          ]);
         } else if (currentUserRole === 'exhibitor') {
-          // Exhibitors only need visitors data
-          visitorsResponse = await apiService.getAllVisitors(identifier);
-        } else {
+          // Exhibitors need both visitors and exhibitors data
+          [visitorsResponse, exhibitorsResponse] = await Promise.all([
+            apiService.getAllVisitors(identifier),
+            fieldMappingApi.getAllExhibitors(identifier)
+          ]);
+        } else if (currentUserRole === 'event-admin') {
           // Event admins need both - load in parallel
           [visitorsResponse, exhibitorsResponse] = await Promise.all([
-          apiService.getAllVisitors(identifier),
-          fieldMappingApi.getAllExhibitors(identifier)
-        ]);
+            apiService.getAllVisitors(identifier),
+            fieldMappingApi.getAllExhibitors(identifier)
+          ]);
+        } else {
+          // Fallback - load both for any other role
+          [visitorsResponse, exhibitorsResponse] = await Promise.all([
+            apiService.getAllVisitors(identifier),
+            fieldMappingApi.getAllExhibitors(identifier)
+          ]);
         }
 
         // Process visitors data
@@ -378,7 +429,7 @@ export default function ScheduleMeetingPage() {
     }
   }, [eventDetails]);
 
-  // Set current user details after participants are loaded
+  // Set current user details after participants are loaded (for detailed user info only, name is set from JWT)
   useEffect(() => {
     if (currentUserId && currentUserRole && (visitors.length > 0 || exhibitors.length > 0)) {
       let userDetails = null;
@@ -387,16 +438,23 @@ export default function ScheduleMeetingPage() {
       } else if (currentUserRole === 'exhibitor') {
         // For exhibitors, we need to find by the original exhibitor ID or user ID
         userDetails = exhibitors.find(e => e.id === currentUserId || e.exhibitorId === currentUserId);
+      } else if (currentUserRole === 'event-admin') {
+        // For event admin, create a mock user details object since they won't be in the visitors/exhibitors list
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+          userDetails = {
+            id: currentUserId,
+            firstName: currentUser.email ? currentUser.email.split('@')[0] : 'Event',
+            lastName: 'Admin',
+            email: currentUser.email
+          };
+        }
       }
       
       if (userDetails) {
         setCurrentUserDetails(userDetails);
-        const displayName = currentUserRole === 'exhibitor' 
-          ? (userDetails as Exhibitor).companyName || `${userDetails.firstName} ${userDetails.lastName}`
-          : `${userDetails.firstName} ${userDetails.lastName}`;
-        setCurrentUserName(displayName);
         console.log('Found current user details:', userDetails);
-        console.log('Set display name:', displayName);
+        // Note: currentUserName is set from JWT token in the first useEffect, not here
       }
     }
   }, [currentUserId, currentUserRole, visitors, exhibitors]);
@@ -807,10 +865,70 @@ export default function ScheduleMeetingPage() {
       console.log('🔍 Available exhibitors:', exhibitors.map(e => ({ id: e.id, exhibitorId: e.exhibitorId, companyName: e.companyName })));
       console.log('🔍 Available visitors:', visitors.map(v => ({ id: v.id, name: `${v.firstName} ${v.lastName}` })));
 
+      // Process attendee IDs to send correct IDs to backend
+      const processedAttendeeIds: number[] = [];
+      const attendeeTypes: { id: number; type: 'visitor' | 'exhibitor'; name: string }[] = [];
+      
+      meetingForm.attendiesId.forEach(attendeeId => {
+        // Check if this ID belongs to an exhibitor
+        const exhibitor = exhibitors.find(e => e.id === attendeeId);
+        if (exhibitor) {
+          // For exhibitors, we need to send the original exhibitor ID, not the user ID
+          const originalExhibitorId = exhibitor.exhibitorId || exhibitor.id;
+          console.log('🔍 Mapping exhibitor:', {
+            selectedId: attendeeId,
+            originalExhibitorId: originalExhibitorId,
+            companyName: exhibitor.companyName
+          });
+          processedAttendeeIds.push(originalExhibitorId);
+          attendeeTypes.push({
+            id: originalExhibitorId,
+            type: 'exhibitor',
+            name: exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`
+          });
+          return;
+        }
+        
+        // Check if this ID belongs to a visitor
+        const visitor = visitors.find(v => v.id === attendeeId);
+        if (visitor) {
+          // For visitors, we can use the ID directly
+          console.log('🔍 Mapping visitor:', {
+            selectedId: attendeeId,
+            visitorName: `${visitor.firstName} ${visitor.lastName}`
+          });
+          processedAttendeeIds.push(attendeeId);
+          attendeeTypes.push({
+            id: attendeeId,
+            type: 'visitor',
+            name: `${visitor.firstName} ${visitor.lastName}`
+          });
+          return;
+        }
+        
+        console.warn('🔍 Attendee ID not found in exhibitors or visitors:', attendeeId);
+      });
+
+      console.log('🔍 Original attendee IDs:', meetingForm.attendiesId);
+      console.log('🔍 Processed attendee IDs:', processedAttendeeIds);
+      console.log('🔍 Attendee types breakdown:', attendeeTypes);
+      
+      // Additional validation
+      const exhibitorCount = attendeeTypes.filter(a => a.type === 'exhibitor').length;
+      const visitorCount = attendeeTypes.filter(a => a.type === 'visitor').length;
+      
+      console.log('🔍 Meeting summary:', {
+        organizerRole: currentUserRole,
+        totalAttendees: processedAttendeeIds.length,
+        exhibitorAttendees: exhibitorCount,
+        visitorAttendees: visitorCount,
+        attendeeBreakdown: attendeeTypes
+      });
+
       const meetingData = {
         agenda: meetingForm.agenda,
-        description: meetingForm.description, // Commented out as requested
-        attendiesId: meetingForm.attendiesId,
+        description: meetingForm.description,
+        attendiesId: processedAttendeeIds,
         meetingDate: meetingForm.meetingDate,
         startTime: meetingForm.startTime,
         endTime: meetingForm.endTime
@@ -1127,8 +1245,8 @@ export default function ScheduleMeetingPage() {
                     width: '100%',
                     maxWidth: 500,
                     mt: 1,
-                    maxHeight: 500,
-                    minHeight: 250,
+                    maxHeight: 600,
+                    minHeight: 300,
                     overflow: 'hidden',
                     borderRadius: 3,
                     boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
@@ -1188,8 +1306,8 @@ export default function ScheduleMeetingPage() {
                   {/* Scrollable attendee lists container */}
                   <Box sx={{ flex: 1, overflow: 'auto', pr: 1 }}>
                   
-                  {/* Visitor Selection - Only show if not a visitor */}
-                  {currentUserRole !== 'visitor' && (
+                  {/* Visitor Selection - Show for exhibitors, event admins, and visitors */}
+                  {(currentUserRole === 'exhibitor' || currentUserRole === 'event-admin' || currentUserRole === 'visitor') && (
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ 
                         display: 'flex', 
@@ -1208,7 +1326,17 @@ export default function ScheduleMeetingPage() {
                         </Typography>
                       </Box>
                       {!loading && getFilteredVisitors().length > 0 ? (
-                        <Box sx={{ height: 260 }}>
+                        <Box sx={{ 
+                          height: (() => {
+                            // Calculate dynamic height based on how many sections are visible
+                            const showVisitors = (currentUserRole === 'exhibitor' || currentUserRole === 'event-admin' || currentUserRole === 'visitor');
+                            const showExhibitors = (currentUserRole === 'visitor' || currentUserRole === 'event-admin' || currentUserRole === 'exhibitor');
+                            const sectionsVisible = (showVisitors ? 1 : 0) + (showExhibitors ? 1 : 0);
+                            
+                            // If both sections are visible, give each less height
+                            return sectionsVisible > 1 ? 180 : 260;
+                          })()
+                        }}>
                           <AutoSizer>
                             {({ width, height }) => {
                               const filtered = getFilteredVisitors();
@@ -1324,8 +1452,8 @@ export default function ScheduleMeetingPage() {
                     </Box>
                   )}
 
-                  {/* Exhibitor Selection - Only show if not an exhibitor */}
-                  {currentUserRole !== 'exhibitor' && (
+                  {/* Exhibitor Selection - Show for visitors, event admins, and exhibitors */}
+                  {(currentUserRole === 'visitor' || currentUserRole === 'event-admin' || currentUserRole === 'exhibitor') && (
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ 
                         display: 'flex', 
@@ -1344,7 +1472,17 @@ export default function ScheduleMeetingPage() {
                         </Typography>
                       </Box>
                       {!loading && getFilteredExhibitors().length > 0 ? (
-                        <Box sx={{ height: 260 }}>
+                        <Box sx={{ 
+                          height: (() => {
+                            // Calculate dynamic height based on how many sections are visible
+                            const showVisitors = (currentUserRole === 'exhibitor' || currentUserRole === 'event-admin' || currentUserRole === 'visitor');
+                            const showExhibitors = (currentUserRole === 'visitor' || currentUserRole === 'event-admin' || currentUserRole === 'exhibitor');
+                            const sectionsVisible = (showVisitors ? 1 : 0) + (showExhibitors ? 1 : 0);
+                            
+                            // If both sections are visible, give each less height
+                            return sectionsVisible > 1 ? 180 : 260;
+                          })()
+                        }}>
                           <AutoSizer>
                             {({ width, height }) => {
                               const filtered = getFilteredExhibitors();

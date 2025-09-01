@@ -868,135 +868,141 @@ export default function SimulationPage() {
                 {/* Conditional Participant Selection */}
                 <Box sx={{ flex: 1, maxWidth: 400 }}>
                   {selectedRole === 'visitor' ? (
-                    <Autocomplete
-                      options={visitors}
-                      getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
-                      value={selectedVisitor}
-                      onChange={(_, newValue) => handleVisitorChange(newValue)}
-                      loading={loadingVisitors}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Select Visitor"
-                          variant="outlined"
-                          fullWidth
-                          size="small"
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <>
-                                {selectedVisitor && (
-                                  <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Autocomplete
+                        options={visitors}
+                        getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
+                        value={selectedVisitor}
+                        onChange={(_, newValue) => handleVisitorChange(newValue)}
+                        loading={loadingVisitors}
+                        disabled={!!selectedVisitor}
+                        sx={{ flex: 1 }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Select Visitor"
+                            variant="outlined"
+                            fullWidth
+                            size="small"
+                            InputProps={{
+                              ...params.InputProps,
+                              startAdornment: (
+                                <>
+                                  {selectedVisitor && (
+                                    <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
+                                  )}
+                                  {params.InputProps.startAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            <Box display="flex" alignItems="center" gap={2}>
+                              <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
+                                <Person />
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body1">{option.name}</Typography>
+                                {option.company && (
+                                  <Typography variant="body2" color="text.secondary">
+                                    {option.company}
+                                  </Typography>
                                 )}
-                                {params.InputProps.startAdornment}
-                              </>
-                            ),
-                            endAdornment: (
-                              <>
-                                {selectedVisitor && (
-                                  <Tooltip title="View Visitor Details">
-                                    <IconButton 
-                                      onClick={() => handleVisitorClick(selectedVisitor.id)}
-                                      size="small"
-                                      sx={{ width: 24, height: 24 }}
-                                    >
-                                      <Visibility sx={{ fontSize: 16 }} />
-                                    </IconButton>
-                                  </Tooltip>
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      renderOption={(props, option) => (
-                        <Box component="li" {...props}>
-                          <Box display="flex" alignItems="center" gap={2}>
-                            <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-                              <Person />
-                            </Avatar>
-                            <Box>
-                              <Typography variant="body1">{option.name}</Typography>
-                              {option.company && (
-                                <Typography variant="body2" color="text.secondary">
-                                  {option.company}
-                                </Typography>
-                              )}
+                              </Box>
                             </Box>
                           </Box>
-                        </Box>
+                        )}
+                      />
+                      {selectedVisitor && (
+                        <Tooltip title="View Visitor Details">
+                          <IconButton 
+                            onClick={() => handleVisitorClick(selectedVisitor.id)}
+                            size="small"
+                            sx={{ 
+                              bgcolor: 'grey.500', 
+                              color: 'white',
+                              '&:hover': { bgcolor: 'grey.600' }
+                            }}
+                          >
+                            <Visibility sx={{ fontSize: 12 }} />
+                          </IconButton>
+                        </Tooltip>
                       )}
-                    />
+                    </Box>
                   ) : (
-                    <Autocomplete
-                      options={exhibitors}
-                      getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
-                      value={selectedExhibitor}
-                      onChange={(_, newValue) => handleExhibitorChange(newValue)}
-                      loading={loadingExhibitors}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Select Exhibitor"
-                          variant="outlined"
-                          fullWidth
-                          size="small"
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <>
-                                {selectedExhibitor && (
-                                  <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Autocomplete
+                        options={exhibitors}
+                        getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
+                        value={selectedExhibitor}
+                        onChange={(_, newValue) => handleExhibitorChange(newValue)}
+                        loading={loadingExhibitors}
+                        disabled={!!selectedExhibitor}
+                        sx={{ flex: 1 }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Select Exhibitor"
+                            variant="outlined"
+                            fullWidth
+                            size="small"
+                            InputProps={{
+                              ...params.InputProps,
+                              startAdornment: (
+                                <>
+                                  {selectedExhibitor && (
+                                    <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
+                                  )}
+                                  {params.InputProps.startAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            <Box display="flex" alignItems="center" gap={2}>
+                              <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
+                                <Person />
+                              </Avatar>
+                              <Box>
+                              {option.name && option.name !== option.company && (
+                                  <Typography variant="body1" >
+                                    {option.name}
+                                  </Typography>
                                 )}
-                                {params.InputProps.startAdornment}
-                              </>
-                            ),
-                            endAdornment: (
-                              <>
-                                {selectedExhibitor && (
-                                  <Tooltip title="View Exhibitor Details">
-                                    <IconButton 
-                                      onClick={() => handleExhibitorClick(selectedExhibitor.id)}
-                                      size="small"
-                                      sx={{ width: 24, height: 24 }}
-                                    >
-                                      <Visibility sx={{ fontSize: 16 }} />
-                                    </IconButton>
-                                  </Tooltip>
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      renderOption={(props, option) => (
-                        <Box component="li" {...props}>
-                          <Box display="flex" alignItems="center" gap={2}>
-                            <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                              <Person />
-                            </Avatar>
-                            <Box>
-                            {option.name && option.name !== option.company && (
-                                <Typography variant="body1" >
-                                  {option.name}
-                                </Typography>
-                              )}
-                              <Typography variant="body2" color="text.secondary">
-                                {option.company || option.name}
-                              </Typography>
-                              {option.companyType && (
                                 <Typography variant="body2" color="text.secondary">
-                                  {option.companyType}
+                                  {option.company || option.name}
                                 </Typography>
-                              )}
-                              
+                                {option.companyType && (
+                                  <Typography variant="body2" color="text.secondary">
+                                    {option.companyType}
+                                  </Typography>
+                                )}
+                                
+                              </Box>
                             </Box>
                           </Box>
-                        </Box>
+                        )}
+                      />
+                      {selectedExhibitor && (
+                        <Tooltip title="View Exhibitor Details">
+                          <IconButton 
+                            onClick={() => handleExhibitorClick(selectedExhibitor.id)}
+                            size="small"
+                            sx={{ 
+                              bgcolor: 'grey.500', 
+                              color: 'white',
+                              '&:hover': { bgcolor: 'grey.600' }
+                            }}
+                          >
+                            <Visibility sx={{ fontSize: 12 }} />
+                          </IconButton>
+                        </Tooltip>
                       )}
-                    />
+                    </Box>
                   )}
                 </Box>
               </Box>

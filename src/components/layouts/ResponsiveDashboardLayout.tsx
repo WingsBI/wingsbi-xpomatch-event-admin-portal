@@ -138,13 +138,6 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
       baseItems.push({ text: 'My Favourites', icon: <FavoriteIcon />, href: `/${identifier}/favourites`, children: [] });
     }
     
-    baseItems.push({
-      text: 'Settings', 
-      icon: <Settings />, 
-      children: [
-        { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
-      ]
-    });
     
   } else if (userRole === 'exhibitor') {
     // Exhibitor-specific navigation with role-based permissions
@@ -184,13 +177,7 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
     baseItems.push({
       text: 'Settings', 
       icon: <Settings />, 
-      children: []
-    });
-    baseItems.push({
-      text: 'Profile', 
-      icon: <Person />, 
       children: [
-         { text: 'User Profile', href: `/${identifier}/profile`, children: [] },
          { text: 'Exhibitor Profile', href: `/${identifier}/dashboard/exhibitor_dashboard/exhibitor_details`, children: [] },
       ]
     });

@@ -29,7 +29,7 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import { Save, Refresh, Add, Delete, ExpandMore, Settings, Group, CompareArrows } from '@mui/icons-material';
+import { Save, Refresh, Add, Delete, ExpandMore, Settings, Group, CompareArrows, Favorite, Event, Search, Calculate } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { matchmakingApi } from '@/services/apiService';
@@ -121,6 +121,10 @@ export default function WeightagePage() {
     scheduleMeeting: 40,
     search: 30,
   });
+
+  // Hybrid matching weights state
+  const [contentMatchingWeight, setContentMatchingWeight] = useState<number>(60);
+  const [collaborationWeight, setCollaborationWeight] = useState<number>(40);
 
   // Visitor interaction config state
   const [visitorInteractionConfigs, setVisitorInteractionConfigs] = useState<VisitorInteractionConfig[]>([]);
@@ -759,52 +763,91 @@ export default function WeightagePage() {
     }));
   };
 
-  // Save collaboration weightages
-  const handleSaveCollaborationWeightages = async () => {
-    try {
-      setCollaborationLoading(true);
-      
-      // Prepare payload with weight values as integers (percentage format)
-      const updatedConfigs = visitorInteractionConfigs.map(config => {
-        const stateKey = config.fieldName.toLowerCase() === 'liked' ? 'isFavorite' :
-                        config.fieldName.toLowerCase() === 'meetingscheduled' ? 'scheduleMeeting' :
-                        config.fieldName.toLowerCase() === 'searched' ? 'search' : config.fieldName;
-        
-        const percentageValue = collaborationWeightages[stateKey] || 0;
-        
-        return {
-          id: config.id,
-          weight: percentageValue // Send as integer percentage (e.g., 30, 40, 30)
-        };
-      });
+     // Save collaboration weightages
+   const handleSaveCollaborationWeightages = async () => {
+     try {
+       setCollaborationLoading(true);
+       
+       // Prepare payload with weight values as integers (percentage format)
+       const updatedConfigs = visitorInteractionConfigs.map(config => {
+         const stateKey = config.fieldName.toLowerCase() === 'liked' ? 'isFavorite' :
+                         config.fieldName.toLowerCase() === 'meetingscheduled' ? 'scheduleMeeting' :
+                         config.fieldName.toLowerCase() === 'searched' ? 'search' : config.fieldName;
+         
+         const percentageValue = collaborationWeightages[stateKey] || 0;
+         
+         return {
+           id: config.id,
+           weight: percentageValue // Send as integer percentage (e.g., 30, 40, 30)
+         };
+       });
 
-      console.log('Saving collaboration weightages:', updatedConfigs);
-      
-      // Call the API to update visitor interaction config
-      const response = await matchmakingApi.updateVisitorInteractionConfig(identifier, updatedConfigs);
-      
-      if (response.statusCode === 200 || response.statusCode === 201) {
-        store.dispatch(addNotification({
-          type: 'success',
-          message: 'Collaboration weightages saved successfully!'
-        }));
-        
-        // Refresh the data to ensure UI is in sync
-        await fetchVisitorInteractionConfig();
-      } else {
-        throw new Error(response.message || 'Failed to save collaboration weightages');
-      }
-      
-    } catch (error) {
-      console.error('Error saving collaboration weightages:', error);
-      store.dispatch(addNotification({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Failed to save collaboration weightages'
-      }));
-    } finally {
-      setCollaborationLoading(false);
-    }
-  };
+       console.log('Saving collaboration weightages:', updatedConfigs);
+       
+       // Call the API to update visitor interaction config
+       const response = await matchmakingApi.updateVisitorInteractionConfig(identifier, updatedConfigs);
+       
+       if (response.statusCode === 200 || response.statusCode === 201) {
+         store.dispatch(addNotification({
+           type: 'success',
+           message: 'Collaboration weightages saved successfully!'
+         }));
+         
+         // Refresh the data to ensure UI is in sync
+         await fetchVisitorInteractionConfig();
+       } else {
+         throw new Error(response.message || 'Failed to save collaboration weightages');
+       }
+       
+     } catch (error) {
+       console.error('Error saving collaboration weightages:', error);
+       store.dispatch(addNotification({
+         type: 'error',
+         message: error instanceof Error ? error.message : 'Failed to save collaboration weightages'
+       }));
+     } finally {
+       setCollaborationLoading(false);
+     }
+   };
+
+   // Save hybrid matching configuration
+   const handleSaveHybridMatchingConfig = async () => {
+     try {
+       // Prepare payload for hybrid matching config
+       // Using the actual values from the editable text fields
+       const hybridConfigPayload = [
+         {
+           id: 1,
+           weight: contentMatchingWeight
+         },
+         {
+           id: 2,
+           weight: collaborationWeight
+         }
+       ];
+
+       console.log('Saving hybrid matching config:', hybridConfigPayload);
+       
+       // Call the API to update hybrid matching config
+       const response = await matchmakingApi.updateHybridMatchingConfig(identifier, hybridConfigPayload);
+       
+       if (response.statusCode === 200 || response.statusCode === 201) {
+         store.dispatch(addNotification({
+           type: 'success',
+           message: 'Hybrid matching configuration saved successfully!'
+         }));
+       } else {
+         throw new Error(response.message || 'Failed to save hybrid matching configuration');
+       }
+       
+     } catch (error) {
+       console.error('Error saving hybrid matching configuration:', error);
+       store.dispatch(addNotification({
+         type: 'error',
+         message: error instanceof Error ? error.message : 'Failed to save hybrid matching configuration'
+       }));
+     }
+   };
 
   if (loading) {
     return (
@@ -905,12 +948,7 @@ export default function WeightagePage() {
                       Configure field-based matching algorithms for visitor-exhibitor pairing based on content similarity.
                     </Typography>
                   </Box>
-                  <Chip
-                    label={expanded === 'panel1' ? 'Expanded' : 'Click to expand'}
-                    size="small"
-                    color={expanded === 'panel1' ? 'primary' : 'default'}
-                    sx={{ ml: 2 }}
-                  />
+                  
                 </Box>
               </AccordionSummary>
               
@@ -1535,168 +1573,229 @@ export default function WeightagePage() {
                     >
                       <Refresh />
                     </IconButton> */}
-                    <Chip
-                      label={expanded === 'panel2' ? 'Expanded' : 'Click to expand'}
-                      size="small"
-                      color={expanded === 'panel2' ? 'primary' : 'default'}
-                    />
+                   
                   </Box>
                 </Box>
               </AccordionSummary>
               
               <AccordionDetails sx={{ p: { xs: 2, md: 4 } }}>
                 {/* Collaboration Weightage Configuration UI */}
-                <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-                  {/* Headers */}
-                  <Box sx={{ display: 'flex', mb: 3 }}>
-                    <Box sx={{ flex: 1, textAlign: 'center' }}>
-                      <Typography variant="h6" fontWeight="600" sx={{ mb: 1 }}>
-                        Activity
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, textAlign: 'center' }}>
-                      <Typography variant="h6" fontWeight="600" sx={{ mb: 1 }}>
-                        Weightage
-                      </Typography>
-                    </Box>
-                  </Box>
+                <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+                  <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                    <CardContent sx={{ p: 4 }}>
+                                             {/* Headers */}
+                       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 1, px: 2 }}>
+                         <Box sx={{ textAlign: 'center' }}>
+                           <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5, color: 'primary.main' }}>
+                             Activity
+                           </Typography>
+                         </Box>
+                         <Box sx={{ textAlign: 'center' }}>
+                           <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5, color: 'primary.main' }}>
+                             Weightage
+                           </Typography>
+                         </Box>
+                       </Box>
 
-                  {/* Activity Rows */}
-                  {collaborationLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                      <CircularProgress />
-                    </Box>
-                  ) : (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
-                      {visitorInteractionConfigs.map((config) => {
-                        // Map field names to display names
-                        const getDisplayName = (fieldName: string) => {
-                          switch (fieldName.toLowerCase()) {
-                            case 'liked':
-                              return 'isFavorite';
-                            case 'meetingscheduled':
-                              return 'Schedule Meeting';
-                            case 'searched':
-                              return 'Search';
-                            default:
-                              return fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1');
-                          }
-                        };
+                       {/* Activity Rows */}
+                       {collaborationLoading ? (
+                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                           <CircularProgress />
+                         </Box>
+                       ) : (
+                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
+                           {visitorInteractionConfigs.map((config) => {
+                             // Map field names to display names
+                             const getDisplayName = (fieldName: string) => {
+                               switch (fieldName.toLowerCase()) {
+                                 case 'liked':
+                                   return 'isFavorite';
+                                 case 'meetingscheduled':
+                                   return 'Schedule Meeting';
+                                 case 'searched':
+                                   return 'Search';
+                                 default:
+                                   return fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1');
+                               }
+                             };
 
-                        // Map field names to state keys
-                        const getStateKey = (fieldName: string) => {
-                          switch (fieldName.toLowerCase()) {
-                            case 'liked':
-                              return 'isFavorite';
-                            case 'meetingscheduled':
-                              return 'scheduleMeeting';
-                            case 'searched':
-                              return 'search';
-                            default:
-                              return fieldName;
-                          }
-                        };
+                             // Map field names to state keys
+                             const getStateKey = (fieldName: string) => {
+                               switch (fieldName.toLowerCase()) {
+                                 case 'liked':
+                                   return 'isFavorite';
+                                 case 'meetingscheduled':
+                                   return 'scheduleMeeting';
+                                 case 'searched':
+                                   return 'search';
+                                 default:
+                                   return fieldName;
+                               }
+                             };
 
-                        const stateKey = getStateKey(config.fieldName);
-                        const displayName = getDisplayName(config.fieldName);
-                        const currentValue = collaborationWeightages[stateKey as keyof typeof collaborationWeightages] || 0;
+                             // Get appropriate icon for each activity
+                             const getActivityIcon = (fieldName: string) => {
+                               switch (fieldName.toLowerCase()) {
+                                 case 'liked':
+                                   return <Favorite sx={{ color: '#e91e63', fontSize: 18 }} />;
+                                 case 'meetingscheduled':
+                                   return <Event sx={{ color: '#2196f3', fontSize: 18 }} />;
+                                 case 'searched':
+                                   return <Search sx={{ color: '#ff9800', fontSize: 18 }} />;
+                                 default:
+                                   return <Settings sx={{ color: '#9e9e9e', fontSize: 18 }} />;
+                               }
+                             };
 
-                        return (
-                          <Box key={config.id} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                            <Box sx={{ flex: 1 }}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                value={displayName}
-                                InputProps={{ readOnly: true }}
-                                sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    borderRadius: 1,
-                                    height: '45px',
-                                  }
-                                }}
-                              />
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
-                              <TextField
-                                type="number"
-                                size="small"
-                                fullWidth
-                                value={currentValue}
-                                onChange={(e) => handleCollaborationWeightageChange(stateKey, Number(e.target.value) || 0)}
-                                inputProps={{ min: 0, max: 100, step: 1 }}
-                                sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    borderRadius: 1,
-                                    height: '45px',
-                                  }
-                                }}
-                              />
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
+                             const stateKey = getStateKey(config.fieldName);
+                             const displayName = getDisplayName(config.fieldName);
+                             const currentValue = collaborationWeightages[stateKey as keyof typeof collaborationWeightages] || 0;
 
-                  {/* Total Section */}
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mb: 4 }}>
-                    <TextField
-                      type="number"
-                      size="small"
-                      value={getCollaborationTotal()}
-                      InputProps={{ readOnly: true }}
-                      sx={{
-                        width: 100,
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 1,
-                          ...getCollaborationTotalStyling()
-                        }
-                      }}
-                    />
-                    <Typography variant="body1" fontWeight="500">
-                      Total
-                    </Typography>
-                    {getCollaborationTotal() === 100 && (
-                      <Box
-                        sx={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: '50%',
-                          bgcolor: '#4caf50',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        ✓
+                             return (
+                               <Box key={config.id} sx={{ 
+                                 display: 'grid',
+                                 gridTemplateColumns: '1fr 1fr',
+                                 gap: 2,
+                                 alignItems: 'center',
+                                 p: 1,
+                                 borderRadius: 2,
+                                 bgcolor: 'grey.50',
+                                 border: '1px solid',
+                                 borderColor: 'grey.200'
+                               }}>
+                                 {/* Activity Column */}
+                                 <Box sx={{ 
+                                   display: 'flex', 
+                                   alignItems: 'center', 
+                                   gap: 2,
+                                   justifyContent: 'center'
+                                 }}>
+                                   <Box sx={{ 
+                                     display: 'flex', 
+                                     alignItems: 'center', 
+                                     justifyContent: 'center',
+                                     width: 32,
+                                     height: 32,
+                                     borderRadius: 2,
+                                     bgcolor: 'white',
+                                     border: '1px solid',
+                                     borderColor: 'grey.300',
+                                     boxShadow: 1
+                                   }}>
+                                     {getActivityIcon(config.fieldName)}
+                                   </Box>
+                                   <Typography variant="body2" fontWeight="500" color="text.primary">
+                                     {displayName}
+                                   </Typography>
+                                 </Box>
+                                 
+                                 {/* Weightage Column */}
+                                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                   <TextField
+                                     type="number"
+                                     size="small"
+                                     value={currentValue}
+                                     onChange={(e) => handleCollaborationWeightageChange(stateKey, Number(e.target.value) || 0)}
+                                     inputProps={{ min: 0, max: 100, step: 1 }}
+                                     sx={{
+                                       width: 100,
+                                       '& .MuiOutlinedInput-root': {
+                                         borderRadius: 1.5,
+                                         height: '40px',
+                                         '&:hover': {
+                                           '& .MuiOutlinedInput-notchedOutline': {
+                                             borderColor: 'primary.main',
+                                           },
+                                         },
+                                       },
+                                     }}
+                                   />
+                                 </Box>
+                               </Box>
+                             );
+                           })}
+                         </Box>
+                       )}
+
+                      {/* Total Section */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        gap: 2,
+                        p: 1,
+                        mt: -1.5,
+                        borderRadius: 2,
+                        alignItems: 'center',
+                        bgcolor: 'grey.50',
+                        border: '1px solid',
+                        borderColor: 'grey.200'
+                      }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                           <Box sx={{ 
+                             display: 'flex', 
+                             alignItems: 'center', 
+                             justifyContent: 'center',
+                             width: 35,
+                             height: 35,
+                             borderRadius: 2,
+                             bgcolor: 'primary.main',
+                             color: 'white'
+                           }}>
+                             <Calculate sx={{ fontSize: 16 }} />
+                           </Box>
+                           <Box sx={{ flex: 1 }}>
+                             <Typography variant="body2" fontWeight="500" color="text.primary">
+                               Total Weightage
+                             </Typography>
+                             <Typography variant="caption" color="text.secondary">
+                               Must equal 100%
+                             </Typography>
+                           </Box>
+                         
+                         
+                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent:'flex-end', ml: 24 }}>
+                           <TextField
+                             type="number"
+                             size="small"
+                             value={getCollaborationTotal()}
+                             InputProps={{ readOnly: true }}
+                             sx={{
+                               width: 100,
+                               '& .MuiOutlinedInput-root': {
+                                 borderRadius: 1.5,
+                                 ...getCollaborationTotalStyling()
+                               }
+                             }}
+                           />
+                          
+                         </Box>
+                         </Box>
                       </Box>
                       
-                    )}
-                    <Button
-                      variant="contained"
-                      size="small"
-                      disabled={getCollaborationTotal() !== 100 || collaborationLoading}
-                      startIcon={collaborationLoading ? <CircularProgress size={16} /> : <Save />}
-                      onClick={handleSaveCollaborationWeightages}
-                      sx={{
-                        px: 4,
-                        py: 1,
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        opacity: getCollaborationTotal() === 100 ? 1 : 0.6,
-                      }}
-                    >
-                      {collaborationLoading ? 'Saving...' : 'Save'}
-                    </Button>
-                  </Box>
-
-                 
+                      {/* Save Button Section */}
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          disabled={getCollaborationTotal() !== 100 || collaborationLoading}
+                          startIcon={collaborationLoading ? <CircularProgress size={16} /> : <Save />}
+                          onClick={handleSaveCollaborationWeightages}
+                          sx={{
+                            px: 4,
+                            py: 0.8,
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontSize: '1rem',
+                            fontWeight: 500,
+                            opacity: getCollaborationTotal() === 100 ? 1 : 0.6,
+                            boxShadow: 2,
+                          }}
+                        >
+                          {collaborationLoading ? 'Saving...' : 'Save Configuration'}
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 </Box>
               </AccordionDetails>
             </Accordion>
@@ -1725,6 +1824,7 @@ export default function WeightagePage() {
                   '&.Mui-expanded': {
                     minHeight: 64,
                   },
+                  
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -1752,37 +1852,29 @@ export default function WeightagePage() {
                       Combine content and collaboration matching for comprehensive visitor-exhibitor pairing.
                     </Typography>
                   </Box>
-                  <Chip
-                    label={expanded === 'panel3' ? 'Expanded' : 'Click to expand'}
-                    size="small"
-                    color={expanded === 'panel3' ? 'primary' : 'default'}
-                    sx={{ ml: 2 }}
-                  />
+                 
                 </Box>
               </AccordionSummary>
               
-              <AccordionDetails sx={{ p: { xs: 2, md: 4, mt: -1}, backgroundColor: '#ed6c0205' }}>
+              <AccordionDetails sx={{ p: { xs: 2, md: 4, mt: 1}, backgroundColor: '#ed6c0205' }}>
                 {/* Mixed Match Making Dummy UI */}
                 <Box sx={{ textAlign: 'center', py: 3 }}>
-                  <CompareArrows sx={{ fontSize: 50, color: '#ed6c02', mb: 1, mt: 1 }} />
-                  <Typography variant="h5" fontWeight="600" sx={{ mb: 2, color: '#ed6c02' }}>
+                  <CompareArrows sx={{ fontSize: 50, color: '#ed6c02', mb: -1, mt: -5}} />
+                  <Typography variant="h5" fontWeight="600" sx={{ mb: 2, color: 'primary.main' }}>
                     Mixed Match Making
                   </Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}>
-                    This section will contain hybrid matching algorithms that combine both content-based and 
-                    collaboration-based matching for optimal visitor-exhibitor recommendations.
-                  </Typography>
+                 
                   <Grid container spacing={3} sx={{ maxWidth: 900, mx: 'auto' }}>
                     <Grid item xs={12} md={6}>
-                      <Card sx={{ p: 3, border: '2px dashed #ed6c02', height: '100%' }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: '#ed6c02', textAlign: 'center' }}>Content Weight</Typography>
+                      <Card sx={{ p: 3, border: 'primary.main', height: '100%' }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', textAlign: 'center' }}>Content Weight</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <TextField
                             label="Content Matching Weight (%)"
                             type="number"
-                            defaultValue={60}
+                            value={contentMatchingWeight}
+                            onChange={(e) => setContentMatchingWeight(Number(e.target.value))}
                             size="small"
-                            InputProps={{ readOnly: true }}
                             sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#ed6c0210' } }}
                           />
                           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
@@ -1792,15 +1884,15 @@ export default function WeightagePage() {
                       </Card>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <Card sx={{ p: 3, border: '2px dashed #ed6c02', height: '100%' }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: '#ed6c02', textAlign: 'center' }}>Collaboration Weight</Typography>
+                      <Card sx={{ p: 3, border: 'primary.main', height: '100%' }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', textAlign: 'center' }}>Collaboration Weight</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <TextField
                             label="Collaboration Weight (%)"
                             type="number"
-                            defaultValue={40}
+                            value={collaborationWeight}
+                            onChange={(e) => setCollaborationWeight(Number(e.target.value))}
                             size="small"
-                            InputProps={{ readOnly: true }}
                             sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#ed6c0210' } }}
                           />
                           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
@@ -1809,16 +1901,20 @@ export default function WeightagePage() {
                         </Box>
                       </Card>
                     </Grid>
-                    <Grid item xs={12}>
-                      <Card sx={{ p: 3, border: '2px solid #ed6c02', bgcolor: '#ed6c0208' }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: '#ed6c02', textAlign: 'center' }}>Hybrid Algorithm</Typography>
-                       
-                      </Card>
-                    </Grid>
+                                         <Grid item xs={12}>
+                      <Button 
+                        variant="contained" 
+                        color="primary" 
+                        sx={{ width: 'small' }} 
+                        startIcon={<Save />}
+                        onClick={handleSaveHybridMatchingConfig}
+                        disabled={false}
+                      >
+                       Save Configuration
+                      </Button>
+                     </Grid>
                   </Grid>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 4, fontStyle: 'italic' }}>
-                    Coming Soon - This feature is under development
-                  </Typography>
+                  
                 </Box>
               </AccordionDetails>
             </Accordion>

@@ -356,6 +356,8 @@ export default function ScheduleMeetingPage() {
                                    exhibitor.exhibitorToUserMaps?.[0];
             
             return {
+              // IMPORTANT: Use userId from exhibitorToUserMaps for meeting scheduling
+              // This is the ID that should be sent to the backend when scheduling meetings
               id: primaryContact?.userId || exhibitor.id, // Use userId from exhibitorToUserMaps instead of exhibitor.id
               firstName: primaryContact?.firstName || '',
               lastName: primaryContact?.lastName || '',
@@ -366,7 +368,7 @@ export default function ScheduleMeetingPage() {
               companyLogo: exhibitor.companyLogoPath,
               // Store the full exhibitor data for display purposes
               fullData: exhibitor,
-              // Store the original exhibitor ID for reference
+              // Store the original exhibitor ID for reference (company ID, not user ID)
               exhibitorId: exhibitor.id
             };
           });
@@ -873,16 +875,18 @@ export default function ScheduleMeetingPage() {
         // Check if this ID belongs to an exhibitor
         const exhibitor = exhibitors.find(e => e.id === attendeeId);
         if (exhibitor) {
-          // For exhibitors, we need to send the original exhibitor ID, not the user ID
-          const originalExhibitorId = exhibitor.exhibitorId || exhibitor.id;
+          // For exhibitors, we need to send the userId from exhibitorToUserMaps, not the exhibitor ID
+          // The exhibitor.id is actually the userId from exhibitorToUserMaps
+          const exhibitorUserId = exhibitor.id; // This is already the userId from exhibitorToUserMaps
           console.log('🔍 Mapping exhibitor:', {
             selectedId: attendeeId,
-            originalExhibitorId: originalExhibitorId,
-            companyName: exhibitor.companyName
+            exhibitorUserId: exhibitorUserId,
+            companyName: exhibitor.companyName,
+            contactName: `${exhibitor.firstName} ${exhibitor.lastName}`
           });
-          processedAttendeeIds.push(originalExhibitorId);
+          processedAttendeeIds.push(exhibitorUserId);
           attendeeTypes.push({
-            id: originalExhibitorId,
+            id: exhibitorUserId,
             type: 'exhibitor',
             name: exhibitor.companyName || `${exhibitor.firstName} ${exhibitor.lastName}`
           });
@@ -922,7 +926,8 @@ export default function ScheduleMeetingPage() {
         totalAttendees: processedAttendeeIds.length,
         exhibitorAttendees: exhibitorCount,
         visitorAttendees: visitorCount,
-        attendeeBreakdown: attendeeTypes
+        attendeeBreakdown: attendeeTypes,
+        note: 'For exhibitors, sending userId from exhibitorToUserMaps'
       });
 
       const meetingData = {

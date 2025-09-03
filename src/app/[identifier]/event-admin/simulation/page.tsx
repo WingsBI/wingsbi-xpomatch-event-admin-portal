@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from "next/navigation";
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
   Container,
@@ -15,45 +14,39 @@ import {
   Chip,
   LinearProgress,
   Alert,
-  Grid,
   Paper,
   IconButton,
-  Fade,
-  Slide,
-  Divider,
   Tooltip,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Button,
+  Grid,
+  Divider,
+  Skeleton,
+  alpha,
 } from '@mui/material';
 import {
-  Business,
   BusinessCenter,
   Person,
-  Email,
   ChevronLeft,
   ChevronRight,
-  Favorite,
-  Work,
   LocationOn,
-  LinkedIn,
-  Language,
-  Handshake,
-  Psychology,
-  TrendingUp,
-  Group,
-  Analytics,
-  AutoAwesome,
   Visibility,
+  Close,
+  ArrowBackIos,
+  ArrowForwardIos,
+  Favorite,
+  FavoriteBorder,
 } from '@mui/icons-material';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import { apiService, matchmakingApi, ExhibitormatchmakingApi } from '@/services/apiService';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import VisitorDetailsDialog from '@/components/common/VisitorDetailsDialog';
 import ExhibitorDetailsDialog from '@/components/common/ExhibitorDetailsDialog';
+import RecommendationWeightDialog from '@/components/common/RecommendationWeightDialog';
 
 interface Participant {
   id: number;
@@ -120,10 +113,11 @@ export default function SimulationPage() {
   const [loadingVisitorMatches, setLoadingVisitorMatches] = useState(false);
   const [loadingExhibitorMatches, setLoadingExhibitorMatches] = useState(false);
 
-  // Carousel states
-  const [visitorPage, setVisitorPage] = useState(0);
-  const [exhibitorVisitorPage, setExhibitorVisitorPage] = useState(0);
-  const [exhibitorExhibitorPage, setExhibitorExhibitorPage] = useState(0);
+  // Pagination states
+  const [visitorPage, setVisitorPage] = useState(1);
+  const [exhibitorVisitorPage, setExhibitorVisitorPage] = useState(1);
+  const [exhibitorExhibitorPage, setExhibitorExhibitorPage] = useState(1);
+  const [pageDirection, setPageDirection] = useState<'left' | 'right'>('right');
   const itemsPerPage = 5;
 
   // Dialog states
@@ -131,6 +125,7 @@ export default function SimulationPage() {
   const [exhibitorDialogOpen, setExhibitorDialogOpen] = useState(false);
   const [selectedVisitorId, setSelectedVisitorId] = useState<number | null>(null);
   const [selectedExhibitorId, setSelectedExhibitorId] = useState<number | null>(null);
+  const [recommendationWeightDialogOpen, setRecommendationWeightDialogOpen] = useState(false);
 
   // Load visitors and exhibitors on component mount
   useEffect(() => {
@@ -144,9 +139,9 @@ export default function SimulationPage() {
     setVisitorRecommendations([]);
     setExhibitorVisitorRecommendations([]);
     setExhibitorExhibitorRecommendations([]);
-    setVisitorPage(0);
-    setExhibitorVisitorPage(0);
-    setExhibitorExhibitorPage(0);
+    setVisitorPage(1);
+    setExhibitorVisitorPage(1);
+    setExhibitorExhibitorPage(1);
   }, [selectedRole]);
 
   const loadParticipants = async () => {
@@ -204,10 +199,16 @@ export default function SimulationPage() {
     }
   };
 
+  const getInitials = (firstName?: string, lastName?: string) => {
+    const first = firstName?.charAt(0)?.toUpperCase() || '';
+    const last = lastName?.charAt(0)?.toUpperCase() || '';
+    return first + last || 'U';
+  };
+
   const handleVisitorChange = async (visitor: Participant | null) => {
     setSelectedVisitor(visitor);
     setVisitorRecommendations([]);
-    setVisitorPage(0);
+    setVisitorPage(1);
     
     if (visitor) {
       try {
@@ -245,8 +246,8 @@ export default function SimulationPage() {
     setSelectedExhibitor(exhibitor);
     setExhibitorVisitorRecommendations([]);
     setExhibitorExhibitorRecommendations([]);
-    setExhibitorVisitorPage(0);
-    setExhibitorExhibitorPage(0);
+    setExhibitorVisitorPage(1);
+    setExhibitorExhibitorPage(1);
     
     if (exhibitor) {
       try {
@@ -313,8 +314,19 @@ export default function SimulationPage() {
     return parts.join(' ') || 'Unknown Visitor';
   };
 
-  const handlePageChange = (currentPage: number, newPage: number, setPage: (page: number) => void) => {
-    setPage(newPage);
+  const handleVisitorPageChange = (event: any, newPage: number) => {
+    setPageDirection(newPage > visitorPage ? 'left' : 'right');
+    setVisitorPage(newPage);
+  };
+
+  const handleExhibitorVisitorPageChange = (event: any, newPage: number) => {
+    setPageDirection(newPage > exhibitorVisitorPage ? 'left' : 'right');
+    setExhibitorVisitorPage(newPage);
+  };
+
+  const handleExhibitorExhibitorPageChange = (event: any, newPage: number) => {
+    setPageDirection(newPage > exhibitorExhibitorPage ? 'left' : 'right');
+    setExhibitorExhibitorPage(newPage);
   };
 
   // Dialog handlers
@@ -338,85 +350,129 @@ export default function SimulationPage() {
     setSelectedExhibitorId(null);
   };
 
+  const handleRecommendationWeightClick = () => {
+    setRecommendationWeightDialogOpen(true);
+  };
+
+  const handleRecommendationWeightDialogClose = () => {
+    setRecommendationWeightDialogOpen(false);
+  };
+
   const VisitorCard = ({ visitor }: { visitor: VisitorDetail }) => {
     const displayName = getVisitorDisplayName(visitor);
-    const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase();
 
     return (
-      <Card 
-          sx={{ 
-          minWidth: 200,
-          maxWidth: 220,
-          height: 140,
+      <Card
+        sx={{
+          mt: 0,
           borderRadius: 3,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        border: "1px solid #e8eaed",
-        bgcolor: "background.paper",
-        transition: "all 0.3s ease-in-out",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        },
+          height: '100%',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          border: '1px solid #e8eaed',
+          bgcolor: 'background.paper',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px) scale(1.02)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          },
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
         }}
+        elevation={1}
       >
-        <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {/* Match Score at Top Right */}
-          <Box sx={{ position: 'absolute', top: 8, right: 8 ,mb:1}}>
-            <Typography 
-              variant="body2" 
-              fontWeight="bold"
-              sx={{ color: getMatchScoreColor(visitor.matchScore), fontSize:'0.8rem' }}
-            >
-              {visitor.matchScore}%
-            </Typography>
-          </Box>
-
-          {/* Header with Avatar and Name */}
-          <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 30, height: 30, fontSize: '1rem', color: 'white',mr:0.2}}>
-              {initials}
+        {/* Match Percentage (top right) */}
+        <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+          <Typography
+            variant="subtitle1"
+            onClick={handleRecommendationWeightClick}
+            sx={{
+              fontStyle: 'italic',
+              color: '#222',
+              fontWeight: 600,
+              fontSize: 16,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 0.7,
+                textDecoration: 'underline'
+              }
+            }}
+          >
+            {visitor.matchScore?.toFixed(0)}%
+          </Typography>
+        </Box>
+        
+        <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+          {/* Header with Avatar, Name, Job Title, Company, Location */}
+          <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
+            <Avatar sx={{
+              bgcolor: 'success.main',
+              width: 36,
+              height: 36,
+              mr: 1.5,
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+              color: 'white',
+              alignSelf: 'top',
+              mt: 2,
+            }}>
+              {getInitials(visitor.firstName, visitor.lastName)}
             </Avatar>
-            <Box flex={1} sx={{ pr: 3 }}>
-              <Typography 
-                variant="body2" 
-                fontWeight="medium" 
-                sx={{ 
-                  fontSize: '0.9rem',
-                  mb:-1,
-                  mt:1,
-                  wordBreak: "break-word",
-                  cursor: 'pointer',
-                  '&:hover': {
+
+            <Box sx={{ flex: 1, minWidth: 0, mt: 3}}>
+              <Box>
+                <Typography
+                  variant="body2"
+                  component="div"
+                  fontWeight="600"
+                  sx={{
+                    ml: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    mt:-1,
+                    lineHeight: 1.2,
+                    cursor: 'pointer',
                     color: 'primary.main',
-                    textDecoration: 'underline'
-                  }
-                }}
-                noWrap
-                onClick={() => handleVisitorClick(visitor.id)}
-              >
-                {displayName}
-              </Typography>
-              {visitor.designation && (
-                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, mt:1, 
-                 wordBreak: 'break-word',lineHeight: 1,fontSize:'0.75rem'}}>
-               
+                    textDecoration: 'none',
+                    transition: 'text-decoration 0.2s',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                  onClick={() => handleVisitorClick(visitor.id)}
+                >
+                  {visitor.salutation} {visitor.firstName} {visitor.lastName}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
                   {visitor.designation}
                 </Typography>
-              )}
+              </Box>
             </Box>
-
           </Box>
 
-          {/* Company Information */}
-          {visitor.companyName && (
-            <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
-              <BusinessCenter sx={{ fontSize: 14, color: 'text.secondary' }} />
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {visitor.companyName}
+          <Box display="flex" alignItems="center" mb={1}>
+            <BusinessCenter sx={{ alignSelf: 'start', fontSize: 15, mr: 1, color: 'text.secondary' }} />
+            <Typography variant="body2" color="text.secondary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3 }}>
+              {visitor.companyName || 'No company'}
+            </Typography>
+          </Box>
+          
+          {visitor.location && (
+            <Box display="flex" alignItems="center" mb={1}>
+              <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
+              <Typography variant="subtitle2" color="text.secondary">
+                {visitor.location}
               </Typography>
             </Box>
           )}
-
+          
          
         </CardContent>
       </Card>
@@ -425,636 +481,593 @@ export default function SimulationPage() {
 
   const ExhibitorCard = ({ exhibitor }: { exhibitor: ExhibitorDetail }) => {
     const displayName = exhibitor.companyName || exhibitor.name;
-    const initial = displayName ? displayName.charAt(0).toUpperCase() : 'E';
 
     return (
-      <Card 
-        sx={{ 
-          minWidth: 200,
-          maxWidth: 220,
-          height: 140,
+      <Card
+        sx={{
+          mt: 0,
           borderRadius: 3,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        border: "1px solid #e8eaed",
-        bgcolor: "background.paper",
-        transition: "all 0.3s ease-in-out",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        },
+          height: '100%',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          border: '1px solid #e8eaed',
+          bgcolor: 'background.paper',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px) scale(1.02)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          },
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
         }}
+        elevation={1}
       >
-        <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {/* Match Score at Top Right */}
-          <Box sx={{ position: 'absolute', top: 8, right: 8, mb:1}}>
-            <Typography 
-              variant="body2" 
-              fontWeight="bold"
-              sx={{ color: getMatchScoreColor(exhibitor.matchScore) , fontSize:'0.8rem'}}
-            >
-              {exhibitor.matchScore}%
-            </Typography>
-          </Box>
-
-          {/* Header with Avatar and Name */}
-          <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 30, height: 30, fontSize: '1rem', color: 'white',mr:0.2}}>
-              {initial}
-            </Avatar>
-            <Box flex={1} sx={{ pr: 2 }}>
-              <Typography 
-                variant="body2" 
-                fontWeight="medium" 
-                sx={{ 
-                  fontSize: '0.9rem',
-                  mb:-1,
-                  mt:1,
-                  wordBreak: "break-word",
-                  cursor: 'pointer',
-                  '&:hover': {
-                    color: 'primary.main',
-                    textDecoration: 'underline'
-                  }
-                }}
-                noWrap
-                onClick={() => handleExhibitorClick(exhibitor.id)}
-              >
-                {displayName}
-              </Typography>
-              {exhibitor.companyType && (
-                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, mt:1, 
-                  wordBreak: 'break-word',lineHeight: 1,fontSize:'0.75rem'}}>
-                  {exhibitor.companyType}
-                </Typography>
-              )}
-            </Box>
-
-          </Box>
-
-         
-
-          {/* Location */}
-          {exhibitor.location && (
-            <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
-              <LocationOn sx={{ fontSize: 14, color: 'text.secondary' }} />
-                             <Typography
-                 variant="subtitle2"
-                 color="text.secondary"
-                 sx={{ lineHeight: 1.3, fontSize: "0.75rem", wordBreak: "break-word" }}
-               >
-                 {exhibitor.location}
-               </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const CarouselRecommendations = ({ 
-    items, 
-    title, 
-    type, 
-    currentPage, 
-    onPageChange
-  }: { 
-    items: any[]; 
-    title: string; 
-    type: 'visitor' | 'exhibitor';
-    currentPage: number;
-    onPageChange: (page: number) => void;
-  }) => {
-    const totalPages = Math.ceil(items.length / itemsPerPage);
-    const startIndex = currentPage * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const currentItems = items.slice(startIndex, endIndex);
-
-    if (items.length === 0) return null;
-
-    const handleNext = () => {
-      if (currentPage < totalPages - 1) {
-        handlePageChange(currentPage, currentPage + 1, onPageChange);
-      }
-    };
-
-    const handlePrev = () => {
-      if (currentPage > 0) {
-        handlePageChange(currentPage, currentPage - 1, onPageChange);
-      }
-    };
-
-    const handleDotClick = (page: number) => {
-      handlePageChange(currentPage, page, onPageChange);
-    };
-
-    return (
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-          {title}
-        </Typography>
-        
-        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <IconButton
-            onClick={handlePrev}
-            disabled={currentPage === 0}
+        {/* Match Percentage (top right) */}
+        <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+          <Typography
+            variant="subtitle1"
+            onClick={handleRecommendationWeightClick}
             sx={{
-              position: 'absolute',
-              left: -20,
-              zIndex: 1,
-              bgcolor: 'white',
-              boxShadow: 2,
-              '&:hover': { bgcolor: 'grey.50' },
-              '&.Mui-disabled': { opacity: 0.3 }
+              fontStyle: 'italic',
+              color: '#222',
+              fontWeight: 600,
+              fontSize: 16,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 0.7,
+                textDecoration: 'underline'
+              }
             }}
           >
-            <ChevronLeft />
-          </IconButton>
-          
-          <Box sx={{ flex: 1, overflow: 'hidden' }}>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(5, 1fr)', 
-              gap: 1,
-              justifyContent: 'center',
-              maxWidth: '100%'
-            }}>
-              {currentItems.map((item) => (
-                type === 'visitor' ? (
-                  <VisitorCard key={item.id} visitor={item} />
-                ) : (
-                  <ExhibitorCard key={item.id} exhibitor={item} />
-                )
-              ))}
-            </Box>
-          </Box>
-          
-          <IconButton
-            onClick={handleNext}
-            disabled={currentPage === totalPages - 1}
-            sx={{
-              position: 'absolute',
-              right: -20,
-              zIndex: 1,
-              bgcolor: 'white',
-              boxShadow: 2,
-              '&:hover': { bgcolor: 'grey.50' },
-              '&.Mui-disabled': { opacity: 0.3 }
-            }}
-          >
-            <ChevronRight />
-          </IconButton>
+            {exhibitor.matchScore?.toFixed(0)}%
+          </Typography>
         </Box>
         
-        {totalPages > 1 && (
-          <Box display="flex" justifyContent="center" gap={1} mt={3}>
-            {Array.from({ length: totalPages }, (_, index) => (
-              <Box
-                key={index}
-                onClick={() => handleDotClick(index)}
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  bgcolor: currentPage === index ? 'success.main' : 'grey.300',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    bgcolor: currentPage === index ? 'success.dark' : 'grey.400',
-                    transform: 'scale(1.2)'
-                  }
-                }}
-              />
-            ))}
+        <CardContent sx={{ p: 0.5, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+          {/* Header with Avatar, Name, Company Type */}
+          <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
+            <Avatar sx={{
+              bgcolor: 'success.main',
+              width: 36,
+              height: 36,
+              mr: 1.5,
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+              color: 'white',
+              alignSelf: 'top',
+              mt: 2,
+            }}>
+              {exhibitor.companyName ? exhibitor.companyName.charAt(0).toUpperCase() : 'E'}
+            </Avatar>
+
+            <Box sx={{ flex: 1, minWidth: 0, mt: 3}}>
+              <Box>
+                <Typography
+                  variant="body2"
+                  component="div"
+                  fontWeight="600"
+                  sx={{
+                    ml: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    lineHeight: 1.2,
+                    wordBreak: 'break-word',
+                    cursor: 'pointer',
+                    color: 'primary.main',
+                    textDecoration: 'none',
+                    transition: 'text-decoration 0.2s',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                  onClick={() => handleExhibitorClick(exhibitor.id)}
+                >
+                  {exhibitor.companyName}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
+                  {exhibitor.companyType}
+                </Typography>
+              </Box>
+            </Box>
           </Box>
-        )}
-      </Box>
+
+          {exhibitor.location && (
+            <Box display="flex" alignItems="center" mb={1}>
+              <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
+              <Typography variant="subtitle2" color="text.secondary">
+                {exhibitor.location}
+              </Typography>
+            </Box>
+          )}
+
+        </CardContent>
+      </Card>
     );
   };
 
-  const FeatureCard = ({ icon: Icon, title, description, color }: { 
-    icon: any; 
-    title: string; 
-    description: string; 
-    color: string; 
-  }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <Card
-        sx={{
-          height: '100%',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-          border: '1px solid #e0e0e0',
-          borderRadius: 3,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': {
-            transform: 'translateY(-8px)',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-            borderColor: color,
-          },
-        }}
-      >
-        <CardContent sx={{ p: 3, textAlign: 'center' }}>
-          <Box
-            sx={{
-              width: 60,
-              height: 60,
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${color}20 0%, ${color}40 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              border: `2px solid ${color}30`,
-            }}
-          >
-            <Icon sx={{ fontSize: 28, color: color }} />
-          </Box>
-          <Typography variant="h6" fontWeight="600" gutterBottom sx={{ color: '#2c3e50' }}>
-            {title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-            {description}
-          </Typography>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
 
-  const RoleSelectionCard = ({ role, title, description, icon: Icon, color, onClick }: {
-    role: RoleType;
-    title: string;
-    description: string;
-    icon: any;
-    color: string;
-    onClick: () => void;
-  }) => (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      <Card
-        onClick={onClick}
-        sx={{
-          cursor: 'pointer',
-          height: 150,
-          width: 200,
-          background: selectedRole === role 
-            ? `linear-gradient(135deg, ${color}15 0%, ${color}25 70%)`
-            : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 70%)',
-          border: selectedRole === role 
-            ? `1px solid ${color}` 
-            : '1px solid #e0e0e0',
-          borderRadius: 4,
-          boxShadow: selectedRole === role 
-            ? `0 8px 20px ${color}30`
-            : '0 4px 15px rgba(0,0,0,0.08)',
-          transition: 'all 0.3s ease-in-out',
-          position: 'relative',
-          overflow: 'hidden',
-          '&:hover': {
-            transform: 'translateY(-8px)',
-            boxShadow: `0 8px 24px ${color}20`,
-            borderColor: color,
-          },
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '4px',
-            background: `linear-gradient(90deg, ${color} 0%, ${color}80 100%)`,
-            transform: selectedRole === role ? 'scaleX(1)' : 'scaleX(0)',
-            transition: 'transform 0.3s ease-in-out',
-          },
-        }}
-      >
-        <CardContent sx={{ p: 2, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Box
-            sx={{
-              width: 30,
-              height: 30,
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${color} 0%, ${color}80 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              boxShadow: `0 8px 24px ${color}40`,
-            }}
-          >
-            <Icon sx={{ fontSize: 20, color: 'white' }} />
-          </Box>
-          <Typography variant="h6" fontWeight="700" gutterBottom sx={{ color: '#2c3e50', mb: 1.5 }}>
-            {title}
-          </Typography>
-          
-          <Chip
-            label={selectedRole === role ? "Selected" : "Choose Role"}
-            color={selectedRole === role ? "primary" : "default"}
-            variant={selectedRole === role ? "filled" : "outlined"}
-            size="small"
-            sx={{
-              fontWeight: 600,
-              background: selectedRole === role ? color : 'transparent',
-              color: selectedRole === role ? 'white' : color,
-              borderColor: color,
-            }}
-          />
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
+
+
 
   return (
     <ResponsiveDashboardLayout title="Matchmaking Simulation">
-      <Container maxWidth="lg" sx={{ py: 4, mt: -1 }}>
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Box sx={{ display: 'flex',  mb: 1 }}>
+      <Container maxWidth="lg" sx={{ py: 4, mt: -4 }}>
+        {/* Header */}
+        <Box sx={{ mb: 4,mt: -1 }}>
+          <Typography variant="h5" component="h1" fontWeight="600" sx={{ mb: 1 }}>
+            Matchmaking Simulation
+          </Typography>
+        </Box>
+
+                 {/* Role and Participant Selection Section */}
+         <Box sx={{ mb: 4, mt: -1 }}>
+           <Box sx={{ display: 'flex', gap: 10, alignItems: 'flex-start',mb: -2 }}>
+             {/* Role Selection */}
+             <Box sx={{ minWidth: 200 }}>
+               <Typography variant="h6" fontWeight="500" sx={{ mb: 1, mt: -2 }}>
+                 Select Role
+               </Typography>
+               
+               <FormControl sx={{ minWidth: 200 }}>
+                 <InputLabel>visitor/exhibitor</InputLabel>
+                 <Select
+                   value={selectedRole}
+                   label="visitor/exhibitor"
+                   onChange={(e) => setSelectedRole(e.target.value as RoleType | '')}
+                   size="small"
+                 >
+                   <MenuItem value="">
+                     <em>Select role</em>
+                   </MenuItem>
+                   <MenuItem value="visitor">Visitor</MenuItem>
+                   <MenuItem value="exhibitor">Exhibitor</MenuItem>
+                 </Select>
+               </FormControl>
+             </Box>
              
-              <Typography 
-                variant="h5" 
-                component="h1" 
-                fontWeight="600" 
-                marginTop={-2}
-                marginBottom={-5}
-             
-              >
-                Matchmaking Simulation
+             {/* Participant Selection */}
+             {selectedRole && (
+               <Box sx={{ minWidth: 400,mt: 1.7 }}>
+                 
+                 
+                 {selectedRole === 'visitor' ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Autocomplete
+                      options={visitors}
+                      getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
+                      value={selectedVisitor}
+                      onChange={(_, newValue) => handleVisitorChange(newValue)}
+                      loading={loadingVisitors}
+                      disabled={!!selectedVisitor}
+                      sx={{ flex: 1 }}
+                                             renderInput={(params) => (
+                         <TextField
+                           {...params}
+                           label="Select Visitor"
+                           variant="outlined"
+                           fullWidth
+                           size="small"
+                           disabled={!!selectedVisitor}
+                           InputProps={{
+                             ...params.InputProps,
+                             startAdornment: (
+                               <>
+                                 {selectedVisitor && (
+                                   <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
+                                 )}
+                                 {params.InputProps.startAdornment}
+                               </>
+                             ),
+                             endAdornment: (
+                               <>
+                                 {selectedVisitor && (
+                                   <IconButton
+                                     onClick={() => handleVisitorChange(null)}
+                                     size="small"
+                                     sx={{ 
+                                       p: 0.5,
+                                       '&:hover': { 
+                                         bgcolor: 'rgba(0, 0, 0, 0.04)' 
+                                       }
+                                     }}
+                                   >
+                                     <Close sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                   </IconButton>
+                                 )}
+                                 {params.InputProps.endAdornment}
+                               </>
+                             ),
+                           }}
+                         />
+                       )}
+                      renderOption={(props, option) => (
+                        <Box component="li" {...props}>
+                          <Box display="flex" alignItems="center" gap={2}>
+                            <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
+                              <Person />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body1">{option.name}</Typography>
+                              {option.company && (
+                                <Typography variant="body2" color="text.secondary">
+                                  {option.company}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                      )}
+                    />
+                                         {selectedVisitor && (
+                       <Tooltip title="View Visitor Details">
+                         <IconButton 
+                           onClick={() => handleVisitorClick(selectedVisitor.id)}
+                           size="small"
+                           sx={{ 
+                             bgcolor: 'grey.500', 
+                             color: 'white',
+                             '&:hover': { bgcolor: 'grey.600' }
+                           }}
+                         >
+                           <Visibility sx={{ fontSize: 16 }} />
+                         </IconButton>
+                       </Tooltip>
+                     )}
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Autocomplete
+                      options={exhibitors}
+                      getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
+                      value={selectedExhibitor}
+                      onChange={(_, newValue) => handleExhibitorChange(newValue)}
+                      loading={loadingExhibitors}
+                      disabled={!!selectedExhibitor}
+                      sx={{ flex: 1 }}
+                                             renderInput={(params) => (
+                         <TextField
+                           {...params}
+                           label="Select Exhibitor"
+                           variant="outlined"
+                           fullWidth
+                           size="small"
+                           disabled={!!selectedExhibitor}
+                           InputProps={{
+                             ...params.InputProps,
+                             startAdornment: (
+                               <>
+                                 {selectedExhibitor && (
+                                   <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
+                                 )}
+                                 {params.InputProps.startAdornment}
+                               </>
+                             ),
+                             endAdornment: (
+                               <>
+                                 {selectedExhibitor && (
+                                   <IconButton
+                                     onClick={() => handleExhibitorChange(null)}
+                                     size="small"
+                                     sx={{ 
+                                       p: 0.5,
+                                       '&:hover': { 
+                                         bgcolor: 'rgba(0, 0, 0, 0.04)' 
+                                       }
+                                     }}
+                                   >
+                                     <Close sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                   </IconButton>
+                                 )}
+                                 {params.InputProps.endAdornment}
+                               </>
+                             ),
+                           }}
+                         />
+                       )}
+                      renderOption={(props, option) => (
+                        <Box component="li" {...props}>
+                          <Box display="flex" alignItems="center" gap={2}>
+                            <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
+                              <Person />
+                            </Avatar>
+                            <Box>
+                              {option.name && option.name !== option.company && (
+                                <Typography variant="body1">
+                                  {option.name}
+                                </Typography>
+                              )}
+                              {option.companyType && (
+                                <Typography variant="body2" color="text.secondary">
+                                  {option.company || option.name} ({option.companyType})
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                      )}
+                    />
+                                         {selectedExhibitor && (
+                       <Tooltip title="View Exhibitor Details">
+                         <IconButton 
+                           onClick={() => handleExhibitorClick(selectedExhibitor.id)}
+                           size="small"
+                           sx={{ 
+                             bgcolor: 'grey.500', 
+                             color: 'white',
+                             '&:hover': { bgcolor: 'grey.600' }
+                           }}
+                         >
+                           <Visibility sx={{ fontSize: 16 }} />
+                         </IconButton>
+                       </Tooltip>
+                     )}
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* Loading Indicators */}
+        {loadingVisitorMatches && <LinearProgress sx={{ mb: 2 }} />}
+        {loadingExhibitorMatches && <LinearProgress sx={{ mb: 2 }} />}
+
+        {/* Recommendations Sections */}
+        {selectedRole === 'visitor' && selectedVisitor && (
+          <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
+              <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
+                Recommended Exhibitors for You
               </Typography>
             </Box>
-            
-          </Box>
-        </motion.div>
+            {visitorRecommendations.length > 0 ? (
+              <>
+                <AnimatePresence mode="wait" custom={pageDirection}>
+                  <motion.div
+                    key={visitorPage}
+                    custom={pageDirection}
+                    variants={{
+                      enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                      center: { opacity: 1, x: 0 },
+                      exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                  >
+                    <Grid container spacing={2} sx={{ mb: -1 }}>
+                      {visitorRecommendations
+                        .slice((visitorPage - 1) * itemsPerPage, visitorPage * itemsPerPage)
+                        .map((rec) => (
+                          <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
+                            <ExhibitorCard exhibitor={rec} />
+                          </Grid>
+                        ))}
+                    </Grid>
+                  </motion.div>
+                </AnimatePresence>
+                {/* Pagination UI */}
+                {Math.ceil(visitorRecommendations.length / itemsPerPage) > 1 && (
+                  <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
+                    <IconButton
+                      onClick={() => handleVisitorPageChange(null, Math.max(1, visitorPage - 1))}
+                      disabled={visitorPage === 1}
+                      sx={{ color: 'primary.main' }}
+                    >
+                      <ArrowBackIos fontSize="small" />
+                    </IconButton>
+                    {Array.from({ length: Math.ceil(visitorRecommendations.length / itemsPerPage) }).map((_, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          mx: 0.5,
+                          backgroundColor:
+                            visitorPage === idx + 1
+                              ? 'primary.main'
+                              : alpha('#1976d2', 0.25),
+                          opacity: 1,
+                          cursor: 'pointer',
+                          transition: 'background 0.2s',
+                          border: visitorPage === idx + 1 ? '2px solid #1565c0' : 'none'
+                        }}
+                        onClick={() => handleVisitorPageChange(null, idx + 1)}
+                      />
+                    ))}
+                    <IconButton
+                      onClick={() => handleVisitorPageChange(null, Math.min(Math.ceil(visitorRecommendations.length / itemsPerPage), visitorPage + 1))}
+                      disabled={visitorPage === Math.ceil(visitorRecommendations.length / itemsPerPage)}
+                      sx={{ color: 'primary.main' }}
+                    >
+                      <ArrowForwardIos fontSize="small" />
+                    </IconButton>
+                  </Box>
+                )}
+              </>
+            ) : (
+              !loadingVisitorMatches && (
+                <Alert severity="info">No recommended exhibitors found for this visitor.</Alert>
+              )
+            )}
+          </Container>
+        )}
 
-
-
-        {/* Role Selection Section */}
-        {!selectedRole ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            <Box sx={{ mb: 2, mt: -4 }}>
-               <Typography 
-                 variant="h6" 
-                 fontWeight="500" 
-                 sx={{ mb: 2, color: '#2c3e50' }}
-               >
-                 Choose Your Role 
-               </Typography>
-              
-               
-               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-start' }}>
-                 <RoleSelectionCard
-                   role="visitor"
-                   title="Visitor"
-                   description="I'm attending the event and looking for exhibitors that match my interests and business needs."
-                   icon={Person}
-                   color="#667eea"
-                   onClick={() => setSelectedRole('visitor')}
-                 />
-                 <RoleSelectionCard
-                   role="exhibitor"
-                   title="Exhibitor"
-                   description="I'm exhibiting at the event and want to connect with visitors and other exhibitors."
-                   icon={Business}
-                   color="#764ba2"
-                   onClick={() => setSelectedRole('exhibitor')}
-                 />
-               </Box>
-            </Box>
-          </motion.div>
-        ) : (
-          /* Existing Role and Participant Selection */
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <Box sx={{ mb: 2 ,mt: -4}}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Button
-                  onClick={() => setSelectedRole('')}
-                  startIcon={<ChevronLeft />}
-                  sx={{ mr: 2, color: 'white' ,bgcolor: 'primary.main'}}
-                >
-                  Back 
-                </Button>
-                <Typography variant="h6" fontWeight="500" sx={{ color: '#2c3e50' }}>
-                  {selectedRole === 'visitor' ? 'Visitor' : 'Exhibitor'} Matchmaking
+        {selectedRole === 'exhibitor' && selectedExhibitor && (
+          <>
+            {/* Section 1: Recommended Visitors */}
+            <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
+                <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
+                  Recommended Visitors for You
                 </Typography>
               </Box>
-              
-              <Typography variant="body1" gutterBottom sx={{ mb: 2, fontWeight: 500 }}>
-                Select {selectedRole === 'visitor' ? 'Visitor' : 'Exhibitor'}
-              </Typography>
-              
-              <Box sx={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                {/* Conditional Participant Selection */}
-                <Box sx={{ flex: 1, maxWidth: 400 }}>
-                  {selectedRole === 'visitor' ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Autocomplete
-                        options={visitors}
-                        getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
-                        value={selectedVisitor}
-                        onChange={(_, newValue) => handleVisitorChange(newValue)}
-                        loading={loadingVisitors}
-                        disabled={!!selectedVisitor}
-                        sx={{ flex: 1 }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Select Visitor"
-                            variant="outlined"
-                            fullWidth
-                            size="small"
-                            InputProps={{
-                              ...params.InputProps,
-                              startAdornment: (
-                                <>
-                                  {selectedVisitor && (
-                                    <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
-                                  )}
-                                  {params.InputProps.startAdornment}
-                                </>
-                              ),
-                            }}
-                          />
-                        )}
-                        renderOption={(props, option) => (
-                          <Box component="li" {...props}>
-                            <Box display="flex" alignItems="center" gap={2}>
-                              <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-                                <Person />
-                              </Avatar>
-                              <Box>
-                                <Typography variant="body1">{option.name}</Typography>
-                                {option.company && (
-                                  <Typography variant="body2" color="text.secondary">
-                                    {option.company}
-                                  </Typography>
-                                )}
-                              </Box>
-                            </Box>
-                          </Box>
-                        )}
-                      />
-                      {selectedVisitor && (
-                        <Tooltip title="View Visitor Details">
-                          <IconButton 
-                            onClick={() => handleVisitorClick(selectedVisitor.id)}
-                            size="small"
-                            sx={{ 
-                              bgcolor: 'grey.500', 
-                              color: 'white',
-                              '&:hover': { bgcolor: 'grey.600' }
-                            }}
-                          >
-                            <Visibility sx={{ fontSize: 12 }} />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Box>
-                  ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Autocomplete
-                        options={exhibitors}
-                        getOptionLabel={(option) => `${option.name}${option.company ? ` (${option.company})` : ''}`}
-                        value={selectedExhibitor}
-                        onChange={(_, newValue) => handleExhibitorChange(newValue)}
-                        loading={loadingExhibitors}
-                        disabled={!!selectedExhibitor}
-                        sx={{ flex: 1 }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Select Exhibitor"
-                            variant="outlined"
-                            fullWidth
-                            size="small"
-                            InputProps={{
-                              ...params.InputProps,
-                              startAdornment: (
-                                <>
-                                  {selectedExhibitor && (
-                                    <Person sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
-                                  )}
-                                  {params.InputProps.startAdornment}
-                                </>
-                              ),
-                            }}
-                          />
-                        )}
-                        renderOption={(props, option) => (
-                          <Box component="li" {...props}>
-                            <Box display="flex" alignItems="center" gap={2}>
-                              <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                                <Person />
-                              </Avatar>
-                              <Box>
-                              {option.name && option.name !== option.company && (
-                                  <Typography variant="body1" >
-                                    {option.name}
-                                  </Typography>
-                                )}
-                                <Typography variant="body2" color="text.secondary">
-                                  {option.company || option.name}
-                                </Typography>
-                                {option.companyType && (
-                                  <Typography variant="body2" color="text.secondary">
-                                    {option.companyType}
-                                  </Typography>
-                                )}
-                                
-                              </Box>
-                            </Box>
-                          </Box>
-                        )}
-                      />
-                      {selectedExhibitor && (
-                        <Tooltip title="View Exhibitor Details">
-                          <IconButton 
-                            onClick={() => handleExhibitorClick(selectedExhibitor.id)}
-                            size="small"
-                            sx={{ 
-                              bgcolor: 'grey.500', 
-                              color: 'white',
-                              '&:hover': { bgcolor: 'grey.600' }
-                            }}
-                          >
-                            <Visibility sx={{ fontSize: 12 }} />
-                          </IconButton>
-                        </Tooltip>
-                      )}
+              {exhibitorVisitorRecommendations.length > 0 ? (
+                <>
+                  <AnimatePresence mode="wait" custom={pageDirection}>
+                    <motion.div
+                      key={exhibitorVisitorPage}
+                      custom={pageDirection}
+                      variants={{
+                        enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                        center: { opacity: 1, x: 0 },
+                        exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    >
+                      <Grid container spacing={2} sx={{ mb: -1 }}>
+                        {exhibitorVisitorRecommendations
+                          .slice((exhibitorVisitorPage - 1) * itemsPerPage, exhibitorVisitorPage * itemsPerPage)
+                          .map((rec) => (
+                            <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
+                              <VisitorCard visitor={rec} />
+                            </Grid>
+                          ))}
+                      </Grid>
+                    </motion.div>
+                  </AnimatePresence>
+                  {/* Pagination UI */}
+                  {Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage) > 1 && (
+                    <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
+                      <IconButton
+                        onClick={() => handleExhibitorVisitorPageChange(null, Math.max(1, exhibitorVisitorPage - 1))}
+                        disabled={exhibitorVisitorPage === 1}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowBackIos fontSize="small" />
+                      </IconButton>
+                      {Array.from({ length: Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage) }).map((_, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            mx: 0.5,
+                            backgroundColor:
+                              exhibitorVisitorPage === idx + 1
+                                ? 'primary.main'
+                                : alpha('#1976d2', 0.25),
+                            opacity: 1,
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            border: exhibitorVisitorPage === idx + 1 ? '2px solid #1565c0' : 'none'
+                          }}
+                          onClick={() => handleExhibitorVisitorPageChange(null, idx + 1)}
+                        />
+                      ))}
+                      <IconButton
+                        onClick={() => handleExhibitorVisitorPageChange(null, Math.min(Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage), exhibitorVisitorPage + 1))}
+                        disabled={exhibitorVisitorPage === Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage)}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowForwardIos fontSize="small" />
+                      </IconButton>
                     </Box>
                   )}
-                </Box>
-              </Box>
-            </Box>
+                </>
+              ) : (
+                !loadingExhibitorMatches && (
+                  <Alert severity="info">No recommended visitors found for this exhibitor.</Alert>
+                )
+              )}
+            </Container>
+            
+            {/* Section 2: Recommended Exhibitors */}
+           
 
-            {/* Loading Indicators */}
-            {loadingVisitorMatches && <LinearProgress sx={{ mt: 2, mb: 2 }} />}
-            {loadingExhibitorMatches && <LinearProgress sx={{ mt: 2, mb: 2 }} />}
-
-            {/* Recommendations Section */}
-            {selectedRole === 'visitor' && selectedVisitor && (
-              <Box>
-                <CarouselRecommendations
-                  items={visitorRecommendations}
-                  title="Recommended Exhibitors for You"
-                  type="exhibitor"
-                  currentPage={visitorPage}
-                  onPageChange={setVisitorPage}
-                />
-                
-                {!loadingVisitorMatches && visitorRecommendations.length === 0 && (
-                  <Alert severity="info" sx={{ mt: 2 }}>No recommended exhibitors found for this visitor.</Alert>
-                )}
+            <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
+                <Typography variant="h5" sx={{ fontStyle: 'italic',mb: -2, fontWeight: 600, color: 'text.secondary' }}>
+                  Recommended Exhibitors for You
+                </Typography>
               </Box>
-            )}
-
-            {selectedRole === 'exhibitor' && selectedExhibitor && (
-              <Box>
-                <CarouselRecommendations
-                  items={exhibitorVisitorRecommendations}
-                  title="Recommended Visitors for You"
-                  type="visitor"
-                  currentPage={exhibitorVisitorPage}
-                  onPageChange={setExhibitorVisitorPage}
-                />
-                
-                <CarouselRecommendations
-                  items={exhibitorExhibitorRecommendations}
-                  title="Recommended Exhibitors for You"
-                  type="exhibitor"
-                  currentPage={exhibitorExhibitorPage}
-                  onPageChange={setExhibitorExhibitorPage}
-                />
-                
-                {!loadingExhibitorMatches && 
-                 exhibitorVisitorRecommendations.length === 0 && 
-                 exhibitorExhibitorRecommendations.length === 0 && (
-                  <Alert severity="info" sx={{ mt: 2 }}>No recommendations found for this exhibitor.</Alert>
-                )}
-              </Box>
-            )}
-          </motion.div>
+              {exhibitorExhibitorRecommendations.length > 0 ? (
+                <>
+                  <AnimatePresence mode="wait" custom={pageDirection}>
+                    <motion.div
+                      key={exhibitorExhibitorPage}
+                      custom={pageDirection}
+                      variants={{
+                        enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                        center: { opacity: 1, x: 0 },
+                        exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    >
+                      <Grid container spacing={2} sx={{ mb: -1, mt: 0, ml: 1 }}>
+                        {exhibitorExhibitorRecommendations
+                          .slice((exhibitorExhibitorPage - 1) * itemsPerPage, exhibitorExhibitorPage * itemsPerPage)
+                          .map((rec) => (
+                            <Grid item xs={12} sm={6} md={2.3} key={rec.id}>
+                              <ExhibitorCard exhibitor={rec} />
+                            </Grid>
+                          ))}
+                      </Grid>
+                    </motion.div>
+                  </AnimatePresence>
+                  {/* Pagination UI */}
+                  {Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage) > 1 && (
+                    <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
+                      <IconButton
+                        onClick={() => handleExhibitorExhibitorPageChange(null, Math.max(1, exhibitorExhibitorPage - 1))}
+                        disabled={exhibitorExhibitorPage === 1}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowBackIos fontSize="small" />
+                      </IconButton>
+                      {Array.from({ length: Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage) }).map((_, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            mx: 0.5,
+                            backgroundColor:
+                              exhibitorExhibitorPage === idx + 1
+                                ? 'primary.main'
+                                : alpha('#1976d2', 0.25),
+                            opacity: 1,
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            border: exhibitorExhibitorPage === idx + 1 ? '2px solid #1565c0' : 'none'
+                          }}
+                          onClick={() => handleExhibitorExhibitorPageChange(null, idx + 1)}
+                        />
+                      ))}
+                      <IconButton
+                        onClick={() => handleExhibitorExhibitorPageChange(null, Math.min(Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage), exhibitorExhibitorPage + 1))}
+                        disabled={exhibitorExhibitorPage === Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage)}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowForwardIos fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                </>
+              ) : (
+                !loadingExhibitorMatches && (
+                  <Alert severity="info">No recommended exhibitors found for this exhibitor.</Alert>
+                )
+              )}
+            </Container>
+          </>
         )}
       </Container>
 
@@ -1071,6 +1084,13 @@ export default function SimulationPage() {
         exhibitorId={selectedExhibitorId}
         open={exhibitorDialogOpen}
         onClose={handleExhibitorDialogClose}
+        identifier={identifier}
+      />
+
+      {/* Recommendation Weight Dialog */}
+      <RecommendationWeightDialog
+        open={recommendationWeightDialogOpen}
+        onClose={handleRecommendationWeightDialogClose}
         identifier={identifier}
       />
     </ResponsiveDashboardLayout>

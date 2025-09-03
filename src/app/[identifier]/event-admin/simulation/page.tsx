@@ -21,6 +21,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Grid,
+  Divider,
+  Skeleton,
+  alpha,
 } from '@mui/material';
 import {
   BusinessCenter,
@@ -30,7 +34,12 @@ import {
   LocationOn,
   Visibility,
   Close,
+  ArrowBackIos,
+  ArrowForwardIos,
+  Favorite,
+  FavoriteBorder,
 } from '@mui/icons-material';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import { apiService, matchmakingApi, ExhibitormatchmakingApi } from '@/services/apiService';
@@ -104,10 +113,11 @@ export default function SimulationPage() {
   const [loadingVisitorMatches, setLoadingVisitorMatches] = useState(false);
   const [loadingExhibitorMatches, setLoadingExhibitorMatches] = useState(false);
 
-  // Carousel states
-  const [visitorPage, setVisitorPage] = useState(0);
-  const [exhibitorVisitorPage, setExhibitorVisitorPage] = useState(0);
-  const [exhibitorExhibitorPage, setExhibitorExhibitorPage] = useState(0);
+  // Pagination states
+  const [visitorPage, setVisitorPage] = useState(1);
+  const [exhibitorVisitorPage, setExhibitorVisitorPage] = useState(1);
+  const [exhibitorExhibitorPage, setExhibitorExhibitorPage] = useState(1);
+  const [pageDirection, setPageDirection] = useState<'left' | 'right'>('right');
   const itemsPerPage = 5;
 
   // Dialog states
@@ -129,9 +139,9 @@ export default function SimulationPage() {
     setVisitorRecommendations([]);
     setExhibitorVisitorRecommendations([]);
     setExhibitorExhibitorRecommendations([]);
-    setVisitorPage(0);
-    setExhibitorVisitorPage(0);
-    setExhibitorExhibitorPage(0);
+    setVisitorPage(1);
+    setExhibitorVisitorPage(1);
+    setExhibitorExhibitorPage(1);
   }, [selectedRole]);
 
   const loadParticipants = async () => {
@@ -189,10 +199,16 @@ export default function SimulationPage() {
     }
   };
 
+  const getInitials = (firstName?: string, lastName?: string) => {
+    const first = firstName?.charAt(0)?.toUpperCase() || '';
+    const last = lastName?.charAt(0)?.toUpperCase() || '';
+    return first + last || 'U';
+  };
+
   const handleVisitorChange = async (visitor: Participant | null) => {
     setSelectedVisitor(visitor);
     setVisitorRecommendations([]);
-    setVisitorPage(0);
+    setVisitorPage(1);
     
     if (visitor) {
       try {
@@ -230,8 +246,8 @@ export default function SimulationPage() {
     setSelectedExhibitor(exhibitor);
     setExhibitorVisitorRecommendations([]);
     setExhibitorExhibitorRecommendations([]);
-    setExhibitorVisitorPage(0);
-    setExhibitorExhibitorPage(0);
+    setExhibitorVisitorPage(1);
+    setExhibitorExhibitorPage(1);
     
     if (exhibitor) {
       try {
@@ -298,8 +314,19 @@ export default function SimulationPage() {
     return parts.join(' ') || 'Unknown Visitor';
   };
 
-  const handlePageChange = (currentPage: number, newPage: number, setPage: (page: number) => void) => {
-    setPage(newPage);
+  const handleVisitorPageChange = (event: any, newPage: number) => {
+    setPageDirection(newPage > visitorPage ? 'left' : 'right');
+    setVisitorPage(newPage);
+  };
+
+  const handleExhibitorVisitorPageChange = (event: any, newPage: number) => {
+    setPageDirection(newPage > exhibitorVisitorPage ? 'left' : 'right');
+    setExhibitorVisitorPage(newPage);
+  };
+
+  const handleExhibitorExhibitorPageChange = (event: any, newPage: number) => {
+    setPageDirection(newPage > exhibitorExhibitorPage ? 'left' : 'right');
+    setExhibitorExhibitorPage(newPage);
   };
 
   // Dialog handlers
@@ -333,92 +360,119 @@ export default function SimulationPage() {
 
   const VisitorCard = ({ visitor }: { visitor: VisitorDetail }) => {
     const displayName = getVisitorDisplayName(visitor);
-    const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase();
 
     return (
-      <Card 
-          sx={{ 
-          minWidth: 200,
-          maxWidth: 220,
-          height: 140,
+      <Card
+        sx={{
+          mt: 0,
           borderRadius: 3,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        border: "1px solid #e8eaed",
-        bgcolor: "background.paper",
-        transition: "all 0.3s ease-in-out",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        },
+          height: '100%',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          border: '1px solid #e8eaed',
+          bgcolor: 'background.paper',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px) scale(1.02)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          },
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
         }}
+        elevation={1}
       >
-        <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {/* Match Score at Top Right */}
-          <Box sx={{ position: 'absolute', top: 8, right: 8 ,mb:1}}>
-            <Typography 
-              variant="body2" 
-              fontWeight="bold"
-              onClick={handleRecommendationWeightClick}
-              sx={{ 
-                color: getMatchScoreColor(visitor.matchScore), 
-                fontSize:'0.8rem',
-                cursor: 'pointer',
-                '&:hover': {
-                  opacity: 0.7,
-                  textDecoration: 'underline'
-                }
-              }}
-            >
-              {Math.round(visitor.matchScore)}%
-            </Typography>
-          </Box>
-
-          {/* Header with Avatar and Name */}
-          <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 30, height: 30, fontSize: '1rem', color: 'white',mr:0.2}}>
-              {initials}
+        {/* Match Percentage (top right) */}
+        <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+          <Typography
+            variant="subtitle1"
+            onClick={handleRecommendationWeightClick}
+            sx={{
+              fontStyle: 'italic',
+              color: '#222',
+              fontWeight: 600,
+              fontSize: 16,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 0.7,
+                textDecoration: 'underline'
+              }
+            }}
+          >
+            {visitor.matchScore?.toFixed(0)}%
+          </Typography>
+        </Box>
+        
+        <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+          {/* Header with Avatar, Name, Job Title, Company, Location */}
+          <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
+            <Avatar sx={{
+              bgcolor: 'success.main',
+              width: 36,
+              height: 36,
+              mr: 1.5,
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+              color: 'white',
+              alignSelf: 'top',
+              mt: 2,
+            }}>
+              {getInitials(visitor.firstName, visitor.lastName)}
             </Avatar>
-            <Box flex={1} sx={{ pr: 3 }}>
-              <Typography 
-                variant="body2" 
-                fontWeight="medium" 
-                sx={{ 
-                  fontSize: '0.9rem',
-                  mb:-1,
-                  mt:1,
-                  wordBreak: "break-word",
-                  cursor: 'pointer',
-                  '&:hover': {
+
+            <Box sx={{ flex: 1, minWidth: 0, mt: 3}}>
+              <Box>
+                <Typography
+                  variant="body2"
+                  component="div"
+                  fontWeight="600"
+                  sx={{
+                    ml: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    mt:-1,
+                    lineHeight: 1.2,
+                    cursor: 'pointer',
                     color: 'primary.main',
-                    textDecoration: 'underline'
-                  }
-                }}
-                noWrap
-                onClick={() => handleVisitorClick(visitor.id)}
-              >
-                {displayName}
-              </Typography>
-              {visitor.designation && (
-                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, mt:1, 
-                 wordBreak: 'break-word',lineHeight: 1,fontSize:'0.75rem'}}>
-               
+                    textDecoration: 'none',
+                    transition: 'text-decoration 0.2s',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                  onClick={() => handleVisitorClick(visitor.id)}
+                >
+                  {visitor.salutation} {visitor.firstName} {visitor.lastName}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
                   {visitor.designation}
                 </Typography>
-              )}
+              </Box>
             </Box>
-
           </Box>
 
-          {/* Company Information */}
-          {visitor.companyName && (
-            <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
-              <BusinessCenter sx={{ fontSize: 14, color: 'text.secondary' }} />
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {visitor.companyName}
+          <Box display="flex" alignItems="center" mb={1}>
+            <BusinessCenter sx={{ alignSelf: 'start', fontSize: 15, mr: 1, color: 'text.secondary' }} />
+            <Typography variant="body2" color="text.secondary" fontWeight="500" sx={{ wordBreak: 'break-word', lineHeight: 1.3 }}>
+              {visitor.companyName || 'No company'}
+            </Typography>
+          </Box>
+          
+          {visitor.location && (
+            <Box display="flex" alignItems="center" mb={1}>
+              <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
+              <Typography variant="subtitle2" color="text.secondary">
+                {visitor.location}
               </Typography>
             </Box>
           )}
-
+          
          
         </CardContent>
       </Card>
@@ -427,220 +481,118 @@ export default function SimulationPage() {
 
   const ExhibitorCard = ({ exhibitor }: { exhibitor: ExhibitorDetail }) => {
     const displayName = exhibitor.companyName || exhibitor.name;
-    const initial = displayName ? displayName.charAt(0).toUpperCase() : 'E';
 
     return (
-      <Card 
-        sx={{ 
-          minWidth: 200,
-          maxWidth: 220,
-          height: 140,
+      <Card
+        sx={{
+          mt: 0,
           borderRadius: 3,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        border: "1px solid #e8eaed",
-        bgcolor: "background.paper",
-        transition: "all 0.3s ease-in-out",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        },
+          height: '100%',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          border: '1px solid #e8eaed',
+          bgcolor: 'background.paper',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px) scale(1.02)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          },
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
         }}
+        elevation={1}
       >
-        <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {/* Match Score at Top Right */}
-          <Box sx={{ position: 'absolute', top: 8, right: 8, mb:1}}>
-            <Typography 
-              variant="body2" 
-              fontWeight="bold"
-              onClick={handleRecommendationWeightClick}
-              sx={{ 
-                color: getMatchScoreColor(exhibitor.matchScore), 
-                fontSize:'0.8rem',
-                cursor: 'pointer',
-                '&:hover': {
-                  opacity: 0.7,
-                  textDecoration: 'underline'
-                }
-              }}
-            >
-              {Math.round(exhibitor.matchScore)}%
-            </Typography>
-          </Box>
-
-          {/* Header with Avatar and Name */}
-          <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 30, height: 30, fontSize: '1rem', color: 'white',mr:0.2}}>
-              {initial}
+        {/* Match Percentage (top right) */}
+        <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
+          <Typography
+            variant="subtitle1"
+            onClick={handleRecommendationWeightClick}
+            sx={{
+              fontStyle: 'italic',
+              color: '#222',
+              fontWeight: 600,
+              fontSize: 16,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 0.7,
+                textDecoration: 'underline'
+              }
+            }}
+          >
+            {exhibitor.matchScore?.toFixed(0)}%
+          </Typography>
+        </Box>
+        
+        <CardContent sx={{ p: 0.5, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+          {/* Header with Avatar, Name, Company Type */}
+          <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1} sx={{ minHeight: '60px' }}>
+            <Avatar sx={{
+              bgcolor: 'success.main',
+              width: 36,
+              height: 36,
+              mr: 1.5,
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              flexShrink: 0,
+              color: 'white',
+              alignSelf: 'top',
+              mt: 2,
+            }}>
+              {exhibitor.companyName ? exhibitor.companyName.charAt(0).toUpperCase() : 'E'}
             </Avatar>
-            <Box flex={1} sx={{ pr: 2 }}>
-              <Typography 
-                variant="body2" 
-                fontWeight="medium" 
-                sx={{ 
-                  fontSize: '0.9rem',
-                  mb:-1,
-                  mt:1,
-                  wordBreak: "break-word",
-                  cursor: 'pointer',
-                  '&:hover': {
+
+            <Box sx={{ flex: 1, minWidth: 0, mt: 3}}>
+              <Box>
+                <Typography
+                  variant="body2"
+                  component="div"
+                  fontWeight="600"
+                  sx={{
+                    ml: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    lineHeight: 1.2,
+                    wordBreak: 'break-word',
+                    cursor: 'pointer',
                     color: 'primary.main',
-                    textDecoration: 'underline'
-                  }
-                }}
-                noWrap
-                onClick={() => handleExhibitorClick(exhibitor.id)}
-              >
-                {displayName}
-              </Typography>
-              {exhibitor.companyType && (
-                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, mt:1, 
-                  wordBreak: 'break-word',lineHeight: 1,fontSize:'0.75rem'}}>
+                    textDecoration: 'none',
+                    transition: 'text-decoration 0.2s',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                  onClick={() => handleExhibitorClick(exhibitor.id)}
+                >
+                  {exhibitor.companyName}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3 }}>
                   {exhibitor.companyType}
                 </Typography>
-              )}
+              </Box>
             </Box>
-
           </Box>
 
-         
-
-          {/* Location */}
           {exhibitor.location && (
-            <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
-              <LocationOn sx={{ fontSize: 14, color: 'text.secondary' }} />
-                             <Typography
-                 variant="subtitle2"
-                 color="text.secondary"
-                 sx={{ lineHeight: 1.3, fontSize: "0.75rem", wordBreak: "break-word" }}
-               >
-                 {exhibitor.location}
-               </Typography>
+            <Box display="flex" alignItems="center" mb={1}>
+              <LocationOn sx={{ alignSelf: 'start', fontSize: 16, mr: 1, color: 'text.secondary' }} />
+              <Typography variant="subtitle2" color="text.secondary">
+                {exhibitor.location}
+              </Typography>
             </Box>
           )}
+
         </CardContent>
       </Card>
     );
   };
 
-  const CarouselRecommendations = ({ 
-    items, 
-    title, 
-    type, 
-    currentPage, 
-    onPageChange
-  }: { 
-    items: any[]; 
-    title: string; 
-    type: 'visitor' | 'exhibitor';
-    currentPage: number;
-    onPageChange: (page: number) => void;
-  }) => {
-    const totalPages = Math.ceil(items.length / itemsPerPage);
-    const startIndex = currentPage * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const currentItems = items.slice(startIndex, endIndex);
 
-    if (items.length === 0) return null;
-
-    const handleNext = () => {
-      if (currentPage < totalPages - 1) {
-        handlePageChange(currentPage, currentPage + 1, onPageChange);
-      }
-    };
-
-    const handlePrev = () => {
-      if (currentPage > 0) {
-        handlePageChange(currentPage, currentPage - 1, onPageChange);
-      }
-    };
-
-    const handleDotClick = (page: number) => {
-      handlePageChange(currentPage, page, onPageChange);
-    };
-
-    return (
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-          {title}
-        </Typography>
-        
-        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <IconButton
-            onClick={handlePrev}
-            disabled={currentPage === 0}
-            sx={{
-              position: 'absolute',
-              left: -20,
-              zIndex: 1,
-              bgcolor: 'white',
-              boxShadow: 2,
-              '&:hover': { bgcolor: 'grey.50' },
-              '&.Mui-disabled': { opacity: 0.3 }
-            }}
-          >
-            <ChevronLeft />
-          </IconButton>
-          
-          <Box sx={{ flex: 1, overflow: 'hidden' }}>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(5, 1fr)', 
-              gap: 1,
-              justifyContent: 'center',
-              maxWidth: '100%'
-            }}>
-              {currentItems.map((item) => (
-                type === 'visitor' ? (
-                  <VisitorCard key={item.id} visitor={item} />
-                ) : (
-                  <ExhibitorCard key={item.id} exhibitor={item} />
-                )
-              ))}
-            </Box>
-          </Box>
-          
-          <IconButton
-            onClick={handleNext}
-            disabled={currentPage === totalPages - 1}
-            sx={{
-              position: 'absolute',
-              right: -20,
-              zIndex: 1,
-              bgcolor: 'white',
-              boxShadow: 2,
-              '&:hover': { bgcolor: 'grey.50' },
-              '&.Mui-disabled': { opacity: 0.3 }
-            }}
-          >
-            <ChevronRight />
-          </IconButton>
-        </Box>
-        
-        {totalPages > 1 && (
-          <Box display="flex" justifyContent="center" gap={1} mt={3}>
-            {Array.from({ length: totalPages }, (_, index) => (
-              <Box
-                key={index}
-                onClick={() => handleDotClick(index)}
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  bgcolor: currentPage === index ? 'success.main' : 'grey.300',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    bgcolor: currentPage === index ? 'success.dark' : 'grey.400',
-                    transform: 'scale(1.2)'
-                  }
-                }}
-              />
-            ))}
-          </Box>
-        )}
-      </Box>
-    );
-  };
 
 
 
@@ -869,62 +821,252 @@ export default function SimulationPage() {
 
         {/* Recommendations Sections */}
         {selectedRole === 'visitor' && selectedVisitor && (
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" fontWeight="500" sx={{ mb: 2 }}>
-              Recommended Visitors for you
-            </Typography>
-
-              <CarouselRecommendations
-                items={visitorRecommendations}
-                title=""
-                type="exhibitor"
-                currentPage={visitorPage}
-                onPageChange={setVisitorPage}
-              />
-              {!loadingVisitorMatches && visitorRecommendations.length === 0 && (
+          <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
+              <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
+                Recommended Exhibitors for You
+              </Typography>
+            </Box>
+            {visitorRecommendations.length > 0 ? (
+              <>
+                <AnimatePresence mode="wait" custom={pageDirection}>
+                  <motion.div
+                    key={visitorPage}
+                    custom={pageDirection}
+                    variants={{
+                      enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                      center: { opacity: 1, x: 0 },
+                      exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                  >
+                    <Grid container spacing={2} sx={{ mb: -1 }}>
+                      {visitorRecommendations
+                        .slice((visitorPage - 1) * itemsPerPage, visitorPage * itemsPerPage)
+                        .map((rec) => (
+                          <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
+                            <ExhibitorCard exhibitor={rec} />
+                          </Grid>
+                        ))}
+                    </Grid>
+                  </motion.div>
+                </AnimatePresence>
+                {/* Pagination UI */}
+                {Math.ceil(visitorRecommendations.length / itemsPerPage) > 1 && (
+                  <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
+                    <IconButton
+                      onClick={() => handleVisitorPageChange(null, Math.max(1, visitorPage - 1))}
+                      disabled={visitorPage === 1}
+                      sx={{ color: 'primary.main' }}
+                    >
+                      <ArrowBackIos fontSize="small" />
+                    </IconButton>
+                    {Array.from({ length: Math.ceil(visitorRecommendations.length / itemsPerPage) }).map((_, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          mx: 0.5,
+                          backgroundColor:
+                            visitorPage === idx + 1
+                              ? 'primary.main'
+                              : alpha('#1976d2', 0.25),
+                          opacity: 1,
+                          cursor: 'pointer',
+                          transition: 'background 0.2s',
+                          border: visitorPage === idx + 1 ? '2px solid #1565c0' : 'none'
+                        }}
+                        onClick={() => handleVisitorPageChange(null, idx + 1)}
+                      />
+                    ))}
+                    <IconButton
+                      onClick={() => handleVisitorPageChange(null, Math.min(Math.ceil(visitorRecommendations.length / itemsPerPage), visitorPage + 1))}
+                      disabled={visitorPage === Math.ceil(visitorRecommendations.length / itemsPerPage)}
+                      sx={{ color: 'primary.main' }}
+                    >
+                      <ArrowForwardIos fontSize="small" />
+                    </IconButton>
+                  </Box>
+                )}
+              </>
+            ) : (
+              !loadingVisitorMatches && (
                 <Alert severity="info">No recommended exhibitors found for this visitor.</Alert>
-              )}
-
-          </Box>
+              )
+            )}
+          </Container>
         )}
 
         {selectedRole === 'exhibitor' && selectedExhibitor && (
           <>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" fontWeight="500" sx={{ mb: 2 }}>
-                Recommended Visitors for you
-              </Typography>
-             
-                <CarouselRecommendations
-                  items={exhibitorVisitorRecommendations}
-                  title=""
-                  type="visitor"
-                  currentPage={exhibitorVisitorPage}
-                  onPageChange={setExhibitorVisitorPage}
-                />
-                {!loadingExhibitorMatches && exhibitorVisitorRecommendations.length === 0 && (
+            {/* Section 1: Recommended Visitors */}
+            <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
+                <Typography variant="h5" sx={{ fontStyle: 'italic', fontWeight: 600, color: 'text.secondary' }}>
+                  Recommended Visitors for You
+                </Typography>
+              </Box>
+              {exhibitorVisitorRecommendations.length > 0 ? (
+                <>
+                  <AnimatePresence mode="wait" custom={pageDirection}>
+                    <motion.div
+                      key={exhibitorVisitorPage}
+                      custom={pageDirection}
+                      variants={{
+                        enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                        center: { opacity: 1, x: 0 },
+                        exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    >
+                      <Grid container spacing={2} sx={{ mb: -1 }}>
+                        {exhibitorVisitorRecommendations
+                          .slice((exhibitorVisitorPage - 1) * itemsPerPage, exhibitorVisitorPage * itemsPerPage)
+                          .map((rec) => (
+                            <Grid item xs={12} sm={6} md={2.4} key={rec.id}>
+                              <VisitorCard visitor={rec} />
+                            </Grid>
+                          ))}
+                      </Grid>
+                    </motion.div>
+                  </AnimatePresence>
+                  {/* Pagination UI */}
+                  {Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage) > 1 && (
+                    <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
+                      <IconButton
+                        onClick={() => handleExhibitorVisitorPageChange(null, Math.max(1, exhibitorVisitorPage - 1))}
+                        disabled={exhibitorVisitorPage === 1}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowBackIos fontSize="small" />
+                      </IconButton>
+                      {Array.from({ length: Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage) }).map((_, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            mx: 0.5,
+                            backgroundColor:
+                              exhibitorVisitorPage === idx + 1
+                                ? 'primary.main'
+                                : alpha('#1976d2', 0.25),
+                            opacity: 1,
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            border: exhibitorVisitorPage === idx + 1 ? '2px solid #1565c0' : 'none'
+                          }}
+                          onClick={() => handleExhibitorVisitorPageChange(null, idx + 1)}
+                        />
+                      ))}
+                      <IconButton
+                        onClick={() => handleExhibitorVisitorPageChange(null, Math.min(Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage), exhibitorVisitorPage + 1))}
+                        disabled={exhibitorVisitorPage === Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage)}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowForwardIos fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                </>
+              ) : (
+                !loadingExhibitorMatches && (
                   <Alert severity="info">No recommended visitors found for this exhibitor.</Alert>
-                )}
-              
-            </Box>
+                )
+              )}
+            </Container>
             
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" fontWeight="500" sx={{ mb: 2 }}>
-                Recommended Exhibitors for you
-              </Typography>
-              
-                <CarouselRecommendations
-                  items={exhibitorExhibitorRecommendations}
-                  title=""
-                  type="exhibitor"
-                  currentPage={exhibitorExhibitorPage}
-                  onPageChange={setExhibitorExhibitorPage}
-                />
-                {!loadingExhibitorMatches && exhibitorExhibitorRecommendations.length === 0 && (
+            {/* Section 2: Recommended Exhibitors */}
+           
+
+            <Container maxWidth="lg" sx={{ mt: -2, mb: 0 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 0 }}>
+                <Typography variant="h5" sx={{ fontStyle: 'italic',mb: -2, fontWeight: 600, color: 'text.secondary' }}>
+                  Recommended Exhibitors for You
+                </Typography>
+              </Box>
+              {exhibitorExhibitorRecommendations.length > 0 ? (
+                <>
+                  <AnimatePresence mode="wait" custom={pageDirection}>
+                    <motion.div
+                      key={exhibitorExhibitorPage}
+                      custom={pageDirection}
+                      variants={{
+                        enter: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? 40 : -40 }),
+                        center: { opacity: 1, x: 0 },
+                        exit: (direction: 'left' | 'right') => ({ opacity: 0, x: direction === 'left' ? -40 : 40 })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    >
+                      <Grid container spacing={2} sx={{ mb: -1, mt: 0, ml: 1 }}>
+                        {exhibitorExhibitorRecommendations
+                          .slice((exhibitorExhibitorPage - 1) * itemsPerPage, exhibitorExhibitorPage * itemsPerPage)
+                          .map((rec) => (
+                            <Grid item xs={12} sm={6} md={2.3} key={rec.id}>
+                              <ExhibitorCard exhibitor={rec} />
+                            </Grid>
+                          ))}
+                      </Grid>
+                    </motion.div>
+                  </AnimatePresence>
+                  {/* Pagination UI */}
+                  {Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage) > 1 && (
+                    <Box display="flex" justifyContent="center" alignItems="center" mt={1} mb={0.5} gap={1}>
+                      <IconButton
+                        onClick={() => handleExhibitorExhibitorPageChange(null, Math.max(1, exhibitorExhibitorPage - 1))}
+                        disabled={exhibitorExhibitorPage === 1}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowBackIos fontSize="small" />
+                      </IconButton>
+                      {Array.from({ length: Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage) }).map((_, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            mx: 0.5,
+                            backgroundColor:
+                              exhibitorExhibitorPage === idx + 1
+                                ? 'primary.main'
+                                : alpha('#1976d2', 0.25),
+                            opacity: 1,
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            border: exhibitorExhibitorPage === idx + 1 ? '2px solid #1565c0' : 'none'
+                          }}
+                          onClick={() => handleExhibitorExhibitorPageChange(null, idx + 1)}
+                        />
+                      ))}
+                      <IconButton
+                        onClick={() => handleExhibitorExhibitorPageChange(null, Math.min(Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage), exhibitorExhibitorPage + 1))}
+                        disabled={exhibitorExhibitorPage === Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage)}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ArrowForwardIos fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                </>
+              ) : (
+                !loadingExhibitorMatches && (
                   <Alert severity="info">No recommended exhibitors found for this exhibitor.</Alert>
-                )}
-              
-            </Box>
+                )
+              )}
+            </Container>
           </>
         )}
       </Container>

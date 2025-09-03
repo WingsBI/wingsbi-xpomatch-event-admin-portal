@@ -1035,6 +1035,39 @@ export const matchmakingApi = {
     }
   },
 
+  // Get all hybrid matching configuration
+  getAllHybridMatchingConfig: async (identifier: string) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Common/getAllHybridMatchingConfig`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching hybrid matching config:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
   // Update matchmaking configuration
   updateMatchMakingConfig: async (identifier: string, configData: any[]) => {
     const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Event/updateMatchMakingConfig`;
@@ -1224,6 +1257,39 @@ export const matchmakingApi = {
       return data;
     } catch (error) {
       console.error('Error inserting matchmaking config:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  // Get recommendation weight details
+  getRecommendationWeight: async (identifier: string) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/MatchMaking/getRecommendationWeight`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching recommendation weight:', error);
       return {
         version: null,
         statusCode: 500,

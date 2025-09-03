@@ -126,6 +126,36 @@ export default function WeightagePage() {
   const [contentMatchingWeight, setContentMatchingWeight] = useState<number>(60);
   const [collaborationWeight, setCollaborationWeight] = useState<number>(40);
 
+  // Debug effect to monitor weight changes
+  useEffect(() => {
+    console.log('Weights changed:', { contentMatchingWeight, collaborationWeight, total: contentMatchingWeight + collaborationWeight });
+  }, [contentMatchingWeight, collaborationWeight]);
+
+  // Helper function to calculate total weight
+  const getTotalHybridWeight = () => {
+    const total = contentMatchingWeight + collaborationWeight;
+    console.log('Total calculated:', { contentMatchingWeight, collaborationWeight, total });
+    return total;
+  };
+
+  // Helper function to handle content weight change with validation
+  const handleContentWeightChange = (value: number) => {
+    console.log('Content weight changing to:', value);
+    if (value >= 0 && value <= 100) {
+      setContentMatchingWeight(value);
+      console.log('Content weight updated to:', value);
+    }
+  };
+
+  // Helper function to handle collaboration weight change with validation
+  const handleCollaborationWeightChange = (value: number) => {
+    console.log('Collaboration weight changing to:', value);
+    if (value >= 0 && value <= 100) {
+      setCollaborationWeight(value);
+      console.log('Collaboration weight updated to:', value);
+    }
+  };
+
   // Visitor interaction config state
   const [visitorInteractionConfigs, setVisitorInteractionConfigs] = useState<VisitorInteractionConfig[]>([]);
   const [collaborationLoading, setCollaborationLoading] = useState(false);
@@ -255,6 +285,30 @@ export default function WeightagePage() {
     }
   };
 
+  // Fetch hybrid matching configuration
+  const fetchHybridMatchingConfig = async () => {
+    try {
+      const response = await matchmakingApi.getAllHybridMatchingConfig(identifier);
+      
+      if (response.statusCode === 200 && response.result) {
+        // Update hybrid matching weights based on API response
+        response.result.forEach((config: any) => {
+          if (config.fieldName === 'Content Weightage') {
+            setContentMatchingWeight(config.weight || 60);
+          } else if (config.fieldName === 'Collaboration Weightage') {
+            setCollaborationWeight(config.weight || 40);
+          }
+        });
+        
+        console.log('Hybrid matching config loaded:', response.result);
+      } else {
+        console.warn('Failed to fetch hybrid matching config:', response.message);
+      }
+    } catch (error) {
+      console.error('Error fetching hybrid matching config:', error);
+    }
+  };
+
   // Fetch matchmaking configuration
   const fetchConfigs = async () => {
     try {
@@ -291,11 +345,12 @@ export default function WeightagePage() {
 
   useEffect(() => {
     if (identifier) {
-      // Fetch algorithms, configs, and visitor interaction configs
+      // Fetch algorithms, configs, visitor interaction configs, and hybrid matching config
       Promise.all([
         fetchAlgorithms(),
         fetchConfigs(),
-        fetchVisitorInteractionConfig()
+        fetchVisitorInteractionConfig(),
+        fetchHybridMatchingConfig()
       ]).catch(error => {
         console.error('Error fetching initial data:', error);
       });
@@ -813,6 +868,15 @@ export default function WeightagePage() {
    // Save hybrid matching configuration
    const handleSaveHybridMatchingConfig = async () => {
      try {
+      // Validate total weight equals 100%
+      if (getTotalHybridWeight() !== 100) {
+        store.dispatch(addNotification({
+          type: 'error',
+          message: `Total weight must equal 100%. Current total: ${getTotalHybridWeight()}%`
+        }));
+        return;
+      }
+
        // Prepare payload for hybrid matching config
        // Using the actual values from the editable text fields
        const hybridConfigPayload = [
@@ -1873,8 +1937,9 @@ export default function WeightagePage() {
                             label="Content Matching Weight (%)"
                             type="number"
                             value={contentMatchingWeight}
-                            onChange={(e) => setContentMatchingWeight(Number(e.target.value))}
+                            onChange={(e) => handleContentWeightChange(Number(e.target.value))}
                             size="small"
+                            inputProps={{ min: 0, max: 100 }}
                             sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#ed6c0210' } }}
                           />
                           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
@@ -1891,8 +1956,9 @@ export default function WeightagePage() {
                             label="Collaboration Weight (%)"
                             type="number"
                             value={collaborationWeight}
-                            onChange={(e) => setCollaborationWeight(Number(e.target.value))}
+                            onChange={(e) => handleCollaborationWeightChange(Number(e.target.value))}
                             size="small"
+                            inputProps={{ min: 0, max: 100 }}
                             sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#ed6c0210' } }}
                           />
                           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
@@ -1901,18 +1967,27 @@ export default function WeightagePage() {
                         </Box>
                       </Card>
                     </Grid>
-                                         <Grid item xs={12}>
-                      <Button 
-                        variant="contained" 
-                        color="primary" 
-                        sx={{ width: 'small' }} 
+                                        <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-start' }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          color: getTotalHybridWeight() === 100 ? 'success.main' : 'error.main',
+                          fontWeight: 'bold',
+                          minWidth: '80px'
+                        }}
+                      >
+                        Total: {getTotalHybridWeight()}%
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        color="primary"
                         startIcon={<Save />}
                         onClick={handleSaveHybridMatchingConfig}
-                        disabled={false}
+                        disabled={getTotalHybridWeight() !== 100}
                       >
-                       Save Configuration
+                        Save Configuration
                       </Button>
-                     </Grid>
+                    </Grid>
                   </Grid>
                   
                 </Box>

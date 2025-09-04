@@ -38,6 +38,7 @@ import {
   ArrowForwardIos,
   Favorite,
   FavoriteBorder,
+  Business,
 } from '@mui/icons-material';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -126,6 +127,7 @@ export default function SimulationPage() {
   const [selectedVisitorId, setSelectedVisitorId] = useState<number | null>(null);
   const [selectedExhibitorId, setSelectedExhibitorId] = useState<number | null>(null);
   const [recommendationWeightDialogOpen, setRecommendationWeightDialogOpen] = useState(false);
+  const [clickedMatchScore, setClickedMatchScore] = useState<number | undefined>(undefined);
 
   // Load visitors and exhibitors on component mount
   useEffect(() => {
@@ -350,7 +352,8 @@ export default function SimulationPage() {
     setSelectedExhibitorId(null);
   };
 
-  const handleRecommendationWeightClick = () => {
+  const handleRecommendationWeightClick = (matchScore: number) => {
+    setClickedMatchScore(matchScore);
     setRecommendationWeightDialogOpen(true);
   };
 
@@ -386,7 +389,7 @@ export default function SimulationPage() {
         <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
           <Typography
             variant="subtitle1"
-            onClick={handleRecommendationWeightClick}
+            onClick={() => handleRecommendationWeightClick(visitor.matchScore)}
             sx={{
               fontStyle: 'italic',
               color: '#222',
@@ -507,7 +510,7 @@ export default function SimulationPage() {
         <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 0 }}>
           <Typography
             variant="subtitle1"
-            onClick={handleRecommendationWeightClick}
+            onClick={() => handleRecommendationWeightClick(exhibitor.matchScore)}
             sx={{
               fontStyle: 'italic',
               color: '#222',
@@ -616,18 +619,45 @@ export default function SimulationPage() {
                </Typography>
                
                <FormControl sx={{ minWidth: 200 }}>
-                 <InputLabel>visitor/exhibitor</InputLabel>
+                  
                  <Select
                    value={selectedRole}
-                   label="visitor/exhibitor"
+                   displayEmpty
                    onChange={(e) => setSelectedRole(e.target.value as RoleType | '')}
                    size="small"
+                   sx={{
+                     '& .MuiSelect-select': {
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: selectedRole ? 'flex-start' : 'center',
+                       gap: selectedRole ? 1 : 0
+                     }
+                   }}
+                   renderValue={(value) => {
+                     if (!value) {
+                       return <span style={{ color: '#666'}}><Person sx={{ fontSize: 15, mb:-0.3,ml:0.5 }}/>visitor/<Business sx={{ fontSize: 15, mb:-0.3,mr:0.5 }}/>exhibitor</span>;
+                     }
+                     return (
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                         {value === 'visitor' ?<Person sx={{ fontSize: 17}}/> : <Business sx={{ fontSize: 17}}/>}
+                         {value === 'visitor' ? 'Visitor' : 'Exhibitor'}
+                       </div>
+                     );
+                   }}
                  >
                    <MenuItem value="">
                      <em>Select role</em>
                    </MenuItem>
-                   <MenuItem value="visitor">Visitor</MenuItem>
-                   <MenuItem value="exhibitor">Exhibitor</MenuItem>
+                   <MenuItem value="visitor">
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <Person sx={{ fontSize: 17}}/>Visitor
+                     </div>
+                   </MenuItem>
+                   <MenuItem value="exhibitor">
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <Business sx={{ fontSize: 17}}/>Exhibitor
+                     </div>
+                   </MenuItem>
                  </Select>
                </FormControl>
              </Box>
@@ -1092,6 +1122,7 @@ export default function SimulationPage() {
         open={recommendationWeightDialogOpen}
         onClose={handleRecommendationWeightDialogClose}
         identifier={identifier}
+        matchScore={clickedMatchScore}
       />
     </ResponsiveDashboardLayout>
   );

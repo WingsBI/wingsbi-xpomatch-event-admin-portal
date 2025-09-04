@@ -433,7 +433,7 @@ export default function ExhibitorDashboard() {
                           >
                             {rec.matchPercentage?.toFixed(0)}%
                           </Typography>
-                          <IconButton
+                          {/* <IconButton
                             size="small"
                             sx={{
 
@@ -452,7 +452,7 @@ export default function ExhibitorDashboard() {
                             ) : (
                               <FavoriteBorder sx={{ fontSize: 20, color: '#b0bec5' }} />
                             )}
-                          </IconButton>
+                          </IconButton> */}
                         </Box>
                         <CardContent sx={{ p: 1, pb: 0.5, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
                           {/* Header with Avatar, Name, Job Title, Company, Location */}

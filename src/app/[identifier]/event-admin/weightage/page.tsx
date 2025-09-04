@@ -25,11 +25,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
-import { Save, Refresh, Add, Delete, ExpandMore, Settings, Group, CompareArrows, Favorite, Event, Search, Calculate } from '@mui/icons-material';
+import { Save, Refresh, Add, Delete, Settings, Group, CompareArrows, Favorite, Event, Search, Calculate, Close, Undo } from '@mui/icons-material';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { matchmakingApi } from '@/services/apiService';
@@ -113,7 +110,19 @@ export default function WeightagePage() {
   const [newVisitorFieldName, setNewVisitorFieldName] = useState('');
   const [newExhibitorFieldName, setNewExhibitorFieldName] = useState('');
   const [addingFieldNames, setAddingFieldNames] = useState(false);
-  const [expanded, setExpanded] = useState<string | false>('panel1');
+  const [activeSection, setActiveSection] = useState<'mixed' | 'content' | 'collaboration'>('mixed');
+  const [showContentConfig, setShowContentConfig] = useState(false);
+  const [showCollaborationConfig, setShowCollaborationConfig] = useState(false);
+
+  // State for original values (for revert functionality)
+  const [originalContentWeight, setOriginalContentWeight] = useState<number>(60);
+  const [originalCollaborationWeight, setOriginalCollaborationWeight] = useState<number>(40);
+  const [originalCollaborationWeightages, setOriginalCollaborationWeightages] = useState<Record<string, number>>({
+    isFavorite: 30,
+    scheduleMeeting: 40,
+    search: 30,
+  });
+  const [originalConfigs, setOriginalConfigs] = useState<MatchMakingConfig[]>([]);
 
   // Collaboration weightages state
   const [collaborationWeightages, setCollaborationWeightages] = useState<Record<string, number>>({
@@ -160,43 +169,54 @@ export default function WeightagePage() {
   const [visitorInteractionConfigs, setVisitorInteractionConfigs] = useState<VisitorInteractionConfig[]>([]);
   const [collaborationLoading, setCollaborationLoading] = useState(false);
 
-  // Extract field names from matchmaking config
-  const extractFieldNamesFromConfig = (configs: MatchMakingConfig[]) => {
-    const visitorFieldNames = new Set<string>();
-    const exhibitorFieldNames = new Set<string>();
 
-    configs.forEach(config => {
-      if (config.visitorFieldName) {
-        visitorFieldNames.add(config.visitorFieldName);
-      }
-      if (config.exhibitorFieldName) {
-        exhibitorFieldNames.add(config.exhibitorFieldName);
-      }
-    });
 
-    const visitorFields = Array.from(visitorFieldNames).map(fieldName => ({
-      value: fieldName,
-      label: fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')
-    }));
-
-    const exhibitorFields = Array.from(exhibitorFieldNames).map(fieldName => ({
-      value: fieldName,
-      label: fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')
-    }));
-
-    return { visitorFields, exhibitorFields };
-  };
-
-  // Fetch available visitor fields (now extracted from matchmaking config)
+  // Fetch available visitor fields from API
   const fetchVisitorFields = async () => {
-    // This function is now handled by extractFieldNamesFromConfig
-    // It will be called after fetchConfigs
+    try {
+      const response = await matchmakingApi.getAllVisitorEmbeddingFields(identifier);
+      
+      if (response.statusCode === 200 && response.result) {
+        const fields = response.result.map((field: any) => ({
+          value: field.fieldName,
+          label: field.fieldName.charAt(0).toUpperCase() + field.fieldName.slice(1).replace(/([A-Z])/g, ' $1')
+        }));
+        setVisitorFields(fields);
+        console.log('Visitor embedding fields loaded:', fields);
+      } else {
+        console.warn('Failed to fetch visitor embedding fields:', response.message);
+        // Fallback to empty array if API fails
+        setVisitorFields([]);
+      }
+    } catch (error) {
+      console.error('Error fetching visitor embedding fields:', error);
+      // Fallback to empty array if API fails
+      setVisitorFields([]);
+    }
   };
 
-  // Fetch available exhibitor fields (now extracted from matchmaking config)
+  // Fetch available exhibitor fields from API
   const fetchExhibitorFields = async () => {
-    // This function is now handled by extractFieldNamesFromConfig
-    // It will be called after fetchConfigs
+    try {
+      const response = await matchmakingApi.getAllExhibitorEmbeddingFields(identifier);
+      
+      if (response.statusCode === 200 && response.result) {
+        const fields = response.result.map((field: any) => ({
+          value: field.fieldName,
+          label: field.fieldName.charAt(0).toUpperCase() + field.fieldName.slice(1).replace(/([A-Z])/g, ' $1')
+        }));
+        setExhibitorFields(fields);
+        console.log('Exhibitor embedding fields loaded:', fields);
+      } else {
+        console.warn('Failed to fetch exhibitor embedding fields:', response.message);
+        // Fallback to empty array if API fails
+        setExhibitorFields([]);
+      }
+    } catch (error) {
+      console.error('Error fetching exhibitor embedding fields:', error);
+      // Fallback to empty array if API fails
+      setExhibitorFields([]);
+    }
   };
 
   // Fetch available algorithms
@@ -272,6 +292,8 @@ export default function WeightagePage() {
             ...prev,
             ...newWeightages
           }));
+          // Store original values for revert functionality
+          setOriginalCollaborationWeightages(newWeightages);
         }
         
         console.log('Visitor interaction configs loaded:', response.result);
@@ -294,9 +316,13 @@ export default function WeightagePage() {
         // Update hybrid matching weights based on API response
         response.result.forEach((config: any) => {
           if (config.fieldName === 'Content Weightage') {
-            setContentMatchingWeight(config.weight || 60);
+            const weight = config.weight !== undefined && config.weight !== null ? config.weight : 60;
+            setContentMatchingWeight(weight);
+            setOriginalContentWeight(weight);
           } else if (config.fieldName === 'Collaboration Weightage') {
-            setCollaborationWeight(config.weight || 40);
+            const weight = config.weight !== undefined && config.weight !== null ? config.weight : 40;
+            setCollaborationWeight(weight);
+            setOriginalCollaborationWeight(weight);
           }
         });
         
@@ -324,14 +350,11 @@ export default function WeightagePage() {
           weight: Math.round((config.weight || 0) * 100)
         }));
         setConfigs(configsWithPercentages);
+        // Store original values for revert functionality
+        setOriginalConfigs([...configsWithPercentages]);
         
-        // Extract field names from the config and update dropdowns
-        const { visitorFields: extractedVisitorFields, exhibitorFields: extractedExhibitorFields } = extractFieldNamesFromConfig(configsWithPercentages);
-        setVisitorFields(extractedVisitorFields);
-        setExhibitorFields(extractedExhibitorFields);
-        
-        console.log('Extracted visitor fields:', extractedVisitorFields);
-        console.log('Extracted exhibitor fields:', extractedExhibitorFields);
+        // Fields are now fetched separately from the API
+        console.log('Matchmaking configs loaded:', configsWithPercentages);
       } else {
         setError(response.message || 'Failed to fetch configuration');
       }
@@ -350,7 +373,9 @@ export default function WeightagePage() {
         fetchAlgorithms(),
         fetchConfigs(),
         fetchVisitorInteractionConfig(),
-        fetchHybridMatchingConfig()
+        fetchHybridMatchingConfig(),
+        fetchVisitorFields(),
+        fetchExhibitorFields()
       ]).catch(error => {
         console.error('Error fetching initial data:', error);
       });
@@ -467,6 +492,9 @@ export default function WeightagePage() {
       
       // Check for both statusCode and isError properties
       if (updateResponse.statusCode === 200 && !updateResponse.isError) {
+        // Update the original values to the newly saved values
+        setOriginalConfigs([...configs]);
+        
         setSuccess('Matchmaking configuration updated successfully!');
         store.dispatch(addNotification({
           type: 'success',
@@ -565,14 +593,14 @@ export default function WeightagePage() {
 
   // Handle adding custom field names
   const handleAddCustomFields = async () => {
-    if (!newVisitorFieldName.trim() || !newExhibitorFieldName.trim()) {
-      setError('Please enter both visitor and exhibitor field names');
+    if (!newVisitorFieldName || !newExhibitorFieldName) {
+      setError('Please select both visitor and exhibitor field names');
       return;
     }
 
     // Check if field names already exist
-    const visitorFieldExists = visitorFields.some(field => field.value === newVisitorFieldName.toLowerCase());
-    const exhibitorFieldExists = exhibitorFields.some(field => field.value === newExhibitorFieldName.toLowerCase());
+    const visitorFieldExists = visitorFields.some(field => field.value === newVisitorFieldName);
+    const exhibitorFieldExists = exhibitorFields.some(field => field.value === newExhibitorFieldName);
 
     if (visitorFieldExists) {
       setError(`Visitor field "${newVisitorFieldName}" already exists`);
@@ -589,8 +617,8 @@ export default function WeightagePage() {
       
       // Call insertMatchMakingConfig API immediately
       const insertPayload = [{
-        visitorFieldName: newVisitorFieldName.toLowerCase(),
-        exhibitorFieldName: newExhibitorFieldName.toLowerCase(),
+        visitorFieldName: newVisitorFieldName,
+        exhibitorFieldName: newExhibitorFieldName,
         algorithmId: algorithms.length > 0 ? algorithms[0].id : 1,
       }];
 
@@ -601,12 +629,12 @@ export default function WeightagePage() {
       if (response.statusCode === 200 && !response.isError) {
         // Add new fields to the available options
         const newVisitorField: AvailableField = {
-          value: newVisitorFieldName.toLowerCase(),
+          value: newVisitorFieldName,
           label: newVisitorFieldName.charAt(0).toUpperCase() + newVisitorFieldName.slice(1).replace(/([A-Z])/g, ' $1')
         };
 
         const newExhibitorField: AvailableField = {
-          value: newExhibitorFieldName.toLowerCase(),
+          value: newExhibitorFieldName,
           label: newExhibitorFieldName.charAt(0).toUpperCase() + newExhibitorFieldName.slice(1).replace(/([A-Z])/g, ' $1')
         };
 
@@ -655,9 +683,29 @@ export default function WeightagePage() {
     setError(null);
   };
 
-  // Handle accordion change
-  const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpanded(isExpanded ? panel : false);
+  // Handle section change
+  const handleSectionChange = (section: 'mixed' | 'content' | 'collaboration') => {
+    setActiveSection(section);
+    if (section === 'content') {
+      setShowContentConfig(true);
+    }
+    if (section === 'collaboration') {
+      setShowCollaborationConfig(true);
+    }
+  };
+
+  // Revert functions
+  const handleRevertMixed = () => {
+    setContentMatchingWeight(originalContentWeight);
+    setCollaborationWeight(originalCollaborationWeight);
+  };
+
+  const handleRevertContent = () => {
+    setConfigs([...originalConfigs]);
+  };
+
+  const handleRevertCollaboration = () => {
+    setCollaborationWeightages({...originalCollaborationWeightages});
   };
 
   
@@ -842,15 +890,18 @@ export default function WeightagePage() {
        // Call the API to update visitor interaction config
        const response = await matchmakingApi.updateVisitorInteractionConfig(identifier, updatedConfigs);
        
-       if (response.statusCode === 200 || response.statusCode === 201) {
-         store.dispatch(addNotification({
-           type: 'success',
-           message: 'Collaboration weightages saved successfully!'
-         }));
-         
-         // Refresh the data to ensure UI is in sync
-         await fetchVisitorInteractionConfig();
-       } else {
+             if (response.statusCode === 200 || response.statusCode === 201) {
+        // Update the original values to the newly saved values
+        setOriginalCollaborationWeightages({...collaborationWeightages});
+        
+        store.dispatch(addNotification({
+          type: 'success',
+          message: 'Collaboration weightages saved successfully!'
+        }));
+        
+        // Refresh the data to ensure UI is in sync
+        await fetchVisitorInteractionConfig();
+      } else {
          throw new Error(response.message || 'Failed to save collaboration weightages');
        }
        
@@ -896,6 +947,10 @@ export default function WeightagePage() {
        const response = await matchmakingApi.updateHybridMatchingConfig(identifier, hybridConfigPayload);
        
        if (response.statusCode === 200 || response.statusCode === 201) {
+         // Update the original values to the newly saved values
+         setOriginalContentWeight(contentMatchingWeight);
+         setOriginalCollaborationWeight(collaborationWeight);
+         
          store.dispatch(addNotification({
            type: 'success',
            message: 'Hybrid matching configuration saved successfully!'
@@ -951,43 +1006,170 @@ export default function WeightagePage() {
             </Alert>
           )}
 
+          {/* Mixed Match Making - Default View */}
           <Paper elevation={2} sx={{ 
-            borderRadius: 3,
-            overflow: 'hidden',
-            background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-            border: '1px solid #e8eaed'
-          }}>
+              borderRadius: 3,
+              overflow: 'hidden',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              border: '1px solid #e8eaed',
+              p: { xs: 0.5, md: 1 }
+            }}>
+              <Box sx={{ textAlign: 'center', py: 1.5 }}>
+                <CompareArrows sx={{ fontSize: 28, color: '#ed6c02', mb: 0.5,mt:-4, }} />
+                <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: 'primary.main' }}>
+                  Mixed Match Making
+                </Typography>
+               
+                <Grid container spacing={2} sx={{ maxWidth: 800, mx: 'auto' }}>
+                  <Grid item xs={12} md={6}>
+                    <Card 
+                      sx={{ 
+                        p: 2, 
+                        border: '1px solid #e0e0e0', 
+                        height: '100%',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          boxShadow: 2,
+                          borderColor: '#1976d2'
+                        }
+                      }}
+                      onClick={() => handleSectionChange('content')}
+                    >
+                      <Typography variant="subtitle1" sx={{ mb: 1, color: 'primary.main', textAlign: 'center' }}>
+                        Content Weight
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <TextField
+                          label="Content Matching Weight (%)"
+                          type="number"
+                          value={contentMatchingWeight}
+                          onChange={(e) => handleContentWeightChange(Number(e.target.value))}
+                          size="small"
+                          inputProps={{ min: 0, max: 100 }}
+                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#1976d210' } }}
+                        />
+                        <Button 
 
-            {/* Accordion Structure */}
-            
-            {/* Content Matching Configuration Accordion */}
-            <Accordion
-              expanded={expanded === 'panel1'}
-              onChange={handleAccordionChange('panel1')}
-              sx={{
-                '&:before': {
-                  display: 'none',
-                },
-                '&.Mui-expanded': {
-                  margin: 0,
-                },
+                       variant='contained'
+                       size='small'
+                      
+                          sx={{ 
+                            textAlign: 'center', 
+                            // color: 'primary.main',
+                            width:'60%',
+                            ml:'auto',
+                            mr:'auto',
+                          }}
+                          onClick={() => handleSectionChange('content')}
+                        >
+                          content based matching
+                        </Button>
+                      </Box>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Card 
+                      sx={{ 
+                        p: 2, 
+                        border: '1px solid #e0e0e0', 
+                        height: '100%',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          boxShadow: 2,
+                          borderColor: '#2e7d32'
+                        }
+                      }}
+                      onClick={() => handleSectionChange('collaboration')}
+                    >
+                      <Typography variant="subtitle1" sx={{ mb: 1, color: 'primary.main', textAlign: 'center' }}>
+                        Collaboration Weight
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <TextField
+                          label="Collaboration Weight (%)"
+                          type="number"
+                          value={collaborationWeight}
+                          onChange={(e) => handleCollaborationWeightChange(Number(e.target.value))}
+                          size="small"
+                          inputProps={{ min: 0, max: 100 }}
+                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#2e7d3210' } }}
+                        />
+                        <Button
+                          variant="contained" 
+                          size='small'
+                          sx={{ 
+                            textAlign: 'center', 
+                            width:'80%',
+                            ml:'auto',
+                            mr:'auto',
+                            
+                          }}
+                          onClick={() => handleSectionChange('collaboration')}
+                        >
+                          collaboration based matching
+                        </Button>
+                      </Box>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Total:
+                    </Typography>
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={getTotalHybridWeight()}
+                      InputProps={{ readOnly: true }}
+                      sx={{
+                        width: 90,
+                        '& .MuiOutlinedInput-root': {
+                          bgcolor: getTotalHybridWeight() === 100 ? 'success.light' : 'error.light',
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<Save />}
+                      onClick={handleSaveHybridMatchingConfig}
+                      disabled={getTotalHybridWeight() !== 100}
+                      sx={{ ml: 1 }}
+                    >
+                      Save configuration
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      startIcon={<Undo />}
+                      onClick={handleRevertMixed}
+                      sx={{ ml: 1 }}
+                    >
+                      Revert
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Paper>
+
+          {/* Content Matching Configuration */}
+          {showContentConfig && (
+          <Paper elevation={2} sx={{ 
+              borderRadius: 3,
+              overflow: 'hidden',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              border: '1px solid #e8eaed'
+            }}>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: '#1976d208', 
                 borderBottom: '1px solid #e0e0e0',
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMore />}
-                sx={{
-                  backgroundColor: expanded === 'panel1' ? '#1976d208' : 'transparent',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: '#1976d208',
-                  },
-                  '&.Mui-expanded': {
-                    minHeight: 64,
-                  },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Box
                     sx={{
                       display: 'flex',
@@ -1004,19 +1186,25 @@ export default function WeightagePage() {
                   >
                     <Settings sx={{ fontSize: 28 }} />
                   </Box>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5 }}>
-                      Content Matching Configuration
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Configure field-based matching algorithms for visitor-exhibitor pairing based on content similarity.
-                    </Typography>
-                  </Box>
-                  
+                  <Typography variant="h6" fontWeight="600">
+                    Content Matching Configuration
+                  </Typography>
                 </Box>
-              </AccordionSummary>
+                <IconButton
+                  onClick={() => setShowContentConfig(false)}
+                  size="small"
+                  sx={{ 
+                    color: 'text.secondary',
+                    '&:hover': { 
+                      bgcolor: 'rgba(0, 0, 0, 0.04)' 
+                    }
+                  }}
+                >
+                  <Close sx={{ fontSize: 20 }} />
+                </IconButton>
+              </Box>
               
-              <AccordionDetails sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#1976d205' }}>
+              <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#1976d205' }}>
                 {/* Mobile View - Stacked Layout */}
                 <Box sx={{ display: { xs: 'block', md: 'none' } }}>
               {configs.map((config, index) => (
@@ -1564,43 +1752,53 @@ export default function WeightagePage() {
                        fontSize: '0.875rem',
                        fontWeight: 500,
                        mt: -1,
+                       ml: 60,
                     minWidth: { xs: '100%', sm: 'auto' }
                      }}
                    >
                      {saving ? 'Saving...' : 'Save Configuration'}
                    </Button>
+                   <Button
+                     variant="outlined"
+                     size="medium"
+                     startIcon={<Undo />}
+                     onClick={handleRevertContent}
+                     sx={{
+                       borderRadius: 1.5,
+                       px: 3,
+                       py: 1,
+                       textTransform: 'none',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       mt: -1,
+                       ml: 1,
+                       minWidth: { xs: '100%', sm: 'auto' }
+                     }}
+                   >
+                     Revert
+                   </Button>
               </Box>
-              </AccordionDetails>
-            </Accordion>
-            
-            {/* Collaboration Match Making Accordion */}
-            <Accordion
-              expanded={expanded === 'panel2'}
-              onChange={handleAccordionChange('panel2')}
-              sx={{
-                '&:before': {
-                  display: 'none',
-                },
-                '&.Mui-expanded': {
-                  margin: 0,
-                },
+              </Box>
+            </Paper>
+          )}
+
+          {/* Collaboration Match Making */}
+          {showCollaborationConfig && (
+          <Paper elevation={2} sx={{ 
+              borderRadius: 3,
+              overflow: 'hidden',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              border: '1px solid #e8eaed'
+            }}>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: '#2e7d3208', 
                 borderBottom: '1px solid #e0e0e0',
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMore />}
-                sx={{
-                  backgroundColor: expanded === 'panel2' ? '#2e7d3208' : 'transparent',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: '#2e7d3208',
-                  },
-                  '&.Mui-expanded': {
-                    minHeight: 64,
-                  },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Box
                     sx={{
                       display: 'flex',
@@ -1617,32 +1815,25 @@ export default function WeightagePage() {
                   >
                     <Group sx={{ fontSize: 28 }} />
                   </Box>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5 }}>
-                      Collaboration Match Making
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Set up collaboration-based matching criteria for visitor-exhibitor pairing.
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {/* <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fetchVisitorInteractionConfig();
-                      }}
-                      disabled={collaborationLoading}
-                      sx={{ color: '#2e7d32' }}
-                    >
-                      <Refresh />
-                    </IconButton> */}
-                   
-                  </Box>
+                  <Typography variant="h6" fontWeight="600">
+                    Collaboration Match Making
+                  </Typography>
                 </Box>
-              </AccordionSummary>
+                <IconButton
+                  onClick={() => setShowCollaborationConfig(false)}
+                  size="small"
+                  sx={{ 
+                    color: 'text.secondary',
+                    '&:hover': { 
+                      bgcolor: 'rgba(0, 0, 0, 0.04)' 
+                    }
+                  }}
+                >
+                  <Close sx={{ fontSize: 20 }} />
+                </IconButton>
+              </Box>
               
-              <AccordionDetails sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#2e7d3205' }}>
+              <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#2e7d3205' }}>
                 {/* Mobile View - Stacked Layout */}
                 <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                   {visitorInteractionConfigs.map((config) => {
@@ -1753,7 +1944,7 @@ export default function WeightagePage() {
                   <Grid container spacing={3}>
                     {/* Activity Column */}
                     <Grid item xs={12} md={6}>
-                      <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                      <Typography variant="h6" textAlign="center" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
                         Activity
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1793,7 +1984,9 @@ export default function WeightagePage() {
                               display: 'flex', 
                               alignItems: 'center', 
                               gap: 2,
+                              maxWidth: '70%',
                               p: 1.5,
+                          marginLeft: 10,
                               borderRadius: 1,
                               bgcolor: 'grey.50',
                               border: '1px solid',
@@ -1811,7 +2004,7 @@ export default function WeightagePage() {
 
                     {/* Weightage Column */}
                     <Grid item xs={12} md={6}>
-                      <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                      <Typography variant="h6" textAlign="left" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
                         Weightage (%)
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1846,7 +2039,9 @@ export default function WeightagePage() {
                                 '& .MuiOutlinedInput-root': {
                                   borderRadius: 1,
                                   height: '45px',
-                                  mb: 0.3
+                                  mb: 0.3,
+                                  ml: -8,
+                                  maxWidth: '70%',
                                 },
                               }}
                             />
@@ -1914,145 +2109,36 @@ export default function WeightagePage() {
                       fontSize: '0.875rem',
                       fontWeight: 500,
                       mt: -1,
+                      ml: 60,
                       minWidth: { xs: '100%', sm: 'auto' }
                     }}
                   >
                     {collaborationLoading ? 'Saving...' : 'Save Configuration'}
                   </Button>
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-            
-            {/* Mixed Match Making Accordion */}
-            <Accordion
-              expanded={expanded === 'panel3'}
-              onChange={handleAccordionChange('panel3')}
-              sx={{
-                '&:before': {
-                  display: 'none',
-                },
-                '&.Mui-expanded': {
-                  margin: 0,
-                },
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMore />}
-                sx={{
-                  backgroundColor: expanded === 'panel3' ? '#ed6c0208' : 'transparent',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: '#ed6c0208',
-                  },
-                  '&.Mui-expanded': {
-                    minHeight: 64,
-                  },
-                  
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <Box
+                  <Button
+                    variant="outlined"
+                    size="medium"
+                    startIcon={<Undo />}
+                    onClick={handleRevertCollaboration}
                     sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 48,
-                      height: 48,
-                      borderRadius: 2,
-                      backgroundColor: '#ed6c0215',
-                      color: '#ed6c02',
-                      mr: 2,
-                      flexShrink: 0,
+                      borderRadius: 1.5,
+                      px: 3,
+                      py: 1,
+                      textTransform: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      mt: -1,
+                      ml: 1,
+                      minWidth: { xs: '100%', sm: 'auto' }
                     }}
                   >
-                    <CompareArrows sx={{ fontSize: 28 }} />
-                  </Box>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5 }}>
-                      Mixed Match Making
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Combine content and collaboration matching for comprehensive visitor-exhibitor pairing.
-                    </Typography>
-                  </Box>
-                 
+                    Revert
+                  </Button>
                 </Box>
-              </AccordionSummary>
-              
-              <AccordionDetails sx={{ p: { xs: 2, md: 4, mt: 1}, backgroundColor: '#ed6c0205' }}>
-                {/* Mixed Match Making Dummy UI */}
-                <Box sx={{ textAlign: 'center', py: 3 }}>
-                  <CompareArrows sx={{ fontSize: 50, color: '#ed6c02', mb: -1, mt: -5}} />
-                  <Typography variant="h5" fontWeight="600" sx={{ mb: 2, color: 'primary.main' }}>
-                    Mixed Match Making
-                  </Typography>
-                 
-                  <Grid container spacing={3} sx={{ maxWidth: 900, mx: 'auto' }}>
-                    <Grid item xs={12} md={6}>
-                      <Card sx={{ p: 3, border: 'primary.main', height: '100%' }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', textAlign: 'center' }}>Content Weight</Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <TextField
-                            label="Content Matching Weight (%)"
-                            type="number"
-                            value={contentMatchingWeight}
-                            onChange={(e) => handleContentWeightChange(Number(e.target.value))}
-                            size="small"
-                            inputProps={{ min: 0, max: 100 }}
-                            sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#ed6c0210' } }}
-                          />
-                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                            Weight for content-based matching
-                          </Typography>
-                        </Box>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Card sx={{ p: 3, border: 'primary.main', height: '100%' }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', textAlign: 'center' }}>Collaboration Weight</Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <TextField
-                            label="Collaboration Weight (%)"
-                            type="number"
-                            value={collaborationWeight}
-                            onChange={(e) => handleCollaborationWeightChange(Number(e.target.value))}
-                            size="small"
-                            inputProps={{ min: 0, max: 100 }}
-                            sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#ed6c0210' } }}
-                          />
-                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                            Weight for collaboration-based matching
-                          </Typography>
-                        </Box>
-                      </Card>
-                    </Grid>
-                                        <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-start' }}>
-                      <Typography 
-                        variant="h6" 
-                        sx={{ 
-                          color: getTotalHybridWeight() === 100 ? 'success.main' : 'error.main',
-                          fontWeight: 'bold',
-                          minWidth: '80px'
-                        }}
-                      >
-                        Total: {getTotalHybridWeight()}%
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<Save />}
-                        onClick={handleSaveHybridMatchingConfig}
-                        disabled={getTotalHybridWeight() !== 100}
-                      >
-                        Save Configuration
-                      </Button>
-                    </Grid>
-                  </Grid>
-                  
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-          </Paper>
+              </Box>
+            </Paper>
+          )}
+
         </Container>
 
         {/* Add Field Dialog */}
@@ -2074,37 +2160,45 @@ export default function WeightagePage() {
               )}
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Visitor Field Name"
-                    value={newVisitorFieldName}
-                    onChange={(e) => {
-                      setNewVisitorFieldName(e.target.value);
-                      setError(null); // Clear error when user types
-                    }}
-                    placeholder="e.g., City Name"
-                    size="small"
-                    sx={{ mb: 2 }}
-                  />
+                  <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                    <InputLabel>Visitor Field Name</InputLabel>
+                    <Select
+                      value={newVisitorFieldName}
+                      onChange={(e) => {
+                        setNewVisitorFieldName(e.target.value);
+                        setError(null); // Clear error when user types
+                      }}
+                      label="Visitor Field Name"
+                    >
+                      {visitorFields.map((field) => (
+                        <MenuItem key={field.value} value={field.value}>
+                          {field.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Exhibitor Field Name"
-                    value={newExhibitorFieldName}
-                    onChange={(e) => {
-                      setNewExhibitorFieldName(e.target.value);
-                      setError(null); // Clear error when user types
-                    }}
-                    placeholder="e.g., City"
-                    size="small"
-                    sx={{ mb: 2 }}
-                  />
+                  <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                    <InputLabel>Exhibitor Field Name</InputLabel>
+                    <Select
+                      value={newExhibitorFieldName}
+                      onChange={(e) => {
+                        setNewExhibitorFieldName(e.target.value);
+                        setError(null); // Clear error when user types
+                      }}
+                      label="Exhibitor Field Name"
+                    >
+                      {exhibitorFields.map((field) => (
+                        <MenuItem key={field.value} value={field.value}>
+                          {field.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
               </Grid>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Enter the field names you want to add. These will be available in the dropdown menus for future configurations.
-              </Typography>
+             
             </Box>
           </DialogContent>
           <DialogActions>
@@ -2115,7 +2209,7 @@ export default function WeightagePage() {
               onClick={handleAddCustomFields} 
               variant="contained" 
               color="primary"
-              disabled={addingFieldNames || !newVisitorFieldName.trim() || !newExhibitorFieldName.trim()}
+              disabled={addingFieldNames || !newVisitorFieldName || !newExhibitorFieldName}
               startIcon={addingFieldNames ? <CircularProgress size={16} /> : undefined}
             >
               {addingFieldNames ? 'Adding...' : 'Add Fields'}

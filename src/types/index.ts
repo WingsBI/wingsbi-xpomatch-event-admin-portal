@@ -356,6 +356,7 @@ export interface ApiFont {
 // Update Event payload types
 export interface UpdateEventPayload {
   eventId: number;
+  eventModel: any; // Add the missing eventModel field
   eventDetails: {
     eventName: string;
     description: string;
@@ -366,9 +367,6 @@ export interface UpdateEventPayload {
     venueName: string;
     addressLine1: string;
     addressLine2: string | null;
-    countryId: number;
-    stateId: number;
-    cityId: number;
     postalCode: string | null;
     latitude: number | null;
     longitude: number | null;

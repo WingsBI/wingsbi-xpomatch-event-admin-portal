@@ -43,12 +43,14 @@ interface RecommendationWeightDialogProps {
   open: boolean;
   onClose: () => void;
   identifier: string;
+  matchScore?: number;
 }
 
 export default function RecommendationWeightDialog({
   open,
   onClose,
   identifier,
+  matchScore,
 }: RecommendationWeightDialogProps) {
   const [weights, setWeights] = useState<RecommendationWeight[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,14 +60,14 @@ export default function RecommendationWeightDialog({
     if (open && identifier) {
       fetchRecommendationWeights();
     }
-  }, [open, identifier]);
+  }, [open, identifier, matchScore]);
 
   const fetchRecommendationWeights = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await matchmakingApi.getRecommendationWeight(identifier);
+      const response = await matchmakingApi.getRecommendationWeight(identifier, matchScore ? Math.round(matchScore) : undefined);
       
       if (response.statusCode === 200 && response.result) {
         setWeights(response.result);
@@ -171,7 +173,7 @@ export default function RecommendationWeightDialog({
         ) : (
           <Box>
             {/* Summary Stats */}
-            <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
+            {/* <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
               <Paper sx={{ p: 2, flex: 1, minWidth: 150, textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="700" color="primary.main">
                   {getTotalWeight()}
@@ -196,7 +198,7 @@ export default function RecommendationWeightDialog({
                   Collaboration Factors
                 </Typography>
               </Paper>
-            </Box>
+            </Box> */}
 
             {/* Content-Based Recommendations */}
             {contentWeights.length > 0 && (
@@ -209,7 +211,8 @@ export default function RecommendationWeightDialog({
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell><strong>Field Mapping</strong></TableCell>
+                        <TableCell><strong>Exhibitor Fields</strong></TableCell>
+                        <TableCell><strong>Visitor Fields</strong></TableCell>
                         <TableCell align="center"><strong>Weight</strong></TableCell>
                        
                       </TableRow>
@@ -219,8 +222,15 @@ export default function RecommendationWeightDialog({
                         <TableRow key={index} hover>
                           <TableCell>
                             <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                              {getFieldDisplayName(item)}
+                              {item.exhibitorFieldName}
                             </Typography>
+                          
+                          </TableCell>
+                           <TableCell>
+                            <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                              {item.visitorFieldName}
+                            </Typography>
+                          
                           </TableCell>
                           <TableCell align="center">
                             <Chip

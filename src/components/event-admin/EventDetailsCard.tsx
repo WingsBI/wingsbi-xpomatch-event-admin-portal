@@ -166,6 +166,7 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
     // Initialize edit form with current data
     setEditedEvent({
       eventId: eventDetails.id,
+      eventModel: {}, // Add the missing eventModel field
       eventDetails: {
         eventName: eventDetails.title,
         description: eventDetails.description,
@@ -176,9 +177,6 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
         venueName: firstLocation?.venueName || '',
         addressLine1: firstLocation?.addressLine1 || '',
         addressLine2: firstLocation?.addressLine2 || null,
-        countryId: 2, // Default values - you may want to fetch these from another API
-        stateId: 2,
-        cityId: 1,
         postalCode: firstLocation?.postalCode?.toString() || null,
         latitude: firstLocation?.latitude ? parseFloat(firstLocation.latitude) : null,
         longitude: firstLocation?.longitude ? parseFloat(firstLocation.longitude) : null,
@@ -211,6 +209,7 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
       // Ensure all required fields are present in the payload
       const updatePayload: UpdateEventPayload = {
         eventId: editedEvent.eventId,
+        eventModel: {}, // Add the missing eventModel field
         eventDetails: {
           eventName: editedEvent.eventDetails?.eventName || '',
           description: editedEvent.eventDetails?.description || '',
@@ -221,9 +220,6 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
           venueName: editedEvent.location?.venueName || '',
           addressLine1: editedEvent.location?.addressLine1 || '',
           addressLine2: editedEvent.location?.addressLine2 || null,
-          countryId: editedEvent.location?.countryId || 2,
-          stateId: editedEvent.location?.stateId || 2,
-          cityId: editedEvent.location?.cityId || 1,
           postalCode: editedEvent.location?.postalCode || null,
           latitude: editedEvent.location?.latitude || null,
           longitude: editedEvent.location?.longitude || null,
@@ -485,33 +481,7 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
                 onChange={(e) => updateLocationField('postalCode', e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Country ID"
-                type="number"
-                value={editedEvent.location?.countryId || 2}
-                onChange={(e) => updateLocationField('countryId', parseInt(e.target.value) || 2)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="State ID"
-                type="number"
-                value={editedEvent.location?.stateId || 2}
-                onChange={(e) => updateLocationField('stateId', parseInt(e.target.value) || 2)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="City ID"
-                type="number"
-                value={editedEvent.location?.cityId || 1}
-                onChange={(e) => updateLocationField('cityId', parseInt(e.target.value) || 1)}
-              />
-            </Grid>
+
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth

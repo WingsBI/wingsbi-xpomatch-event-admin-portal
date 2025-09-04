@@ -1269,8 +1269,13 @@ export const matchmakingApi = {
   },
 
   // Get recommendation weight details
-  getRecommendationWeight: async (identifier: string) => {
-    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/MatchMaking/getRecommendationWeight`;
+  getRecommendationWeight: async (identifier: string, matchScore?: number) => {
+    let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/MatchMaking/getRecommendationWeight`;
+    
+    // Add match score as query parameter if provided
+    if (matchScore !== undefined) {
+      url += `?matchingScore=${matchScore}`;
+    }
     
     const token = getAuthToken();
     const headers: Record<string, string> = {
@@ -1290,6 +1295,72 @@ export const matchmakingApi = {
       return data;
     } catch (error) {
       console.error('Error fetching recommendation weight:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  // Get all exhibitor embedding fields
+  getAllExhibitorEmbeddingFields: async (identifier: string) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/ITXPO/Common/getAllExhibitorEmbeddingFields`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching exhibitor embedding fields:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  // Get all visitor embedding fields
+  getAllVisitorEmbeddingFields: async (identifier: string) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/ITXPO/Common/getAllVisitorEmbeddingFields`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching visitor embedding fields:', error);
       return {
         version: null,
         statusCode: 500,
@@ -1798,5 +1869,7 @@ export const MeetingDetailsApi = {
       };
     }
   },
+
+
 };
  

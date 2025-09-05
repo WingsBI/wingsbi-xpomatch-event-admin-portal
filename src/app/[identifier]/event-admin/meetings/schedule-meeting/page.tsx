@@ -1312,7 +1312,7 @@ export default function ScheduleMeetingPage() {
                   <Box sx={{ flex: 1, overflow: 'auto', pr: 1 }}>
                   
                   {/* Visitor Selection - Show for exhibitors, event admins, and visitors */}
-                  {(currentUserRole === 'exhibitor' || currentUserRole === 'event-admin' || currentUserRole === 'visitor') && (
+                  {(currentUserRole === 'exhibitor' || currentUserRole === 'event-admin') && (
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ 
                         display: 'flex', 
@@ -1335,7 +1335,7 @@ export default function ScheduleMeetingPage() {
                           height: (() => {
                             // Calculate dynamic height based on how many sections are visible
                             const showVisitors = (currentUserRole === 'exhibitor' || currentUserRole === 'event-admin' || currentUserRole === 'visitor');
-                            const showExhibitors = (currentUserRole === 'visitor' || currentUserRole === 'event-admin' || currentUserRole === 'exhibitor');
+                            const showExhibitors = ( currentUserRole === 'event-admin' || currentUserRole === 'exhibitor');
                             const sectionsVisible = (showVisitors ? 1 : 0) + (showExhibitors ? 1 : 0);
                             
                             // If both sections are visible, give each less height

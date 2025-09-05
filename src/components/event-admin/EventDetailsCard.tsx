@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Card,
@@ -40,7 +40,11 @@ interface EventDetailsCardProps {
   onEventUpdate?: () => void;
 }
 
-export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProps) {
+export interface EventDetailsCardRef {
+  handleEdit: () => void;
+}
+
+const EventDetailsCard = forwardRef<EventDetailsCardRef, EventDetailsCardProps>(({ onEventUpdate }, ref) => {
   const params = useParams();
   const identifier = params?.identifier as string;
   
@@ -50,6 +54,13 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editedEvent, setEditedEvent] = useState<Partial<UpdateEventPayload>>({});
+
+  // Expose handleEdit function to parent component
+  useImperativeHandle(ref, () => ({
+    handleEdit: () => {
+      handleEdit();
+    }
+  }));
 
   useEffect(() => {
     loadEventDetails();
@@ -334,77 +345,7 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
 
   return (
     <>
-      <Card sx={{ borderRadius: 2 }}>
-        <CardContent sx={{ p: 2 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            <Box>
-              <Typography variant="h5" component="h1" gutterBottom>
-                {eventDetails.title}
-              </Typography>
-              <Box display="flex" alignItems="center" gap={2}>
-                <Chip
-                  label={eventDetails.statusName}
-                  color={getStatusColor(eventDetails.statusName) as any}
-                  sx={{ textTransform: 'capitalize' }}
-                />
-                
-              </Box>
-            </Box>
-            <Box display="flex" gap={1}>
-              <Button
-                variant="contained"
-                startIcon={<Edit />}
-                onClick={handleEdit}
-              >
-                Edit Event
-              </Button>
-            </Box>
-          </Box>
-
-          {eventDetails.description && (
-            <Typography variant="body1" color="text.secondary" paragraph>
-              {eventDetails.description}
-            </Typography>
-          )}
-
-          <Grid container spacing={3} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}>
-              <Box display="flex" flexWrap="wrap" gap={9} mb={2}>
-                <Box display="flex" alignItems="center" minWidth="200px">
-                  <CalendarToday sx={{ mr: 2, color: 'text.secondary' }} />
-                  <Box>
-                    <Typography variant="subtitle2">Start Date</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(eventDetails.startDateTime)}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box display="flex" alignItems="center" minWidth="200px">
-                  <CalendarToday sx={{ mr: 2, color: 'text.secondary' }} />
-                  <Box>
-                    <Typography variant="subtitle2">End Date</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(eventDetails.endDateTime)}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box display="flex" alignItems="center" minWidth="200px">
-                  <LocationOn sx={{ mr: 2, color: 'text.secondary' }} />
-                  <Box>
-                    <Typography variant="subtitle2">Location</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatLocation(eventDetails.locationDetails)}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+      
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
@@ -613,4 +554,8 @@ export default function EventDetailsCard({ onEventUpdate }: EventDetailsCardProp
       </Dialog>
     </>
   );
-} 
+});
+
+EventDetailsCard.displayName = 'EventDetailsCard';
+
+export default EventDetailsCard; 

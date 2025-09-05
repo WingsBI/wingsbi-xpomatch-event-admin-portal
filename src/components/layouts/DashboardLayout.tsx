@@ -36,6 +36,7 @@ import {
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import ProfileSettingsPage from '@/app/[identifier]/event-admin/profile/page';
+import NotificationProvider from '../providers/NotificationProvider';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -256,4 +257,17 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
       </Box>
     </Box>
   );
-} 
+  const jwtToken = typeof window !== "undefined" ? (() => {
+    const { getAuthToken } = require('@/utils/cookieManager');
+    return getAuthToken() || "";
+  })() : "";
+  return (
+    <html lang="en">
+      <body>
+        <NotificationProvider token={jwtToken}>{children}</NotificationProvider>
+      </body>
+    </html>
+  );
+}
+
+

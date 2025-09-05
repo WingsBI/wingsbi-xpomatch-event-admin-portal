@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -25,6 +25,7 @@ import {
   Divider,
   LinearProgress,
   Alert,
+  useTheme,
 } from '@mui/material';
 import {
   People, 
@@ -47,17 +48,18 @@ import {
   EmailOutlined,
 } from '@mui/icons-material';
 
-import { Event, Participant, DashboardStats } from '@/types';
+import { Event, Participant, DashboardStats, ApiEventDetails } from '@/types';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
-import EventDetailsCard from '@/components/event-admin/EventDetailsCard';
+import EventDetailsCard, { EventDetailsCardRef } from '@/components/event-admin/EventDetailsCard';
 import ExcelUploadDialog from '@/components/common/ExcelUploadDialog';
 import RoleBasedRoute from '@/components/common/RoleBasedRoute';
 import { fieldMappingApi } from '@/services/fieldMappingApi';
 import { getAuthToken } from '@/utils/cookieManager';
-import { apiService } from '@/services/apiService';
+import { apiService, eventsApi } from '@/services/apiService';
 import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
 import { color } from 'framer-motion';
+import { Send } from '@mui/icons-material';
 
 export default function EventAdminDashboard() {
   const params = useParams();
@@ -65,6 +67,7 @@ export default function EventAdminDashboard() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const theme = useTheme();
   
   // State for real data
   const [stats, setStats] = useState<DashboardStats>({
@@ -79,9 +82,11 @@ export default function EventAdminDashboard() {
   const [visitors, setVisitors] = useState<Participant[]>([]);
   const [exhibitors, setExhibitors] = useState<Participant[]>([]);
   const [event, setEvent] = useState<Event | null>(null);
+  const [eventDetails, setEventDetails] = useState<ApiEventDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [visitorsUploadOpen, setVisitorsUploadOpen] = useState(false);
   const [exhibitorsUploadOpen, setExhibitorsUploadOpen] = useState(false);
+  const eventDetailsCardRef = useRef<EventDetailsCardRef>(null);
 
   // Define searchable pages
   const searchablePages = [
@@ -128,7 +133,44 @@ export default function EventAdminDashboard() {
 
   useEffect(() => {
     loadDashboardData();
+    loadEventDetails();
   }, [identifier]);
+
+  const loadEventDetails = async () => {
+    try {
+      console.log('🔍 Loading event details for identifier:', identifier);
+      
+      if (!identifier) {
+        console.warn('⚠️ No identifier available for event details load');
+        return;
+      }
+      
+      const response = await eventsApi.getEventDetails(identifier);
+      
+      console.log('🔍 Event details response:', {
+        success: response.success,
+        status: response.status,
+        hasData: !!response.data,
+        hasResult: !!(response.data?.result),
+        resultType: Array.isArray(response.data?.result) ? 'array' : typeof response.data?.result,
+        resultLength: Array.isArray(response.data?.result) ? response.data.result.length : 'N/A'
+      });
+      
+      if (response.success && response.data?.result && response.data.result.length > 0) {
+        const eventData = response.data.result[0];
+        setEventDetails(eventData);
+        console.log('✅ Event details loaded successfully:', eventData);
+      } else {
+        console.warn('⚠️ No event details found:', response);
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading event details:', {
+        message: error.message,
+        status: error.response?.status,
+        identifier
+      });
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -458,17 +500,97 @@ export default function EventAdminDashboard() {
     console.log('Send invitations');
   };
 
+  // Helper function to convert UTC to IST (UTC+5:30)
+  const convertUTCToIST = (utcDateString: string) => {
+    const utcDate = new Date(utcDateString);
+    return new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
+  };
+
+  // Helper functions for formatting event data
+  const formatEventDate = (dateString: string) => {
+    if (!dateString) return 'TBD';
+    try {
+      const istDate = convertUTCToIST(dateString);
+      return istDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  const formatEventTime = (dateString: string) => {
+    if (!dateString) return 'TBD';
+    try {
+      const istDate = convertUTCToIST(dateString);
+      return istDate.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'Invalid Time';
+    }
+  };
+
+  const getEventLocation = () => {
+    if (!eventDetails?.locationDetails || eventDetails.locationDetails.length === 0) {
+      return 'Milan, Italy';
+    }
+    
+    const location = eventDetails.locationDetails[0];
+    const parts = [location.cityName, location.stateName, location.countryName].filter(Boolean);
+    return parts.join(', ') || location.venueName || 'Milan, Italy';
+  };
+
+  const getEventTitle = () => {
+    if (!eventDetails?.title) return 'Gastech';
+    // Clean the event title by removing "exhibitor" text (case insensitive)
+    return eventDetails.title.replace(/exhibitor/gi, '').trim() || 'Gastech';
+  };
+
+  const getEventSubtitle = () => {
+    if (!eventDetails?.categoryName) return 'EXHIBITION & CONFERENCE';
+    return eventDetails.categoryName.toUpperCase();
+  };
+
+  const getEventDateRange = () => {
+    if (!eventDetails?.startDateTime || !eventDetails?.endDateTime) {
+      return '9-12 SEPTEMBER 2025 | FIERA MILANO • MILAN';
+    }
+    
+    try {
+      // Convert to IST (UTC+5:30)
+      const istStartDate = convertUTCToIST(eventDetails.startDateTime);
+      const istEndDate = convertUTCToIST(eventDetails.endDateTime);
+      
+      const startDay = istStartDate.getDate();
+      const endDay = istEndDate.getDate();
+      const month = istStartDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+      const year = istStartDate.getFullYear();
+      
+      const venue = eventDetails.locationDetails?.[0]?.venueName || 'FIERA MILANO';
+      const location = getEventLocation();
+      
+      return `${startDay}-${endDay} ${month} ${year} | ${venue} • ${location}`;
+    } catch (error) {
+      return '9-12 SEPTEMBER 2025 | FIERA MILANO • MILAN';
+    }
+  };
+
   const statCards = [
     {
       title: 'Total Visitors',
       value: stats?.registeredVisitors || 0,
       icon: <Person sx={{ fontSize: 40 }} />,
-      color: '#2e7d32',
-    
-      subtitle: `${visitors.filter(v => v.status === 'registered').length} registered`,
+      bgColor: theme.palette.primary.light + '20', // Light primary color with transparency
+      iconColor: theme.palette.primary.main,
+      textColor: theme.palette.primary.dark,
+      subtitle: 'Registered',
       action: {
-        label: 'Add Visitors' ,
-        icon: <Add />,
+        icon: <Add sx={{ fontSize: 16 }} />,
         onClick: handleUploadVisitors,
       }
     },
@@ -476,23 +598,25 @@ export default function EventAdminDashboard() {
       title: 'Total Exhibitors',
       value: stats?.registeredExhibitors || 0,
       icon: <Business sx={{ fontSize: 40 }} />,
-      color: '#ed6c02',
-      subtitle: `${exhibitors.filter(e => e.status === 'registered').length} registered`,
+      bgColor: theme.palette.secondary.light + '20', // Light secondary color with transparency
+      iconColor: theme.palette.secondary.main,
+      textColor: theme.palette.secondary.dark,
+      subtitle: 'Registered',
       action: {
-        label: 'Add Exhibitors',
-        icon: <Add />,
+        icon: <Add sx={{ fontSize: 16 }} />,
         onClick: handleUploadExhibitors,
       }
     },
     {
-      title: 'Pending Invitations',
+      title: 'Pending Invitation',
       value: stats?.pendingInvitations || 0,
-      icon: <Email sx={{ fontSize: 40 }} />,
-      color: '#dc004e', 
+      icon: <EmailOutlined sx={{ fontSize: 40 }} />,
+      bgColor: theme.palette.info.light + '20', // Light info color with transparency
+      iconColor: theme.palette.info.main,
+      textColor: theme.palette.info.dark,
       subtitle: 'Awaiting response',
       action: {
-        label: 'Send Invitations',
-        icon: <Email />,
+        icon: <Send sx={{ fontSize: 16 }} />,
         onClick: handleSendInvitations,
       }
     },
@@ -576,66 +700,280 @@ export default function EventAdminDashboard() {
         }}
       >
           <Container maxWidth="xl">
-            {/* Header with Welcome Message */}
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Box>
-                <Typography variant="h5" component="h1" fontWeight={500} gutterBottom>
-                  Welcome, {user?.firstName} {user?.lastName}!
-                </Typography>
+            {/* Event Header Section */}
+            <Card 
+              sx={{ 
+                borderRadius: 3,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.08)',
+                mb: 3,
+                overflow: 'hidden'
+              }}
+            >
+              <CardContent sx={{ p: 0 }}>
+                {/* Top Section with Upcoming Chip and Edit Icon */}
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    p: 2,
+                    pb: 1
+                  }}
+                >
+                  <Chip 
+                    label="Upcoming" 
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#ff9800', 
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '0.75rem'
+                    }} 
+                  />
+                  <IconButton 
+                    size="small"
+                    onClick={() => {
+                      // Trigger the edit dialog from EventDetailsCard
+                      if (eventDetailsCardRef.current && eventDetailsCardRef.current.handleEdit) {
+                        eventDetailsCardRef.current.handleEdit();
+                      }
+                    }}
+                    sx={{ 
+                      backgroundColor: '#1976d2',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: '#1565c0'
+                      }
+                    }}
+                  >
+                    <Edit sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </Box>
+
+                {/* Event Banner Area */}
+                <Box 
+                  sx={{ 
+                    height: 120,
+                    backgroundColor: '#f8f9fa',
+                    border: '2px dashed #dee2e6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 2,
+                    mb: 2,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: '#e9ecef',
+                      borderColor: '#adb5bd'
+                    }
+                  }}
+                >
+                  <Box sx={{ textAlign: 'center', color: '#6c757d' }}>
                
               </Box>
             </Box>
 
             {/* Event Details */}
-            <Box mb={1}>
-              <EventDetailsCard onEventUpdate={loadDashboardData} />
-            </Box>
+                {/* <Box sx={{ px: 2, pb: 2 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <Box display="flex" alignItems="center" mb={1}>
+                      <Box sx={{ mr: 2 }}>
+                        <Box 
+                          sx={{ 
+                            width: 48,
+                            height: 48,
+                            backgroundColor: '#1976d2',
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                            {getEventTitle().charAt(0)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h5" component="h1" fontWeight={600} color="text.primary">
+                          {getEventTitle()}
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                          {getEventSubtitle()}
+                        </Typography>
+                        <Typography variant="body2" color="#1976d2" fontWeight={500}>
+                          {getEventDateRange()}
+                        </Typography>
+                      </Box>
+                     
+                    </Box>
+            </Box> */}
+
+                  {/* Date, Time, and Location */}
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={4}>
+                      <Box display="flex" alignItems="center">
+                        <Schedule sx={{ mr: 1.5, color: '#1976d2', fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Start Date
+                          </Typography>
+                          <Typography variant="body2" fontWeight={500} color="text.primary">
+                            {eventDetails?.startDateTime ? `${formatEventDate(eventDetails.startDateTime)} at ${formatEventTime(eventDetails.startDateTime)}` : ''}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Box display="flex" alignItems="center">
+                        <Schedule sx={{ mr: 1.5, color: '#1976d2', fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            End Date
+                          </Typography>
+                          <Typography variant="body2" fontWeight={500} color="text.primary">
+                            {eventDetails?.endDateTime ? `${formatEventDate(eventDetails.endDateTime)} at ${formatEventTime(eventDetails.endDateTime)}` : ''}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Box display="flex" alignItems="center">
+                        <Business sx={{ mr: 1.5, color: '#1976d2', fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Location
+                          </Typography>
+                          <Typography variant="body2" fontWeight={500} color="text.primary">
+                            {getEventLocation()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                  {/* </Box> */}
+              </CardContent>
+            </Card>
 
             {/* Stats Cards with Actions */}
             <Grid container spacing={3}>
               {statCards.map((stat, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Box>
-                          <Typography color="text.secondary" gutterBottom>
-                            {stat.title}
-                          </Typography>
-                          <Typography variant="h4" component="div">
-                            {stat.value}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {stat.subtitle}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ color: stat.color }}>
+                  <Card 
+                    sx={{ 
+                      borderRadius: 3,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                      background: stat.bgColor,
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                      }
+                    }}
+                  >
+                    {/* Action Button - Top Right */}
+                    <IconButton
+                      onClick={stat.action.onClick}
+                      sx={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        width: 32,
+                        height: 32,
+                        
+                        backgroundColor: theme.palette.primary.light,
+                        color: 'white',
+                        '&:hover': {
+                          backgroundColor: theme.palette.primary.main,
+                        }
+                      }}
+                    >
+                      {stat.action.icon}
+                    </IconButton>
+
+                    <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                      {/* Main Icon - Centered */}
+                      <Box 
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          mb: 2,
+                          mt: 1
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 60,
+                            height: 60,
+                            borderRadius: 2,
+                            background: `linear-gradient(135deg, ${stat.iconColor} 0%, ${stat.iconColor}CC 100%)`,
+                            color: 'white',
+                          }}
+                        >
                           {stat.icon}
                         </Box>
                       </Box>
-                      <Box mt={2}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={stat.action.icon}
-                          onClick={stat.action.onClick}
-                          sx={{
-                            backgroundColor: stat.color,
-                            color: '#fff',
-                            '&:hover': {
-                              backgroundColor: stat.color,
-                              opacity: 0.85,
-                            },
-                          }}
-                        >
-                          {stat.action.label}
-                        </Button>
-                      </Box>
+
+                      {/* Title */}
+                      <Typography 
+                        variant="h4" 
+                        component="div" 
+                        sx={{ 
+                          fontWeight: 600,
+                          color: theme.palette.text.secondary,
+                          mb: 1,
+                          fontSize: '1.5rem'
+                        }}
+                      >
+                        {stat.title}
+                      </Typography>
+
+                      {/* Value */}
+                      <Typography 
+                        variant="h3" 
+                        component="div" 
+                        sx={{ 
+                          fontWeight: 700,
+                          color: stat.textColor,
+                          mb: 0.5,
+                          fontSize: '2rem'
+                        }}
+                      >
+                        {stat.value.toLocaleString()}
+                      </Typography>
+
+                      {/* Subtitle */}
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: theme.palette.text.secondary,
+                          fontWeight: 500,
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        {stat.subtitle}
+                      </Typography>
                     </CardContent>
                   </Card>
                 </Grid>
               ))}
             </Grid>
+
+            {/* Event Details Card with Edit Dialog */}
+            <Box sx={{ mt: 3 }}>
+              <EventDetailsCard 
+                ref={eventDetailsCardRef}
+                onEventUpdate={loadDashboardData} 
+              />
+            </Box>
           </Container>
       </Box>
 

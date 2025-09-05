@@ -625,6 +625,7 @@ export default function SimulationPage() {
                    displayEmpty
                    onChange={(e) => setSelectedRole(e.target.value as RoleType | '')}
                    size="small"
+                  
                    sx={{
                      '& .MuiSelect-select': {
                        display: 'flex',

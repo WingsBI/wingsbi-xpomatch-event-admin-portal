@@ -88,6 +88,8 @@ import { logoutUser } from '@/store/slices/authSlice';
 import { useRoleAccess } from '@/context/RoleAccessContext';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
+import NotificationProvider from '../providers/NotificationProvider';
+
 
 interface ResponsiveDashboardLayoutProps {
   children: ReactNode;
@@ -1279,4 +1281,19 @@ export default function ResponsiveDashboardLayout({
       </Box>
     </Box>
   );
+
+  const jwtToken = typeof window !== "undefined" ? (() => {
+    const { getAuthToken } = require('@/utils/cookieManager');
+    const token = getAuthToken() || "";
+    console.log("🔍 ResponsiveDashboardLayout - JWT Token retrieved:", token ? `${token.substring(0, 20)}...` : "No token found");
+    return token;
+  })() : "";
+  return (
+    <html lang="en">
+      <body>
+        <NotificationProvider token={jwtToken}>{children}</NotificationProvider>
+      </body>
+    </html>
+  );
+
 } 

@@ -11,6 +11,7 @@
   "dependencies": {
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
+    "@microsoft/signalr": "^9.0.6",
     "@mui/icons-material": "^5.14.0",
     "@mui/material": "^5.14.0",
     "@mui/x-data-grid": "^6.18.0",
@@ -43,6 +44,7 @@
     "react-redux": "^9.2.0",
     "react-responsive": "^9.0.2",
     "react-swipeable": "^7.0.1",
+    "react-toastify": "^11.0.5",
     "react-virtualized": "^9.22.5",
     "redux-persist": "^6.0.0",
     "typescript": "^5.2.0",

@@ -315,11 +315,11 @@ export default function ResponsiveDashboardLayout({
     // Handle collapsed state for all device types
     if (ui.sidebarCollapsed) return 64;
 
-    if (isTV) return 240; // TV screens (>= 2560px) - reduced from 270
-    if (isLargeMonitor) return 220; // Large monitors (>= 1920px) - reduced from 250
-    if (isDesktop) return 200; // Desktop (1280px - 1920px) - reduced from 230
-    if (isTablet) return 180; // Tablet (960px - 1280px) - reduced from 210
-    return 200; // Default width - reduced from 230
+    if (isTV) return 220; // TV screens (>= 2560px) - reduced from 240
+    if (isLargeMonitor) return 200; // Large monitors (>= 1920px) - reduced from 220
+    if (isDesktop) return 180; // Desktop (1280px - 1920px) - reduced from 200
+    if (isTablet) return 160; // Tablet (960px - 1280px) - reduced from 180
+    return 180; // Default width - reduced from 200
   };
 
   const drawerWidth = getDrawerWidth();
@@ -599,7 +599,7 @@ export default function ResponsiveDashboardLayout({
     return (
       <React.Fragment key={item.text}>
       <ListItem disablePadding sx={{ 
-        mb: level === 0 ? 0.75 : 0.25, 
+        mb: level === 0 ? 0.5 : 0.25, 
         pl: level * 1.5,
         '&:last-child': {
           mb: 0
@@ -628,9 +628,9 @@ export default function ResponsiveDashboardLayout({
           }}
           sx={{
             borderRadius: level === 0 ? 2 : 1.5,
-            minHeight: ui.sidebarCollapsed && level === 0 ? 48 : level === 0 ? 44 : 36,
-            py: level === 0 ? 1 : 0.75,
-            px: level === 0 ? 1.5 : 1,
+            minHeight: ui.sidebarCollapsed && level === 0 ? 40 : level === 0 ? 36 : 32,
+            py: level === 0 ? 0.75 : 0.5,
+            px: level === 0 ? 1 : 0.75,
             transition: 'all 0.2s ease-in-out',
             position: 'relative',
             overflow: 'hidden',
@@ -645,31 +645,33 @@ export default function ResponsiveDashboardLayout({
               transition: 'background-color 0.2s ease-in-out'
             },
             '&:hover': {
-              backgroundColor: level === 0 ? 'rgba(238, 234, 236, 0.81)' : 'rgba(179, 155, 168, 0.67)',
-              color: level === 0 ? 'primary.main' : 'text.primary',
+              backgroundColor: theme.palette.primary.main,
+              color: 'white',
               transform: 'translateX(2px)',
               '&::before': {
-                backgroundColor: 'primary.main'
+                backgroundColor: 'white'
               },
               '& .MuiListItemIcon-root': {
-                color: level === 0 ? 'primary.main' : 'text.primary',
+                color: 'white',
                 transform: 'scale(1.1)'
               },
               '& .MuiListItemText-primary': {
-                fontWeight: level === 0 ? 600 : 500
+                fontWeight: level === 0 ? 600 : 500,
+                color: 'white'
               }
             },
             '&.Mui-selected': {
-              backgroundColor: 'rgba(180, 154, 168, 0.12)',
-              color: 'primary.main',
+              backgroundColor: theme.palette.primary.main,
+              color: 'white',
               '&::before': {
-                backgroundColor: 'primary.main'
+                backgroundColor: 'white'
               },
               '& .MuiListItemIcon-root': {
-                color: 'primary.main'
+                color: 'white'
               },
               '& .MuiListItemText-primary': {
-                fontWeight: 600
+                fontWeight: 600,
+                color: 'white'
               }
             }
           }}
@@ -681,12 +683,12 @@ export default function ResponsiveDashboardLayout({
               disableHoverListener={!ui.sidebarCollapsed}
             >
               <ListItemIcon sx={{
-                minWidth: ui.sidebarCollapsed ? 0 : 36,
+                minWidth: ui.sidebarCollapsed ? 0 : 32,
                 justifyContent: 'center',
                 color: 'text.secondary',
                 transition: 'all 0.2s ease-in-out',
                 '& svg': {
-                  fontSize: '1.25rem'
+                  fontSize: '1.1rem'
                 }
               }}>
                 {item.icon}
@@ -705,7 +707,15 @@ export default function ResponsiveDashboardLayout({
               ml: 0.5,
               flexShrink: 0,
               opacity: 0.6,
-              transition: 'all 0.2s ease-in-out'
+              transition: 'all 0.2s ease-in-out',
+              '.MuiListItemButton:hover &': {
+                backgroundColor: 'white',
+                opacity: 1
+              },
+              '.MuiListItemButton.Mui-selected &': {
+                backgroundColor: 'white',
+                opacity: 1
+              }
             }} />
           )}
 
@@ -733,8 +743,8 @@ export default function ResponsiveDashboardLayout({
                     color: 'text.secondary',
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                      color: 'text.primary'
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white'
                     }
                   }}
                 >
@@ -783,8 +793,8 @@ export default function ResponsiveDashboardLayout({
       <Box sx={{ 
         flexGrow: 1, 
         overflow: 'auto', 
-        p: ui.sidebarCollapsed ? 1 : 2, 
-        pt: ui.sidebarCollapsed ? 1 : 1.5
+        p: ui.sidebarCollapsed ? 0.5 : 1.5, 
+        pt: ui.sidebarCollapsed ? 0.5 : 1
       }}>
         <List sx={{ 
           py: 0,
@@ -870,28 +880,29 @@ export default function ResponsiveDashboardLayout({
         position="fixed"
         sx={{
           width: { xs: '100%', md: 'calc(100% - 16px)' },
-          backgroundColor: theme.palette.primary.main,
-          color: 'white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%)',
+          color: 'text.primary',
+          boxShadow: 'none',
+          height: '60px',
+          borderBottom: 'none',
           zIndex: theme.zIndex.drawer + 1,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
           borderRadius: { md: '0 0 16px 16px' },
           margin: { md: '0 8px' },
         }}
       >
-        <Toolbar variant={isMobile ? 'dense' : 'regular'} sx={{ px: 0, minHeight: '64px !important' }}>
+        <Toolbar variant={isMobile ? 'dense' : 'regular'} sx={{ px: 2, minHeight: '60px !important' }}>
           {/* Left Section - Sidebar Brand (Desktop) / Mobile Menu */}
           <Box sx={{
             width: {
               xs: '60%',
-              md: forceHideSidebar ? '0px' : ui.sidebarCollapsed ? '0px' : `${drawerWidth + 100}px`
+              md: forceHideSidebar ? '0px' : ui.sidebarCollapsed ? '0px' : `${drawerWidth + 200}px`
             },
             display: {
               xs: 'flex',
               md: forceHideSidebar ? 'none' : ui.sidebarCollapsed ? 'none' : 'flex'
             },
             alignItems: 'center',
-            px: { xs: 1, md: ui.sidebarCollapsed ? 1 : 4 },
+            px: { xs: 1, md: ui.sidebarCollapsed ? 1 : 2 },
             minHeight: '64px',
             transition: theme.transitions.create(['width', 'padding'], {
               easing: theme.transitions.easing.sharp,
@@ -909,18 +920,19 @@ export default function ResponsiveDashboardLayout({
               sx={{
                 mr: 1,
                 display: { xs: 'block', md: 'none' },
-                minWidth: 'auto'
+                minWidth: 'auto',
+                color: 'text.primary'
               }}
             >
               <MenuIcon />
             </IconButton>
 
             {/* Desktop Brand */}
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' , ml: -4}}>
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', width: '100%' , ml: -2  }}>
               {!ui.sidebarCollapsed && (
                 <Box>
                    
-                                     <Typography variant="h6" fontWeight="bold" noWrap sx={{ color: 'white', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <Typography variant="h6" fontWeight="bold" noWrap sx={{ color: theme.palette.primary.main, lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {eventDetails?.title || 'Xpo Match'}
                    
                    </Typography>
@@ -936,7 +948,7 @@ export default function ResponsiveDashboardLayout({
               sx={{
                 display: { xs: 'block', md: 'none' },
                 fontWeight: 'bold',
-                color: 'white',
+                color: theme.palette.primary.main,
                 lineHeight: 1.2,
                 maxWidth: '100%',
                 overflow: 'hidden',
@@ -956,17 +968,17 @@ export default function ResponsiveDashboardLayout({
             justifyContent: 'center',
             px: { 
               xs: 1, 
-              md: ui.sidebarCollapsed ? 2 : 2 
+              md: ui.sidebarCollapsed ? 1 : 1 
             },
             pl: { 
               xs: 0, 
-              md: ui.sidebarCollapsed ? 8 : 2
+              md: ui.sidebarCollapsed ? 4 : 1
             },
             minWidth: 0, // Allow content to shrink
             overflow: 'hidden' // Prevent overflow
           }}>
             {/* Search Bar */}
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 2,ml:-2 }}>
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 1, ml: 0 }}>
               <Autocomplete
                 options={searchablePages}
                 getOptionLabel={(option) => option.title}
@@ -991,25 +1003,25 @@ export default function ResponsiveDashboardLayout({
                     size="small"
                     InputProps={{
                       ...params.InputProps,
-                      startAdornment: <Search sx={{ color: 'rgba(255, 255, 255, 0.8)', mr: 1 ,opacity: 0.7 }} />,
+                      startAdornment: <Search sx={{ color: theme.palette.primary.main, mr: 1, opacity: 0.7 }} />,
                       sx: {
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.02)',
                         backdropFilter: 'blur(10px)',
                         borderRadius: 2,
                         '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.3)',
+                          borderColor: 'rgba(0, 0, 0, 0.1)',
                         },
                         '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.5)',
+                          borderColor: 'rgba(0, 0, 0, 0.2)',
                         },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'primary.main',
+                          borderColor: theme.palette.primary.main,
                         },
                         '& input': {
                           color: 'text.primary',
                         },
                         '& input::placeholder': {
-                          color: 'white',
+                          color: theme.palette.primary.main,
                           opacity: 0.7,
                         },
                       },
@@ -1060,7 +1072,7 @@ export default function ResponsiveDashboardLayout({
               alignItems: 'center',
               gap: { xs: 0.25, md: 1 },
               flexShrink: 0, // Prevent buttons from shrinking
-              pl: { xs: 0.5, md: 2 }
+              pl: { xs: 0.5, md: 1 }
             }}>
               {/* {!responsive.isMobile && !forceHideSidebar && (
               <>
@@ -1078,8 +1090,20 @@ export default function ResponsiveDashboardLayout({
               </>
             )} */}
 
+              {/* Welcome Message */}
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: 'text.secondary',
+                  mr: 1,
+                  display: { xs: 'none', sm: 'block' }
+                }}
+              >
+                Welcome, {user?.firstName} {user?.lastName}!
+              </Typography>
+
               <Tooltip title="Notifications">
-                <IconButton sx={{ color: 'white', p: 1 }}>
+                <IconButton sx={{ color: 'text.primary', p: 1 }}>
                   <Badge badgeContent={ui.notifications.length} color="error">
                     <Notifications />
                   </Badge>
@@ -1104,7 +1128,7 @@ export default function ResponsiveDashboardLayout({
                 }
               >
                 <IconButton onClick={handleProfileMenuOpen} sx={{ p: 0.5 }}>
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main, color: 'white' }}>
                     {user?.firstName?.[0] || user?.email?.[0] || 'U'}
                   </Avatar>
                 </IconButton>
@@ -1189,7 +1213,7 @@ export default function ResponsiveDashboardLayout({
             xs: '100%',
             md: forceHideSidebar ? '100%' : `calc(100% - ${drawerWidth}px)`
           },
-          mt: { xs: 8, md: 8 },
+          mt: { xs: 7, md: 7 },
           minHeight: 'calc(100vh - 64px)',
           backgroundColor: 'background.default',
           transition: theme.transitions.create(['margin', 'width'], {
@@ -1203,11 +1227,11 @@ export default function ResponsiveDashboardLayout({
           maxWidth={false}
           sx={{
             p: {
-              xs: 2,      // Mobile
-              sm: 2.5,    // Large phones
-              md: 3,      // Tablets
-              lg: 3.5,    // Desktop
-              xl: 4,      // Large monitors
+              xs: 1.5,    // Mobile
+              sm: 2,      // Large phones
+              md: 2.5,    // Tablets
+              lg: 3,      // Desktop
+              xl: 3.5,    // Large monitors
             },
             maxWidth: isTV ? '90%' : '100%',
           }}

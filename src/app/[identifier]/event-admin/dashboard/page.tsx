@@ -30,6 +30,7 @@ import {
 import {
   People, 
   Business,
+  LocationOn,
   Upload,
   Settings,
   Email,
@@ -584,40 +585,46 @@ export default function EventAdminDashboard() {
     {
       title: 'Total Visitors',
       value: stats?.registeredVisitors || 0,
-      icon: <Person sx={{ fontSize: 40 }} />,
-      bgColor: theme.palette.primary.light + '20', // Light primary color with transparency
-      iconColor: theme.palette.primary.main,
-      textColor: theme.palette.primary.dark,
+      icon: <Person sx={{ fontSize: 24 }} />,
+      bgColor: '#E8E8F8', // Light lavender background
+      iconColor: '#6A5ACD', // Dark purple icon
+      textColor: '#3F51B5', // Dark blue number
+      titleColor: '#6A5ACD', // Dark purple title
       subtitle: 'Registered',
       action: {
-        icon: <Add sx={{ fontSize: 16 }} />,
+        icon: <Add sx={{ fontSize: 12 }} />,
         onClick: handleUploadVisitors,
+        bgColor: '#40C0E7', // Light blue action button
       }
     },
     {
       title: 'Total Exhibitors',
       value: stats?.registeredExhibitors || 0,
-      icon: <Business sx={{ fontSize: 40 }} />,
-      bgColor: theme.palette.secondary.light + '20', // Light secondary color with transparency
-      iconColor: theme.palette.secondary.main,
-      textColor: theme.palette.secondary.dark,
+      icon: <Business sx={{ fontSize: 24 }} />,
+      bgColor: '#FFF3E0', // Light peach background
+      iconColor: '#FFC107', // Bright orange-yellow icon
+      textColor: '#FF9800', // Warm orange number
+      titleColor: '#FF9800', // Warm orange title
       subtitle: 'Registered',
       action: {
-        icon: <Add sx={{ fontSize: 16 }} />,
+        icon: <Add sx={{ fontSize: 12 }} />,
         onClick: handleUploadExhibitors,
+        bgColor: '#40C0E7', // Light blue action button
       }
     },
     {
       title: 'Pending Invitation',
       value: stats?.pendingInvitations || 0,
-      icon: <EmailOutlined sx={{ fontSize: 40 }} />,
-      bgColor: theme.palette.info.light + '20', // Light info color with transparency
-      iconColor: theme.palette.info.main,
-      textColor: theme.palette.info.dark,
+      icon: <EmailOutlined sx={{ fontSize: 24 }} />,
+      bgColor: '#E0F2F7', // Light blue background
+      iconColor: '#2196F3', // Vibrant blue icon
+      textColor: '#2196F3', // Vibrant blue number
+      titleColor: '#2196F3', // Vibrant blue title
       subtitle: 'Awaiting response',
       action: {
-        icon: <Send sx={{ fontSize: 16 }} />,
+        icon: <Send sx={{ fontSize: 12 }} />,
         onClick: handleSendInvitations,
+        bgColor: '#40C0E7', // Light blue action button
       }
     },
   ];
@@ -815,8 +822,19 @@ export default function EventAdminDashboard() {
                   {/* Date, Time, and Location */}
                   <Grid container spacing={3}>
                     <Grid item xs={12} sm={4}>
-                      <Box display="flex" alignItems="center">
-                        <Schedule sx={{ mr: 1.5, color: '#1976d2', fontSize: 20 }} />
+                      <Box display="flex" alignItems="center" ml={2}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          width: 40,
+                          height: 40,
+                          backgroundColor: '#E3F2FD',
+                          borderRadius: 2,
+                          mr: 2
+                        }}>
+                          <Schedule sx={{ color: '#2196F3', fontSize: 20 }} />
+                        </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight={600}>
                             Start Date
@@ -829,7 +847,18 @@ export default function EventAdminDashboard() {
                     </Grid>
                     <Grid item xs={12} sm={4}>
                       <Box display="flex" alignItems="center">
-                        <Schedule sx={{ mr: 1.5, color: '#1976d2', fontSize: 20 }} />
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          width: 40,
+                          height: 40,
+                          backgroundColor: '#E3F2FD',
+                          borderRadius: 2,
+                          mr: 2
+                        }}>
+                          <Schedule sx={{ color: '#2196F3', fontSize: 20 }} />
+                        </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight={600}>
                             End Date
@@ -842,7 +871,18 @@ export default function EventAdminDashboard() {
                     </Grid>
                     <Grid item xs={12} sm={4}>
                       <Box display="flex" alignItems="center">
-                        <Business sx={{ mr: 1.5, color: '#1976d2', fontSize: 20 }} />
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          width: 40,
+                          height: 40,
+                          backgroundColor: '#E3F2FD',
+                          borderRadius: 2,
+                          mr: 2
+                        }}>
+                          <LocationOn sx={{ color: '#2196F3', fontSize: 20 }} />
+                        </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight={600}>
                             Location
@@ -859,12 +899,12 @@ export default function EventAdminDashboard() {
             </Card>
 
             {/* Stats Cards with Actions */}
-            <Grid container spacing={3}>
+            <Grid container spacing={2}>
               {statCards.map((stat, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
                   <Card 
                     sx={{ 
-                      borderRadius: 3,
+                      borderRadius: 2,
                       boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                       background: stat.bgColor,
                       transition: 'all 0.3s ease',
@@ -880,30 +920,30 @@ export default function EventAdminDashboard() {
                       onClick={stat.action.onClick}
                       sx={{
                         position: 'absolute',
-                        top: 12,
-                        right: 12,
-                        width: 32,
-                        height: 32,
-                        
-                        backgroundColor: theme.palette.primary.light,
+                        top: 6,
+                        right: 6,
+                        width: 24,
+                        height: 24,
+                        backgroundColor: stat.action.bgColor,
                         color: 'white',
                         '&:hover': {
-                          backgroundColor: theme.palette.primary.main,
+                          backgroundColor: stat.action.bgColor,
+                          opacity: 0.8,
                         }
                       }}
                     >
                       {stat.action.icon}
                     </IconButton>
 
-                    <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                    <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
                       {/* Main Icon - Centered */}
                       <Box 
                         sx={{
                           display: 'flex',
                           justifyContent: 'center',
                           alignItems: 'center',
-                          mb: 2,
-                          mt: 1
+                          mb: 1.5,
+                          mt: 0.5
                         }}
                       >
                         <Box
@@ -911,8 +951,8 @@ export default function EventAdminDashboard() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 60,
-                            height: 60,
+                            width: 40,
+                            height: 40,
                             borderRadius: 2,
                             background: `linear-gradient(135deg, ${stat.iconColor} 0%, ${stat.iconColor}CC 100%)`,
                             color: 'white',
@@ -928,9 +968,9 @@ export default function EventAdminDashboard() {
                         component="div" 
                         sx={{ 
                           fontWeight: 600,
-                          color: theme.palette.text.secondary,
-                          mb: 1,
-                          fontSize: '1.5rem'
+                          color: stat.titleColor,
+                          mb: 0.5,
+                          fontSize: '1.1rem'
                         }}
                       >
                         {stat.title}
@@ -943,8 +983,8 @@ export default function EventAdminDashboard() {
                         sx={{ 
                           fontWeight: 700,
                           color: stat.textColor,
-                          mb: 0.5,
-                          fontSize: '2rem'
+                          mb: 0.25,
+                          fontSize: '1.5rem'
                         }}
                       >
                         {stat.value.toLocaleString()}
@@ -956,7 +996,7 @@ export default function EventAdminDashboard() {
                         sx={{ 
                           color: theme.palette.text.secondary,
                           fontWeight: 500,
-                          fontSize: '0.875rem'
+                          fontSize: '0.75rem'
                         }}
                       >
                         {stat.subtitle}

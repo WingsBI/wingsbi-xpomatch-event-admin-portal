@@ -155,8 +155,8 @@ export default function VisitorDashboard() {
         try {
           console.log('Visitor Dashboard - Calling API with visitorId:', visitorId, 'for identifier:', identifier);
           
-          console.log('🔄 Calling getVisitorMatch API');
-          const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
+          console.log('🔄 Calling getAllExhibitorRecommendationByVisitorId API');
+          const response = await matchmakingApi.getAllExhibitorRecommendationByVisitorId(identifier, visitorId);
           
           if (response.isError) {
             setError(response.message || 'Failed to fetch recommendations');
@@ -236,17 +236,24 @@ export default function VisitorDashboard() {
         return;
       }
 
-      console.log('Refreshing visitor recommendations - calling first-time API (getVisitorMatch)');
+      console.log('Refreshing visitor recommendations - calling getAllExhibitorRecommendationByVisitorId API');
       
-      // Call the first-time API to get fresh recommendations
-      const response = await matchmakingApi.getVisitorMatch(identifier, visitorId, null);
+      // Call the new API to get fresh recommendations
+      const response = await matchmakingApi.getAllExhibitorRecommendationByVisitorId(identifier, visitorId);
       
       if (response.isError) {
         setError(response.message || 'Failed to refresh recommendations');
         setRecommendations([]);
       } else {
+        // Handle response structure
+        let exhibitorData;
+        if (Array.isArray(response.result)) {
+          exhibitorData = response.result;
+        } else {
+          exhibitorData = response.result.exhibitorDetails || response.result || [];
+        }
         // Sort by matchPercentage descending
-        const sorted = (response.result || []).sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
+        const sorted = exhibitorData.sort((a: any, b: any) => b.matchPercentage - a.matchPercentage);
         setRecommendations(sorted);
         console.log('Visitor recommendations refreshed successfully:', sorted.length, 'recommendations');
       }

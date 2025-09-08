@@ -83,8 +83,8 @@ export default function ExhibitorDashboard() {
         setExhibitorId(currentExhibitorId);
         
         if (currentExhibitorId && identifier) {
-          console.log('Calling getExhibitortoExhibitorMatch API');
-          const response = await ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId);
+          console.log('Calling getAllExhibitorRecommendationByExhibitorId API');
+          const response = await ExhibitormatchmakingApi.getAllExhibitorRecommendationByExhibitorId(identifier, currentExhibitorId);
           
           if (response && response.result) {
             // Handle different response structures
@@ -173,8 +173,8 @@ export default function ExhibitorDashboard() {
       
       // Call both matchmaking APIs to get fresh recommendations
       const [exhibitorResponse, visitorResponse] = await Promise.all([
-        ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, currentExhibitorId),
-        ExhibitormatchmakingApi.getExhibitorMatch(identifier, currentExhibitorId, null)
+        ExhibitormatchmakingApi.getAllExhibitorRecommendationByExhibitorId(identifier, currentExhibitorId),
+        ExhibitormatchmakingApi.getAllVisitorRecommendationByExhibitorId(identifier, currentExhibitorId)
       ]);
 
       // Handle exhibitor recommendations
@@ -250,8 +250,8 @@ export default function ExhibitorDashboard() {
           const exhibitorId = getCurrentExhibitorId();
           if (!exhibitorId) throw new Error('Exhibitor ID not found');
           
-          console.log('Calling getExhibitorMatch API');
-          const response = await ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitorId, null);
+          console.log('Calling getAllVisitorRecommendationByExhibitorId API');
+          const response = await ExhibitormatchmakingApi.getAllVisitorRecommendationByExhibitorId(identifier, exhibitorId);
           
           console.log("responseee", response);
           if (response.isError) {

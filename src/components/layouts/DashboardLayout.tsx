@@ -257,17 +257,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
       </Box>
     </Box>
   );
-  const jwtToken = typeof window !== "undefined" ? (() => {
-    const { getAuthToken } = require('@/utils/cookieManager');
-    return getAuthToken() || "";
-  })() : "";
-  return (
-    <html lang="en">
-      <body>
-        <NotificationProvider token={jwtToken}>{children}</NotificationProvider>
-      </body>
-    </html>
-  );
+
 }
 
 

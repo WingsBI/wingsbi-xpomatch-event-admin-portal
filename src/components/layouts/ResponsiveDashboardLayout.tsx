@@ -1306,19 +1306,4 @@ export default function ResponsiveDashboardLayout({
       </Box>
     </Box>
   );
-
-  const jwtToken = typeof window !== "undefined" ? (() => {
-    const { getAuthToken } = require('@/utils/cookieManager');
-    const token = getAuthToken() || "";
-    console.log("🔍 ResponsiveDashboardLayout - JWT Token retrieved:", token ? `${token.substring(0, 20)}...` : "No token found");
-    return token;
-  })() : "";
-  return (
-    <html lang="en">
-      <body>
-        <NotificationProvider token={jwtToken}>{children}</NotificationProvider>
-      </body>
-    </html>
-  );
-
 } 

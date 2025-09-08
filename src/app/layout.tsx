@@ -7,6 +7,7 @@ import { RoleAccessProvider } from '@/context/RoleAccessContext';
 import ReduxProvider from '@/providers/ReduxProvider';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import FavoritesCleanupProvider from '@/components/providers/FavoritesCleanupProvider';
+import NotificationProvider from '@/components/providers/NotificationProvider';
 
 // Configure all fonts
 const inter = Inter({ 
@@ -83,9 +84,11 @@ export default function RootLayout({
           <AuthProvider>
             <RoleAccessProvider>
               <ThemeWrapper>
-                <FavoritesCleanupProvider>
-                  {children}
-                </FavoritesCleanupProvider>
+                <NotificationProvider>
+                  <FavoritesCleanupProvider>
+                    {children}
+                  </FavoritesCleanupProvider>
+                </NotificationProvider>
               </ThemeWrapper>
             </RoleAccessProvider>
           </AuthProvider>

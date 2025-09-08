@@ -89,7 +89,8 @@ import { useRoleAccess } from '@/context/RoleAccessContext';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import NotificationProvider from '../providers/NotificationProvider';
-
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import Person2RoundedIcon from '@mui/icons-material/Person2Rounded';
 
 interface ResponsiveDashboardLayoutProps {
   children: ReactNode;
@@ -188,8 +189,8 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
   } else {
     // Default for event-admin role - full navigation (event-admin has all permissions)
     baseItems = [
-      { text: 'Dashboard', icon: <Dashboard />, href: `/${identifier}/dashboard`, children: [] },
-      { text: 'Visitors', icon: <Person />, href: `/${identifier}/visitors`, children: [] },
+      { text: 'Dashboard', icon: <DashboardIcon />, href: `/${identifier}/dashboard`, children: [] },
+      { text: 'Visitors', icon: <Person2RoundedIcon />, href: `/${identifier}/visitors`, children: [] },
       { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] },
       { text: 'Meetings', icon: <CalendarMonth />, children: [
         { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },

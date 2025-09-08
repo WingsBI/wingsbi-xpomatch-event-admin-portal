@@ -47,7 +47,22 @@ import {
   CheckCircle,
   Schedule,
   EmailOutlined,
+  Face3,
+  AccountCircle,
+  Work,
+  Mail,
+  PersonOutline,
+  BusinessCenter,
+  MailOutline,
+  Badge,
+  WorkOutline,
+  Luggage,
+  Face6Sharp,
 } from '@mui/icons-material';
+
+import Face6Round from '@mui/icons-material/Face6Rounded';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
+import MailOutlineIcon from '@mui/icons-material/MailOutline'; 
 
 import { Event, Participant, DashboardStats, ApiEventDetails } from '@/types';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
@@ -585,46 +600,62 @@ export default function EventAdminDashboard() {
     {
       title: 'Total Visitors',
       value: stats?.registeredVisitors || 0,
-      icon: <Person sx={{ fontSize: 24 }} />,
-      bgColor: '#E8E8F8', // Light lavender background
-      iconColor: '#6A5ACD', // Dark purple icon
-      textColor: '#3F51B5', // Dark blue number
-      titleColor: '#6A5ACD', // Dark purple title
+      icon: <Face6Round sx={{ 
+        fontSize: 50, 
+        color: '#8367cf',
+        fontWeight: 'bold',
+        
+        filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+      }} />,
+      bgColor: '#dfe8f5', // Light blue/grayish background to match image
+      //iconColor: '#4A90E2', // Blue icon to match image
+      textColor: '#2E5BBA', // Blue number to match image
+      titleColor: '#5A7FC7', // Light blue title to match image
       subtitle: 'Registered',
       action: {
         icon: <Add sx={{ fontSize: 12 }} />,
         onClick: handleUploadVisitors,
-        bgColor: '#40C0E7', // Light blue action button
+        bgColor: '#40C0E7', // Teal blue action button
       }
     },
     {
       title: 'Total Exhibitors',
       value: stats?.registeredExhibitors || 0,
-      icon: <Business sx={{ fontSize: 24 }} />,
+      icon: <BusinessCenter sx={{ 
+        fontSize: 50, 
+        fontWeight: 'bold',
+        color: '#FF9800',
+        filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+      }} />,
       bgColor: '#FFF3E0', // Light peach background
-      iconColor: '#FFC107', // Bright orange-yellow icon
-      textColor: '#FF9800', // Warm orange number
-      titleColor: '#FF9800', // Warm orange title
+     // iconColor: '#FF9800', // Orange icon to match image
+      textColor: '#F57C00', // Dark orange number
+      titleColor: '#F57C00', // Dark orange title
       subtitle: 'Registered',
       action: {
         icon: <Add sx={{ fontSize: 12 }} />,
         onClick: handleUploadExhibitors,
-        bgColor: '#40C0E7', // Light blue action button
+        bgColor: '#40C0E7', // Teal blue action button
       }
     },
     {
       title: 'Pending Invitation',
       value: stats?.pendingInvitations || 0,
-      icon: <EmailOutlined sx={{ fontSize: 24 }} />,
+      icon: <Email sx={{ 
+        fontSize: 50, 
+        fontWeight: 'bold',
+        color: '#2196F3',
+        filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+      }} />,
       bgColor: '#E0F2F7', // Light blue background
-      iconColor: '#2196F3', // Vibrant blue icon
-      textColor: '#2196F3', // Vibrant blue number
-      titleColor: '#2196F3', // Vibrant blue title
+      //iconColor: '#2196F3', // Blue icon to match image
+      textColor: '#1976D2', // Dark blue number
+      titleColor: '#1976D2', // Dark blue title
       subtitle: 'Awaiting response',
       action: {
         icon: <Send sx={{ fontSize: 12 }} />,
         onClick: handleSendInvitations,
-        bgColor: '#40C0E7', // Light blue action button
+        bgColor: '#40C0E7', // Teal blue action button
       }
     },
   ];
@@ -954,7 +985,7 @@ export default function EventAdminDashboard() {
                             width: 40,
                             height: 40,
                             borderRadius: 2,
-                            background: `linear-gradient(135deg, ${stat.iconColor} 0%, ${stat.iconColor}CC 100%)`,
+                            //background: `linear-gradient(135deg, ${stat.iconColor} 0%, ${stat.iconColor}CC 100%)`,
                             color: 'white',
                           }}
                         >

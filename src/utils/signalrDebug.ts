@@ -1,7 +1,6 @@
 // SignalR debugging utilities
 
 import SignalRService from "@/lib/signalr";
-import AlternativeSignalRService from "@/lib/signalrAlternative";
 import { getAuthToken } from "@/utils/cookieManager";
 
 /**
@@ -87,23 +86,13 @@ export class SignalRDebugger {
     
     // Stop current connection
     SignalRService.stop();
-    AlternativeSignalRService.stop();
+    
     
     // Wait a bit
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Get token and try alternative methods
-    const token = getAuthToken();
-    if (token) {
-      const success = await AlternativeSignalRService.tryAllMethods(token);
-      if (success) {
-        console.log("✅ Alternative method successful! State:", AlternativeSignalRService.getConnectionState());
-      } else {
-        console.error("❌ All alternative methods failed");
-      }
-    } else {
-      console.error("No token available for alternative connection");
-    }
+    
   }
 }
 

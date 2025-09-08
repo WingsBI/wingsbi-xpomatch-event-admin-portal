@@ -1,3 +1,4 @@
+import React from "react";
 import * as signalR from "@microsoft/signalr";
 import { toast } from "react-toastify";
 import { getAuthToken, getUserData } from "@/utils/cookieManager";
@@ -11,7 +12,7 @@ interface NotificationPayload {
 
 class SignalRService {
   private connection: signalR.HubConnection | null = null;
- 
+
   public async start() {
     try {
       const token = getAuthToken();
@@ -38,11 +39,12 @@ class SignalRService {
             }
             return currentToken;
           },
-          headers: {
-            'X-User-Id': userId
-          },
+          // The server reads the JWT from the access_token query string.
           skipNegotiation: false,
-          transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
+          transport:
+            signalR.HttpTransportType.WebSockets |
+            signalR.HttpTransportType.ServerSentEvents |
+            signalR.HttpTransportType.LongPolling,
         })
         .withAutomaticReconnect([0, 2000, 10000, 30000])
         .configureLogging(signalR.LogLevel.Debug)
@@ -56,7 +58,7 @@ class SignalRService {
       console.error("SignalR connection error:", err);
     }
   }
- 
+
   private setupEventHandlers() {
     if (!this.connection) return;
 
@@ -70,40 +72,37 @@ class SignalRService {
   private displayNotification(data: any) {
     let message = "";
     let senderName = "System";
-    
-    // Handle different data formats
+    let timestamp: string | undefined;
+
+    // Normalize payload from backend (supports string or object with { FromUserName, Message, Timestamp })
     if (typeof data === "string") {
-      // Simple string message
       message = data;
     } else if (data && typeof data === "object") {
-      // Complex payload object
-      if (data.Message && data.FromUserName) {
-        message = data.Message;
-        senderName = data.FromUserName;
+      if (data.Message && (data.FromUserName || data.FromUserId)) {
+        message = String(data.Message);
+        senderName = String(data.FromUserName || `User ${data.FromUserId}`);
+        timestamp = data.Timestamp ? new Date(data.Timestamp).toLocaleString() : undefined;
       } else if (data.message) {
-        message = data.message;
+        message = String(data.message);
+        senderName = String((data as any).senderName || senderName);
       } else {
-        // Fallback: stringify the object
         message = JSON.stringify(data);
       }
     } else {
-      // Fallback for any other type
       message = String(data);
     }
-    
-    // Create a simple HTML string for the notification
-    const notificationHtml = `
-      <div style="padding: 8px;">
-        <div style="font-weight: 600; margin-bottom: 4px; color: #1976d2;">
-          ${senderName}
-        </div>
-        <div style="font-size: 14px; line-height: 1.4;">
-          ${message}
-        </div>
+
+    const content = (
+      <div style={{ padding: "8px" }}>
+        <div style={{ fontWeight: 600, marginBottom: "4px", color: "#1976d2" }}>{senderName}</div>
+        <div style={{ fontSize: "14px", lineHeight: 1.4 }}>{message}</div>
+        {timestamp && (
+          <div style={{ marginTop: "6px", fontSize: "12px", color: "#666" }}>{timestamp}</div>
+        )}
       </div>
-    `;
-    
-    toast.info(notificationHtml, {
+    );
+
+    toast.info(content, {
       position: "top-right",
       autoClose: 10000,
       hideProgressBar: false,
@@ -111,16 +110,16 @@ class SignalRService {
       pauseOnHover: true,
       draggable: true,
       style: {
-        background: '#ffffff',
-        border: '1px solid #e0e0e0',
-        borderRadius: '8px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        minHeight: '60px',
-        maxWidth: '350px',
-      }
+        background: "#ffffff",
+        border: "1px solid #e0e0e0",
+        borderRadius: "8px",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+        minHeight: "60px",
+        maxWidth: "350px",
+      },
     });
   }
- 
+
   private setupConnectionHandlers() {
     if (!this.connection) return;
 
@@ -136,7 +135,7 @@ class SignalRService {
       console.log("❌ SignalR disconnected");
     });
   }
- 
+
   public stop(): void {
     if (this.connection) {
       this.connection
@@ -163,5 +162,7 @@ class SignalRService {
     return this.connection?.connectionId || null;
   }
 }
- 
+
 export default new SignalRService();
+
+

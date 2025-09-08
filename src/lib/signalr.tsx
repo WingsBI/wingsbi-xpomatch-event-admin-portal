@@ -22,7 +22,7 @@ class SignalRService {
 
       const userData = getUserData();
       const userId = userData?.id || "anonymous";
-      const hubUrl = `https://localhost:7199/notificationHub`;
+      const hubUrl = `https://xpomatch-dev-event-admin-api.azurewebsites.net/notificationHub`;
 
       // Stop any existing connection first
       if (this.connection) {

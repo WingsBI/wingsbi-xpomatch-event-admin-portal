@@ -1371,6 +1371,61 @@ export const matchmakingApi = {
       };
     }
   },
+
+  // Get all exhibitor recommendations by visitor ID
+  getAllExhibitorRecommendationByVisitorId: async (identifier: string, visitorId: number) => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/RegisterUsers/getAllExhibitorRecommendationByVisitorId?visitorId=${visitorId}`;
+    
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    try {
+      console.log('Calling getAllExhibitorRecommendationByVisitorId API:', {
+        url,
+        visitorId,
+        hasToken: !!token
+      });
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      console.log('getAllExhibitorRecommendationByVisitorId response status:', response.status);
+
+      if (!response.ok) {
+        console.warn(`HTTP ${response.status} error for getAllExhibitorRecommendationByVisitorId: ${response.statusText}`);
+        return {
+          version: null,
+          statusCode: response.status,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+
+      const data = await response.json();
+      console.log('getAllExhibitorRecommendationByVisitorId response data:', data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching exhibitor recommendations by visitor ID:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
 };
 
 // Notifications API
@@ -1618,6 +1673,118 @@ export const ExhibitormatchmakingApi = {
       return data;
     } catch (error) {
       console.error('Error fetching exhibitor match:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  getAllExhibitorRecommendationByExhibitorId: async (identifier: string, exhibitorId: number) => {
+    // Use environment variable directly
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/ExhibitorOnboarding/getAllExhibitorRecommendationByExhibitorId?exhibitorId=${exhibitorId}`;
+
+    // Get token from cookies only (no localStorage)
+    const token = getAuthToken();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      console.log('Calling getAllExhibitorRecommendationByExhibitorId API:', {
+        url,
+        exhibitorId,
+        hasToken: !!token
+      });
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      console.log('getAllExhibitorRecommendationByExhibitorId response status:', response.status);
+
+      if (!response.ok) {
+        console.warn(`HTTP ${response.status} error for getAllExhibitorRecommendationByExhibitorId: ${response.statusText}`);
+        return {
+          version: null,
+          statusCode: response.status,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+
+      const data = await response.json();
+      console.log('getAllExhibitorRecommendationByExhibitorId response data:', data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching exhibitor recommendations:', error);
+      return {
+        version: null,
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Network error',
+        isError: true,
+        responseException: error,
+        result: []
+      };
+    }
+  },
+
+  getAllVisitorRecommendationByExhibitorId: async (identifier: string, exhibitorId: number) => {
+    // Use environment variable directly
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/ExhibitorOnboarding/getAllVisitorRecommendationByExhibitorId?exhibitorId=${exhibitorId}`;
+
+    // Get token from cookies only (no localStorage)
+    const token = getAuthToken();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      console.log('Calling getAllVisitorRecommendationByExhibitorId API:', {
+        url,
+        exhibitorId,
+        hasToken: !!token
+      });
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      console.log('getAllVisitorRecommendationByExhibitorId response status:', response.status);
+
+      if (!response.ok) {
+        console.warn(`HTTP ${response.status} error for getAllVisitorRecommendationByExhibitorId: ${response.statusText}`);
+        return {
+          version: null,
+          statusCode: response.status,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          isError: true,
+          responseException: null,
+          result: []
+        };
+      }
+
+      const data = await response.json();
+      console.log('getAllVisitorRecommendationByExhibitorId response data:', data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching visitor recommendations:', error);
       return {
         version: null,
         statusCode: 500,

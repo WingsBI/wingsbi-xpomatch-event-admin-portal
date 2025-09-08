@@ -686,12 +686,18 @@ export default function WeightagePage() {
   // Handle section change
   const handleSectionChange = (section: 'mixed' | 'content' | 'collaboration') => {
     setActiveSection(section);
+    
+    // Close all config sections first
+    setShowContentConfig(false);
+    setShowCollaborationConfig(false);
+    
+    // Then open the selected section
     if (section === 'content') {
       setShowContentConfig(true);
-    }
-    if (section === 'collaboration') {
+    } else if (section === 'collaboration') {
       setShowCollaborationConfig(true);
     }
+    // For 'mixed' section, both remain closed
   };
 
   // Revert functions
@@ -890,18 +896,18 @@ export default function WeightagePage() {
        // Call the API to update visitor interaction config
        const response = await matchmakingApi.updateVisitorInteractionConfig(identifier, updatedConfigs);
        
-             if (response.statusCode === 200 || response.statusCode === 201) {
+       if (response.statusCode === 200 || response.statusCode === 201) {
         // Update the original values to the newly saved values
         setOriginalCollaborationWeightages({...collaborationWeightages});
         
-        store.dispatch(addNotification({
-          type: 'success',
-          message: 'Collaboration weightages saved successfully!'
-        }));
-        
-        // Refresh the data to ensure UI is in sync
-        await fetchVisitorInteractionConfig();
-      } else {
+         store.dispatch(addNotification({
+           type: 'success',
+           message: 'Collaboration weightages saved successfully!'
+         }));
+         
+         // Refresh the data to ensure UI is in sync
+         await fetchVisitorInteractionConfig();
+       } else {
          throw new Error(response.message || 'Failed to save collaboration weightages');
        }
        
@@ -1008,9 +1014,9 @@ export default function WeightagePage() {
 
           {/* Mixed Match Making - Default View */}
           <Paper elevation={2} sx={{ 
-              borderRadius: 3,
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
               border: '1px solid #e8eaed',
               p: { xs: 0.5, md: 1 }
             }}>
@@ -1023,18 +1029,16 @@ export default function WeightagePage() {
                 <Grid container spacing={2} sx={{ maxWidth: 800, mx: 'auto' }}>
                   <Grid item xs={12} md={6}>
                     <Card 
-                      sx={{ 
+              sx={{
                         p: 2, 
                         border: '1px solid #e0e0e0', 
                         height: '100%',
-                        cursor: 'pointer',
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           boxShadow: 2,
                           borderColor: '#1976d2'
                         }
                       }}
-                      onClick={() => handleSectionChange('content')}
                     >
                       <Typography variant="subtitle1" sx={{ mb: 1, color: 'primary.main', textAlign: 'center' }}>
                         Content Weight
@@ -1050,20 +1054,17 @@ export default function WeightagePage() {
                           sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#1976d210' } }}
                         />
                         <Button 
-
-                       variant='contained'
-                       size='small'
-                      
-                          sx={{ 
+                          size='small'
+                sx={{
                             textAlign: 'center', 
-                            // color: 'primary.main',
+                           // color: 'primary.main',
                             width:'60%',
                             ml:'auto',
                             mr:'auto',
                           }}
                           onClick={() => handleSectionChange('content')}
                         >
-                          content based matching
+                          Content Based Matching
                         </Button>
                       </Box>
                     </Card>
@@ -1074,14 +1075,12 @@ export default function WeightagePage() {
                         p: 2, 
                         border: '1px solid #e0e0e0', 
                         height: '100%',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
                           boxShadow: 2,
                           borderColor: '#2e7d32'
                         }
                       }}
-                      onClick={() => handleSectionChange('collaboration')}
                     >
                       <Typography variant="subtitle1" sx={{ mb: 1, color: 'primary.main', textAlign: 'center' }}>
                         Collaboration Weight
@@ -1097,18 +1096,15 @@ export default function WeightagePage() {
                           sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#2e7d3210' } }}
                         />
                         <Button
-                          variant="contained" 
                           size='small'
-                          sx={{ 
-                            textAlign: 'center', 
-                            width:'80%',
-                            ml:'auto',
-                            mr:'auto',
-                            
-                          }}
+                         sx={{ width: '80%', ml: 'auto', mr: 'auto' }}
+                       
+                        variant="contained"
+                        
+                          color="primary"
                           onClick={() => handleSectionChange('collaboration')}
                         >
-                          collaboration based matching
+                          Collaboration Based Matching
                         </Button>
                       </Box>
                     </Card>
@@ -1120,10 +1116,14 @@ export default function WeightagePage() {
                     <TextField
                       type="number"
                       size="small"
+                      
                       value={getTotalHybridWeight()}
-                      InputProps={{ readOnly: true }}
+                      InputProps={{ readOnly: true}}
                       sx={{
+                        
                         width: 90,
+                        
+                      
                         '& .MuiOutlinedInput-root': {
                           bgcolor: getTotalHybridWeight() === 100 ? 'success.light' : 'error.light',
                         }
@@ -1135,12 +1135,14 @@ export default function WeightagePage() {
                       startIcon={<Save />}
                       onClick={handleSaveHybridMatchingConfig}
                       disabled={getTotalHybridWeight() !== 100}
+                      size="small"
                       sx={{ ml: 1 }}
                     >
                       Save configuration
                     </Button>
                     <Button
                       variant="outlined"
+                      size="small"
                       color="primary"
                       startIcon={<Undo />}
                       onClick={handleRevertMixed}
@@ -1187,21 +1189,27 @@ export default function WeightagePage() {
                     <Settings sx={{ fontSize: 28 }} />
                   </Box>
                   <Typography variant="h6" fontWeight="600">
-                    Content Matching Configuration
-                  </Typography>
+                      Content Matching Configuration
+                    </Typography>
+                  </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                
+                  <IconButton
+                    onClick={() => {
+                      setShowContentConfig(false);
+                      setActiveSection('mixed');
+                    }}
+                    size="small"
+                    sx={{ 
+                      color: 'text.secondary',
+                      '&:hover': { 
+                        bgcolor: 'rgba(0, 0, 0, 0.04)' 
+                      }
+                    }}
+                  >
+                    <Close sx={{ fontSize: 20 }} />
+                  </IconButton>
                 </Box>
-                <IconButton
-                  onClick={() => setShowContentConfig(false)}
-                  size="small"
-                  sx={{ 
-                    color: 'text.secondary',
-                    '&:hover': { 
-                      bgcolor: 'rgba(0, 0, 0, 0.04)' 
-                    }
-                  }}
-                >
-                  <Close sx={{ fontSize: 20 }} />
-                </IconButton>
               </Box>
               
               <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#1976d205' }}>
@@ -1740,7 +1748,7 @@ export default function WeightagePage() {
                   
                     <Button
                      variant="contained"
-                     size="medium"
+                     size="small"
                      startIcon={saving ? <CircularProgress size={16} /> : <Save />}
                      onClick={handleSubmit}
                      disabled={saving || hasValidationErrors()}
@@ -1748,6 +1756,7 @@ export default function WeightagePage() {
                        borderRadius: 1.5,
                        px: 3,
                        py: 1,
+                       width: '80%',
                        textTransform: 'none',
                        fontSize: '0.875rem',
                        fontWeight: 500,
@@ -1763,7 +1772,7 @@ export default function WeightagePage() {
                      size="medium"
                      startIcon={<Undo />}
                      onClick={handleRevertContent}
-                     sx={{
+              sx={{
                        borderRadius: 1.5,
                        px: 3,
                        py: 1,
@@ -1816,129 +1825,135 @@ export default function WeightagePage() {
                     <Group sx={{ fontSize: 28 }} />
                   </Box>
                   <Typography variant="h6" fontWeight="600">
-                    Collaboration Match Making
-                  </Typography>
+                      Collaboration Match Making
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                
+                  <IconButton
+                    onClick={() => {
+                      setShowCollaborationConfig(false);
+                      setActiveSection('mixed');
+                    }}
+                      size="small"
+                    sx={{ 
+                      color: 'text.secondary',
+                      '&:hover': { 
+                        bgcolor: 'rgba(0, 0, 0, 0.04)' 
+                      }
+                    }}
+                  >
+                    <Close sx={{ fontSize: 20 }} />
+                  </IconButton>
+                  </Box>
                 </Box>
-                <IconButton
-                  onClick={() => setShowCollaborationConfig(false)}
-                  size="small"
-                  sx={{ 
-                    color: 'text.secondary',
-                    '&:hover': { 
-                      bgcolor: 'rgba(0, 0, 0, 0.04)' 
-                    }
-                  }}
-                >
-                  <Close sx={{ fontSize: 20 }} />
-                </IconButton>
-              </Box>
               
               <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#2e7d3205' }}>
                 {/* Mobile View - Stacked Layout */}
                 <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-                  {visitorInteractionConfigs.map((config) => {
-                    // Map field names to display names
-                    const getDisplayName = (fieldName: string) => {
-                      switch (fieldName.toLowerCase()) {
-                        case 'liked':
-                          return 'isFavorite';
-                        case 'meetingscheduled':
-                          return 'Schedule Meeting';
-                        case 'searched':
-                          return 'Search';
-                        default:
-                          return fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1');
-                      }
-                    };
+                           {visitorInteractionConfigs.map((config) => {
+                             // Map field names to display names
+                             const getDisplayName = (fieldName: string) => {
+                               switch (fieldName.toLowerCase()) {
+                                 case 'liked':
+                                   return 'isFavorite';
+                                 case 'meetingscheduled':
+                                   return 'Schedule Meeting';
+                                 case 'searched':
+                                   return 'Search';
+                                 default:
+                                   return fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1');
+                               }
+                             };
 
-                    // Map field names to state keys
-                    const getStateKey = (fieldName: string) => {
-                      switch (fieldName.toLowerCase()) {
-                        case 'liked':
-                          return 'isFavorite';
-                        case 'meetingscheduled':
-                          return 'scheduleMeeting';
-                        case 'searched':
-                          return 'search';
-                        default:
-                          return fieldName;
-                      }
-                    };
+                             // Map field names to state keys
+                             const getStateKey = (fieldName: string) => {
+                               switch (fieldName.toLowerCase()) {
+                                 case 'liked':
+                                   return 'isFavorite';
+                                 case 'meetingscheduled':
+                                   return 'scheduleMeeting';
+                                 case 'searched':
+                                   return 'search';
+                                 default:
+                                   return fieldName;
+                               }
+                             };
 
-                    // Get appropriate icon for each activity
-                    const getActivityIcon = (fieldName: string) => {
-                      switch (fieldName.toLowerCase()) {
-                        case 'liked':
-                          return <Favorite sx={{ color: '#e91e63', fontSize: 18 }} />;
-                        case 'meetingscheduled':
-                          return <Event sx={{ color: '#2196f3', fontSize: 18 }} />;
-                        case 'searched':
-                          return <Search sx={{ color: '#ff9800', fontSize: 18 }} />;
-                        default:
-                          return <Settings sx={{ color: '#9e9e9e', fontSize: 18 }} />;
-                      }
-                    };
+                             // Get appropriate icon for each activity
+                             const getActivityIcon = (fieldName: string) => {
+                               switch (fieldName.toLowerCase()) {
+                                 case 'liked':
+                                   return <Favorite sx={{ color: '#e91e63', fontSize: 18 }} />;
+                                 case 'meetingscheduled':
+                                   return <Event sx={{ color: '#2196f3', fontSize: 18 }} />;
+                                 case 'searched':
+                                   return <Search sx={{ color: '#ff9800', fontSize: 18 }} />;
+                                 default:
+                                   return <Settings sx={{ color: '#9e9e9e', fontSize: 18 }} />;
+                               }
+                             };
 
-                    const stateKey = getStateKey(config.fieldName);
-                    const displayName = getDisplayName(config.fieldName);
-                    const currentValue = collaborationWeightages[stateKey as keyof typeof collaborationWeightages] || 0;
+                             const stateKey = getStateKey(config.fieldName);
+                             const displayName = getDisplayName(config.fieldName);
+                             const currentValue = collaborationWeightages[stateKey as keyof typeof collaborationWeightages] || 0;
 
-                    return (
+                             return (
                       <Card key={config.id} sx={{ mb: 2, p: 2 }}>
                         <Grid container spacing={2}>
                           <Grid item xs={12}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                              
                               <Typography variant="subtitle2" color="primary.main" fontWeight="600">
-                                {displayName}
-                              </Typography>
-                            </Box>
+                                     {displayName}
+                                   </Typography>
+                                 </Box>
                           </Grid>
                           <Grid item xs={12}>
                             <Typography variant="caption" color="text.secondary">Weightage (%):</Typography>
-                            <TextField
-                              type="number"
-                              size="small"
+                                   <TextField
+                                     type="number"
+                                     size="small"
                               fullWidth
-                              value={currentValue}
-                              onChange={(e) => handleCollaborationWeightageChange(stateKey, Number(e.target.value) || 0)}
-                              inputProps={{ min: 0, max: 100, step: 1 }}
-                              sx={{ 
+                                     value={currentValue}
+                                     onChange={(e) => handleCollaborationWeightageChange(stateKey, Number(e.target.value) || 0)}
+                                     inputProps={{ min: 0, max: 100, step: 1 }}
+                                     sx={{
                                 mt: 0.5,
-                                '& .MuiOutlinedInput-root': {
-                                  height: '40px',
-                                },
-                              }}
-                            />
+                                       '& .MuiOutlinedInput-root': {
+                                         height: '40px',
+                                       },
+                                     }}
+                                   />
                           </Grid>
                         </Grid>
                       </Card>
-                    );
-                  })}
+                             );
+                           })}
                   
                   {/* Mobile Total */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                    <TextField
-                      type="number"
-                      size="small"
+                           <TextField
+                             type="number"
+                             size="small"
                       value={getCollaborationTotal() || ''}
-                      InputProps={{ readOnly: true }}
-                      sx={{
-                        width: 100,
-                        '& .MuiOutlinedInput-root': {
+                             InputProps={{ readOnly: true }}
+                             sx={{
+                               width: 100,
+                               '& .MuiOutlinedInput-root': {
                           bgcolor: getCollaborationTotal() === 100 ? 'success.light' : 'error.light',
-                        }
-                      }}
-                    />
+                               }
+                             }}
+                           />
                     <Typography variant="body2" color="text.secondary">
                       Total Weightage
                     </Typography>
                     {getCollaborationTotal() === 100 && (
                       <Chip label="✓" size="small" color="success" />
                     )}
-                  </Box>
-                </Box>
-
+                         </Box>
+                      </Box>
+                      
                 {/* Desktop View - Grid Layout */}
                 <Box sx={{ display: { xs: 'none', md: 'block' } }}>
                   <Grid container spacing={3}>
@@ -1981,8 +1996,8 @@ export default function WeightagePage() {
 
                           return (
                             <Box key={config.id} sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
+                      display: 'flex',
+                      alignItems: 'center',
                               gap: 2,
                               maxWidth: '70%',
                               p: 1.5,
@@ -1995,11 +2010,11 @@ export default function WeightagePage() {
                              
                               <Typography variant="body2" width="50%" fontWeight="500" color="text.primary">
                                 {displayName}
-                              </Typography>
-                            </Box>
+                    </Typography>
+                  </Box>
                           );
                         })}
-                      </Box>
+                </Box>
                     </Grid>
 
                     {/* Weightage Column */}
@@ -2007,7 +2022,7 @@ export default function WeightagePage() {
                       <Typography variant="h6" textAlign="left" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
                         Weightage (%)
                       </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {visitorInteractionConfigs.map((config) => {
                           // Map field names to state keys
                           const getStateKey = (fieldName: string) => {
@@ -2027,10 +2042,10 @@ export default function WeightagePage() {
                           const currentValue = collaborationWeightages[stateKey as keyof typeof collaborationWeightages] || 0;
 
                           return (
-                            <TextField
+                          <TextField
                               key={config.id}
-                              type="number"
-                              size="small"
+                            type="number"
+                            size="small"
                               
                               value={currentValue}
                               onChange={(e) => handleCollaborationWeightageChange(stateKey, Number(e.target.value) || 0)}
@@ -2047,13 +2062,13 @@ export default function WeightagePage() {
                             />
                           );
                         })}
-                      </Box>
+                        </Box>
                       
                       {/* Total field */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
-                        <TextField
-                          type="number"
-                          size="small"
+                          <TextField
+                            type="number"
+                            size="small"
                           value={getCollaborationTotal() || ''}
                           InputProps={{ readOnly: true }}
                           sx={{
@@ -2065,16 +2080,16 @@ export default function WeightagePage() {
                         />
                         <Typography variant="body2" color="text.secondary">
                           Total
-                        </Typography>
+                          </Typography>
                         {getCollaborationTotal() === 100 && (
                           <Chip label="✓" size="small" color="success" />
                         )}
-                      </Box>
+                        </Box>
                     </Grid>
                   </Grid>
                 </Box>
 
-                <Divider sx={{ my: 4, mt: 2, mb: 3 }} />
+                <Divider sx={{ my: 4, mt: 2, mb: 2 }} />
 
                 {/* Action Buttons */}
                 <Box sx={{ 
@@ -2095,8 +2110,8 @@ export default function WeightagePage() {
                     </Typography>
                   </Box>
                     
-                  <Button
-                    variant="contained"
+                      <Button 
+                        variant="contained" 
                     size="medium"
                     startIcon={collaborationLoading ? <CircularProgress size={16} /> : <Save />}
                     onClick={handleSaveCollaborationWeightages}
@@ -2110,11 +2125,12 @@ export default function WeightagePage() {
                       fontWeight: 500,
                       mt: -1,
                       ml: 60,
-                      minWidth: { xs: '100%', sm: 'auto' }
+                      width: '80%',
+                    //  minWidth: { xs: '100%', sm: 'auto' }
                     }}
                   >
                     {collaborationLoading ? 'Saving...' : 'Save Configuration'}
-                  </Button>
+                      </Button>
                   <Button
                     variant="outlined"
                     size="medium"
@@ -2136,7 +2152,7 @@ export default function WeightagePage() {
                   </Button>
                 </Box>
               </Box>
-            </Paper>
+          </Paper>
           )}
 
         </Container>
@@ -2163,11 +2179,11 @@ export default function WeightagePage() {
                   <FormControl fullWidth size="small" sx={{ mb: 2 }}>
                     <InputLabel>Visitor Field Name</InputLabel>
                     <Select
-                      value={newVisitorFieldName}
-                      onChange={(e) => {
-                        setNewVisitorFieldName(e.target.value);
-                        setError(null); // Clear error when user types
-                      }}
+                    value={newVisitorFieldName}
+                    onChange={(e) => {
+                      setNewVisitorFieldName(e.target.value);
+                      setError(null); // Clear error when user types
+                    }}
                       label="Visitor Field Name"
                     >
                       {visitorFields.map((field) => (
@@ -2182,11 +2198,11 @@ export default function WeightagePage() {
                   <FormControl fullWidth size="small" sx={{ mb: 2 }}>
                     <InputLabel>Exhibitor Field Name</InputLabel>
                     <Select
-                      value={newExhibitorFieldName}
-                      onChange={(e) => {
-                        setNewExhibitorFieldName(e.target.value);
-                        setError(null); // Clear error when user types
-                      }}
+                    value={newExhibitorFieldName}
+                    onChange={(e) => {
+                      setNewExhibitorFieldName(e.target.value);
+                      setError(null); // Clear error when user types
+                    }}
                       label="Exhibitor Field Name"
                     >
                       {exhibitorFields.map((field) => (

@@ -220,22 +220,30 @@ export default function SimulationPage() {
         const visitorDetailResponse = await fieldMappingApi.getVisitorById(identifier, visitor.id);
         console.log('Visitor details:', visitorDetailResponse);
         
-        // Call getVisitorMatch to get recommended exhibitors
-        const matchResponse = await matchmakingApi.getVisitorMatch(identifier, visitor.id, null);
+        // Call getAllExhibitorRecommendationByVisitorId to get recommended exhibitors
+        const matchResponse = await matchmakingApi.getAllExhibitorRecommendationByVisitorId(identifier, visitor.id);
         
-                 if (matchResponse.statusCode === 200 && matchResponse.result) {
-           setVisitorRecommendations(matchResponse.result.map((match: any) => ({
-             id: match.id,
-             name: match.name,
-             companyName: match.companyName,
-             email: match.exhibitorToUserMaps?.[0]?.email || '',
-             location: match.exhibitorAddress?.[0]?.city || match.location || '',
-             phone: match.phone,
-             matchScore: match.matchPercentage || 0,
-             description: match.description,
-             companyType: match.companyType
-           })));
-         }
+        if (matchResponse.statusCode === 200 && matchResponse.result) {
+          // Handle different response structures
+          let exhibitorData;
+          if (Array.isArray(matchResponse.result)) {
+            exhibitorData = matchResponse.result;
+          } else {
+            exhibitorData = matchResponse.result.exhibitorDetails || [];
+          }
+          
+          setVisitorRecommendations(exhibitorData.map((match: any) => ({
+            id: match.id,
+            name: match.name,
+            companyName: match.companyName,
+            email: match.exhibitorToUserMaps?.[0]?.email || '',
+            location: match.exhibitorAddress?.[0]?.city || match.location || '',
+            phone: match.phone,
+            matchScore: match.matchPercentage || 0,
+            description: match.description,
+            companyType: match.companyType
+          })));
+        }
       } catch (error) {
         console.error('Error fetching visitor matches:', error);
       } finally {
@@ -261,39 +269,55 @@ export default function SimulationPage() {
         
         // Call both APIs to get recommendations
         const [visitorMatchesResponse, exhibitorMatchesResponse] = await Promise.all([
-          ExhibitormatchmakingApi.getExhibitorMatch(identifier, exhibitor.id, null),
-          ExhibitormatchmakingApi.getExhibitortoExhibitorMatch(identifier, exhibitor.id, null)
+          ExhibitormatchmakingApi.getAllVisitorRecommendationByExhibitorId(identifier, exhibitor.id),
+          ExhibitormatchmakingApi.getAllExhibitorRecommendationByExhibitorId(identifier, exhibitor.id)
         ]);
         
-                 if (visitorMatchesResponse.statusCode === 200 && visitorMatchesResponse.result) {
-           setExhibitorVisitorRecommendations(visitorMatchesResponse.result.map((match: any) => ({
-             id: match.id,
-             salutation: match.salutation,
-             firstName: match.firstName,
-             lastName: match.lastName,
-             email: match.email,
-             companyName: match.userProfile?.companyName || match.companyName,
-             location: match.location,
-             phone: match.phone,
-             matchScore: match.matchPercentage || 0,
-             description: match.description,
-             designation: match.userProfile?.jobTitle || match.designation
-           })));
-         }
+        if (visitorMatchesResponse.statusCode === 200 && visitorMatchesResponse.result) {
+          // Handle different response structures for visitor recommendations
+          let visitorData;
+          if (Array.isArray(visitorMatchesResponse.result)) {
+            visitorData = visitorMatchesResponse.result;
+          } else {
+            visitorData = visitorMatchesResponse.result.visitorDetails || [];
+          }
+          
+          setExhibitorVisitorRecommendations(visitorData.map((match: any) => ({
+            id: match.id,
+            salutation: match.salutation,
+            firstName: match.firstName,
+            lastName: match.lastName,
+            email: match.email,
+            companyName: match.userProfile?.companyName || match.companyName,
+            location: match.userAddress?.cityName || match.location,
+            phone: match.userProfile?.phone || match.phone,
+            matchScore: match.matchPercentage || 0,
+            description: match.description,
+            designation: match.userProfile?.jobTitle || match.designation
+          })));
+        }
         
-                 if (exhibitorMatchesResponse.statusCode === 200 && exhibitorMatchesResponse.result) {
-           setExhibitorExhibitorRecommendations(exhibitorMatchesResponse.result.map((match: any) => ({
-             id: match.id,
-             name: match.name,
-             companyName: match.companyName,
-             email: match.exhibitorToUserMaps?.[0]?.email || '',
-             location: match.exhibitorAddress?.[0]?.city || match.location || '',
-             phone: match.phone,
-             matchScore: match.matchPercentage || 0,
-             description: match.description,
-             companyType: match.companyType
-           })));
-         }
+        if (exhibitorMatchesResponse.statusCode === 200 && exhibitorMatchesResponse.result) {
+          // Handle different response structures for exhibitor recommendations
+          let exhibitorData;
+          if (Array.isArray(exhibitorMatchesResponse.result)) {
+            exhibitorData = exhibitorMatchesResponse.result;
+          } else {
+            exhibitorData = exhibitorMatchesResponse.result.exhibitorDetails || [];
+          }
+          
+          setExhibitorExhibitorRecommendations(exhibitorData.map((match: any) => ({
+            id: match.id,
+            name: match.name,
+            companyName: match.companyName,
+            email: match.exhibitorToUserMaps?.[0]?.email || '',
+            location: match.exhibitorAddress?.[0]?.city || match.location || '',
+            phone: match.phone,
+            matchScore: match.matchPercentage || 0,
+            description: match.description,
+            companyType: match.companyType
+          })));
+        }
       } catch (error) {
         console.error('Error fetching exhibitor matches:', error);
       } finally {
@@ -625,6 +649,7 @@ export default function SimulationPage() {
                    displayEmpty
                    onChange={(e) => setSelectedRole(e.target.value as RoleType | '')}
                    size="small"
+                  
                    sx={{
                      '& .MuiSelect-select': {
                        display: 'flex',

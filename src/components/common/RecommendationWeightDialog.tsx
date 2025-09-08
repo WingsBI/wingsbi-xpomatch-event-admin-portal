@@ -213,7 +213,7 @@ export default function RecommendationWeightDialog({
                       <TableRow>
                         <TableCell><strong>Exhibitor Fields</strong></TableCell>
                         <TableCell><strong>Visitor Fields</strong></TableCell>
-                        <TableCell align="center"><strong>Weight</strong></TableCell>
+                        <TableCell align="center"><strong>Score</strong></TableCell>
                        
                       </TableRow>
                     </TableHead>

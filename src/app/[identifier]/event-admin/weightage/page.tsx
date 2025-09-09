@@ -1022,7 +1022,7 @@ export default function WeightagePage() {
             }}>
               <Box sx={{ textAlign: 'center', py: 1.5 }}>
                 <CompareArrows sx={{ fontSize: 28, color: '#ed6c02', mb: 0.5,mt:-4, }} />
-                <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: 'primary.main' }}>
+                <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: 'secondary.main' }}>
                   Mixed Match Making
                 </Typography>
                
@@ -1040,7 +1040,7 @@ export default function WeightagePage() {
                         }
                       }}
                     >
-                      <Typography variant="subtitle1" sx={{ mb: 1, color: 'primary.main', textAlign: 'center' }}>
+                      <Typography variant="subtitle1" sx={{ mb: 1, color: 'secondary.main', textAlign: 'center' }}>
                         Content Weight
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1082,7 +1082,7 @@ export default function WeightagePage() {
                         }
                       }}
                     >
-                      <Typography variant="subtitle1" sx={{ mb: 1, color: 'primary.main', textAlign: 'center' }}>
+                      <Typography variant="subtitle1" sx={{ mb: 1, color: 'secondary.main', textAlign: 'center' }}>
                         Collaboration Weight
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1101,7 +1101,7 @@ export default function WeightagePage() {
                        
                         variant="contained"
                         
-                          color="primary"
+                          color="secondary"
                           onClick={() => handleSectionChange('collaboration')}
                         >
                           Collaboration Based Matching
@@ -1131,7 +1131,7 @@ export default function WeightagePage() {
                     />
                     <Button
                       variant="contained"
-                      color="primary"
+                      color="secondary"
                       startIcon={<Save />}
                       onClick={handleSaveHybridMatchingConfig}
                       disabled={getTotalHybridWeight() !== 100}
@@ -1143,7 +1143,7 @@ export default function WeightagePage() {
                     <Button
                       variant="outlined"
                       size="small"
-                      color="primary"
+                      color="secondary"
                       startIcon={<Undo />}
                       onClick={handleRevertMixed}
                       sx={{ ml: 1 }}
@@ -1219,7 +1219,7 @@ export default function WeightagePage() {
                 <Card key={config.id} sx={{ mb: 2, p: 2 }}>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="primary.main" fontWeight="600">
+                      <Typography variant="subtitle2" color="secondary.main" fontWeight="600">
                         Field {index + 1}
                       </Typography>
                     </Grid>
@@ -1410,7 +1410,7 @@ export default function WeightagePage() {
                     onClick={handleAddNewField}
                     sx={{
                       '&:hover': {
-                        bgcolor: 'primary.light',
+                        bgcolor: 'secondary.light',
                       },
                     }}
                   >
@@ -1449,7 +1449,7 @@ export default function WeightagePage() {
             <Grid container spacing={3}>
               {/* Exhibitor Column */}
               <Grid item xs={12} md={3}>
-                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'secondary.main' }}>
                   Exhibitor Fields
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1523,8 +1523,8 @@ export default function WeightagePage() {
                       width: '100%',
                       height: 40,
                       '&:hover': {
-                        borderColor: 'primary.main',
-                        bgcolor: 'primary.light',
+                        borderColor: 'secondary.main',
+                        bgcolor: 'secondary.light',
                       },
                     }}
                   >
@@ -1535,7 +1535,7 @@ export default function WeightagePage() {
 
               {/* Visitor Column */}
               <Grid item xs={12} md={3}>
-                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'secondary.main' }}>
                   Visitor Fields
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1606,7 +1606,7 @@ export default function WeightagePage() {
 
               {/* Algorithm Column */}
               <Grid item xs={12} md={3}>
-                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'secondary.main' }}>
                   Algorithm
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1662,7 +1662,7 @@ export default function WeightagePage() {
 
                  {/* Weightage Column */}
                  <Grid item xs={12} md={3}>
-                   <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                   <Typography variant="h6" fontWeight="500" sx={{ mb: 3, color: 'secondary.main' }}>
                      Weightage (%)
                    </Typography>
                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, }}>
@@ -1904,7 +1904,7 @@ export default function WeightagePage() {
                           <Grid item xs={12}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                              
-                              <Typography variant="subtitle2" color="primary.main" fontWeight="600">
+                              <Typography variant="subtitle2" color="secondary.main" fontWeight="600">
                                      {displayName}
                                    </Typography>
                                  </Box>
@@ -1959,7 +1959,7 @@ export default function WeightagePage() {
                   <Grid container spacing={3}>
                     {/* Activity Column */}
                     <Grid item xs={12} md={6}>
-                      <Typography variant="h6" textAlign="center" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                      <Typography variant="h6" textAlign="center" fontWeight="500" sx={{ mb: 3, color: 'secondary.main' }}>
                         Activity
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -2019,7 +2019,7 @@ export default function WeightagePage() {
 
                     {/* Weightage Column */}
                     <Grid item xs={12} md={6}>
-                      <Typography variant="h6" textAlign="left" fontWeight="500" sx={{ mb: 3, color: 'primary.main' }}>
+                      <Typography variant="h6" textAlign="left" fontWeight="500" sx={{ mb: 3, color: 'secondary.main' }}>
                         Weightage (%)
                       </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -2224,7 +2224,7 @@ export default function WeightagePage() {
             <Button 
               onClick={handleAddCustomFields} 
               variant="contained" 
-              color="primary"
+              color="secondary"
               disabled={addingFieldNames || !newVisitorFieldName || !newExhibitorFieldName}
               startIcon={addingFieldNames ? <CircularProgress size={16} /> : undefined}
             >

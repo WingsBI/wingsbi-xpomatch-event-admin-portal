@@ -225,7 +225,7 @@ export default function ExhibitorSelfDetails() {
                       fontSize: '1rem', // reduced
                       fontWeight: 'bold',
                       color: 'white',
-                      bgcolor: 'primary.main',
+                      bgcolor: 'secondary.main',
                       mt: 1
                     }}
                   >
@@ -248,7 +248,7 @@ export default function ExhibitorSelfDetails() {
               <Grid container spacing={2}>
                 {/* Company Information */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, color: 'primary.main', fontSize: '0.95rem' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, color: 'secondary.main', fontSize: '0.95rem' }}>
                     Company Information
                   </Typography>
                 </Grid>
@@ -326,7 +326,7 @@ export default function ExhibitorSelfDetails() {
 
                 {/* Products Section */}
                 <Box mt={2} ml={2}>
-                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 2, color: 'primary.main', fontSize: '0.95rem' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 2, color: 'secondary.main', fontSize: '0.95rem' }}>
                     Products
                   </Typography>
                   <Grid container spacing={2}>
@@ -406,7 +406,7 @@ export default function ExhibitorSelfDetails() {
 
                 {/* Brand Information */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'secondary.main', fontSize: '0.95rem' }}>
                     Brand Information
                   </Typography>
                 </Grid>
@@ -471,7 +471,7 @@ export default function ExhibitorSelfDetails() {
                 </Grid>
                 {/* Contact Information */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'secondary.main', fontSize: '0.95rem' }}>
                     Contact Information
                   </Typography>
                 </Grid>
@@ -499,7 +499,7 @@ export default function ExhibitorSelfDetails() {
                 </Grid>
                 {/* Address Information */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'secondary.main', fontSize: '0.95rem' }}>
                     Address Information
                   </Typography>
                 </Grid>
@@ -538,7 +538,7 @@ export default function ExhibitorSelfDetails() {
                 </Grid>
                 {/* Booth & Status */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'primary.main', fontSize: '0.95rem' }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0, mt: 1, color: 'secondary.main', fontSize: '0.95rem' }}>
                     Booth & Status
                   </Typography>
                 </Grid>

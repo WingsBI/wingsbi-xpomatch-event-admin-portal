@@ -104,7 +104,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
       <Box
         sx={{
           p: 3,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
           color: 'white',
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
@@ -127,14 +127,14 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
               sx={{
                 borderRadius: 2,
                 '&:hover': {
-                  backgroundColor: 'primary.main',
+                  backgroundColor: 'secondary.main',
                   color: 'white',
                   '& .MuiListItemIcon-root': {
                     color: 'white',
                   },
                 },
                 '&.Mui-selected': {
-                  backgroundColor: 'primary.light',
+                  backgroundColor: 'secondary.light',
                   color: 'white',
                   '& .MuiListItemIcon-root': {
                     color: 'white',
@@ -185,7 +185,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
           </IconButton>
 
           <IconButton onClick={handleProfileMenuOpen}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
               {getUserInitials()}
             </Avatar>
           </IconButton>

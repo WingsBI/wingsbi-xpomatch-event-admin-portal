@@ -334,7 +334,7 @@ export default function VisitorDashboard() {
                           height: 80,
                           fontSize: '1.5rem',
                           fontWeight: 'bold',
-                          bgcolor: 'primary.main',
+                          bgcolor: 'secondary.main',
                           color: 'white'
                         }}
                       >
@@ -348,7 +348,7 @@ export default function VisitorDashboard() {
                         <Typography variant="h4" component="h1" gutterBottom
                           sx={{
                             fontWeight: 600,
-                            color: 'primary.main',
+                            color: 'secondary.main',
                             mb: 1,
                             mt: 0
                           }}>
@@ -421,7 +421,7 @@ export default function VisitorDashboard() {
                             href={exhibitor.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                            sx={{ color: 'secondary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                           >
                             {exhibitor.website}
                           </Typography>
@@ -657,7 +657,7 @@ export default function VisitorDashboard() {
                         <Box flex={1} minWidth={0}>
                           <Typography 
                           variant="body2"
-                          sx={{ fontWeight: 600, color: 'primary.main', fontSize: 14, wordBreak: 'break-word',  mt: 1, 
+                          sx={{ fontWeight: 600, color: 'secondary.main', fontSize: 14, wordBreak: 'break-word',  mt: 1, 
                             //cursor: 'pointer', textDecoration: 'none', transition: 'text-decoration 0.2s',
                             //   '&:hover': { textDecoration: 'underline' } 
                             }}
@@ -709,13 +709,13 @@ export default function VisitorDashboard() {
                             router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${rec.id}`);
                           }}
                           sx={{
-                            bgcolor: theme.palette.primary.main,
+                            bgcolor: theme.palette.secondary.main,
                             borderRadius: 2,
                             textTransform: 'none',
                             fontWeight: 500,
                             px: 1,
                             '&:hover': {
-                              bgcolor: theme.palette.primary.dark,
+                              bgcolor: theme.palette.secondary.dark,
                               transform: 'scale(1.02)'
                             }
                           }}
@@ -736,7 +736,7 @@ export default function VisitorDashboard() {
                 <IconButton
                   onClick={() => handlePageChange(null, Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  sx={{ color: theme.palette.primary.main }}
+                  sx={{ color: theme.palette.secondary.main }}
                 >
                   <ArrowBackIos fontSize="small" />
                 </IconButton>
@@ -750,12 +750,12 @@ export default function VisitorDashboard() {
                       mx: 0.5,
                       backgroundColor:
                         currentPage === idx + 1
-                          ? theme.palette.primary.main
-                          : alpha(theme.palette.primary.main, 0.25),
+                          ? theme.palette.secondary.main
+                          : alpha(theme.palette.secondary.main, 0.25),
                       opacity: 1,
                       cursor: 'pointer',
                       transition: 'background 0.2s',
-                      border: currentPage === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
+                      border: currentPage === idx + 1 ? `2px solid ${theme.palette.secondary.dark}` : 'none'
                     }}
                     onClick={() => handlePageChange(null, idx + 1)}
                   />
@@ -763,7 +763,7 @@ export default function VisitorDashboard() {
                 <IconButton
                   onClick={() => handlePageChange(null, Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  sx={{ color: theme.palette.primary.main }}
+                  sx={{ color: theme.palette.secondary.main }}
                 >
                   <ArrowForwardIos fontSize="small" />
                 </IconButton>

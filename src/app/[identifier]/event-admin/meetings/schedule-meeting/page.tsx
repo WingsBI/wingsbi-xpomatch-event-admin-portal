@@ -1047,7 +1047,7 @@ export default function ScheduleMeetingPage() {
         p: 3
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ScheduleSend color="primary" fontSize="small" />
+          <ScheduleSend color="secondary" fontSize="small" />
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
             Schedule New Meeting
           </Typography>
@@ -1085,11 +1085,11 @@ export default function ScheduleMeetingPage() {
           mb: 1, 
           p: 1, 
           borderRadius: 2, 
-          bgcolor: 'primary.50', 
+          bgcolor: 'secondary.50', 
           //border: '1px solid',
-          //borderColor: 'primary.200'
+          //borderColor: 'secondary.200'
         }}>
-          <Typography variant="body2" sx={{ mb: 1, color: 'primary.main', fontWeight: 400 }}>
+          <Typography variant="body2" sx={{ mb: 1, color: 'secondary.main', fontWeight: 400 }}>
             Meeting Organizer
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1097,7 +1097,7 @@ export default function ScheduleMeetingPage() {
               sx={{ 
                 width: 20, 
                 height: 20,
-                bgcolor: 'primary.main',
+                bgcolor: 'secondary.main',
                 fontSize: '0.875rem'
               }}
             >
@@ -1144,7 +1144,7 @@ export default function ScheduleMeetingPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  bgcolor: 'primary.main',
+                  bgcolor: 'secondary.main',
                   color: 'white',
                   mt: 2,
                   flexShrink: 0
@@ -1367,13 +1367,13 @@ export default function ScheduleMeetingPage() {
                               py: 1.5,
                               cursor: 'pointer',
                               borderRadius: 2,
-                              bgcolor: isSelected ? 'primary.50' : 'transparent',
+                              bgcolor: isSelected ? 'secondary.50' : 'transparent',
                              // border: '1px solid',
                              // borderColor: isSelected ? 'primary.200' : 'grey.200',
                               mb: 1,
                               '&:hover': {
-                                bgcolor: isSelected ? 'primary.100' : 'grey.50',
-                                borderColor: isSelected ? 'primary.300' : 'primary.200',
+                                bgcolor: isSelected ? 'secondary.100' : 'grey.50',
+                                borderColor: isSelected ? 'secondary.300' : 'secondary.200',
                                 transform: 'translateY(-1px)',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                               },
@@ -1386,7 +1386,7 @@ export default function ScheduleMeetingPage() {
                                 sx={{ 
                                   width: 40, 
                                   height: 40,
-                                            bgcolor: isSelected ? 'primary.main' : 'grey.400'
+                                            bgcolor: isSelected ? 'secondary.main' : 'grey.400'
                                 }}
                               >
                                 {visitor.firstName[0]}
@@ -1669,7 +1669,7 @@ export default function ScheduleMeetingPage() {
                           borderColor: 'grey.400',
                         },
                         '&.Mui-focused fieldset': {
-                          borderColor: 'primary.main',
+                          borderColor: 'secondary.main',
                         },
                       },
                       '& .MuiInputBase-input': {
@@ -1887,12 +1887,12 @@ export default function ScheduleMeetingPage() {
                                   fontWeight: isSelected ? 600 : (isToday ? 500 : 300),
                                   color: isSelected ? 'white' : 
                                          isInEventRange ? (isCurrentMonth ? 'text.primary' : 'text.secondary') : 'text.disabled',
-                                  backgroundColor: isSelected ? 'primary.main' : 
+                                  backgroundColor: isSelected ? 'secondary.main' : 
                                                  isInEventRange ? 'transparent' : 'grey.100',
                                   border: isToday ? '2px solid' : 'none',
-                                  borderColor: isToday ? 'primary.main' : 'transparent',
+                                  borderColor: isToday ? 'secondary.main' : 'transparent',
                                   '&:hover': {
-                                    backgroundColor: isSelected ? 'primary.dark' : 
+                                    backgroundColor: isSelected ? 'secondary.dark' : 
                                                    isInEventRange ? 'grey.50' : 'grey.100',
                                     transform: isInEventRange ? 'scale(1.05)' : 'none',
                                   },
@@ -1930,7 +1930,7 @@ export default function ScheduleMeetingPage() {
                           color: 'white',
                           fontWeight: 500,
                           '&:hover': {
-                            backgroundColor: 'primary.50'
+                            backgroundColor: 'secondary.50'
                           }
                         }}
                       >
@@ -1960,7 +1960,7 @@ export default function ScheduleMeetingPage() {
                             borderColor: 'grey.400',
                           },
                           '&.Mui-focused fieldset': {
-                            borderColor: 'primary.main',
+                            borderColor: 'secondary.main',
                           },
                         },
                         '& .MuiSelect-select': {
@@ -2029,7 +2029,7 @@ export default function ScheduleMeetingPage() {
                             borderColor: 'grey.400',
                           },
                           '&.Mui-focused fieldset': {
-                            borderColor: 'primary.main',
+                            borderColor: 'secondary.main',
                           },
                         },
                         '& .MuiSelect-select': {
@@ -2091,7 +2091,7 @@ export default function ScheduleMeetingPage() {
                     borderColor: 'rgba(0, 0, 0, 0.23)',
                   },
                   '&.Mui-focused fieldset': {
-                    borderColor: 'primary.main',
+                    borderColor: 'secondary.main',
                   },
                 },
               }}
@@ -2261,13 +2261,13 @@ export default function ScheduleMeetingPage() {
             }
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <CalendarToday sx={{ color: 'primary.main', fontSize: 20 }} />
+              <CalendarToday sx={{ color: 'secondary.main', fontSize: 20 }} />
               <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                 {confirmationDetails.date}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <AccessTime sx={{ color: 'primary.main', fontSize: 20 }} />
+              <AccessTime sx={{ color: 'secondary.main', fontSize: 20 }} />
               <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                 {confirmationDetails.time}
               </Typography>

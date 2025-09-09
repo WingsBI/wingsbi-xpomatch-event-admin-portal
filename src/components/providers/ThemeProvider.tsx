@@ -23,23 +23,25 @@ const fontFamilies = {
 const defaultTheme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#ffffff', // White background
+      light: '#ffffff',
+      dark: '#f0f0f0', // Subtle contrast
     },
     secondary: {
-      main: '#dc004e',
-      light: '#ff5983',
-      dark: '#9a0036',
+      main: '#00a0df', // Sidebar & logo blue
+      light: '#33b5e5',
+      dark: '#007bb1',
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: '#ffffff', // Clean white background
+      paper: '#f9fafb',   // Light grayish for cards/panels
     },
     text: {
-      primary: '#333333',
-      secondary: '#666666',
+      primary: '#1a202c',   // Dark gray (not pure black, softer)
+      secondary: '#4a5568', // Muted gray for secondary text
     },
+
+
   },
   typography: {
     fontFamily: fontFamilies.inter,
@@ -116,110 +118,135 @@ const createThemeFromConfig = (themeKey: string, fontKey: string) => {
     'ocean-blue': {
       palette: {
         primary: {
-          main: '#1976d2',
-          light: '#42a5f5',
-          dark: '#1565c0',
+          main: '#ffffff', // White background
+          light: '#ffffff',
+          dark: '#f0f0f0', // Subtle contrast
         },
         secondary: {
-          main: '#00acc1',
-          light: '#4dd0e1',
-          dark: '#00838f',
+          main: '#00a0df', // Sidebar & logo blue
+          light: '#33b5e5',
+          dark: '#007bb1',
         },
         background: {
-          default: '#e3f2fd',
-          paper: '#ffffff',
+          default: '#ffffff', // Clean white background
+          paper: '#f9fafb',   // Light grayish for cards/panels
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Dark gray (not pure black, softer)
+          secondary: '#4a5568', // Muted gray for secondary text
         },
+
+
       },
     },
     'executive-gray': {
       palette: {
         primary: {
-          main: '#374151',
-          light: '#6b7280',
-          dark: '#1f2937',
+          main: '#ffffff',  // Pure white
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Subtle off-white for contrast
         },
         secondary: {
-          main: '#d97706',
-          light: '#f59e0b',
-          dark: '#92400e',
+          main: '#4b5563',  // Executive Gray (neutral, professional)
+          light: '#9ca3af', // Lighter gray for hover/accents
+          dark: '#1f2937',  // Strong dark gray for depth
         },
         background: {
-          default: '#f9fafb',
-          paper: '#ffffff',
+          default: '#f9fafb', // Light neutral background
+          paper: '#ffffff',   // White for cards/surfaces
         },
         text: {
-          primary: '#111827',
-          secondary: '#4b5563',
+          primary: '#111827',   // Almost black (high contrast for readability)
+          secondary: '#4b5563', // Muted gray for secondary text
         },
       },
     },
     'forest-green': {
       palette: {
         primary: {
-          main: '#059669',
-          light: '#10b981',
-          dark: '#047857',
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f0f0f0',  // Subtle contrast
         },
         secondary: {
-          main: '#f59e0b',
-          light: '#fbbf24',
-          dark: '#d97706',
+          main: '#047857',
+           light: '#10b981',
+            dark: '#047857',  // Dark Green (deep forest tone)
         },
         background: {
-          default: '#f0fdf4',
-          paper: '#ffffff',
+          default: '#f9fafb',  // Subtle off-white background
+          paper: '#ffffff',    // Card / surfaces
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Charcoal gray (professional text)
+          secondary: '#4a5568', // Muted gray
         },
       },
     },
     'sunset-orange': {
       palette: {
         primary: {
-          main: '#ea580c',
-          light: '#fb923c',
-          dark: '#c2410c',
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Soft off-white
         },
         secondary: {
-          main: '#7c3aed',
-          light: '#a78bfa',
-          dark: '#5b21b6',
+          main: '#fb923c',  // Sunset Orange (professional main)
+          light: '#fdba74', // Warm Sunset Glow
+          dark: '#c2410c',  // Deep Burnt Sunset
         },
         background: {
-          default: '#fff7ed',
-          paper: '#ffffff',
+          default: '#fff7ed', // Soft warm beige (sunset vibe)
+          paper: '#ffffff',   // Clean white for cards
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Strong charcoal
+          secondary: '#4a5568', // Muted professional gray
         },
       },
     },
     'midnight-purple': {
       palette: {
         primary: {
-          main: '#7c3aed',
-          light: '#a78bfa',
-          dark: '#5b21b6',
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Soft off-white for subtle contrast
         },
         secondary: {
-          main: '#ec4899',
-          light: '#f472b6',
-          dark: '#be185d',
+          main: '#4b0082',  // Midnight Purple (deep indigo-purple)
+          light: '#7c3aed', // Vibrant purple accent
+          dark: '#2e003e',  // Almost black-purple (midnight depth)
         },
         background: {
-          default: '#faf5ff',
-          paper: '#ffffff',
+          default: '#f5f3ff', // Soft lavender-white (very light purple tint)
+          paper: '#ffffff',   // Pure white for cards/surfaces
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Charcoal gray for readability
+          secondary: '#4a5568', // Neutral muted gray
+        },
+      
+      },
+    },
+    'Teal Professional': {
+      palette: {
+        primary: {
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Subtle off-white
+        },
+        secondary: {
+          main: '#0f766e',  // Professional Teal (balanced tone)
+          light: '#2dd4bf', // Soft aqua teal for highlights
+          dark: '#115e59',  // Deep teal (executive, serious)
+        },
+        background: {
+          default: '#f0fdfa', // Very light aqua background
+          paper: '#ffffff',   // Clean white cards/surfaces
+        },
+        text: {
+          primary: '#1a202c',   // Strong charcoal gray
+          secondary: '#4a5568', // Muted professional gray
         },
       },
     },

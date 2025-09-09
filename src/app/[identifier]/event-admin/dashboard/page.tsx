@@ -63,7 +63,6 @@ import {
 import Face6Round from '@mui/icons-material/Face6Rounded';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import MailOutlineIcon from '@mui/icons-material/MailOutline'; 
-
 import { Event, Participant, DashboardStats, ApiEventDetails } from '@/types';
 import ResponsiveDashboardLayout from '@/components/layouts/ResponsiveDashboardLayout';
 import EventDetailsCard, { EventDetailsCardRef } from '@/components/event-admin/EventDetailsCard';
@@ -76,6 +75,7 @@ import { RootState, AppDispatch } from "@/store";
 import { setIdentifier } from "@/store/slices/appSlice";
 import { color } from 'framer-motion';
 import { Send } from '@mui/icons-material';
+import Face6OutlinedIcon from '@mui/icons-material/Face6Outlined';
 
 export default function EventAdminDashboard() {
   const params = useParams();
@@ -600,20 +600,18 @@ export default function EventAdminDashboard() {
     {
       title: 'Total Visitors',
       value: stats?.registeredVisitors || 0,
-      icon: <Face6Round sx={{ 
+      icon: <Face6OutlinedIcon sx={{ 
         fontSize: 50, 
-        color: '#8367cf',
+        color: '#4f46e5',
         fontWeight: 'bold',
-        
         filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
       }} />,
-      bgColor: '#dfe8f5', // Light blue/grayish background to match image
-      //iconColor: '#4A90E2', // Blue icon to match image
-      textColor: '#2E5BBA', // Blue number to match image
-      titleColor: '#5A7FC7', // Light blue title to match image
+      bgColor: '#e7ecff', // Light purple background to match image
+      textColor: '#3b82f6', // Blue number to match image
+      titleColor: '#3b82f6', // Blue title to match image
       subtitle: 'Registered',
       action: {
-        icon: <Add sx={{ fontSize: 12 }} />,
+        icon: <Add sx={{ fontSize: 20 }} />,
         onClick: handleUploadVisitors,
         bgColor: '#40C0E7', // Teal blue action button
       }
@@ -624,16 +622,15 @@ export default function EventAdminDashboard() {
       icon: <BusinessCenter sx={{ 
         fontSize: 50, 
         fontWeight: 'bold',
-        color: '#FF9800',
+        color: '#d97706',
         filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
       }} />,
-      bgColor: '#FFF3E0', // Light peach background
-     // iconColor: '#FF9800', // Orange icon to match image
-      textColor: '#F57C00', // Dark orange number
-      titleColor: '#F57C00', // Dark orange title
+      bgColor: '#ffe9cd', // Light orange background
+      textColor: '#d97706', // Orange number
+      titleColor: '#f59e0b', // Orange title
       subtitle: 'Registered',
       action: {
-        icon: <Add sx={{ fontSize: 12 }} />,
+        icon: <Add sx={{ fontSize: 20 }} />,
         onClick: handleUploadExhibitors,
         bgColor: '#40C0E7', // Teal blue action button
       }
@@ -643,17 +640,16 @@ export default function EventAdminDashboard() {
       value: stats?.pendingInvitations || 0,
       icon: <Email sx={{ 
         fontSize: 50, 
-        fontWeight: 'bold',
-        color: '#2196F3',
+        fontWeight: 'bold',   
+        color: '#0284c7',
         filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
       }} />,
-      bgColor: '#E0F2F7', // Light blue background
-      //iconColor: '#2196F3', // Blue icon to match image
-      textColor: '#1976D2', // Dark blue number
-      titleColor: '#1976D2', // Dark blue title
+      bgColor: '#e6f4ff', // Light blue background
+      textColor: '#0284c7', // Blue number
+      titleColor: '#0ea5e9', // Blue title
       subtitle: 'Awaiting response',
       action: {
-        icon: <Send sx={{ fontSize: 12 }} />,
+        icon: <Send sx={{ fontSize: 15 }} />,
         onClick: handleSendInvitations,
         bgColor: '#40C0E7', // Teal blue action button
       }
@@ -741,10 +737,13 @@ export default function EventAdminDashboard() {
             {/* Event Header Section */}
             <Card 
               sx={{ 
-                borderRadius: 3,
+                //borderRadius: 3,
                 boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                 border: '1px solid rgba(0,0,0,0.08)',
-                mb: 3,
+                mb: 5,
+                width: '100%',
+                
+                alignItems: 'center',
                 overflow: 'hidden'
               }}
             >
@@ -754,7 +753,7 @@ export default function EventAdminDashboard() {
                   sx={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
                     p: 2,
                     pb: 1
                   }}
@@ -778,10 +777,10 @@ export default function EventAdminDashboard() {
                       }
                     }}
                     sx={{ 
-                      backgroundColor: '#1976d2',
+                      backgroundColor: 'secondary.main',
                       color: 'white',
                       '&:hover': {
-                        backgroundColor: '#1565c0'
+                        backgroundColor: 'secondary.dark'
                       }
                     }}
                   >
@@ -789,30 +788,48 @@ export default function EventAdminDashboard() {
                   </IconButton>
                 </Box>
 
-                {/* Event Banner Area */}
-                <Box 
-                  sx={{ 
-                    height: 120,
-                    backgroundColor: '#f8f9fa',
-                    border: '2px dashed #dee2e6',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 2,
-                    mb: 2,
-                    borderRadius: 2,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      backgroundColor: '#e9ecef',
-                      borderColor: '#adb5bd'
-                    }
-                  }}
-                >
-                  <Box sx={{ textAlign: 'center', color: '#6c757d' }}>
-               
-              </Box>
-            </Box>
+                {/* Event Branding Section */}
+                <Box sx={{ px: 2, pb: 2, display: 'flex', justifyContent: 'center' }}>
+                  <Box sx={{ mb: 2, textAlign: 'center' }}>
+                    <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
+                      <Box sx={{ mr: 3 }}>
+                        <Box 
+                          sx={{ 
+                            width: 64,
+                            height: 64,
+                            backgroundColor: 'secondary.main',
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Typography variant="h3" sx={{ color: 'white', fontWeight: 'bold' }}>
+                            {getEventTitle().charAt(0)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Box>
+                          <Typography variant="h3" component="h1" fontWeight={700} color="secondary.dark" sx={{ fontSize: '2.5rem', lineHeight: 1.2 }}>
+                            {getEventTitle()}
+                          </Typography>
+                          {/* <Typography variant="h6" color="text.secondary" fontWeight={500} sx={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {getEventSubtitle()}
+                          </Typography> */}
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6" color="secondary.dark" fontWeight={800} sx={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            EXHIBITION & CONFERENCE
+                          </Typography>
+                          <Typography variant="h6" color="secondary.main" fontWeight={500} sx={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {getEventDateRange()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
 
             {/* Event Details */}
                 {/* <Box sx={{ px: 2, pb: 2 }}>
@@ -930,7 +947,7 @@ export default function EventAdminDashboard() {
             </Card>
 
             {/* Stats Cards with Actions */}
-            <Grid container spacing={2}>
+            <Grid container spacing={3}>
               {statCards.map((stat, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
                   <Card 
@@ -938,6 +955,7 @@ export default function EventAdminDashboard() {
                       borderRadius: 2,
                       boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                       background: stat.bgColor,
+                      height: '100%',
                       transition: 'all 0.3s ease',
                       position: 'relative',
                       '&:hover': {
@@ -951,14 +969,15 @@ export default function EventAdminDashboard() {
                       onClick={stat.action.onClick}
                       sx={{
                         position: 'absolute',
-                        top: 6,
-                        right: 6,
-                        width: 24,
-                        height: 24,
-                        backgroundColor: stat.action.bgColor,
+                        top: 9,
+                        right: 14,
+                        width: 35,
+                        height: 35,
+                        backgroundColor: 'secondary.main',
                         color: 'white',
+                        
                         '&:hover': {
-                          backgroundColor: stat.action.bgColor,
+                          backgroundColor: 'secondary.dark',
                           opacity: 0.8,
                         }
                       }}
@@ -966,42 +985,29 @@ export default function EventAdminDashboard() {
                       {stat.action.icon}
                     </IconButton>
 
-                    <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
                       {/* Main Icon - Centered */}
                       <Box 
                         sx={{
                           display: 'flex',
                           justifyContent: 'center',
                           alignItems: 'center',
-                          mb: 1.5,
-                          mt: 0.5
+                          mb: 2,
+                          mt: 1
                         }}
                       >
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 40,
-                            height: 40,
-                            borderRadius: 2,
-                            //background: `linear-gradient(135deg, ${stat.iconColor} 0%, ${stat.iconColor}CC 100%)`,
-                            color: 'white',
-                          }}
-                        >
-                          {stat.icon}
-                        </Box>
+                        {stat.icon}
                       </Box>
 
                       {/* Title */}
                       <Typography 
-                        variant="h4" 
+                        variant="body1" 
                         component="div" 
                         sx={{ 
-                          fontWeight: 600,
+                          fontWeight: 700,
                           color: stat.titleColor,
-                          mb: 0.5,
-                          fontSize: '1.1rem'
+                          mb: 1,
+                          fontSize: '1.5rem'
                         }}
                       >
                         {stat.title}
@@ -1014,8 +1020,8 @@ export default function EventAdminDashboard() {
                         sx={{ 
                           fontWeight: 700,
                           color: stat.textColor,
-                          mb: 0.25,
-                          fontSize: '1.5rem'
+                          mb: 0.5,
+                          fontSize: '2rem'
                         }}
                       >
                         {stat.value.toLocaleString()}
@@ -1025,9 +1031,9 @@ export default function EventAdminDashboard() {
                       <Typography 
                         variant="body2" 
                         sx={{ 
-                          color: theme.palette.text.secondary,
-                          fontWeight: 500,
-                          fontSize: '0.75rem'
+                          color: 'grey.700',
+                          fontWeight: 600,
+                          fontSize: '0.8rem'
                         }}
                       >
                         {stat.subtitle}

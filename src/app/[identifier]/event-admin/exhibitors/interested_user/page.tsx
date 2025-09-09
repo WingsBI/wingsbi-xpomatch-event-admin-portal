@@ -123,7 +123,7 @@ function VisitorCard({ visitor }: { visitor: TransformedVisitor }) {
         </Box>
 
         <Box sx={{ mb: 1 }}>
-          <Typography variant="body2" color="primary.main" sx={{ 
+          <Typography variant="body2" color="secondary.main" sx={{ 
             fontWeight: 500, 
             display: 'flex', 
             alignItems: 'center', 
@@ -148,14 +148,14 @@ function VisitorCard({ visitor }: { visitor: TransformedVisitor }) {
             router.push(`/${identifier}/event-admin/meetings/schedule-meeting?visitorId=${visitor.id}`);
             }}
             sx={{ 
-            bgcolor: 'primary.main',
+            bgcolor: 'secondary.main',
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 500,
             px: 1,
             py: 0.75,
             '&:hover': {
-                    bgcolor: 'primary.dark',
+                    bgcolor: 'secondary.dark',
                         }
                 }}>
             Connect

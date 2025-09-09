@@ -121,7 +121,7 @@ export default function ExhibitorsTab({ exhibitors, event, onDataUpdate }: Exhib
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton size="small" color="primary">
+          <IconButton size="small" color="secondary">
             <Edit />
           </IconButton>
           <IconButton size="small" color="info">

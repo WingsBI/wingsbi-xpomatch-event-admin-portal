@@ -543,14 +543,14 @@ export default function ExhibitorDashboard() {
                                 router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${rec.id}`);
                               }}
                           sx={{
-                                bgcolor: theme.palette.primary.main,
+                                bgcolor: theme.palette.secondary.main,
                             borderRadius: 2,
                             textTransform: 'none',
                                 fontWeight: 500,
                                 px: 1,
                                 ml:10,
                                 '&:hover': {
-                                  bgcolor: theme.palette.primary.dark,
+                                  bgcolor: theme.palette.secondary.dark,
                                   transform: 'scale(1.02)'
                                 }
                           }}
@@ -571,7 +571,7 @@ export default function ExhibitorDashboard() {
                 <IconButton
                   onClick={() => handleVisitorPageChange(null, Math.max(1, visitorPage - 1))}
                   disabled={visitorPage === 1}
-                  sx={{ color: theme.palette.primary.main }}
+                  sx={{ color: theme.palette.secondary.main }}
                 >
                   <ArrowBackIos fontSize="small" />
                 </IconButton>
@@ -585,12 +585,12 @@ export default function ExhibitorDashboard() {
                       mx: 0.5,
                       backgroundColor:
                         visitorPage === idx + 1
-                          ? theme.palette.primary.main
-                          : alpha(theme.palette.primary.main, 0.25),
+                          ? theme.palette.secondary.main
+                          : alpha(theme.palette.secondary.main, 0.25),
                       opacity: 1,
                       cursor: 'pointer',
                       transition: 'background 0.2s',
-                      border: visitorPage === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
+                      border: visitorPage === idx + 1 ? `2px solid ${theme.palette.secondary.dark}` : 'none'
                     }}
                     onClick={() => handleVisitorPageChange(null, idx + 1)}
                   />
@@ -598,7 +598,7 @@ export default function ExhibitorDashboard() {
                 <IconButton
                   onClick={() => handleVisitorPageChange(null, Math.min(totalVisitorPages, visitorPage + 1))}
                   disabled={visitorPage === totalVisitorPages}
-                  sx={{ color: theme.palette.primary.main }}
+                  sx={{ color: theme.palette.secondary.main }}
                 >
                   <ArrowForwardIos fontSize="small" />
                 </IconButton>
@@ -773,7 +773,7 @@ export default function ExhibitorDashboard() {
                                 sx={{ 
                                   color: 'gray', 
                                   '&:hover': { 
-                                    backgroundColor: alpha(theme.palette.primary.main, 0.1), 
+                                    backgroundColor: alpha(theme.palette.secondary.main, 0.1), 
                                     transform: 'scale(1.1)' 
                                   } 
                                 }} 
@@ -792,13 +792,13 @@ export default function ExhibitorDashboard() {
                               router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${rec.id}`);
                             }}
                             sx={{
-                              bgcolor: theme.palette.primary.main,
+                              bgcolor: theme.palette.secondary.main,
                               borderRadius: 2,
                               textTransform: 'none',
                               fontWeight: 500,
                               px: 1,
                               '&:hover': {
-                                bgcolor: theme.palette.primary.dark,
+                                bgcolor: theme.palette.secondary.dark,
                                 transform: 'scale(1.02)'
                               }
                             }}
@@ -819,7 +819,7 @@ export default function ExhibitorDashboard() {
               <IconButton
                 onClick={() => handleExhibitorPageChange(null, Math.max(1, exhibitorPage - 1))}
                 disabled={exhibitorPage === 1}
-                sx={{ color: theme.palette.primary.main }}
+                sx={{ color: theme.palette.secondary.main }}
               >
                 <ArrowBackIos fontSize="small" />
               </IconButton>
@@ -833,12 +833,12 @@ export default function ExhibitorDashboard() {
                     mx: 0.5,
                     backgroundColor:
                       exhibitorPage === idx + 1
-                        ? theme.palette.primary.main
-                        : alpha(theme.palette.primary.main, 0.25),
+                        ? theme.palette.secondary.main
+                        : alpha(theme.palette.secondary.main, 0.25),
                     opacity: 1,
                     cursor: 'pointer',
                     transition: 'background 0.2s',
-                    border: exhibitorPage === idx + 1 ? `2px solid ${theme.palette.primary.dark}` : 'none'
+                    border: exhibitorPage === idx + 1 ? `2px solid ${theme.palette.secondary.dark}` : 'none'
                   }}
                   onClick={() => handleExhibitorPageChange(null, idx + 1)}
                 />
@@ -846,7 +846,7 @@ export default function ExhibitorDashboard() {
               <IconButton
                 onClick={() => handleExhibitorPageChange(null, Math.min(totalExhibitorPages, exhibitorPage + 1))}
                 disabled={exhibitorPage === totalExhibitorPages}
-                sx={{ color: theme.palette.primary.main }}
+                sx={{ color: theme.palette.secondary.main }}
               >
                 <ArrowForwardIos fontSize="small" />
               </IconButton>

@@ -296,7 +296,7 @@ export default function ProfileSettingsPage() {
                       fontSize: '1.1rem',
                       fontWeight: 'bold',
                       color: 'white',
-                      bgcolor: 'primary.main',
+                      bgcolor: 'secondary.main',
                     }}
                   >
                     {!profileData.profilePhoto && getInitials()}
@@ -348,7 +348,7 @@ export default function ProfileSettingsPage() {
               <Grid container spacing={2}>
                 {/* Personal Information Section */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, color: 'secondary.main' }}>
                     Personal Information
                   </Typography>
                 </Grid>
@@ -460,7 +460,7 @@ export default function ProfileSettingsPage() {
 
                 {/* Contact & Status Section */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'secondary.main' }}>
                     Contact & Status
                   </Typography>
                 </Grid>
@@ -523,7 +523,7 @@ export default function ProfileSettingsPage() {
 
                 {/* Social Media Section */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'secondary.main' }}>
                     Social Media Profiles
                   </Typography>
                 </Grid>
@@ -583,7 +583,7 @@ export default function ProfileSettingsPage() {
 
                 {/* Professional Information Section */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'secondary.main' }}>
                     Professional Information
                   </Typography>
                 </Grid>
@@ -680,7 +680,7 @@ export default function ProfileSettingsPage() {
 
                 {/* Address Section */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 0.5, mt: 0.5, color: 'secondary.main' }}>
                     Address Information
                   </Typography>
                 </Grid>

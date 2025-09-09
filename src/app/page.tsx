@@ -89,7 +89,7 @@ export default function HomePage() {
                 <Event 
                   sx={{ 
                     fontSize: { xs: 48, sm: 56, md: 64 }, 
-                    color: "primary.main", 
+                    color: "secondary.main", 
                     mb: { xs: 1, sm: 2 } 
                   }} 
                 />
@@ -140,7 +140,7 @@ export default function HomePage() {
                   <ContactSupport 
                     sx={{ 
                       fontSize: { xs: 40, sm: 48 }, 
-                      color: "primary.main", 
+                      color: "secondary.main", 
                       mb: { xs: 1, sm: 2 } 
                     }} 
                   />
@@ -307,7 +307,7 @@ export default function HomePage() {
               <Event 
                 sx={{ 
                   fontSize: { xs: 48, sm: 56, md: 64 }, 
-                  color: "primary.main", 
+                  color: "secondary.main", 
                   mb: { xs: 1, sm: 2 } 
                 }} 
               />

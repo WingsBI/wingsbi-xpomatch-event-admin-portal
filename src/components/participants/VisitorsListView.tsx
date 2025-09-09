@@ -201,7 +201,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               router.push(`/${identifier}/event-admin/meetings/schedule-meeting?visitorId=${visitor.id}`);
             }}
             sx={{ 
-              bgcolor: 'primary.main', 
+              bgcolor: 'secondary.main', 
               borderRadius: 2, 
               textTransform: 'none', 
               fontWeight: 500, 
@@ -209,7 +209,7 @@ function VisitorCard({ visitor, exhibitorCompany, exhibitorServices, isClient, i
               py: 0.4, 
               fontSize: '0.8rem', 
               '&:hover': { 
-                bgcolor: 'primary.dark', 
+                bgcolor: 'secondary.dark', 
                 transform: 'scale(1.02)' 
               } 
             }}
@@ -320,7 +320,7 @@ export function VisitorDetailsDialog({ open, onClose, visitorId, identifier }: {
       </DialogTitle>
       <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
         <Box display="flex" alignItems="center" gap={2} mb={2}>
-          <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
+          <Avatar sx={{ width: 50, height: 50, fontSize: '1.5rem', fontWeight: 'bold', bgcolor: 'secondary.main', color: 'white' }}>
             {getInitials(visitor.firstName, visitor.lastName)}
           </Avatar>
           <Box>

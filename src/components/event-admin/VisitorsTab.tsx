@@ -116,7 +116,7 @@ export default function VisitorsTab({ visitors, event, onDataUpdate }: VisitorsT
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton size="small" color="primary">
+          <IconButton size="small" color="secondary">
             <Edit />
           </IconButton>
           <IconButton size="small" color="info">

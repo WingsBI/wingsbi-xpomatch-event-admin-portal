@@ -625,7 +625,7 @@ export default function VisitorsMatchingPage() {
               ) : (
                 <Grid container spacing={2} alignItems="center">
                   <Grid item xs={1} display="flex" justifyContent="center">
-                    <Typography variant="body1" color="primary" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+                    <Typography variant="body1" color="secondary" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
                       →
                     </Typography>
                   </Grid>
@@ -643,7 +643,7 @@ export default function VisitorsMatchingPage() {
                             }
                           }}
                         >
-                          <MenuItem value="CUSTOM_FIELD" sx={{ fontSize: '0.9rem', color: 'primary.main', fontWeight: 'medium' }}>
+                          <MenuItem value="CUSTOM_FIELD" sx={{ fontSize: '0.9rem', color: 'secondary.main', fontWeight: 'medium' }}>
                             <Box sx={{ fontSize: '0.8rem',display: 'flex', alignItems: 'left', gap: 0 }}>
                               <Add sx={{ fontSize: 15 }} />
                               Custom Field
@@ -785,7 +785,7 @@ export default function VisitorsMatchingPage() {
                 page={currentPage} 
                 onChange={(event, value) => setCurrentPage(value)}
                 size="small"
-                color="primary"
+                color="secondary"
               />
             )}
           </Box>

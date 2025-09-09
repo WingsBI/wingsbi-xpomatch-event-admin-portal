@@ -50,116 +50,157 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
     'Ocean Blue': {
       palette: {
         primary: {
-          main: theme.themeColor,
-          light: '#42a5f5',
-          dark: '#1565c0',
+          main: '#ffffff', // White background
+          light: '#ffffff',
+          dark: '#f0f0f0',
         },
         secondary: {
-          main: '#00acc1',
-          light: '#4dd0e1',
-          dark: '#00838f',
+          main: '#00a0df', // Brand blue
+          light: '#33b5e5',
+          dark: '#007bb1',
         },
         background: {
-          default: '#e3f2fd → #f0f4f8',
-          paper: '#ffffff',
+          default: '#ffffff',
+          paper: '#f9fafb',
         },
         text: {
           primary: '#1a202c',
           secondary: '#4a5568',
         },
       },
+      
       components: {
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              background: 'linear-gradient(to bottom, #e3f2fd 0%, #f0f4f8 100%)',
+              background: 'linear-gradient(to bottom, #ffffff, #f7fafc)',
               minHeight: '100vh',
             },
           },
         },
+      
+        // 🚀 Gradient Buttons
         MuiButton: {
           styleOverrides: {
             root: {
               textTransform: 'none',
-            fontWeight: 500,
-            borderRadius: 6,
-            backgroundImage: 'linear-gradient(to right, #1976d2, #1565c0)',
-            color: '#fff',
-            '&:hover': {
-              backgroundImage: 'linear-gradient(to right, #42a5f5, #1e88e5)',
-            },
+              fontWeight: 500,
+              borderRadius: 6,
+              backgroundImage: 'linear-gradient(90deg, #00a0df, #007bb1)', // Blue gradient
+              color: '#fff',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundImage: 'linear-gradient(90deg, #33b5e5, #006494)', // lighter → deeper
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.15)',
+              },
             },
             contained: {
               boxShadow: 'none',
+            },
+            outlined: {
+              borderColor: '#00a0df',
+              color: '#00a0df',
               '&:hover': {
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                borderColor: '#007bb1',
+                color: '#007bb1',
+                backgroundColor: 'rgba(0,160,223,0.04)',
               },
             },
           },
         },
+      
+        // 🚀 Gradient Avatars
+        MuiAvatar: {
+          styleOverrides: {
+            root: {
+              backgroundImage: 'linear-gradient(135deg, #33b5e5, #007bb1)', // blue gradient
+              color: '#fff',
+              fontWeight: 600,
+            },
+          },
+        },
+      
         MuiCard: {
           styleOverrides: {
             root: {
-             backgroundImage: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+              backgroundColor: '#ffffff',
               border: '1px solid #e5e7eb',
               boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
               transition: 'all 0.3s ease-in-out',
               '&:hover': {
-                backgroundImage: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
                 boxShadow: '0 6px 16px rgba(0, 0, 0, 0.06)',
                 transform: 'translateY(-2px)',
               },
             },
           },
         },
+      
         MuiTextField: {
           styleOverrides: {
             root: {
               '& .MuiOutlinedInput-root': {
                 borderRadius: 8,
+                '& fieldset': {
+                  borderColor: '#e2e8f0',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#00a0df',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#007bb1',
+                },
               },
             },
           },
         },
+      
         MuiPaper: {
           styleOverrides: {
             root: {
-              backgroundImage: 'linear-gradient(to bottom right, #e3f2fd 0%, #ffffff 100%)',
+              backgroundColor: '#ffffff',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
             },
           },
         },
+      
         MuiChip: {
           styleOverrides: {
             root: {
               borderRadius: 16,
               fontWeight: 500,
+              backgroundColor: '#e6f7fc',
+              color: '#007bb1',
+              '&.MuiChip-colorSecondary': {
+                backgroundImage: 'linear-gradient(90deg, #00a0df, #007bb1)', // gradient secondary chip
+                color: '#fff',
+              },
             },
           },
         },
       },
+      
       shape: { borderRadius: 8 },
       spacing: 8,
     },
     'Executive Gray': {
       palette: {
         primary: {
-          main: theme.themeColor,
-          light: '#6b7280',
-          dark: '#516685',
+          main: '#ffffff',  // Pure white
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Subtle off-white for contrast
         },
         secondary: {
-          main: '#d97706',
-          light: '#f59e0b',
-          dark: '#92400e',
+          main: '#4b5563',  // Executive Gray (neutral, professional)
+          light: '#9ca3af', // Lighter gray for hover/accents
+          dark: '#1f2937',  // Strong dark gray for depth
         },
         background: {
-          default: '#f9fafb → #f3f4f6',
-          paper: '#ffffff',
+          default: '#f9fafb', // Light neutral background
+          paper: '#ffffff',   // White for cards/surfaces
         },
         text: {
-          primary: '#111827',
-          secondary: '#4b5563',
+          primary: '#111827',   // Almost black (high contrast for readability)
+          secondary: '#4b5563', // Muted gray for secondary text
         },
       },
       components: {
@@ -240,22 +281,22 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
     'Forest Professional': {
       palette: {
         primary: {
-          main: theme.themeColor,
-          light: '#10b981',
-          dark: '#047857',
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f0f0f0',  // Subtle contrast
         },
         secondary: {
-          main: '#f59e0b',
-          light: '#fbbf24',
-          dark: '#d97706',
+          main: theme.themeColor,
+           light: '#10b981',
+            dark: '#047857',  // Dark Green (deep forest tone)
         },
         background: {
-          default: '#f0fdf4 → #dcfce7',
-          paper: '#ffffff',
+          default: '#f9fafb',  // Subtle off-white background
+          paper: '#ffffff',    // Card / surfaces
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Charcoal gray (professional text)
+          secondary: '#4a5568', // Muted gray
         },
       },
       components: {
@@ -287,6 +328,16 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
             },
           },
         },
+           // 🚀 Gradient Avatars
+           MuiAvatar: {
+            styleOverrides: {
+              root: {
+                backgroundImage: 'linear-gradient(to right, #10b981, #059669)',
+                color: '#fff',
+                fontWeight: 600,
+              },
+            },
+          },
         MuiCard: {
           styleOverrides: {
             root: {
@@ -334,22 +385,22 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
     'Sunset Professional': {
       palette: {
         primary: {
-          main: theme.themeColor,
-          light: '#fb923c',
-          dark: '#c2410c',
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Soft off-white
         },
         secondary: {
-          main: '#7c3aed',
-          light: '#a78bfa',
-          dark: '#5b21b6',
+          main: '#fb923c',  // Sunset Orange (professional main)
+          light: '#fdba74', // Warm Sunset Glow
+          dark: '#c2410c',  // Deep Burnt Sunset
         },
         background: {
-          default: '#fff7ed → #fffbeb',
-          paper: '#ffffff',
+          default: '#fff7ed', // Soft warm beige (sunset vibe)
+          paper: '#ffffff',   // Clean white for cards
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Strong charcoal
+          secondary: '#4a5568', // Muted professional gray
         },
       },
       components: {
@@ -379,6 +430,16 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
               '&:hover': {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               },
+            },
+          },
+        },
+
+        MuiAvatar: {
+          styleOverrides: {
+            root: {
+              backgroundImage: 'linear-gradient(to right, #fb923c, #ea580c)',
+              color: '#fff',
+              fontWeight: 600,
             },
           },
         },
@@ -429,23 +490,24 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
     'Purple Gradient': {
       palette: {
         primary: {
-          main: theme.themeColor,
-          light:  '#f9fafb',
-          dark: '#14748f',
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Soft off-white for subtle contrast
         },
         secondary: {
-          main: '#ec4899',
-          light: '#f472b6',
-          dark: '#be185d',
+          main: '#4b0082',  // Midnight Purple (deep indigo-purple)
+          light: '#7c3aed', // Vibrant purple accent
+          dark: '#2e003e',  // Almost black-purple (midnight depth)
         },
         background: {
-          default: '#f5f3ff → #ede9fe',
-          paper: '#ffffff',
+          default: '#f5f3ff', // Soft lavender-white (very light purple tint)
+          paper: '#ffffff',   // Pure white for cards/surfaces
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Charcoal gray for readability
+          secondary: '#4a5568', // Neutral muted gray
         },
+      
       },
       components: {
         MuiCssBaseline: {
@@ -500,6 +562,16 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
             },
           },
         },
+
+        MuiAvatar: {
+          styleOverrides: {
+            root: {
+              backgroundImage: 'linear-gradient(to right, #8b5cf6, #6d28d9)',
+              color: '#fff',
+              fontWeight: 600,
+            },
+          },
+        },
         MuiPaper: {
           styleOverrides: {
             root: {
@@ -523,22 +595,22 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
     'Teal Professional': {
       palette: {
         primary: {
-          main: theme.themeColor,
-          light: '#f9fafb',
-          dark: '#14748f',
+          main: '#ffffff',  // White
+          light: '#ffffff',
+          dark: '#f3f4f6',  // Subtle off-white
         },
         secondary: {
-          main: '#f59e0b',
-          light: '#fbbf24',
-          dark: '#d97706',
+          main: '#0f766e',  // Professional Teal (balanced tone)
+          light: '#2dd4bf', // Soft aqua teal for highlights
+          dark: '#115e59',  // Deep teal (executive, serious)
         },
         background: {
-          default: '#f0fdfa → #ccfbf1',
-          paper: '#ffffff',
+          default: '#f0fdfa', // Very light aqua background
+          paper: '#ffffff',   // Clean white cards/surfaces
         },
         text: {
-          primary: '#1a202c',
-          secondary: '#4a5568',
+          primary: '#1a202c',   // Strong charcoal gray
+          secondary: '#4a5568', // Muted professional gray
         },
         components: {
           MuiCssBaseline: {
@@ -566,6 +638,16 @@ const createThemeFromApi = (theme: ApiTheme, font: ApiFont) => {
                 '&:hover': {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 },
+              },
+            },
+          },
+
+          MuiAvatar: {
+            styleOverrides: {
+              root: {
+                backgroundImage: 'linear-gradient(to right, #14b8a6, #0f766e)',
+                color: '#fff',
+                fontWeight: 600,
               },
             },
           },

@@ -96,7 +96,7 @@ export default function RecommendationWeightDialog({
   const getRecommendationTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
       case 'content':
-        return 'primary';
+        return 'secondary';
       case 'collaboration':
         return 'secondary';
       default:
@@ -146,7 +146,7 @@ export default function RecommendationWeightDialog({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <TrendingUp sx={{ color: 'primary.main', fontSize: 28 }} />
+          <TrendingUp sx={{ color: 'secondary.main', fontSize: 28 }} />
           <Box>
             <Typography variant="h6" fontWeight="600">
               Match Score Details
@@ -204,7 +204,7 @@ export default function RecommendationWeightDialog({
             {contentWeights.length > 0 && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Analytics color="primary" />
+                  <Analytics color="secondary" />
                   Content-Based Matching
                 </Typography>
                 <TableContainer component={Paper} variant="outlined">
@@ -308,7 +308,7 @@ export default function RecommendationWeightDialog({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button onClick={onClose} variant="contained" color="primary">
+        <Button onClick={onClose} variant="contained" color="secondary">
           Close
         </Button>
       </DialogActions>

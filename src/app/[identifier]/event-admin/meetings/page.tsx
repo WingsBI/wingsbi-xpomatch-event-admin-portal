@@ -1500,7 +1500,7 @@ export default function MeetingsPage() {
 
   const getStatusColor = (status: Meeting['status']) => {
     switch (status) {
-      case 'scheduled': return 'primary';
+      case 'scheduled': return 'secondary';
       case 'completed': return 'success';
       case 'cancelled': return 'error';
       case 'in-progress': return 'warning';
@@ -2254,7 +2254,7 @@ export default function MeetingsPage() {
                 flexDirection: isMobile ? 'column' : 'row',
                 justifyContent: 'space-between', 
                 alignItems: isMobile ? 'flex-start' : 'center', 
-                bgcolor: 'primary.main',
+                bgcolor: 'secondary.main',
                 color: 'white',
                 gap: isMobile ? 1 : 0
               }}>
@@ -2430,8 +2430,8 @@ export default function MeetingsPage() {
                         <Card key={dayIndex} sx={{ 
                           mb: 1,
                           border: isToday ? 2 : 1,
-                          borderColor: isToday ? 'primary.main' : 'grey.300',
-                          bgcolor: isToday ? 'primary.50' : 'white',
+                          borderColor: isToday ? 'secondary.main' : 'grey.300',
+                          bgcolor: isToday ? 'secondary.50' : 'white',
                           boxShadow: isToday ? 2 : 1
                         }}>
                           <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
@@ -2444,7 +2444,7 @@ export default function MeetingsPage() {
                             }}>
                               <Typography variant="h6" sx={{ 
                                 fontWeight: isToday ? 'bold' : 'medium',
-                                color: isToday ? 'primary.main' : 'text.primary',
+                                color: isToday ? 'secondary.main' : 'text.primary',
                                 fontSize: '1rem'
                               }}>
                                 {day.toLocaleDateString('en-US', { 
@@ -2456,7 +2456,7 @@ export default function MeetingsPage() {
                               <Chip 
                                 label={`${dayMeetings.length} meeting${dayMeetings.length !== 1 ? 's' : ''}`}
                                 size="small"
-                                color={dayMeetings.length > 0 ? 'primary' : 'default'}
+                                color={dayMeetings.length > 0 ? 'secondary' : 'default'}
                                 variant={dayMeetings.length > 0 ? 'filled' : 'outlined'}
                               />
                             </Box>
@@ -2475,13 +2475,13 @@ export default function MeetingsPage() {
                                         borderRadius: 1,
                                         border: 1,
                                         borderColor: 'grey.200',
-                                        bgcolor: getStatusColor(meeting.status) === 'primary' ? 'primary.50' :
+                                        bgcolor: getStatusColor(meeting.status) === 'secondary' ? 'secondary.50' :
                                                 getStatusColor(meeting.status) === 'success' ? 'success.50' :
                                                 getStatusColor(meeting.status) === 'warning' ? 'warning.50' :
                                                 getStatusColor(meeting.status) === 'error' ? 'error.50' : 'grey.50',
                                         cursor: 'pointer',
                                         '&:hover': {
-                                          bgcolor: getStatusColor(meeting.status) === 'primary' ? 'primary.100' :
+                                          bgcolor: getStatusColor(meeting.status) === 'secondary' ? 'secondary.100' :
                                                   getStatusColor(meeting.status) === 'success' ? 'success.100' :
                                                   getStatusColor(meeting.status) === 'warning' ? 'warning.100' :
                                                   getStatusColor(meeting.status) === 'error' ? 'error.100' : 'grey.100',
@@ -2562,19 +2562,19 @@ export default function MeetingsPage() {
                         display: 'flex', 
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: isToday ? 'primary.50' : 'grey.50'
+                        bgcolor: isToday ? 'secondary.50' : 'grey.50'
                       }}>
                         <Box sx={{ textAlign: 'center' }}>
                           <Typography variant="body2" sx={{ 
                             fontWeight: isToday ? 'bold' : 'normal',
-                            color: isToday ? 'primary.main' : 'text.primary',
+                            color: isToday ? 'secondary.main' : 'text.primary',
                             fontSize: '0.85rem'
                           }}>
                             {day.toLocaleDateString('en-US', { weekday: 'short' })}
                           </Typography>
                           <Typography variant="body2" sx={{ 
                             fontWeight: isToday ? 'bold' : 'normal',
-                            color: isToday ? 'primary.main' : 'text.primary',
+                            color: isToday ? 'secondary.main' : 'text.primary',
                             fontSize: '0.9rem'
                           }}>
                             {day.getDate()}
@@ -2598,7 +2598,7 @@ export default function MeetingsPage() {
                             cursor: 'pointer',
                             height: 60,
                             bgcolor: hour % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
-                            '&:hover': { bgcolor: 'primary.25' }
+                            '&:hover': { bgcolor: 'secondary.25' }
                           }} />
                         ))}
                         
@@ -2667,7 +2667,7 @@ export default function MeetingsPage() {
                                     top: constrainedTop + 2,
                                     left: `${leftPosition}%`,
                                     width: `${actualWidth}%`,
-                                    bgcolor: getStatusColor(meetingData.meeting.status) === 'primary' ? 'primary.light' :
+                                    bgcolor: getStatusColor(meetingData.meeting.status) === 'secondary' ? 'secondary.light' :
                                              getStatusColor(meetingData.meeting.status) === 'success' ? 'success.light' :
                                              getStatusColor(meetingData.meeting.status) === 'warning' ? 'warning.light' :
                                              getStatusColor(meetingData.meeting.status) === 'error' ? 'error.light' : 'grey.300',
@@ -2764,7 +2764,24 @@ export default function MeetingsPage() {
               {/* Tabs with Schedule Meeting button inside */}
               <Paper sx={{ mb: 2, px: 1,mt:-2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Tabs value={tabValue} onChange={handleTabChange} aria-label="meetings tabs">
+                  <Tabs 
+                    value={tabValue} 
+                    onChange={handleTabChange} 
+                    aria-label="meetings tabs"
+                    sx={{
+                      '& .MuiTab-root': {
+                        color: 'text.secondary',
+                        textTransform: 'uppercase',
+                        fontWeight: 600,
+                        '&.Mui-selected': {
+                          color: 'secondary.main',
+                        },
+                      },
+                      '& .MuiTabs-indicator': {
+                        backgroundColor: 'secondary.main',
+                      },
+                    }}
+                  >
                     <Tab label="Pending" />
                     <Tab label={<Badge badgeContent={getUpcomingCount()} color="info">Upcoming</Badge>}/>
                     <Tab label={<Badge badgeContent={getOngoingCount()} color="warning">Ongoing</Badge>}/>
@@ -2798,9 +2815,9 @@ export default function MeetingsPage() {
                 <Paper sx={{ 
                   p: 4, 
                   textAlign: 'center',
-                  bgcolor: 'primary.50',
+                  bgcolor: 'secondary.50',
                   border: '1px solid',
-                  borderColor: 'primary.light',
+                  borderColor: 'secondary.light',
                   borderRadius: 2,
                   mb: 2
                 }}>
@@ -2975,7 +2992,7 @@ export default function MeetingsPage() {
                               Initiator:
                             </Typography>
                             <Chip
-                              avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>
+                              avatar={<Avatar sx={{ bgcolor: 'secondary.main', width: 20, height: 20, fontSize: '0.7rem' }}>
                                 {meeting.initiatorName.charAt(0).toUpperCase()}
                               </Avatar>}
                               label={`${meeting.initiatorName}${meeting.companyName ? ` (${meeting.companyName})` : ''}`}
@@ -3000,7 +3017,7 @@ export default function MeetingsPage() {
                               return (
                                 <Chip
                                   key={attendee.id}
-                                  avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 20, height: 20, fontSize: '0.7rem' }}>{attendee.avatar}</Avatar>}
+                                  avatar={<Avatar sx={{ bgcolor: 'secondary.main', width: 20, height: 20, fontSize: '0.7rem' }}>{attendee.avatar}</Avatar>}
                                   label={displayLabel}
                                   variant="outlined"
                                   size="small"
@@ -3134,7 +3151,14 @@ export default function MeetingsPage() {
                                 color="success"
                                 size="small"
                                 icon={<CheckCircleOutline />}
-                                sx={{ fontSize: '0.75rem' }}
+                                sx={{ 
+                                  fontSize: '0.75rem',
+                                  backgroundColor: 'success.main',
+                                  color: 'success.contrastText',
+                                  '& .MuiChip-icon': {
+                                    color: 'success.contrastText'
+                                  }
+                                }}
                               />
                             </Box>
                           )}
@@ -3313,7 +3337,7 @@ export default function MeetingsPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          bgcolor: 'primary.main',
+                          bgcolor: 'secondary.main',
                           color: 'white',
                           mt: 1,
                           flexShrink: 0
@@ -3458,7 +3482,7 @@ export default function MeetingsPage() {
                                   borderColor: 'grey.400',
                                 },
                                 '&.Mui-focused fieldset': {
-                                  borderColor: 'primary.main',
+                                  borderColor: 'secondary.main',
                                 },
                               },
                               '& .MuiInputBase-input': {
@@ -3673,12 +3697,12 @@ export default function MeetingsPage() {
                                           fontWeight: isSelected ? 600 : (isToday ? 500 : 300),
                                           color: isSelected ? 'white' : 
                                                  isInEventRange ? (isCurrentMonth ? 'text.primary' : 'text.secondary') : 'text.disabled',
-                                          backgroundColor: isSelected ? 'primary.main' : 
+                                          backgroundColor: isSelected ? 'secondary.main' : 
                                                          isInEventRange ? 'transparent' : 'grey.100',
                                           border: isToday ? '2px solid' : 'none',
-                                          borderColor: isToday ? 'primary.main' : 'transparent',
+                                          borderColor: isToday ? 'secondary.main' : 'transparent',
                                           '&:hover': {
-                                            backgroundColor: isSelected ? 'primary.dark' : 
+                                            backgroundColor: isSelected ? 'secondary.dark' : 
                                                            isInEventRange ? 'grey.50' : 'grey.200',
                                             transform: isInEventRange ? 'scale(1.05)' : 'none',
                                           },
@@ -3716,7 +3740,7 @@ export default function MeetingsPage() {
                                   color: 'white',
                                   fontWeight: 500,
                                   '&:hover': {
-                                    backgroundColor: 'primary.50'
+                                    backgroundColor: 'secondary.50'
                                   }
                                 }}
                               >
@@ -3744,7 +3768,7 @@ export default function MeetingsPage() {
                                     borderColor: 'grey.400',
                                   },
                                   '&.Mui-focused fieldset': {
-                                    borderColor: 'primary.main',
+                                    borderColor: 'secondary.main',
                                   },
                                 },
                                 '& .MuiSelect-select': {
@@ -3803,7 +3827,7 @@ export default function MeetingsPage() {
                                     borderColor: 'grey.400',
                                   },
                                   '&.Mui-focused fieldset': {
-                                    borderColor: 'primary.main',
+                                    borderColor: 'secondary.main',
                                   },
                                 },
                                 '& .MuiSelect-select': {
@@ -3861,7 +3885,7 @@ export default function MeetingsPage() {
                             borderColor: 'rgba(0, 0, 0, 0.23)',
                           },
                           '&.Mui-focused fieldset': {
-                            borderColor: 'primary.main',
+                            borderColor: 'secondary.main',
                           },
                         },
                       }}

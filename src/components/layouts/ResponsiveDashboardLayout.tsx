@@ -87,10 +87,16 @@ import {
 import { logoutUser } from '@/store/slices/authSlice';
 import { useRoleAccess } from '@/context/RoleAccessContext';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import NotificationProvider from '../providers/NotificationProvider';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import Person2RoundedIcon from '@mui/icons-material/Person2Rounded';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import DateRangeOutlinedIcon from '@mui/icons-material/DateRangeOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 
 interface ResponsiveDashboardLayoutProps {
   children: ReactNode;
@@ -189,14 +195,14 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
   } else {
     // Default for event-admin role - full navigation (event-admin has all permissions)
     baseItems = [
-      { text: 'Dashboard', icon: <DashboardIcon />, href: `/${identifier}/dashboard`, children: [] },
-      { text: 'Visitors', icon: <Person2RoundedIcon />, href: `/${identifier}/visitors`, children: [] },
-      { text: 'Exhibitors', icon: <Business />, href: `/${identifier}/exhibitors`, children: [] },
-      { text: 'Meetings', icon: <CalendarMonth />, children: [
+      { text: 'Dashboard', icon: <DashboardOutlinedIcon />, href: `/${identifier}/dashboard`, children: [] },
+      { text: 'Visitors', icon: <PeopleAltOutlinedIcon />, href: `/${identifier}/visitors`, children: [] },
+      { text: 'Exhibitors', icon: <GroupAddOutlinedIcon />, href: `/${identifier}/exhibitors`, children: [] },
+      { text: 'Meetings', icon: <DateRangeOutlinedIcon />, children: [
         { text: 'My Meetings', href: `/${identifier}/meetings?view=calendar`, children: [] },
         { text: 'My Invites', href: `/${identifier}/meetings?view=list`, children: [] },
       ] },
-      { text: 'Settings', icon: <Settings />, children: [
+      { text: 'Settings', icon: <SettingsOutlinedIcon />, children: [
         { text: 'Theme Settings', href: '#', children: [] },
         { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
@@ -628,8 +634,8 @@ export default function ResponsiveDashboardLayout({
             }
           }}
           sx={{
-            borderRadius: level === 0 ? 2 : 1.5,
-            minHeight: ui.sidebarCollapsed && level === 0 ? 40 : level === 0 ? 36 : 32,
+            //borderRadius: level === 0 ? 2 : 1.5,
+            minHeight: ui.sidebarCollapsed && level === 0 ? 30 : level === 0 ? 26 : 22,
             py: level === 0 ? 0.75 : 0.5,
             px: level === 0 ? 1 : 0.75,
             transition: 'all 0.2s ease-in-out',
@@ -646,23 +652,23 @@ export default function ResponsiveDashboardLayout({
               transition: 'background-color 0.2s ease-in-out'
             },
             '&:hover': {
-              backgroundColor: theme.palette.primary.main,
-              color: 'white',
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              color: 'text.primary',
               transform: 'translateX(2px)',
               '&::before': {
-                backgroundColor: 'white'
+                backgroundColor: 'theme.palette.secondary.main'
               },
               '& .MuiListItemIcon-root': {
-                color: 'white',
+                color: 'black',
                 transform: 'scale(1.1)'
               },
               '& .MuiListItemText-primary': {
-                fontWeight: level === 0 ? 600 : 500,
-                color: 'white'
+                fontWeight: level === 0 ? 700 : 600,
+                color: 'black'
               }
             },
             '&.Mui-selected': {
-              backgroundColor: theme.palette.primary.main,
+              backgroundColor: theme.palette.secondary.main,
               color: 'white',
               '&::before': {
                 backgroundColor: 'white'
@@ -671,8 +677,24 @@ export default function ResponsiveDashboardLayout({
                 color: 'white'
               },
               '& .MuiListItemText-primary': {
-                fontWeight: 600,
+                fontWeight: 900,
                 color: 'white'
+              },
+              '&:hover': {
+                backgroundColor: theme.palette.secondary.main,
+                color: 'white',
+                transform: 'translateX(2px)',
+                '&::before': {
+                  backgroundColor: 'white'
+                },
+                '& .MuiListItemIcon-root': {
+                  color: 'white',
+                  transform: 'scale(1.1)'
+                },
+                '& .MuiListItemText-primary': {
+                  fontWeight: 900,
+                  color: 'white'
+                }
               }
             }
           }}
@@ -785,7 +807,7 @@ export default function ResponsiveDashboardLayout({
       display: 'flex', 
       flexDirection: 'column', 
       pt: '64px',
-      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+      background: 'white',
       borderRight: '1px solid rgba(0, 0, 0, 0.08)'
     }}>
      
@@ -881,8 +903,9 @@ export default function ResponsiveDashboardLayout({
         position="fixed"
         sx={{
           width: { xs: '100%', md: 'calc(100% - 16px)' },
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%)',
-          color: 'text.primary',
+         // background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 50%, ${theme.palette.primary.main} 100%)`,
+         background: theme.palette.primary.main,
+         color: 'white',
           boxShadow: 'none',
           height: '60px',
           borderBottom: 'none',
@@ -909,6 +932,7 @@ export default function ResponsiveDashboardLayout({
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
             }),
+            
             flexShrink: 0, // Prevent shrinking
             overflow: 'hidden', // Prevent content overflow
           }}>
@@ -922,7 +946,7 @@ export default function ResponsiveDashboardLayout({
                 mr: 1,
                 display: { xs: 'block', md: 'none' },
                 minWidth: 'auto',
-                color: 'text.primary'
+                color: 'white'
               }}
             >
               <MenuIcon />
@@ -933,7 +957,7 @@ export default function ResponsiveDashboardLayout({
               {!ui.sidebarCollapsed && (
                 <Box>
                    
-                  <Typography variant="h6" fontWeight="bold" noWrap sx={{ color: theme.palette.primary.main, lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <Typography variant="h5" fontWeight="bold"  noWrap sx={{ color: theme.palette.secondary.dark, fontWeight: 700,fontSize: '1.5rem',lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {eventDetails?.title || 'Xpo Match'}
                    
                    </Typography>
@@ -949,7 +973,7 @@ export default function ResponsiveDashboardLayout({
               sx={{
                 display: { xs: 'block', md: 'none' },
                 fontWeight: 'bold',
-                color: theme.palette.primary.main,
+                color: theme.palette.secondary.main,
                 lineHeight: 1.2,
                 maxWidth: '100%',
                 overflow: 'hidden',
@@ -1004,25 +1028,25 @@ export default function ResponsiveDashboardLayout({
                     size="small"
                     InputProps={{
                       ...params.InputProps,
-                      startAdornment: <Search sx={{ color: theme.palette.primary.main, mr: 1, opacity: 0.7 }} />,
+                      startAdornment: <Search sx={{ color: 'white', mr: 1, opacity: 0.7 }} />,
                       sx: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
                         backdropFilter: 'blur(10px)',
                         borderRadius: 2,
                         '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(0, 0, 0, 0.1)',
+                          borderColor: 'rgba(255, 255, 255, 0.3)',
                         },
                         '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(0, 0, 0, 0.2)',
+                          borderColor: 'rgba(255, 255, 255, 0.5)',
                         },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: theme.palette.primary.main,
+                          borderColor: 'white',
                         },
                         '& input': {
-                          color: 'text.primary',
+                          color: 'text.secondary',
                         },
                         '& input::placeholder': {
-                          color: theme.palette.primary.main,
+                          color: 'text.secondary',
                           opacity: 0.7,
                         },
                       },
@@ -1097,6 +1121,7 @@ export default function ResponsiveDashboardLayout({
                 sx={{ 
                   color: 'text.secondary',
                   mr: 1,
+                  fontWeight: 700,
                   display: { xs: 'none', sm: 'block' }
                 }}
               >
@@ -1104,9 +1129,9 @@ export default function ResponsiveDashboardLayout({
               </Typography>
 
               <Tooltip title="Notifications">
-                <IconButton sx={{ color: 'text.primary', p: 1 }}>
+                <IconButton sx={{ color: 'text.secondary', fontWeight: 700, p: 1 }}>
                   <Badge badgeContent={ui.notifications.length} color="error">
-                    <Notifications />
+                    <NotificationsNoneIcon />
                   </Badge>
                 </IconButton>
               </Tooltip>
@@ -1192,7 +1217,7 @@ export default function ResponsiveDashboardLayout({
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-              backgroundColor: 'background.paper',
+              backgroundColor: 'theme.palette.primary.main',
               boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
               borderRadius: { md: '0 16px 16px 0' }, // Elegant rounded right edge
               margin: { md: '8px 0 8px 8px' }, // Add margin for border radius

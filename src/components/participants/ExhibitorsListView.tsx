@@ -366,14 +366,14 @@ function ExhibitorCard({
               router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${exhibitor.id}`);
             }}
             sx={{
-              bgcolor: theme.palette.primary.main,
+              bgcolor: theme.palette.secondary.main,
               borderRadius: 2,
               textTransform: "none",
               fontWeight: 500,
               px: 1.5,
               py: 0.4,
               fontSize: "0.8rem",
-              "&:hover": { bgcolor: theme.palette.primary.dark },
+              "&:hover": { bgcolor: theme.palette.secondary.dark },
             }}
           >
             Connect

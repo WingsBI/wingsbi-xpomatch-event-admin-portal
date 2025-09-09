@@ -686,7 +686,7 @@ export default function FavouritesPage() {
                         <Box display="flex" alignItems="flex-start" mb={1.5}>
                           <Avatar
                             sx={{
-                              bgcolor: 'primary.main',
+                              bgcolor: 'secondary.main',
                               width: 36,
                               height: 36,
                               mr: 1.5,
@@ -728,7 +728,7 @@ export default function FavouritesPage() {
                             </Typography>
                             <Typography 
                               variant="body2" 
-                              color="primary" 
+                              color="secondary" 
                               fontWeight="500"
                               sx={{ mb: 1, lineHeight: 1.4 }}
                             >
@@ -829,7 +829,7 @@ export default function FavouritesPage() {
                               router.push(`/${identifier}/event-admin/meetings/schedule-meeting?visitorId=${visitor.id}`);
                             }}
                             sx={{ 
-                              bgcolor: 'primary.main',
+                              bgcolor: 'secondary.main',
                               borderRadius: 2,
                               textTransform: 'none',
                               fontWeight: 500,
@@ -837,7 +837,7 @@ export default function FavouritesPage() {
                               py: 0.75,
                               ml : 10,
                               '&:hover': {
-                                bgcolor: 'primary.dark',
+                                bgcolor: 'secondary.dark',
                               }
                             }}
                           >
@@ -1147,14 +1147,14 @@ export default function FavouritesPage() {
                               router.push(`/${identifier}/event-admin/meetings/schedule-meeting?exhibitorId=${exhibitor.id}`);
                             }}
                             sx={{ 
-                              bgcolor: 'primary.main',
+                              bgcolor: 'secondary.main',
                               borderRadius: 2,
                               textTransform: 'none',
                               fontWeight: 500,
                               px: 1,
                               py: 0.75,
                               '&:hover': {
-                                bgcolor: 'primary.dark',
+                                bgcolor: 'secondary.dark',
                               }
                             }}
                           >

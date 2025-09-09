@@ -222,7 +222,7 @@ export default function ExhibitorVisitorSettingsPage() {
                             <Checkbox
                               checked={module.exhibitor}
                               onChange={(e) => handleAccessChange(module.id, 'exhibitor', e.target.checked)}
-                              color="primary"
+                              color="secondary"
                             />
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -232,7 +232,7 @@ export default function ExhibitorVisitorSettingsPage() {
                             <Checkbox
                               checked={module.visitor}
                               onChange={(e) => handleAccessChange(module.id, 'visitor', e.target.checked)}
-                              color="primary"
+                              color="secondary"
                             />
                           </Box>
                         </Box>
@@ -243,7 +243,7 @@ export default function ExhibitorVisitorSettingsPage() {
               </Box>
 
               {/* Desktop View */}
-              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
                 <Paper sx={{ width: '50%', overflow: 'hidden', mb: 3 }}>
                   <TableContainer>
                     <Table sx={{ minWidth: 200 }}>
@@ -281,14 +281,14 @@ export default function ExhibitorVisitorSettingsPage() {
                               <Checkbox
                                 checked={module.exhibitor}
                                 onChange={(e) => handleAccessChange(module.id, 'exhibitor', e.target.checked)}
-                                color="primary"
+                                color="secondary"
                               />
                             </TableCell>
                             <TableCell align="center">
                               <Checkbox
                                 checked={module.visitor}
                                 onChange={(e) => handleAccessChange(module.id, 'visitor', e.target.checked)}
-                                color="primary"
+                                color="secondary"
                               />
                             </TableCell>
                           </TableRow>
@@ -301,10 +301,10 @@ export default function ExhibitorVisitorSettingsPage() {
 
               <Box sx={{ 
                 display: 'flex', 
-                justifyContent: { xs: 'center', md: 'flex-start' },
+                justifyContent: 'center',
                 gap: 1, 
-                mt: 2,
-                ml: { xs: 0, md: 48 }
+                ml: 48,
+                mt: 2
               }}>
                 <Button 
                   variant="contained" 

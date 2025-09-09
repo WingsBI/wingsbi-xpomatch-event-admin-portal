@@ -114,7 +114,7 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
           borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Palette sx={{ fontSize: 32, color: 'primary.main' }} />
+            <Palette sx={{ fontSize: 32, color: 'secondary.main' }} />
             <Box>
               <Typography variant="h5" fontWeight={700}>
                 Event Theme Settings
@@ -161,9 +161,9 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
             <Paper sx={{ p: 3, mb: 3 }}>
               <Stack spacing={3}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Palette sx={{ color: 'primary.main', fontSize: 28 }} />
+                  <Palette sx={{ color: 'secondary.main', fontSize: 28 }} />
                   <Box>
-                    <Typography variant="h6" fontWeight={600} color="primary.main">
+                    <Typography variant="h6" fontWeight={600} color="secondary.main">
                       Current Theme Configuration
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -218,7 +218,7 @@ export function SimpleThemeSelector({ variant = 'icon', showLabel = false }: Sim
                 borderColor: 'divider',
                 fontFamily: eventThemeDetails.font.fontFamily
               }}>
-                <Typography variant="h4" color="primary.main" sx={{ mb: 2 }}>
+                <Typography variant="h4" color="secondary.main" sx={{ mb: 2 }}>
                   Sample Heading
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>

@@ -463,7 +463,7 @@ export default function SimulationPage() {
                     mt:-1,
                     lineHeight: 1.2,
                     cursor: 'pointer',
-                    color: 'primary.main',
+                    color: 'secondary.main',
                     textDecoration: 'none',
                     transition: 'text-decoration 0.2s',
                     '&:hover': {
@@ -584,7 +584,7 @@ export default function SimulationPage() {
                     lineHeight: 1.2,
                     wordBreak: 'break-word',
                     cursor: 'pointer',
-                    color: 'primary.main',
+                    color: 'secondary.main',
                     textDecoration: 'none',
                     transition: 'text-decoration 0.2s',
                     '&:hover': {
@@ -829,7 +829,7 @@ export default function SimulationPage() {
                       renderOption={(props, option) => (
                         <Box component="li" {...props}>
                           <Box display="flex" alignItems="center" gap={2}>
-                            <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
+                            <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
                               <Person />
                             </Avatar>
                             <Box>
@@ -915,7 +915,7 @@ export default function SimulationPage() {
                     <IconButton
                       onClick={() => handleVisitorPageChange(null, Math.max(1, visitorPage - 1))}
                       disabled={visitorPage === 1}
-                      sx={{ color: 'primary.main' }}
+                      sx={{ color: 'secondary.main' }}
                     >
                       <ArrowBackIos fontSize="small" />
                     </IconButton>
@@ -929,7 +929,7 @@ export default function SimulationPage() {
                           mx: 0.5,
                           backgroundColor:
                             visitorPage === idx + 1
-                              ? 'primary.main'
+                              ? 'secondary.main'
                               : alpha('#1976d2', 0.25),
                           opacity: 1,
                           cursor: 'pointer',
@@ -942,7 +942,7 @@ export default function SimulationPage() {
                     <IconButton
                       onClick={() => handleVisitorPageChange(null, Math.min(Math.ceil(visitorRecommendations.length / itemsPerPage), visitorPage + 1))}
                       disabled={visitorPage === Math.ceil(visitorRecommendations.length / itemsPerPage)}
-                      sx={{ color: 'primary.main' }}
+                      sx={{ color: 'secondary.main' }}
                     >
                       <ArrowForwardIos fontSize="small" />
                     </IconButton>
@@ -999,7 +999,7 @@ export default function SimulationPage() {
                       <IconButton
                         onClick={() => handleExhibitorVisitorPageChange(null, Math.max(1, exhibitorVisitorPage - 1))}
                         disabled={exhibitorVisitorPage === 1}
-                        sx={{ color: 'primary.main' }}
+                        sx={{ color: 'secondary.main' }}
                       >
                         <ArrowBackIos fontSize="small" />
                       </IconButton>
@@ -1013,7 +1013,7 @@ export default function SimulationPage() {
                             mx: 0.5,
                             backgroundColor:
                               exhibitorVisitorPage === idx + 1
-                                ? 'primary.main'
+                                ? 'secondary.main'
                                 : alpha('#1976d2', 0.25),
                             opacity: 1,
                             cursor: 'pointer',
@@ -1026,7 +1026,7 @@ export default function SimulationPage() {
                       <IconButton
                         onClick={() => handleExhibitorVisitorPageChange(null, Math.min(Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage), exhibitorVisitorPage + 1))}
                         disabled={exhibitorVisitorPage === Math.ceil(exhibitorVisitorRecommendations.length / itemsPerPage)}
-                        sx={{ color: 'primary.main' }}
+                        sx={{ color: 'secondary.main' }}
                       >
                         <ArrowForwardIos fontSize="small" />
                       </IconButton>
@@ -1082,7 +1082,7 @@ export default function SimulationPage() {
                       <IconButton
                         onClick={() => handleExhibitorExhibitorPageChange(null, Math.max(1, exhibitorExhibitorPage - 1))}
                         disabled={exhibitorExhibitorPage === 1}
-                        sx={{ color: 'primary.main' }}
+                        sx={{ color: 'secondary.main' }}
                       >
                         <ArrowBackIos fontSize="small" />
                       </IconButton>
@@ -1096,7 +1096,7 @@ export default function SimulationPage() {
                             mx: 0.5,
                             backgroundColor:
                               exhibitorExhibitorPage === idx + 1
-                                ? 'primary.main'
+                                ? 'secondary.main'
                                 : alpha('#1976d2', 0.25),
                             opacity: 1,
                             cursor: 'pointer',
@@ -1109,7 +1109,7 @@ export default function SimulationPage() {
                       <IconButton
                         onClick={() => handleExhibitorExhibitorPageChange(null, Math.min(Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage), exhibitorExhibitorPage + 1))}
                         disabled={exhibitorExhibitorPage === Math.ceil(exhibitorExhibitorRecommendations.length / itemsPerPage)}
-                        sx={{ color: 'primary.main' }}
+                        sx={{ color: 'secondary.main' }}
                       >
                         <ArrowForwardIos fontSize="small" />
                       </IconButton>

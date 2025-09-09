@@ -168,7 +168,7 @@ export default function ExcelUploadDialog({
           <Box 
             sx={{
               border: '2px dashed',
-              borderColor: selectedFile ? 'success.main' : 'primary.main',
+              borderColor: selectedFile ? 'success.main' : 'secondary.main',
               borderRadius: 2,
               p: 4,
               textAlign: 'center',
@@ -177,7 +177,7 @@ export default function ExcelUploadDialog({
               transition: 'all 0.3s ease',
               '&:hover': {
                 backgroundColor: selectedFile ? 'rgba(76, 175, 80, 0.04)' : 'rgba(25, 118, 210, 0.04)',
-                borderColor: selectedFile ? 'success.dark' : 'primary.dark',
+                borderColor: selectedFile ? 'success.dark' : 'secondary.dark',
               },
             }}
             onClick={() => fileInputRef.current?.click()}
@@ -204,7 +204,7 @@ export default function ExcelUploadDialog({
               </>
             ) : (
               <>
-                <CloudUpload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+                <CloudUpload sx={{ fontSize: 48, color: 'secondary.main', mb: 2 }} />
                 <Typography variant="h6" gutterBottom>
                   Drop your Excel file here
                 </Typography>

@@ -562,9 +562,9 @@ export default function EventAdminDashboard() {
   };
 
   const getEventTitle = () => {
-    if (!eventDetails?.title) return 'Gastech';
+    if (!eventDetails?.title) return ' ';
     // Clean the event title by removing "exhibitor" text (case insensitive)
-    return eventDetails.title.replace(/exhibitor/gi, '').trim() || 'Gastech';
+    return eventDetails.title.replace(/exhibitor/gi, '').trim() || ' ';
   };
 
   const getEventSubtitle = () => {

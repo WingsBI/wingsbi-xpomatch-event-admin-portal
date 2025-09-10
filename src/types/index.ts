@@ -388,4 +388,125 @@ export interface UpdateThemePayload {
   themeSettingId: number;
   themeId: number;
   fontId: number;
+}
+
+// Notification types - matching backend DTOs
+export interface NotificationRequestDto {
+  receiverUserId: string;
+  senderUserId?: string;
+  senderName?: string;
+  message: string;
+}
+
+export interface DeviceRegistrationDto {
+  userId: string;
+  deviceToken: string;
+  platform: 'web' | 'android' | 'ios'; // Matches service Platform field
+  deviceId?: string;
+  tags?: Record<string, string>;
+}
+
+export interface DeviceRegistrationResponse {
+  success: boolean;
+  message: string;
+  registrationId?: string;
+}
+
+export interface UserLikeNotificationDto {
+  likedUserId: string;
+  likerUserId: string;
+  likerName: string;
+  likerProfileImageUrl?: string;
+  customMessage?: string;
+}
+
+export interface MeetingNotificationDto {
+  meetingId: string;
+  meetingTitle: string;
+  meetingDateTime: string; // ISO string format
+  meetingLocation: string;
+  organizerUserId: string;
+  organizerName: string;
+  attendeeUserIds: string[];
+  meetingDescription?: string;
+  meetingType?: 'created' | 'approved' | 'cancelled' | 'updated';
+}
+
+export interface DashboardNotificationDto {
+  userId: string;
+  notificationType: 'like' | 'meeting' | 'message' | 'system';
+  title: string;
+  message: string;
+  actionUrl?: string;
+  data?: Record<string, any>;
+  showToast?: boolean;
+  updateCount?: boolean;
+  countType?: 'likes' | 'meetings' | 'messages' | 'notifications';
+  countIncrement?: number;
+}
+
+export interface BulkNotificationDto {
+  userIds: string[];
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  priority: 'low' | 'medium' | 'high';
+  actionUrl?: string;
+  additionalData?: Record<string, any>;
+}
+
+export interface TaggedNotificationRequestDto {
+  tagExpression: string;
+  title: string;
+  message: string;
+  data?: Record<string, any>;
+}
+
+export interface TemplateNotificationRequestDto {
+  userIds: string[];
+  templateData: Record<string, any>;
+  tagExpression?: string;
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  message: string;
+  trackingId?: string;
+  successCount: number;
+  failureCount: number;
+  errors?: string[];
+}
+
+// Frontend notification types
+export interface PushNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error' | 'meeting' | 'like' | 'system';
+  priority: 'low' | 'medium' | 'high';
+  userId: string;
+  isRead: boolean;
+  actionUrl?: string;
+  actionLabel?: string;
+  data?: Record<string, any>;
+  createdAt: Date;
+  expiresAt?: Date;
+}
+
+export interface NotificationSettings {
+  userId: string;
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  meetingReminders: boolean;
+  likeNotifications: boolean;
+  systemNotifications: boolean;
+  marketingNotifications: boolean;
+}
+
+export interface NotificationState {
+  notifications: PushNotification[];
+  unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
+  settings: NotificationSettings | null;
 } 

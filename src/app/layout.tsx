@@ -4,10 +4,12 @@ import './globals.css';
 import { ApiThemeProvider } from '@/context/ApiThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { RoleAccessProvider } from '@/context/RoleAccessContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import ReduxProvider from '@/providers/ReduxProvider';
 import ThemeWrapper from '@/components/providers/ThemeWrapper';
 import FavoritesCleanupProvider from '@/components/providers/FavoritesCleanupProvider';
-import NotificationProvider from '@/components/providers/NotificationProvider';
+import NotificationToast from '@/components/notifications/NotificationToast';
+
 
 // Configure all fonts
 const inter = Inter({ 
@@ -78,18 +80,41 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="format-detection" content="telephone=no" />
+        <link rel="manifest" href="/manifest.json" />
+        
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${roboto.variable} ${poppins.variable} ${montserrat.variable} ${openSans.variable} ${lato.variable}`}>
         <ReduxProvider>
           <AuthProvider>
             <RoleAccessProvider>
-              <ThemeWrapper>
-                <NotificationProvider>
+              <NotificationProvider>
+                <ThemeWrapper>
                   <FavoritesCleanupProvider>
                     {children}
                   </FavoritesCleanupProvider>
-                </NotificationProvider>
-              </ThemeWrapper>
+                  
+                  {/* Global Notification Toast */}
+                  <NotificationToast />
+                </ThemeWrapper>
+              </NotificationProvider>
             </RoleAccessProvider>
           </AuthProvider>
         </ReduxProvider>

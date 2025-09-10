@@ -1560,6 +1560,151 @@ export const roleBasedDirectoryApi = {
   },
 };
 
+// Notification API integration
+export const notificationApi = {
+  // Send notification when creating a meeting
+  notifyMeetingCreated: async (meetingData: any) => {
+    try {
+      const notificationHubUrl = process.env.NEXT_PUBLIC_NOTIFICATION_HUB_URL || 'https://localhost:7184';
+      console.log('Sending meeting notification to:', notificationHubUrl);
+      
+      const token = getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Convert to proper DateTime format for the service
+      const meetingDateTime = new Date(`${meetingData.meetingDate}T${meetingData.startTime || '00:00'}`).toISOString();
+
+      const payload = {
+        meetingId: meetingData.id?.toString() || `meeting-${Date.now()}`,
+        meetingTitle: meetingData.agenda || 'New Meeting',
+        meetingDateTime: meetingDateTime,
+        meetingLocation: meetingData.location || 'To be determined',
+        organizerUserId: meetingData.organizerId?.toString() || '1',
+        organizerName: meetingData.organizerName || 'Event Organizer',
+        attendeeUserIds: (meetingData.attendiesId || []).map((id: number) => id.toString()),
+        meetingDescription: meetingData.description || meetingData.agenda,
+        meetingType: 'created' as const,
+      };
+
+      const response = await fetch(`${notificationHubUrl}/api/Notifications/meeting`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to send meeting notification:', response.statusText);
+      } else {
+        console.log('Meeting notification sent successfully');
+      }
+    } catch (error) {
+      console.error('Error sending meeting notification:', error);
+    }
+  },
+
+  // Send like notification
+  notifyUserLike: async (likedUserId: string, likerUserId: string, likerName: string, profileImageUrl?: string, customMessage?: string) => {
+    try {
+      const notificationHubUrl = process.env.NEXT_PUBLIC_NOTIFICATION_HUB_URL || 'https://localhost:7184';
+      console.log('Sending meeting notification to:', notificationHubUrl);
+      
+      const token = getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const payload = {
+        likedUserId,
+        likerUserId,
+        likerName,
+        likerProfileImageUrl: profileImageUrl,
+        customMessage: customMessage || `${likerName} liked your profile`,
+      };
+
+      const response = await fetch(`${notificationHubUrl}/api/Notifications/user-like`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to send like notification:', response.statusText);
+      } else {
+        console.log('Like notification sent successfully');
+      }
+    } catch (error) {
+      console.error('Error sending like notification:', error);
+    }
+  },
+
+  // Send dashboard notification
+  notifyDashboard: async (
+    userId: string, 
+    title: string, 
+    message: string, 
+    notificationType: 'like' | 'meeting' | 'message' | 'system' = 'system',
+    options: {
+      actionUrl?: string;
+      data?: Record<string, any>;
+      showToast?: boolean;
+      updateCount?: boolean;
+      countType?: 'likes' | 'meetings' | 'messages' | 'notifications';
+      countIncrement?: number;
+    } = {}
+  ) => {
+    try {
+      const notificationHubUrl = process.env.NEXT_PUBLIC_NOTIFICATION_HUB_URL || 'https://localhost:7184';
+      console.log('Sending meeting notification to:', notificationHubUrl);
+      
+      const token = getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const payload = {
+        userId,
+        notificationType,
+        title,
+        message,
+        actionUrl: options.actionUrl,
+        data: options.data,
+        showToast: options.showToast ?? true,
+        updateCount: options.updateCount ?? true,
+        countType: options.countType || 'notifications',
+        countIncrement: options.countIncrement ?? 1,
+      };
+
+      const response = await fetch(`${notificationHubUrl}/api/Notifications/dashboard`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to send dashboard notification:', response.statusText);
+      } else {
+        console.log('Dashboard notification sent successfully');
+      }
+    } catch (error) {
+      console.error('Error sending dashboard notification:', error);
+    }
+  },
+};
+
 // Export the main service
 export default apiService;
 

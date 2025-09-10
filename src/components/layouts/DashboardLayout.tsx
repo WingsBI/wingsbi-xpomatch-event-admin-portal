@@ -29,14 +29,10 @@ import {
   Settings,
   Logout,
   AdminPanelSettings,
-  Notifications,
-  
-  
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import ProfileSettingsPage from '@/app/[identifier]/event-admin/profile/page';
-import NotificationProvider from '../providers/NotificationProvider';
+import NotificationPanel from '@/components/notifications/NotificationPanel';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -180,9 +176,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
             {title}
           </Typography>
 
-          <IconButton color="inherit" sx={{ mr: 1 }}>
-            <Notifications />
-          </IconButton>
+          <NotificationPanel />
 
           <IconButton onClick={handleProfileMenuOpen}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>

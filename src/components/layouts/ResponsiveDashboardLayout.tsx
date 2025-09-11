@@ -96,6 +96,8 @@ import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import DateRangeOutlinedIcon from '@mui/icons-material/DateRangeOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+
 
 interface ResponsiveDashboardLayoutProps {
   children: ReactNode;
@@ -205,10 +207,13 @@ const getNavigationItems = (userRole: string, deviceType: DeviceType, identifier
         { text: 'Theme Settings', href: '#', children: [] },
         { text: 'Visitors Onboarding', href: `/${identifier}/visitors/matching`, children: [] },
         { text: 'Exhibitors Onboarding', href: `/${identifier}/exhibitors/matching`, children: [] },
-        { text: 'Matchmaking Settings', href: `/${identifier}/weightage`, children: [] },
         { text: 'Role Based Settings', href: `/${identifier}/exhibitor_visitor_settings`, children: [] },
-        { text: 'Simulation', href: `/${identifier}/simulation`, children: [] },
+
       
+    ]},
+    { text: 'AI Config', icon: <PsychologyIcon  />, children: [
+      { text: 'Matchmaking Settings', href: `/${identifier}/weightage`, children: [] },
+      { text: 'Simulation', href: `/${identifier}/simulation`, children: [] },
     ]},
     ];
   }
@@ -244,26 +249,13 @@ export default function ResponsiveDashboardLayout({
       path: `/${identifier}/dashboard`,
       description: 'Main dashboard overview'
     },
-    {
-      title: 'Visitor Dashboard',
-      path: `/${identifier}/dashboard/visitor_dashboard`,
-      description: 'Visitor dashboard and exhibitor details'
-    },
-    {
-      title: 'Exhibitor Dashboard',
-      path: `/${identifier}/dashboard/exhibitor_dashboard`,
-      description: 'Exhibitor dashboard'
-    },
+   
     {
       title: 'Exhibitors',
       path: `/${identifier}/exhibitors`,
       description: 'Manage exhibitors'
     },
-    {
-      title: 'Exhibitor Details',
-      path: `/${identifier}/exhibitors/details`,
-      description: 'View detailed exhibitor information'
-    },
+  
     {
       title: 'Exhibitors Onboarding',
       path: `/${identifier}/exhibitors/matching`,

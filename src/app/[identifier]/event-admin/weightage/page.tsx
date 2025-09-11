@@ -356,7 +356,7 @@ export default function WeightagePage() {
         // Fields are now fetched separately from the API
         console.log('Matchmaking configs loaded:', configsWithPercentages);
       } else {
-        setError(response.message || 'Failed to fetch configuration');
+        setError('');
       }
     } catch (error) {
       console.error('Error fetching configs:', error);
@@ -588,6 +588,27 @@ export default function WeightagePage() {
   // Handle adding new field
   const handleAddNewField = () => {
     setShowAddFieldDialog(true);
+    setError(null); // Clear any existing errors
+  };
+
+  // Handle adding new row directly
+  const handleAddNewRow = () => {
+    const newId = Math.max(...configs.map(c => c.id), 0) + 1;
+    const newConfig: MatchMakingConfig = {
+      id: newId,
+      visitorFieldName: visitorFields.length > 0 ? visitorFields[0].value : '',
+      exhibitorFieldName: exhibitorFields.length > 0 ? exhibitorFields[0].value : '',
+      weight: 0,
+      algorithmId: algorithms.length > 0 ? algorithms[0].id : 1,
+      algorithmName: algorithms.length > 0 ? algorithms[0].algorithm : '',
+      isActive: true,
+      createdBy: 1,
+      createdDate: new Date().toISOString(),
+      modifiedBy: 1,
+      modifiedDate: new Date().toISOString(),
+    };
+    
+    setConfigs(prev => [...prev, newConfig]);
     setError(null); // Clear any existing errors
   };
 
@@ -1261,21 +1282,7 @@ export default function WeightagePage() {
                               }}
                             >
                               <span>{field.label}</span>
-                              <IconButton
-                                className="delete-icon"
-                                size="small"
                               
-                                sx={{
-                                  opacity: 0,
-                                  transition: 'opacity 0.2s',
-                                  color: 'error.main',
-                                  '&:hover': {
-                                    backgroundColor: 'error.light',
-                                  },
-                                }}
-                              >
-                                <Delete fontSize="small" />
-                              </IconButton>
                             </MenuItem>
                           ))}
                         </Select>
@@ -1319,21 +1326,7 @@ export default function WeightagePage() {
                               }}
                             >
                               <span>{field.label}</span>
-                              <IconButton
-                                className="delete-icon"
-                                size="small"
-                               
-                                sx={{
-                                  opacity: 0,
-                                  transition: 'opacity 0.2s',
-                                  color: 'error.main',
-                                  '&:hover': {
-                                    backgroundColor: 'error.light',
-                                  },
-                                }}
-                              >
-                                <Delete fontSize="small" />
-                              </IconButton>
+                              
                             </MenuItem>
                           ))}
                         </Select>
@@ -1360,21 +1353,7 @@ export default function WeightagePage() {
                               }}
                             >
                               <span>{formatAlgorithmName(algorithm.algorithm)}</span>
-                              <IconButton
-                                className="delete-icon"
-                                size="small"
-                               
-                                sx={{
-                                  opacity: 0,
-                                  transition: 'opacity 0.2s',
-                                  color: 'error.main',
-                                  '&:hover': {
-                                    backgroundColor: 'error.light',
-                                  },
-                                }}
-                              >
-                                <Delete fontSize="small" />
-                              </IconButton>
+                            
                             </MenuItem>
                           ))}
                         </Select>
@@ -1407,7 +1386,7 @@ export default function WeightagePage() {
               <Card sx={{ mb: 2, p: 2, border: '2px dashed #ccc' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 60 }}>
                   <IconButton
-                    onClick={handleAddNewField}
+                    onClick={handleAddNewRow}
                     sx={{
                       '&:hover': {
                         bgcolor: 'secondary.light',
@@ -1491,21 +1470,7 @@ export default function WeightagePage() {
                             }}
                           >
                             <span>{field.label}</span>
-                            <IconButton
-                              className="delete-icon"
-                              size="small"
-                             
-                              sx={{
-                                opacity: 0,
-                                transition: 'opacity 0.2s',
-                                color: 'error.main',
-                                '&:hover': {
-                                  backgroundColor: 'error.light',
-                                },
-                              }}
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
+                            
                           </MenuItem>
                         ))}
                       </Select>
@@ -1516,7 +1481,7 @@ export default function WeightagePage() {
                   
                   {/* Add Button */}
                   <IconButton
-                    onClick={handleAddNewField}
+                    onClick={handleAddNewRow}
                     sx={{
                       border: '2px dashed #ccc',
                       borderRadius: 1,
@@ -1577,21 +1542,7 @@ export default function WeightagePage() {
                             }}
                           >
                             <span>{field.label}</span>
-                            <IconButton
-                              className="delete-icon"
-                              size="small"
                           
-                              sx={{
-                                opacity: 0,
-                                transition: 'opacity 0.2s',
-                                color: 'error.main',
-                                '&:hover': {
-                                  backgroundColor: 'error.light',
-                                },
-                              }}
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
                           </MenuItem>
                         ))}
                       </Select>
@@ -1633,21 +1584,7 @@ export default function WeightagePage() {
                             }}
                           >
                             <span>{formatAlgorithmName(algorithm.algorithm)}</span>
-                            <IconButton
-                              className="delete-icon"
-                              size="small"
-                             
-                              sx={{
-                                opacity: 0,
-                                transition: 'opacity 0.2s',
-                                color: 'error.main',
-                                '&:hover': {
-                                  backgroundColor: 'error.light',
-                                },
-                              }}
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
+                           
                           </MenuItem>
                         ))}
                       </Select>
@@ -1682,8 +1619,8 @@ export default function WeightagePage() {
                          sx={{
                            '& .MuiOutlinedInput-root': {
                              borderRadius: 1,
-                             height: '45px', // Match dropdown height
-                             mb:0.3
+                             height: '40px', // Match dropdown height
+                             mb:0
                            },
                            
                          }}

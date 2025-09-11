@@ -111,7 +111,7 @@ export default function DashboardLayout({ children, title, userRole }: Dashboard
         }}
       >
         <Typography variant="h6" fontWeight="bold">
-          Xpo Match
+          
         </Typography>
         
       </Box>

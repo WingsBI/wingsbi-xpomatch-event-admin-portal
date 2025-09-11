@@ -958,7 +958,7 @@ export default function ResponsiveDashboardLayout({
                 <Box>
                    
                   <Typography variant="h5" fontWeight="bold"  noWrap sx={{ color: theme.palette.secondary.dark, fontWeight: 700,fontSize: '1.5rem',lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {eventDetails?.title || 'Xpo Match'}
+                      {eventDetails?.title}
                    
                    </Typography>
                   
@@ -981,7 +981,7 @@ export default function ResponsiveDashboardLayout({
                 fontSize: { xs: '0.9rem', sm: '1rem' }
               }}
             >
-              {  eventDetails?.title || 'Xpo Match'}
+              {  eventDetails?.title}
             </Typography>
           </Box>
 

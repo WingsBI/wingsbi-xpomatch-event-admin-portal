@@ -28,7 +28,8 @@ const ExhibitorDetailsDialog: React.FC<ExhibitorDetailsDialogProps> = ({ exhibit
       fieldMappingApi.getExhibitorById(identifier, exhibitorId)
         .then((res) => {
           if (res && res.statusCode === 200 && res.result) {
-            setExhibitor(res.result);
+            const result = Array.isArray(res.result) ? res.result[0] : res.result;
+            setExhibitor(result);
           } else {
             setError(res.message || 'No exhibitor data found.');
             setExhibitor(null);
@@ -92,6 +93,7 @@ const ExhibitorDetailsDialog: React.FC<ExhibitorDetailsDialogProps> = ({ exhibit
                
                 <Typography variant="body2"><b>Technology:</b> {exhibitor.technology || '-'}</Typography>
                 <Typography variant="body2"><b>Looking For:</b> {exhibitor.lookingFor && exhibitor.lookingFor.length > 0 ? exhibitor.lookingFor.join(', ') : '-'}</Typography>
+                <Typography variant="body2"><b>Interest:</b> {exhibitor.interests && exhibitor.interests.length > 0 ? exhibitor.interests.join(', ') : '-'}</Typography>
               </Box>
               <Box minWidth={320}>
               <Typography variant="subtitle1" fontWeight={600} mb={1}>Location</Typography>
@@ -101,18 +103,14 @@ const ExhibitorDetailsDialog: React.FC<ExhibitorDetailsDialogProps> = ({ exhibit
               </Box>
             </Box>
 
-            {/* Exhibitor Profile */}
-            {exhibitor.exhibitorProfile && exhibitor.exhibitorProfile.length > 0 && (
+            {/* Additional Information */}
+            {(exhibitor.dateOfBirth || exhibitor.lastLoginDate) && (
               <Box mb={2}>
-                <Typography variant="subtitle1" fontWeight={600} mb={1}>Profile</Typography>
-                {exhibitor.exhibitorProfile.map((profile: any, idx: number) => (
-                  <Box key={idx} mb={1}>
-                    <Typography variant="body2"><b>Company Profile:</b> {profile.companyProfile}</Typography>
-                    <Typography variant="body2"><b>Listing As:</b> {profile.listingAs}</Typography>
-                    <Typography variant="body2"><b>ISO Certificates:</b> {profile.isoCertificates}</Typography>
-                    <Typography variant="body2"><b>Social Links:</b> {profile.linkedInLink && (<a href={profile.linkedInLink} target="_blank" rel="noopener noreferrer">LinkedIn</a>)} {profile.instagramLink && (<a href={profile.instagramLink} target="_blank" rel="noopener noreferrer">Instagram</a>)} {profile.twitterLink && (<a href={profile.twitterLink} target="_blank" rel="noopener noreferrer">Twitter</a>)} {profile.youTubeLink && (<a href={profile.youTubeLink} target="_blank" rel="noopener noreferrer">YouTube</a>)}</Typography>
-                  </Box>
-                ))}
+                <Typography variant="subtitle1" fontWeight={600} mb={1}>Additional Information</Typography>
+                <Box mb={1}>
+                  <Typography variant="body2"><b>Date of Birth:</b> {exhibitor.dateOfBirth ? new Date(exhibitor.dateOfBirth).toLocaleDateString() : '-'}</Typography>
+                  <Typography variant="body2"><b>Last Login:</b> {exhibitor.lastLoginDate ? new Date(exhibitor.lastLoginDate).toLocaleString() : '-'}</Typography>
+                </Box>
               </Box>
             )}
 
@@ -142,19 +140,18 @@ const ExhibitorDetailsDialog: React.FC<ExhibitorDetailsDialogProps> = ({ exhibit
               </Box>
             )}
 
-            {/* Exhibitor Contacts (ToUserMaps) */}
-            {exhibitor.exhibitorToUserMaps && exhibitor.exhibitorToUserMaps.length > 0 && (
+            {/* Exhibitor Contact Info */}
+            {(exhibitor.firstName || exhibitor.lastName || exhibitor.email) && (
               <Box mb={2}>
-                <Typography variant="subtitle1" fontWeight={600} mb={1}>Contacts</Typography>
-                {exhibitor.exhibitorToUserMaps.map((user: any, idx: number) => (
-                  <Box key={idx} mb={1}>
-                    <Typography variant="body2"><b>Name:</b> {user.salutation} {user.firstName} {user.middleName} {user.lastName}</Typography>
-                    <Typography variant="body2"><b>Email:</b> {user.email}</Typography>
-                    <Typography variant="body2"><b>Designation:</b> {user.designation}</Typography>
-                    <Typography variant="body2"><b>Role:</b> {user.roleName}</Typography>
-                    <Typography variant="body2"><b>LinkedIn:</b> {user.linkedInProfile ? (<a href={user.linkedInProfile} target="_blank" rel="noopener noreferrer">{user.linkedInProfile}</a>) : '-'}</Typography>
-                  </Box>
-                ))}
+                <Typography variant="subtitle1" fontWeight={600} mb={1}>Contact Information</Typography>
+                <Box mb={1}>
+                  <Typography variant="body2"><b>Name:</b> {exhibitor.salutation} {exhibitor.firstName} {exhibitor.middleName} {exhibitor.lastName}</Typography>
+                  <Typography variant="body2"><b>Email:</b> {exhibitor.email}</Typography>
+                  <Typography variant="body2"><b>Job Title:</b> {exhibitor.jobTitle || '-'}</Typography>
+                  <Typography variant="body2"><b>Phone:</b> {exhibitor.phoneNumber || '-'}</Typography>
+                  <Typography variant="body2"><b>Gender:</b> {exhibitor.gender || '-'}</Typography>
+                  <Typography variant="body2"><b>Registration Date:</b> {exhibitor.registrationDate ? new Date(exhibitor.registrationDate).toLocaleString() : '-'}</Typography>
+                </Box>
               </Box>
             )}
 

@@ -292,7 +292,14 @@ export default function ResponsiveDashboardLayout({
 
   // Local state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    // Restore expanded state from localStorage on initial load
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`expanded-nav-${identifier}`);
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [eventDetails, setEventDetails] = useState<ApiEventDetails | null>(null);
@@ -566,11 +573,18 @@ export default function ResponsiveDashboardLayout({
   };
 
   const handleExpandClick = (itemText: string) => {
-    setExpandedItems(prev =>
-      prev.includes(itemText)
+    setExpandedItems(prev => {
+      const newExpanded = prev.includes(itemText)
         ? prev.filter(item => item !== itemText)
-        : [...prev, itemText]
-    );
+        : [...prev, itemText];
+      
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`expanded-nav-${identifier}`, JSON.stringify(newExpanded));
+      }
+      
+      return newExpanded;
+    });
   };
 
   const handleNotificationClose = (notificationId: string) => {
@@ -600,6 +614,38 @@ export default function ResponsiveDashboardLayout({
     return items;
   }, [user?.role, responsive.deviceType, identifier, permissions]);
 
+  // Auto-expand parent items based on current path
+  useEffect(() => {
+    const autoExpandForCurrentPath = () => {
+      const currentPath = pathname;
+      let shouldExpand: string[] = [];
+
+      navigationItems.forEach(item => {
+        if (item.children && item.children.length > 0) {
+          const hasActiveChild = item.children.some(child => 
+            child.href && currentPath.includes(child.href.split('?')[0])
+          );
+          if (hasActiveChild) {
+            shouldExpand.push(item.text);
+          }
+        }
+      });
+
+      if (shouldExpand.length > 0) {
+        setExpandedItems(prev => {
+          const newExpanded = Array.from(new Set([...prev, ...shouldExpand]));
+          // Persist to localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(`expanded-nav-${identifier}`, JSON.stringify(newExpanded));
+          }
+          return newExpanded;
+        });
+      }
+    };
+
+    autoExpandForCurrentPath();
+  }, [pathname, navigationItems, identifier]);
+
   // Optimized navigation item renderer - defined before drawerContent
   const renderNavigationItem = useCallback((item: any, level = 0) => {
 
@@ -627,6 +673,7 @@ export default function ResponsiveDashboardLayout({
               handleExpandClick(item.text);
             } else {
               console.log('Navigating to:', item.href);
+              // Use replace for faster navigation and avoid browser back issues
               router.push(item.href);
               if (isMobile) {
                 dispatch(setSidebarOpen(false));
@@ -891,11 +938,20 @@ export default function ResponsiveDashboardLayout({
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }} {...swipeHandlers}>
-              {/* Prefetch likely navigations to speed up subsequent tab loads */}
-      {identifier && (
+              {/* Prefetch all navigation items to speed up subsequent tab loads */}
+      {identifier && navigationItems && (
         <>
-          <link rel="prefetch" href={`/${identifier}/visitors`} as="document" />
-          <link rel="prefetch" href={`/${identifier}/exhibitors`} as="document" />
+          {navigationItems.map(item => {
+            if (item.href) {
+              return <link key={item.href} rel="prefetch" href={item.href} as="document" />;
+            }
+            if (item.children) {
+              return item.children.map(child => 
+                child.href ? <link key={child.href} rel="prefetch" href={child.href} as="document" /> : null
+              );
+            }
+            return null;
+          })}
         </>
       )}
       {/* Unified Header Bar - spans full width */}

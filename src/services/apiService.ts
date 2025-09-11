@@ -1430,7 +1430,7 @@ export const matchmakingApi = {
 
 // Notifications API
 export const notificationsApi = {
-  getAllNotification: async (identifier: string) => {
+  getAllNotification: async (identifier: string, userId: number) => {
     try {
       // Get token from cookies only (no localStorage)
       const token = getAuthToken();
@@ -1443,10 +1443,146 @@ export const notificationsApi = {
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
-      const response = await axios.get(url, {
+      
+      // Add userId as query parameter
+      const params = new URLSearchParams({
+        userId: userId.toString()
+      });
+      
+      const response = await axios.get(`${url}?${params}`, {
         timeout: 30000,
         headers,
       });
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('API Error details:', error);
+      throw error;
+    }
+  },
+
+  markAsRead: async (identifier: string, notificationId: number) => {
+    try {
+      const token = getAuthToken();
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Dashboard/markNotificationAsRead`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await axios.post(url, { notificationId }, {
+        timeout: 30000,
+        headers,
+      });
+      
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('API Error details:', error);
+      throw error;
+    }
+  },
+
+  markAllAsRead: async (identifier: string, userId: number) => {
+    try {
+      const token = getAuthToken();
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Dashboard/markAllNotificationsAsRead`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await axios.post(url, { userId }, {
+        timeout: 30000,
+        headers,
+      });
+      
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('API Error details:', error);
+      throw error;
+    }
+  },
+
+  updateNotificationReadStatus: async (identifier: string, userId: number) => {
+    try {
+      const token = getAuthToken();
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Dashboard/UpdateNotificationReadStatus`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Add userId as query parameter
+      const params = new URLSearchParams({
+        userId: userId.toString()
+      });
+
+      const response = await axios.patch(`${url}?${params}`, {}, {
+        timeout: 30000,
+        headers,
+      });
+      
+      return {
+        data: response.data,
+        status: response.status,
+        success: true,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error('API Error details:', error);
+      throw error;
+    }
+  },
+
+  clearAllNotifications: async (identifier: string, userId: number, notificationId?: number) => {
+    try {
+      const token = getAuthToken();
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://xpomatch-dev-event-admin-api.azurewebsites.net'}/api/${identifier}/Dashboard/ClearAllNotifications`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Add userId and optional notificationId as query parameters
+      const params = new URLSearchParams({
+        userId: userId.toString()
+      });
+      
+      if (notificationId) {
+        params.append('notificationId', notificationId.toString());
+      }
+
+      const response = await axios.delete(`${url}?${params}`, {
+        timeout: 30000,
+        headers,
+      });
+      
       return {
         data: response.data,
         status: response.status,

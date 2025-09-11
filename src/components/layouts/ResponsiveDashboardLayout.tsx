@@ -10,6 +10,8 @@ import { SimpleThemeSelector } from '@/components/theme/SimpleThemeSelector';
 import { eventsApi } from '@/services/apiService';
 import { notificationsApi } from '@/services/apiService';
 import { ApiEventDetails } from '@/types';
+import NotificationDropdown from '@/components/common/NotificationDropdown';
+import { getCurrentUserId } from '@/utils/authUtils';
 import {
   Box,
   AppBar,
@@ -37,8 +39,6 @@ import {
   Breadcrumbs,
   Link,
   Chip,
-  Alert,
-  Snackbar,
   Autocomplete,
   TextField,
 } from '@mui/material';
@@ -87,7 +87,6 @@ import {
 import { logoutUser } from '@/store/slices/authSlice';
 import { useRoleAccess } from '@/context/RoleAccessContext';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import NotificationProvider from '../providers/NotificationProvider';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -304,6 +303,7 @@ export default function ResponsiveDashboardLayout({
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [eventDetails, setEventDetails] = useState<ApiEventDetails | null>(null);
   const [eventLoading, setEventLoading] = useState(true);
+  const [notifications, setNotificationsLocal] = useState<any[]>([]);
 
   // Responsive breakpoints using custom theme breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // < 960px
@@ -428,31 +428,35 @@ export default function ResponsiveDashboardLayout({
   }, [loadEventDetails]);
 
   // Fetch notifications on mount or when identifier changes
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!identifier) return;
-      try {
-        const response = await notificationsApi.getAllNotification(identifier);
-        // Assume response.data.result is the array of notifications
-        if (response.success && Array.isArray(response.data?.result)) {
-          // Map API notifications to UI notification structure if needed
-          const mappedNotifications = response.data.result.map((n: any) => ({
-            id: n.id?.toString() || Date.now().toString() + Math.random(),
-            type: n.type || 'info',
-            message: n.message || n.title || 'Notification',
-            timestamp: n.timestamp || Date.now(),
-          }));
-          dispatch(setNotifications(mappedNotifications));
-        } else {
-          dispatch(setNotifications([]));
-        }
-      } catch (error) {
-        // On error, clear notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!identifier || !user) return;
+    try {
+      const userId = getCurrentUserId();
+      if (!userId) {
+        console.warn('No user ID available for fetching notifications');
+        return;
+      }
+      
+      const response = await notificationsApi.getAllNotification(identifier, userId);
+      if (response.success && Array.isArray(response.data?.result)) {
+        setNotificationsLocal(response.data.result);
+        // Don't add notifications to Redux store to avoid system toast messages
+        // Only keep the local state for dropdown display
+        dispatch(setNotifications([]));
+      } else {
+        setNotificationsLocal([]);
         dispatch(setNotifications([]));
       }
-    };
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      setNotificationsLocal([]);
+      dispatch(setNotifications([]));
+    }
+  }, [identifier, user, dispatch]);
+
+  useEffect(() => {
     fetchNotifications();
-  }, [identifier, dispatch]);
+  }, [fetchNotifications]);
 
   // Update responsive state
   useEffect(() => {
@@ -587,9 +591,7 @@ export default function ResponsiveDashboardLayout({
     });
   };
 
-  const handleNotificationClose = (notificationId: string) => {
-    dispatch(removeNotification(notificationId));
-  };
+  // handleNotificationClose function removed - no longer needed since system notifications are disabled
 
   const handleThemeDialogOpen = () => {
     // Close sidebar on mobile
@@ -1184,13 +1186,105 @@ export default function ResponsiveDashboardLayout({
                 Welcome, {user?.firstName} {user?.lastName}!
               </Typography>
 
-              <Tooltip title="Notifications">
-                <IconButton sx={{ color: 'text.secondary', fontWeight: 700, p: 1 }}>
-                  <Badge badgeContent={ui.notifications.length} color="error">
-                    <NotificationsNoneIcon />
-                  </Badge>
-                </IconButton>
-              </Tooltip>
+              <NotificationDropdown
+                notifications={notifications}
+                onNotificationClick={(notification) => {
+                  console.log('Notification clicked:', notification);
+                  // Handle notification click here - you could navigate to a specific page
+                  // or show more details
+                }}
+                 onMarkAsRead={async (notificationId) => {
+                   try {
+                     // Update locally first for immediate UI feedback
+                     setNotificationsLocal(prev => prev.map(n => 
+                       n.id === notificationId ? { ...n, isRead: true } : n
+                     ));
+                     
+                     // Call API to mark as read on server
+                     await notificationsApi.markAsRead(identifier, notificationId);
+                     
+                     // Refresh the full notification list to ensure badge count is accurate
+                     setTimeout(() => {
+                       fetchNotifications();
+                     }, 100);
+                   } catch (error) {
+                     console.error('Error marking notification as read:', error);
+                     // Revert local change on error
+                     setNotificationsLocal(prev => prev.map(n => 
+                       n.id === notificationId ? { ...n, isRead: false } : n
+                     ));
+                   }
+                 }}
+                onIconClick={async () => {
+                  try {
+                    const userId = getCurrentUserId();
+                    if (!userId) {
+                      console.warn('No user ID available for updating notification read status');
+                      return;
+                    }
+                    
+                    // Call the UpdateNotificationReadStatus API
+                    console.log('Calling UpdateNotificationReadStatus API...');
+                    await notificationsApi.updateNotificationReadStatus(identifier, userId);
+                    console.log('UpdateNotificationReadStatus API called successfully');
+                  } catch (error) {
+                    console.error('Error calling UpdateNotificationReadStatus API:', error);
+                  }
+                }}
+                onClearNotification={async (notificationId) => {
+                  try {
+                    const userId = getCurrentUserId();
+                    if (!userId) {
+                      console.warn('No user ID available for clearing notification');
+                      return;
+                    }
+                    
+                    // Remove notification locally first for immediate UI feedback
+                    setNotificationsLocal(prev => prev.filter(n => n.id !== notificationId));
+                    
+                    // Call API to clear specific notification
+                    console.log('Calling ClearAllNotifications API for single notification:', notificationId);
+                    await notificationsApi.clearAllNotifications(identifier, userId, notificationId);
+                    console.log('Single notification cleared successfully');
+                    
+                    // Refresh the full notification list to ensure badge count is accurate
+                    setTimeout(() => {
+                      fetchNotifications();
+                    }, 100);
+                  } catch (error) {
+                    console.error('Error clearing notification:', error);
+                    // Refresh notifications on error to get correct state
+                    fetchNotifications();
+                  }
+                }}
+                onClearAllNotifications={async () => {
+                  try {
+                    const userId = getCurrentUserId();
+                    if (!userId) {
+                      console.warn('No user ID available for clearing all notifications');
+                      return;
+                    }
+                    
+                    // Clear all notifications locally first for immediate UI feedback
+                    setNotificationsLocal([]);
+                    
+                    // Call API to clear all notifications
+                    console.log('Calling ClearAllNotifications API for all notifications');
+                    await notificationsApi.clearAllNotifications(identifier, userId);
+                    console.log('All notifications cleared successfully');
+                    
+                    // Refresh the full notification list to ensure badge count is accurate
+                    setTimeout(() => {
+                      fetchNotifications();
+                    }, 100);
+                  } catch (error) {
+                    console.error('Error clearing all notifications:', error);
+                    // Refresh notifications on error to get correct state
+                    fetchNotifications();
+                  }
+                }}
+                onRefresh={fetchNotifications}
+              />
 
               <Tooltip 
                 componentsProps={{
@@ -1354,7 +1448,8 @@ export default function ResponsiveDashboardLayout({
         )}
       </AnimatePresence>
 
-      {/* Notifications */}
+      {/* System Notifications - Disabled to prevent auto-showing notifications from API */}
+      {/* 
       {ui.notifications.map((notification: any) => (
         <Snackbar
           key={notification.id}
@@ -1378,6 +1473,7 @@ export default function ResponsiveDashboardLayout({
           </Alert>
         </Snackbar>
       ))}
+      */}
 
       {/* Hidden Theme Selector for programmatic access */}
       <Box sx={{ position: 'absolute', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}>

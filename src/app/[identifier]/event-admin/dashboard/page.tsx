@@ -76,6 +76,7 @@ import { setIdentifier } from "@/store/slices/appSlice";
 import { color } from 'framer-motion';
 import { Send } from '@mui/icons-material';
 import Face6OutlinedIcon from '@mui/icons-material/Face6Outlined';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 
 export default function EventAdminDashboard() {
   const params = useParams();
@@ -177,7 +178,7 @@ export default function EventAdminDashboard() {
         setEventDetails(eventData);
         console.log('✅ Event details loaded successfully:', eventData);
       } else {
-        console.warn('⚠️ No event details found:', response);
+        console.warn('Welcome! Your event details will be appear here.', response);
       }
     } catch (error: any) {
       console.error('❌ Error loading event details:', {
@@ -881,7 +882,7 @@ export default function EventAdminDashboard() {
                           borderRadius: 2,
                           mr: 2
                         }}>
-                          <Schedule sx={{ color: '#2196F3', fontSize: 20 }} />
+                          <CalendarMonthOutlinedIcon sx={{ color: '#2196F3', fontSize: 20 }} />
                         </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight={600}>
@@ -905,7 +906,7 @@ export default function EventAdminDashboard() {
                           borderRadius: 2,
                           mr: 2
                         }}>
-                          <Schedule sx={{ color: '#2196F3', fontSize: 20 }} />
+                          <CalendarMonthOutlinedIcon sx={{ color: '#2196F3', fontSize: 20 }} />
                         </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight={600}>

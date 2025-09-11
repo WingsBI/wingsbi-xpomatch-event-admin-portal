@@ -2921,9 +2921,38 @@ export default function MeetingsPage() {
                             return (
                               <Chip
                                 label={label}
-                                color={color}
                                 size="small"
-                                sx={{ ml: 1 }}
+                                sx={{ 
+                                  ml: 1,
+                                  ...(color === 'error' && {
+                                    bgcolor: 'error.light',
+                                    color: 'error.contrastText',
+                                    '& .MuiChip-label': {
+                                      color: 'error.contrastText'
+                                    }
+                                  }),
+                                  ...(color === 'warning' && {
+                                    bgcolor: 'warning.light',
+                                    color: 'warning.contrastText',
+                                    '& .MuiChip-label': {
+                                      color: 'warning.contrastText'
+                                    }
+                                  }),
+                                  ...(color === 'info' && {
+                                    bgcolor: 'info.light',
+                                    color: 'info.contrastText',
+                                    '& .MuiChip-label': {
+                                      color: 'info.contrastText'
+                                    }
+                                  }),
+                                  ...(color === 'success' && {
+                                    bgcolor: 'success.light',
+                                    color: 'success.contrastText',
+                                    '& .MuiChip-label': {
+                                      color: 'success.contrastText'
+                                    }
+                                  })
+                                }}
                               />
                             );
                           })()}
@@ -3215,7 +3244,7 @@ export default function MeetingsPage() {
         <Dialog 
           open={showRescheduleDialog} 
           onClose={handleCloseRescheduleDialog}
-          maxWidth="md" 
+          maxWidth="sm" 
           fullWidth
           disableEscapeKeyDown={false}
           PaperProps={{
@@ -3232,7 +3261,7 @@ export default function MeetingsPage() {
                 left: 0,
                 right: 0,
                 height: '4px',
-                background: 'linear-gradient(90deg, #1976d2, #42a5f5, #90caf9)',
+                background: 'primary.main',
               }
             }
           }}
@@ -3245,7 +3274,7 @@ export default function MeetingsPage() {
             borderBottom: '1px solid',
             borderColor: 'divider',
             p: 3,
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            background: 'primary.main'
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box
@@ -3256,19 +3285,18 @@ export default function MeetingsPage() {
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                  background: 'primary.main',
                   boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)'
                 }}
               >
-                <ScheduleSend sx={{ color: 'white', fontSize: 20 }} />
+                <ScheduleSend sx={{ color: 'secondary.main', fontSize: 20 }} />
               </Box>
               <Box>
                 <Typography variant="h5" sx={{ 
                   fontWeight: 700,
-                  background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  
+                  color: 'secondary.main',
+                 
                   mb: 0.5
                 }}>
                   Reschedule Meeting
@@ -3295,11 +3323,11 @@ export default function MeetingsPage() {
           
           <DialogContent sx={{ p: 3 }}>
             {selectedMeetingForReschedule && (
-              <Box sx={{ mb: 3 }}>
+              <Box sx={{ mb: -1 ,mt: 3}}>
                 <Grid container spacing={3}>
                   {/* Meeting Organizer Section */}
                   <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1 }}>
                       <Box
                         sx={{
                           width: 40,
@@ -3308,7 +3336,7 @@ export default function MeetingsPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+                          backgroundColor: theme.palette.secondary.main,
                           color: 'white',
                           flexShrink: 0
                         }}
@@ -3328,7 +3356,7 @@ export default function MeetingsPage() {
 
                   {/* Title Field */}
                   <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: -1, mt: -3 }}>
                       <Box
                         sx={{
                           width: 24,
@@ -3428,7 +3456,7 @@ export default function MeetingsPage() {
                     </Box>
                   </Grid>
 
-                  <Divider sx={{ mt: 1, mb: 1 }} />
+
 
                   {/* Date and Time Section */}
                   <Grid item xs={12}>
@@ -3452,7 +3480,11 @@ export default function MeetingsPage() {
                       <Box sx={{ flex: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                           {/* Date Field */}
-                          <TextField
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>
+                              Date
+                            </Typography>
+                            <TextField
                             value={rescheduleForm.meetingDate ? new Date(rescheduleForm.meetingDate).toLocaleDateString('en-US', { 
                               month: 'numeric',
                               day: 'numeric',
@@ -3496,6 +3528,7 @@ export default function MeetingsPage() {
                               },
                             }}
                           />
+                          </Box>
                           
                           {/* Calendar Popup */}
                           <Popover
@@ -3750,8 +3783,12 @@ export default function MeetingsPage() {
                           </Popover>
 
                           {/* Start Time Field */}
-                          <FormControl error={!!rescheduleFormErrors.startTime} disabled={isRescheduling}>
-                            <Select
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>
+                              Start time
+                            </Typography>
+                            <FormControl error={!!rescheduleFormErrors.startTime} disabled={isRescheduling}>
+                              <Select
                               value={rescheduleForm.startTime}
                               onChange={(e) => handleRescheduleFormChange('startTime', e.target.value)}
                               displayEmpty
@@ -3805,12 +3842,17 @@ export default function MeetingsPage() {
                                 
                                 return timeSlots;
                               })()}
-                            </Select>
-                          </FormControl>
+                              </Select>
+                            </FormControl>
+                          </Box>
 
                           {/* End Time Field */}
-                          <FormControl error={!!rescheduleFormErrors.endTime} disabled={isRescheduling}>
-                            <Select
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>
+                              End time
+                            </Typography>
+                            <FormControl error={!!rescheduleFormErrors.endTime} disabled={isRescheduling}>
+                              <Select
                               value={rescheduleForm.endTime}
                               onChange={(e) => handleRescheduleFormChange('endTime', e.target.value)}
                               displayEmpty
@@ -3856,15 +3898,16 @@ export default function MeetingsPage() {
                                   );
                                 });
                               })()}
-                            </Select>
-                          </FormControl>
+                              </Select>
+                            </FormControl>
+                          </Box>
                         </Box>
                       </Box>
                     </Box>
                   </Grid>
 
                   {/* Description Field */}
-                  <Grid item xs={12}>
+                  {/* <Grid item xs={12}>
                     <TextField
                       fullWidth
                       multiline
@@ -3890,9 +3933,9 @@ export default function MeetingsPage() {
                         },
                       }}
                     />
-                  </Grid>
+                  </Grid> */}
 
-                  <Divider sx={{ mt: 1, mb: 1 }} />
+
                 </Grid>
               </Box>
             )}
@@ -3968,6 +4011,7 @@ export default function MeetingsPage() {
             sx: {
               maxHeight: '80vh',
               '& .MuiDialogContent-root': {
+                
                 p: 3
               }
             }

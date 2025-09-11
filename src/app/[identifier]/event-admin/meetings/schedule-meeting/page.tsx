@@ -134,6 +134,59 @@ export default function ScheduleMeetingPage() {
   const [eventDetails, setEventDetails] = useState<any>(null);
   const [datePickerAnchorEl, setDatePickerAnchorEl] = useState<HTMLElement | null>(null);
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+  const [selectionMessage, setSelectionMessage] = useState<string>('');
+  const [attendeeType, setAttendeeType] = useState<'visitor' | 'exhibitor' | ''>('');
+
+  // Helper functions to check selection types
+  const hasVisitorSelected = () => {
+    return meetingForm.attendiesId.some(id => visitors.some(v => v.id === id));
+  };
+
+  const hasExhibitorSelected = () => {
+    return meetingForm.attendiesId.some(id => exhibitors.some(e => e.id === id));
+  };
+
+  const getSelectedExhibitorCount = () => {
+    return meetingForm.attendiesId.filter(id => exhibitors.some(e => e.id === id)).length;
+  };
+
+  const getSelectedVisitorCount = () => {
+    return meetingForm.attendiesId.filter(id => visitors.some(v => v.id === id)).length;
+  };
+
+  // Select All and Unselect All functions
+  const handleSelectAllVisitors = () => {
+    const filteredVisitors = getFilteredVisitors();
+    const visitorIds = filteredVisitors.map(v => v.id);
+    const otherAttendeeIds = meetingForm.attendiesId.filter(id => !visitors.some(v => v.id === id));
+    handleFormChange('attendiesId', [...otherAttendeeIds, ...visitorIds]);
+  };
+
+  const handleUnselectAllVisitors = () => {
+    const otherAttendeeIds = meetingForm.attendiesId.filter(id => !visitors.some(v => v.id === id));
+    handleFormChange('attendiesId', otherAttendeeIds);
+  };
+
+  // Handle attendee type selection
+  const handleAttendeeTypeChange = (type: 'visitor' | 'exhibitor' | '') => {
+    setAttendeeType(type);
+    setSearchQuery(''); // Clear search when switching types
+    
+    // Clear existing selections when switching types
+    if (type === 'visitor') {
+      // Clear exhibitor selections when switching to visitors
+      const visitorIds = meetingForm.attendiesId.filter(id => visitors.some(v => v.id === id));
+      handleFormChange('attendiesId', visitorIds);
+    } else if (type === 'exhibitor') {
+      // Clear visitor selections when switching to exhibitors
+      const exhibitorIds = meetingForm.attendiesId.filter(id => exhibitors.some(e => e.id === id));
+      handleFormChange('attendiesId', exhibitorIds);
+    } else {
+      // Clear all selections when no type is selected
+      handleFormChange('attendiesId', []);
+    }
+  };
+
 
   const getSelectedAttendeesDisplay = () => {
     const names: string[] = [];
@@ -772,6 +825,28 @@ export default function ScheduleMeetingPage() {
   const handleFormChange = (field: keyof MeetingFormData, value: string | number | number[]) => {
     console.log('🔍 handleFormChange called:', field, value, 'Type:', typeof value);
     
+    // Handle attendee selection with new logic
+    if (field === 'attendiesId' && Array.isArray(value)) {
+      const newAttendeeIds = value;
+      const currentAttendeeIds = meetingForm.attendiesId;
+      
+      // Find what was just added
+      const addedIds = newAttendeeIds.filter(id => !currentAttendeeIds.includes(id));
+      
+      if (addedIds.length > 0) {
+        const addedId = addedIds[0]; // Get the first added ID
+        
+        // Check if it's an exhibitor and already have one selected
+        const isExhibitor = exhibitors.some(e => e.id === addedId);
+        
+        if (isExhibitor && getSelectedExhibitorCount() >= 1) {
+          setSelectionMessage('You can select only one exhibitor');
+          setTimeout(() => setSelectionMessage(''), 3000);
+          return; // Don't update the form
+        }
+      }
+    }
+    
     setMeetingForm(prev => ({
       ...prev,
       [field]: value
@@ -944,16 +1019,25 @@ export default function ScheduleMeetingPage() {
       // Call the createMeeting API
       const response = await apiService.createMeeting(identifier, meetingData);
       if (response.success) {
+        // Format time to 12-hour format
+        const formatTimeTo12Hour = (time24: string) => {
+          const [hours, minutes] = time24.split(':').map(Number);
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+          return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+        };
+        
         // Show success notification
         dispatch(addNotification({
           type: 'success',
-          message: `Meeting Scheduled Successfully! Your meeting "${meetingForm.agenda}" has been scheduled for ${meetingForm.meetingDate} at ${meetingForm.startTime}.`
+          message: `Meeting Scheduled Successfully! Your meeting "${meetingForm.agenda}" has been scheduled for ${meetingForm.meetingDate} at ${formatTimeTo12Hour(meetingForm.startTime)}.`
         }));
         
         // Show confirmation dialog with meeting details
+        
         setConfirmationDetails({
           date: meetingForm.meetingDate,
-          time: `${meetingForm.startTime} - ${meetingForm.endTime}`,
+          time: `${formatTimeTo12Hour(meetingForm.startTime)} - ${formatTimeTo12Hour(meetingForm.endTime)}`,
         });
         setShowConfirmation(true);
         setOpenDialog(false); // Hide the main dialog
@@ -970,8 +1054,8 @@ export default function ScheduleMeetingPage() {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    // Navigate back to meetings page with refresh parameter
-    router.push(`/${identifier}/event-admin/meetings?refresh=true`);
+    // Navigate back to previous page
+    router.back();
   };
 
   // Calendar navigation functions
@@ -1204,6 +1288,15 @@ export default function ScheduleMeetingPage() {
                 onClick={(e) => {
                   setAttendeeAnchorEl(e.currentTarget);
                   setShowAttendeesPopover(true);
+                  
+                  // Auto-detect attendee type based on existing selections
+                  if (hasVisitorSelected()) {
+                    setAttendeeType('visitor');
+                  } else if (hasExhibitorSelected()) {
+                    setAttendeeType('exhibitor');
+                  } else {
+                    setAttendeeType('');
+                  }
                 }}
                 value={getSelectedAttendeesDisplay()}
                 InputProps={{
@@ -1235,6 +1328,8 @@ export default function ScheduleMeetingPage() {
                 onClose={() => {
                   setShowAttendeesPopover(false);
                   setAttendeeAnchorEl(null);
+                  setAttendeeType('');
+                  setSearchQuery('');
                 }}
                 anchorEl={attendeeAnchorEl}
                 anchorOrigin={{
@@ -1273,6 +1368,8 @@ export default function ScheduleMeetingPage() {
                       onClick={() => {
                         setShowAttendeesPopover(false);
                         setAttendeeAnchorEl(null);
+                        setAttendeeType('');
+                        setSearchQuery('');
                       }}
                       sx={{ 
                         minWidth: 70, 
@@ -1287,7 +1384,7 @@ export default function ScheduleMeetingPage() {
                   </Box>
 
                   {/* Search Bar */}
-                  <Box sx={{ mb: 3, flexShrink: 0 }}>
+                  <Box sx={{ mb: 2, flexShrink: 0 }}>
                     <TextField
                       fullWidth
                       placeholder="Search attendees by name, company, or job title..."
@@ -1295,9 +1392,10 @@ export default function ScheduleMeetingPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       variant="outlined"
                       size="small"
+                      disabled={!attendeeType}
                       InputProps={{
                         startAdornment: (
-                          <Person sx={{ mr: 1, color: 'text.secondary' }} />
+                          <Person sx={{ mr: 1, color: attendeeType ? 'text.secondary' : 'text.disabled' }} />
                         ),
                       }}
                       sx={{
@@ -1307,17 +1405,80 @@ export default function ScheduleMeetingPage() {
                       }}
                     />
                   </Box>
+
+                  {/* Attendee Type Selection */}
+                  <Box sx={{ mb: 2, flexShrink: 0 }}>
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={attendeeType}
+                        onChange={(e) => handleAttendeeTypeChange(e.target.value as 'visitor' | 'exhibitor' | '')}
+                        displayEmpty
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                          },
+                        }}
+                      >
+                        <MenuItem value="" disabled>
+                          Select attendee type
+                        </MenuItem>
+                        <MenuItem value="visitor">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Person sx={{ fontSize: 16, color: 'info.main' }} />
+                            <Typography variant="body2">Visitors</Typography>
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="exhibitor">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Business sx={{ fontSize: 16, color: 'success.main' }} />
+                            <Typography variant="body2">Exhibitors</Typography>
+                          </Box>
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  {/* Selection Message */}
+                  {selectionMessage && (
+                    <Alert severity="warning" sx={{ mb: 2, fontSize: '0.875rem' }}>
+                      {selectionMessage}
+                    </Alert>
+                  )}
                   
                   {/* Scrollable attendee lists container */}
                   <Box sx={{ flex: 1, overflow: 'auto', pr: 1 }}>
                   
-                  {/* Visitor Selection - Show for exhibitors, event admins, and visitors */}
-                  {(currentUserRole === 'exhibitor' || currentUserRole === 'event-admin') && (
+                  {/* No type selected message */}
+                  {!attendeeType && (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      py: 6,
+                      textAlign: 'center'
+                    }}>
+                      <Person sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
+                      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                        Select Attendee Type
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Choose "Visitors" or "Exhibitors" from the dropdown above to start selecting attendees
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled" sx={{ mt: 1 }}>
+                        Search will be enabled after selecting a type
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  {/* Visitor Selection - Show when visitor type is selected */}
+                  {attendeeType === 'visitor' && (currentUserRole === 'exhibitor' || currentUserRole === 'event-admin') && (
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: 0.75, 
+                        justifyContent: 'space-between',
                         mb: 1.5,
                         p: 1,
                         borderRadius: 1,
@@ -1325,10 +1486,50 @@ export default function ScheduleMeetingPage() {
                         border: '1px solid',
                         borderColor: 'info.200'
                       }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                         <Person sx={{ color: 'info.main', fontSize: 16 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.875rem' }}>
+                          <Typography variant="body2" sx={{ 
+                            fontWeight: 600, 
+                            color: 'info.main', 
+                            fontSize: '0.875rem' 
+                          }}>
                           Visitors ({getFilteredVisitors().length} available)
                         </Typography>
+                        </Box>
+                        {getFilteredVisitors().length > 0 && (
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={handleSelectAllVisitors}
+                              disabled={getSelectedVisitorCount() === getFilteredVisitors().length}
+                              sx={{ 
+                                fontSize: '0.75rem', 
+                                minWidth: 'auto', 
+                                px: 1.5,
+                                py: 0.5,
+                                textTransform: 'none'
+                              }}
+                            >
+                              Select All
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={handleUnselectAllVisitors}
+                              disabled={getSelectedVisitorCount() === 0}
+                              sx={{ 
+                                fontSize: '0.75rem', 
+                                minWidth: 'auto', 
+                                px: 1.5,
+                                py: 0.5,
+                                textTransform: 'none'
+                              }}
+                            >
+                              Unselect All
+                            </Button>
+                          </Box>
+                        )}
                       </Box>
                       {!loading && getFilteredVisitors().length > 0 ? (
                         <Box sx={{ 
@@ -1457,13 +1658,13 @@ export default function ScheduleMeetingPage() {
                     </Box>
                   )}
 
-                  {/* Exhibitor Selection - Show for visitors, event admins, and exhibitors */}
-                  {(currentUserRole === 'visitor' || currentUserRole === 'event-admin' || currentUserRole === 'exhibitor') && (
+                  {/* Exhibitor Selection - Show when exhibitor type is selected */}
+                  {attendeeType === 'exhibitor' && (currentUserRole === 'visitor' || currentUserRole === 'event-admin' || currentUserRole === 'exhibitor') && (
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: 0.75, 
+                        justifyContent: 'space-between',
                         mb: 1.5,
                         p: 1,
                         borderRadius: 1,
@@ -1471,10 +1672,16 @@ export default function ScheduleMeetingPage() {
                         border: '1px solid',
                         borderColor: 'success.200'
                       }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                         <Business sx={{ color: 'success.main', fontSize: 16 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.875rem' }}>
-                          Exhibitors ({getFilteredExhibitors().length} available)
+                          <Typography variant="body2" sx={{ 
+                            fontWeight: 600, 
+                            color: 'success.main', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Exhibitors ({getFilteredExhibitors().length} available) - Select only one
                         </Typography>
+                        </Box>
                       </Box>
                       {!loading && getFilteredExhibitors().length > 0 ? (
                         <Box sx={{ 
@@ -1502,6 +1709,12 @@ export default function ScheduleMeetingPage() {
                               if (isSelected) {
                                           handleFormChange('attendiesId', meetingForm.attendiesId.filter(id => id !== exhibitor.id));
                               } else {
+                                // Check if already have an exhibitor selected
+                                if (getSelectedExhibitorCount() >= 1) {
+                                  setSelectionMessage('You can select only one exhibitor');
+                                  setTimeout(() => setSelectionMessage(''), 3000);
+                                  return;
+                                }
                                           handleFormChange('attendiesId', [...meetingForm.attendiesId, exhibitor.id]);
                               }
                             }}

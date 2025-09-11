@@ -265,7 +265,7 @@ export default function RecommendationWeightDialog({
                     <TableHead>
                       <TableRow>
                         <TableCell><strong>Interaction Type</strong></TableCell>
-                        <TableCell align="center"><strong>Weight</strong></TableCell>
+                        <TableCell align="center"><strong>Score</strong></TableCell>
                         
                       </TableRow>
                     </TableHead>

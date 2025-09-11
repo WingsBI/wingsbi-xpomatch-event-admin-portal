@@ -114,7 +114,7 @@ export default function EventAdminDashboard() {
     },
     {
       title: 'Exhibitors',
-      path: `/${identifier}/event-admin/exhibitors`,
+      path: `/${identifier}/exhibitors`,
       description: 'Manage exhibitors'
     },
     {
@@ -124,7 +124,7 @@ export default function EventAdminDashboard() {
     },
     {
       title: 'Visitors',
-      path: `/${identifier}/event-admin/visitors`,
+      path: `/${identifier}/visitors`,
       description: 'Manage visitors'
     },
     {
@@ -554,12 +554,12 @@ export default function EventAdminDashboard() {
 
   const getEventLocation = () => {
     if (!eventDetails?.locationDetails || eventDetails.locationDetails.length === 0) {
-      return 'Milan, Italy';
+      return 'Unknown Location';
     }
     
     const location = eventDetails.locationDetails[0];
     const parts = [location.cityName, location.stateName, location.countryName].filter(Boolean);
-    return parts.join(', ') || location.venueName || 'Milan, Italy';
+    return parts.join(', ') || location.venueName || 'Unknown Location';
   };
 
   const getEventTitle = () => {
@@ -569,13 +569,13 @@ export default function EventAdminDashboard() {
   };
 
   const getEventSubtitle = () => {
-    if (!eventDetails?.categoryName) return 'EXHIBITION & CONFERENCE';
+    if (!eventDetails?.categoryName) return 'Unknown Category';
     return eventDetails.categoryName.toUpperCase();
   };
 
   const getEventDateRange = () => {
     if (!eventDetails?.startDateTime || !eventDetails?.endDateTime) {
-      return '9-12 SEPTEMBER 2025 | FIERA MILANO • MILAN';
+      return 'Unknown Date';
     }
     
     try {
@@ -588,12 +588,12 @@ export default function EventAdminDashboard() {
       const month = istStartDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
       const year = istStartDate.getFullYear();
       
-      const venue = eventDetails.locationDetails?.[0]?.venueName || 'FIERA MILANO';
+      const venue = eventDetails.locationDetails?.[0]?.venueName || 'Unknown Venue';
       const location = getEventLocation();
       
       return `${startDay}-${endDay} ${month} ${year} | ${venue} • ${location}`;
     } catch (error) {
-      return '9-12 SEPTEMBER 2025 | FIERA MILANO • MILAN';
+      return 'Unknown Date';
     }
   };
 

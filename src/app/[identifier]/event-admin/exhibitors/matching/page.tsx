@@ -508,6 +508,7 @@ const FullPageLoader = () => (
                     variant="outlined"
                     startIcon={<ArrowBack />}
                     onClick={() => router.back()}
+                    sx={{color:'white'}}
                   >
                     Back
                   </Button>
@@ -736,6 +737,7 @@ const FullPageLoader = () => (
                 startIcon={<ArrowBack />}
                 onClick={() => router.back()}
                 size="small"
+                sx={{color:'white'}}
               >
                 Back
               </Button>
@@ -753,6 +755,7 @@ const FullPageLoader = () => (
                 startIcon={<Upload />}
                 onClick={() => setUploadDialogOpen(true)}
                 size="small"
+                sx={{color:'white'}}
               >
                 Upload New File
               </Button>
@@ -761,6 +764,7 @@ const FullPageLoader = () => (
                 startIcon={<Refresh />}
                 onClick={handleReset}
                 size="small"
+                sx={{color:'white'}}
               >
                 Reset
               </Button>

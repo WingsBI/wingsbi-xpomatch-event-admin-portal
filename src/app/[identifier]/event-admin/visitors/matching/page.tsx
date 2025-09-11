@@ -508,9 +508,10 @@ export default function VisitorsMatchingPage() {
               <Box display="flex" flexDirection="column" gap={1}>
                 <Box display="flex" alignItems="center" gap={2}>
                   <Button
-                    variant="outlined"
+                    variant="outlined" 
                     startIcon={<ArrowBack />}
                     onClick={() => router.back()}
+                    sx={{color:'white'}}
                   >
                     Back
                   </Button>
@@ -726,6 +727,7 @@ export default function VisitorsMatchingPage() {
                 startIcon={<ArrowBack />}
                 onClick={() => router.back()}
                 size="small"
+                sx={{color:'white'}}
               >
                 Back
               </Button>
@@ -741,6 +743,7 @@ export default function VisitorsMatchingPage() {
                 startIcon={<Upload />}
                 onClick={() => setUploadDialogOpen(true)}
                 size="small"
+                sx={{color:'white'}}
               >
                 Upload New File
               </Button>
@@ -749,6 +752,7 @@ export default function VisitorsMatchingPage() {
                 startIcon={<Refresh />}
                 onClick={handleReset}
                 size="small"
+                sx={{color:'white'}}
               >
                 Reset
               </Button>

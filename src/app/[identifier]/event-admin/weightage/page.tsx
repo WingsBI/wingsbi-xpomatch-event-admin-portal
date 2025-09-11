@@ -267,7 +267,7 @@ export default function WeightagePage() {
         const newWeightages: any = {};
         response.result.forEach((config: VisitorInteractionConfig) => {
           // Convert float weight to integer percentage
-          const weightPercentage = Math.round((config.weight || 0) * 100);
+          const weightPercentage = Math.round(config.weight || 0);
           
           // Map field names to our state keys
           switch (config.fieldName.toLowerCase()) {
@@ -398,8 +398,10 @@ export default function WeightagePage() {
 
   // Handle weightage change
   const handleWeightageChange = (id: number, value: number) => {
+    // Ensure value is a valid number between 0 and 100
+    const validValue = isNaN(value) ? 0 : Math.max(0, Math.min(100, value));
     setConfigs(prev => prev.map(config => 
-      config.id === id ? { ...config, weight: value } : config
+      config.id === id ? { ...config, weight: validValue } : config
     ));
   };
 
@@ -1167,7 +1169,7 @@ export default function WeightagePage() {
                       color="secondary"
                       startIcon={<Undo />}
                       onClick={handleRevertMixed}
-                      sx={{ ml: 1 }}
+                      sx={{ ml: 1,color:'white' }}
                     >
                       Revert
                     </Button>
@@ -1365,8 +1367,11 @@ export default function WeightagePage() {
                         type="number"
                         size="small"
                         fullWidth
-                        value={config.weight || ''}
-                        onChange={(e) => handleWeightageChange(config.id, Number(e.target.value) || 0)}
+                        value={config.weight ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? 0 : Number(e.target.value);
+                          handleWeightageChange(config.id, value);
+                        }}
                         inputProps={{ min: 0, max: 100, step: 1 }}
                         sx={{ 
                           mt: 0.5,
@@ -1403,7 +1408,7 @@ export default function WeightagePage() {
                 <TextField
                   type="number"
                   size="small"
-                  value={getTotalWeightage() || ''}
+                  value={getTotalWeightage() ?? ''}
                   InputProps={{ readOnly: true }}
                   sx={{
                     width: 100,
@@ -1609,8 +1614,11 @@ export default function WeightagePage() {
                          type="number"
                          size="small"
                          
-                         value={config.weight || ''}
-                         onChange={(e) => handleWeightageChange(config.id, Number(e.target.value) || 0)}
+                         value={config.weight ?? ''}
+                         onChange={(e) => {
+                          const value = e.target.value === '' ? 0 : Number(e.target.value);
+                          handleWeightageChange(config.id, value);
+                        }}
                          inputProps={{ 
                            min: 0, 
                            max: 100,
@@ -1634,7 +1642,7 @@ export default function WeightagePage() {
                      <TextField
                        type="number"
                        size="small"
-                       value={getTotalWeightage() || ''}
+                       value={getTotalWeightage() ?? ''}
                        InputProps={{ readOnly: true }}
                        sx={{
                          '& .MuiOutlinedInput-root': {
@@ -1718,7 +1726,8 @@ export default function WeightagePage() {
                        fontWeight: 500,
                        mt: -1,
                        ml: 1,
-                       minWidth: { xs: '100%', sm: 'auto' }
+                       minWidth: { xs: '100%', sm: 'auto' },
+                       color:'white'
                      }}
                    >
                      Revert
@@ -2082,6 +2091,7 @@ export default function WeightagePage() {
                       fontWeight: 500,
                       mt: -1,
                       ml: 1,
+                      color:'white',
                       minWidth: { xs: '100%', sm: 'auto' }
                     }}
                   >
